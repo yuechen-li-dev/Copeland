@@ -47,6 +47,14 @@ internal static class TinyFarmTerrainEvidence
         WriteSheet(output, "comparison.png", ["00-farm.png", "01-riverside.png"], null);
         WriteSheet(output, "path-edges.png", ["00-farm.png"], new(440, 330, 1440, 1000));
         WriteSheet(output, "riverbank.png", ["01-riverside.png"], new(960, 170, 1430, 960));
+        if (File.Exists(Path.Combine(output, "concept.png")))
+        {
+            WriteComparison(output, "concept-to-native.png",
+                ["before-riverside.png", "concept.png", "multiscale/01-riverside.png"],
+                ["BEFORE / native Vulkan", "TARGET / imagegen concept", "AFTER / native Vulkan"]);
+            WriteComparison(output, "road-before-after.png",
+                ["before-farm.png", "multiscale/00-farm.png"], ["BEFORE / native Vulkan", "AFTER / native Vulkan"]);
+        }
         var report = new
         {
             Passed = disagreements.Count == 0,
@@ -113,6 +121,27 @@ internal static class TinyFarmTerrainEvidence
                 canvas.DrawBitmap(source, crop ?? new SKRect(0, 0, source.Width, source.Height),
                     new SKRect(x, y + 34, x + TileWidth, y + 34 + tileHeight));
             }
+        }
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        using var stream = File.Create(Path.Combine(output, name));
+        data.SaveTo(stream);
+    }
+
+    private static void WriteComparison(string output, string name, string[] paths, string[] labels)
+    {
+        const int Width = 640;
+        const int Height = 360;
+        using var bitmap = new SKBitmap(Width * paths.Length, Height + 36);
+        using var canvas = new SKCanvas(bitmap);
+        canvas.Clear(new SKColor(22, 27, 31));
+        using var font = new SKFont(SKTypeface.Default, 19);
+        using var paint = new SKPaint { Color = SKColors.White, IsAntialias = true };
+        for (int index = 0; index < paths.Length; index++)
+        {
+            using var source = SKBitmap.Decode(Path.Combine(output, paths[index]));
+            canvas.DrawText(labels[index], index * Width + 12, 25, font, paint);
+            canvas.DrawBitmap(source, new SKRect(index * Width, 36, (index + 1) * Width, Height + 36));
         }
         using var image = SKImage.FromBitmap(bitmap);
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);

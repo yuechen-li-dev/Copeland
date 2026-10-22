@@ -1,0 +1,5 @@
+Use case: stylized-concept
+Asset type: isolated transparent square sprite cutout for TinyFarm's painterly farming game.
+Input image: follow the riverside concept's palette, lighting, camera and painted foliage shapes.
+Subject: ONE low natural tuft of short meadow grass and sedge, a few tiny white-and-yellow wildflowers, several arching green blades, asymmetric and airy, broad low silhouette. Used in small clusters where grass encroaches on a footpath or along a riverbank. Warm green-gold palette, subdued yellow-white flowers, soft hand-painted gouache, simple medium shapes readable at 55-90 pixels tall. Same shallow oblique game camera and upper-left daylight. No black outlines.
+Composition: full isolated tuft centered, ground contact at 85% canvas height, about 78% width and 55% height, square 1024x1024. Genuinely transparent RGBA background. No surrounding ground slab, dirt mound, water, rocks, tall cattails, labels, frame, text or painted checkerboard.

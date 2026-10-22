@@ -71,6 +71,7 @@ internal sealed partial class TinyFarmWorldPresenter
             ScenePosition bench = game.Definitions.Scenes.GetAnchor(TinyFarmAnchorIds.EliasRiversideBench).Position;
             AddSlot("riverside-bench", "prop.riverside-bench", bench.XUnits / 1024.0, bench.YUnits / 1024.0 - .05, elapsed);
         }
+        AddLandscapeClutter(frame, elapsed);
         // Canopies outside the walking area frame the scene. They do not invent trunk collision.
         if (frame.ActiveScene == TinyFarmSceneIds.Farm || frame.ActiveScene == TinyFarmSceneIds.Overworld
             || frame.ActiveScene == TinyFarmSceneIds.Riverside)
@@ -92,14 +93,15 @@ internal sealed partial class TinyFarmWorldPresenter
         return artSlots.TryGet(id, out _) ? id : null;
     }
 
-    private void AddSlot(string stableId, string slot, double x, double feetY, TimeSpan elapsed)
+    private void AddSlot(string stableId, string slot, double x, double feetY, TimeSpan elapsed,
+        double size = 1, bool mirror = false)
     {
         if (!artSlots.TryGet(slot, out SpriteAtlasResource resource))
         {
             return;
         }
         worldSpriteScratch.Add(new WorldSprite(new WorldPresentationId(stableId), new WorldPoint2(x, feetY), resource.Id,
-            "0", null, elapsed, false, 1, Native2DTint.White, WorldSpriteLayer.Actors, feetY, false));
+            "0", null, elapsed, mirror, size, Native2DTint.White, WorldSpriteLayer.Actors, feetY, false));
     }
 
     private void PresentSliceGround(NativeLayerFrameContext context, TinyFarmFrame frame, bool cave, bool house)

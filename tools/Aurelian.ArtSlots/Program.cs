@@ -1,7 +1,13 @@
 using Aurelian.Assets.ArtSlots;
 using SkiaSharp;
 
+if (args.Length > 0 && args[0] == "review-sheet")
+{
+    return SpriteSheetReview.Run(args[1..]);
+}
+
 // Usage: dotnet run --project tools/Aurelian.ArtSlots -- <art-slots.json> [--out <directory>] [--scale <n>]
+// Or:    dotnet run --project tools/Aurelian.ArtSlots -- review-sheet <4x4.png> --out <directory>
 // Writes, for the slots in the manifest:
 //   pending.md          the worklist (usage and brief for every slot without final art)
 //   placeholders/*.png  each placeholder rasterized (an img2img or control image to paint over)
@@ -9,6 +15,7 @@ using SkiaSharp;
 if (args.Length < 1)
 {
     Console.Error.WriteLine("usage: Aurelian.ArtSlots <art-slots.json> [--out <directory>] [--scale <n>]");
+    Console.Error.WriteLine("   or: Aurelian.ArtSlots review-sheet <4x4.png> --out <directory>");
     return 2;
 }
 string manifest = args[0];

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    { "kind": "click-action", "text": "start" },
+    { "kind": "wait", "seconds": 0.2 },
+    { "kind": "capture", "path": "00-world-mara.png" },
+    { "kind": "command", "command": "walk mara" },
+    { "kind": "command", "command": "assert tinyfarm.dialogue true" },
+    { "kind": "capture", "path": "01-mara-dialogue.png" },
+    { "kind": "command", "command": "walk finish" },
+    { "kind": "command", "command": "assert tinyfarm.dialogue false" },
+    { "kind": "hold", "keys": ["A"], "seconds": 0.3 },
+    { "kind": "capture", "path": "02-world-after-dialogue.png" }
+  ]
+}

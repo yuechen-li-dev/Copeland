@@ -1,14 +1,19 @@
 using Aurelian.GameWorld2D;
+using Aurelian.Spatial2D;
+using TinyFarm.Core;
 
 namespace TinyFarm.Native;
 
 internal sealed class TinyFarmSliceArt
 {
-    internal static IReadOnlyList<GroundBrushStroke> FarmPathStrokes { get; } =
-    [
-        new([new(4.5, 4.5), new(5.8, 6.8), new(10.5, 7), new(17.5, 6.5)], .58),
-        new([new(8.5, 6.8), new(8.5, 5.5)], .4),
-    ];
+    internal static IReadOnlyList<GroundBrushStroke> FarmPathStrokes { get; } = Strokes(TinyFarmLandscape.FarmRoads);
+    internal static IReadOnlyList<GroundBrushStroke> RiversidePathStrokes { get; } = Strokes(TinyFarmLandscape.RiversideRoads);
+
+    private static GroundBrushStroke[] Strokes(IReadOnlyList<WorldPath> paths)
+    {
+        return paths.Select(path => new GroundBrushStroke(
+            path.Centerline.Select(point => new WorldPoint2(point.X, point.Y)).ToArray(), path.Width / 2)).ToArray();
+    }
 
     public TinyFarmSliceArt()
     {
@@ -27,11 +32,11 @@ internal sealed class TinyFarmSliceArt
             "4186270097e953cabe582ffe3f2bb5ed041d746382f2e0c071dd986580100138",
             SpriteSampling.Linear);
         SlimePoses = GridSpriteSheet.Import(Slime, 4, 1, 50);
-        Mara = TinyFarmM24Assets.LoadResource("tinyfarm-mara-gate-a",
-            Path.Combine(AppContext.BaseDirectory, "Assets/GateA/mara.png"),
-            "e7ccf26813f70bef7fe8a967ccb8840d6a5e3576d02512383887199ee977de3a",
+        Mara = TinyFarmM24Assets.LoadResource("tinyfarm-mara-walk-v1",
+            Path.Combine(AppContext.BaseDirectory, "Assets/characters/mara-v1/walk-sheet.png"),
+            "5c73b1bd16fb25464d70360db42ea8bcbc5eef7df45e60109523d6f2cd8b7f8b",
             SpriteSampling.Linear);
-        MaraPose = GridSpriteSheet.Import(Mara, 1, 1, 64)[0];
+        MaraPoses = GridSpriteSheet.Import(Mara, 4, 4, 64);
         Turnip = TinyFarmM24Assets.LoadResource("tinyfarm-turnip-gate-a",
             Path.Combine(AppContext.BaseDirectory, "Assets/GateA/turnip.png"),
             "93cd63902d684125c3b77979b2d35b8a29482a0687263c94ecb713915c775b2e",
@@ -71,7 +76,7 @@ internal sealed class TinyFarmSliceArt
     public SpriteAtlasResource FarmPath { get; }
     public SpriteAtlasResource WoodPath { get; }
     public SpriteAtlasResource Mara { get; }
-    public SpriteFrameMetadata MaraPose { get; }
+    public IReadOnlyList<SpriteFrameMetadata> MaraPoses { get; }
     public SpriteAtlasResource Slime { get; }
     public IReadOnlyList<SpriteFrameMetadata> SlimePoses { get; }
     public SpriteAtlasResource Gardener { get; }

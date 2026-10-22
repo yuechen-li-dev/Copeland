@@ -83,13 +83,19 @@ qualification walkthrough through ordinary resolver intents.
 
 ## Art
 
-An opt-in [terrain blending experiment](../../docs/research/tinyfarm-terrain-blending-experiment.md) compares the Farm path
-and Riverside bank through native rendering. Run `.\Play-TinyFarm.cmd --terrain multiscale` for the textured treatment;
-`legacy`, `alpha` and `detail` retain comparison controls. The ordinary launch keeps the existing art.
+Mara uses a painted walk sheet and portrait with one shared design. The
+[character sprite workflow](../../docs/research/tinyfarm-character-sprite-workflow.md) includes a Gardener-derived
+blank pose template, exact imagegen prompts, import checks and an animation preview for generating the next character.
+
+The normal launch uses [concept-guided shoreline and roads](../../docs/research/tinyfarm-natural-shoreline.md):
+multiscale ground, a meandering river, curved paths and painted reed/rock/grass clusters. Ground is baked at authoring
+time; water and objects stay live. `--terrain legacy`, `alpha` and `detail` retain ground comparison controls.
+The [first blending experiment](../../docs/research/tinyfarm-terrain-blending-experiment.md) retains its original evidence.
 
 New and unpainted art is declared as [art slots](../../docs/Aurelian/art-slots.md) in
 `TinyFarm/Assets/art/art-slots.json`: SVG placeholders with a usage and a brief each. Right now those are Riverside's
-reeds and mushrooms, rock salt, wild mint, the recipe card, Elias's bench, and Elias's and Sela's walk sheets. To
+mushrooms, rock salt, wild mint, the recipe card, Elias's bench, and Elias's and Sela's walk sheets. Reeds and small
+bank rock/grass clusters now have concept-derived PNGs. To
 paint them, run `dotnet run --project tools/Aurelian.ArtSlots -- Games/TinyFarm/TinyFarm/Assets/art/art-slots.json`
 for the worklist and placeholder images to paint over, then add each final PNG and its hash to the manifest.
 

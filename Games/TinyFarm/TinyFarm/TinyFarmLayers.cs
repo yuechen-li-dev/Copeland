@@ -57,6 +57,7 @@ internal sealed partial class TinyFarmWorldPresenter(
     public double TreeScale { get; set; } = TinyFarmPainterlyPolicy.TreeVisualScale;
     private VulkanOrderedQuadRenderer field = null!;
     private Native2DTextureHandle fieldTexture;
+    private readonly TinyFarmRiverProjection riverProjection = new();
     private long projectedFieldGeneration = -1;
     private NativeSpriteResourceScope spriteResources = null!;
     private readonly SpritePlaybackState playback = new();
@@ -105,8 +106,8 @@ internal sealed partial class TinyFarmWorldPresenter(
         },
         field = new
         {
-            width = game.Host.Session.Field.Definition.Width + FieldPadding * 2,
-            height = game.Host.Session.Field.Definition.Height + FieldPadding * 2,
+            width = TinyFarmRiverProjection.Width,
+            height = TinyFarmRiverProjection.Height,
             sampling = "Linear UNORM"
         },
         SpriteTextureUploads,
@@ -182,18 +183,16 @@ internal sealed partial class TinyFarmWorldPresenter(
         }
         if (terrainMode != TinyFarmTerrainMode.Legacy)
         {
-            SpriteAtlasResource dirt = TinyFarmM24Assets.LoadResource("terrain-study-packed-earth",
-                Path.Combine(AppContext.BaseDirectory, "Assets", "terrain-study", "packed-earth.png"),
-                "1090b984cc3de700b2d4d0c5348f63b4b31bd3d05bbd0bd926d3dccdacfd669f", SpriteSampling.Linear);
-            terrainStudy = new TinyFarmTerrainStudy(terrainMode, m24Assets.Meadow, dirt);
+            SpriteAtlasResource dirt = TinyFarmTerrainBake.LoadDirt(Path.Combine(AppContext.BaseDirectory, "Assets"));
+            terrainStudy = new TinyFarmTerrainStudy(terrainMode, m24Assets.Meadow, dirt,
+                Path.Combine(AppContext.BaseDirectory, "Assets", "shoreline", "ground"));
         }
         foreach (SpriteAtlasResource slot in artSlots.Resources)
         {
             linearTextures.Add(painterlyResources.Resolve(slot));
         }
         byte[] pixels = ProjectFieldPixels(game.Host.Session.Field);
-        TinyFarmFieldDefinition definition = game.Host.Session.Field.Definition;
-        fieldTexture = field.CreateTexture((uint)(definition.Width + FieldPadding * 2), (uint)(definition.Height + FieldPadding * 2), pixels);
+        fieldTexture = field.CreateTexture(TinyFarmRiverProjection.Width, TinyFarmRiverProjection.Height, pixels);
         projectedFieldGeneration = game.Host.Session.Field.ProjectionGeneration;
         FieldTextureUploads++;
         FieldUploadBytes += pixels.Length;
@@ -410,14 +409,10 @@ internal sealed partial class TinyFarmWorldPresenter(
         return camera;
     }
 
-    // One dry cell around the field feathers the bank into the meadow.
-    private const int FieldPadding = 1;
-
     private byte[] ProjectFieldPixels(TinyFarmFieldRuntime runtime)
     {
         long started = Stopwatch.GetTimestamp();
-        byte[] source = runtime.ProjectRgba8();
-        byte[] pixels = TinyFarmBankMask.Pad(source, runtime.Definition.Width, runtime.Definition.Height);
+        byte[] pixels = riverProjection.Project(runtime);
         fieldProjectionTicks += Stopwatch.GetTimestamp() - started;
         return pixels;
     }
@@ -434,24 +429,17 @@ internal sealed partial class TinyFarmWorldPresenter(
             byte[] pixels = ProjectFieldPixels(runtime);
             field.UpdateTexture(
                 fieldTexture,
-                (uint)(runtime.Definition.Width + FieldPadding * 2),
-                (uint)(runtime.Definition.Height + FieldPadding * 2),
+                TinyFarmRiverProjection.Width,
+                TinyFarmRiverProjection.Height,
                 pixels);
             projectedFieldGeneration = runtime.ProjectionGeneration;
             FieldTextureUploads++;
             FieldUploadBytes += pixels.Length;
         }
-        float x = left + ((float)runtime.Definition.Origin.XUnits / ScenePosition.UnitsPerTile * scale);
-        float y = top + ((float)runtime.Definition.Origin.YUnits / ScenePosition.UnitsPerTile * scale);
-        float width = runtime.Definition.Width * runtime.Definition.CellSize
-            / (float)ScenePosition.UnitsPerTile * scale;
-        float height = runtime.Definition.Height * runtime.Definition.CellSize
-            / (float)ScenePosition.UnitsPerTile * scale;
-        float padding = FieldPadding * runtime.Definition.CellSize / (float)ScenePosition.UnitsPerTile * scale;
-        x -= padding;
-        y -= padding;
-        width += padding * 2;
-        height += padding * 2;
+        float x = left + (float)TinyFarmRiverProjection.Left * scale;
+        float y = top + (float)TinyFarmRiverProjection.Top * scale;
+        float width = (float)TinyFarmRiverProjection.WorldWidth * scale;
+        float height = (float)TinyFarmRiverProjection.WorldHeight * scale;
         context.Present(field, pass => pass.SubmitQuad(new NativeQuadSubmission(
             new Native2DRect(x, y, width, height),
             Native2DUvRect.Full,
@@ -513,7 +501,7 @@ internal sealed partial class TinyFarmWorldPresenter(
             if (appearance == TinyFarmAgentSprite.Mara)
             {
                 worldSpriteScratch.Add(new WorldSprite(new WorldPresentationId("actor-" + actor.Id.Value),
-                    new WorldPoint2(x, y), sliceArt.Mara.Id, "full", null, elapsed, false, visualScale,
+                    new WorldPoint2(x, y), sliceArt.Mara.Id, WalkFrame(actor).ToString(), null, elapsed, false, visualScale,
                     Native2DTint.White, WorldSpriteLayer.Actors, y, false));
                 continue;
             }
@@ -610,7 +598,7 @@ internal sealed partial class TinyFarmWorldPresenter(
         }
         if (sprite.AssetId == sliceArt.Mara.Id)
         {
-            return sliceArt.MaraPose;
+            return sliceArt.MaraPoses[int.Parse(sprite.SpriteId, System.Globalization.CultureInfo.InvariantCulture)];
         }
         if (sprite.AssetId == sliceArt.Chest.Id)
         {

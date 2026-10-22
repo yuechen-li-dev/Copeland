@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-22",
+  "generator": "Built-in image_gen; returned model identifier not exposed",
+  "workflow": "Gardener -> generated blank template -> Mara sheet -> stride correction -> wider gutters; sheet + original portrait -> painted portrait",
+  "prompts": "prompts.json",
+  "selected": [
+    {
+      "path": "Games/TinyFarm/TinyFarm/Assets/characters/mara-v1/walk-sheet.png",
+      "sha256": "5c73b1bd16fb25464d70360db42ea8bcbc5eef7df45e60109523d6f2cd8b7f8b"
+    },
+    {
+      "path": "Games/TinyFarm/TinyFarm/Assets/characters/mara-v1/portrait.png",
+      "sha256": "ac55e0807d72338c22491e35c19bce6e4db3ca7f74bc9ff96e6210a6a1b0e0e8"
+    },
+    {
+      "path": "docs/research/assets/tinyfarm-characters/blank-walk-template-v2.png",
+      "sha256": "4b8b44ec35673eeaef73b7721c598dd7daddc19660dc9f93e2ea971550128ac2"
+    }
+  ],
+  "references": [
+    {
+      "path": "Games/TinyFarm/TinyFarm/Assets/GateA/gardener.png",
+      "sha256": "e37877db50de173e9287527fcd0ae055b52bb4122aa8745ab7a48f62e6165b0d"
+    },
+    {
+      "path": "Games/TinyFarm/TinyFarm/Assets/mara-dialogue.png",
+      "sha256": "8efcc47252e276245fff7dc57f5f314281735806d001078862c64be5f5e73f94"
+    }
+  ],
+  "operations": "Artwork generated/edited by image_gen. Repository copies are byte-identical selected outputs. Skia renders QA previews from shared runtime import metadata; ffmpeg encodes the GIF. No hand repainting or atlas pixel repair.",
+  "qualification": {
+    "solutionBuild": "0 warnings, 0 errors",
+    "toolBuild": "0 warnings, 0 errors",
+    "tests": 444,
+    "nativeRenderer": "Vulkan, NVIDIA GeForce RTX 3070, 1920x1080",
+    "nativeScript": "Games/TinyFarm/Playtests/characters-native.json",
+    "nativeSteps": 10,
+    "nativeErrors": 0,
+    "acceptedGeometry": "sheet-review.json",
+    "rejectedGeometry": "rejected-tight-review.json",
+    "limits": "Native captures exercise world idle and dialogue. All 16 cells are inspected in the shared-import preview. Hair/fold/silhouette variation remains; no automatic artistic qualification."
+  }
+}

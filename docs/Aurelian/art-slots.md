@@ -81,3 +81,14 @@ proportions fails `Realize`.
 | `prop.<name>` | Presentation-only props, for example `prop.riverside-bench` |
 
 The presenter looks these ids up as it draws, so adding a slot with a matching id is enough to dress a new object.
+
+## Reviewing generated walk sheets
+
+`Aurelian.ArtSlots review-sheet <4x4.png> --out <directory>` imports a four-direction sheet with the same
+`GridSpriteSheet.Import` used by TinyFarm. It writes a geometry report, all sixteen poses at game size, and four
+animation PNGs for loop inspection. Empty cells, content touching cell boundaries and missing transparency fail the
+geometry gate. Facing, opposite steps and consistent identity need visual review.
+
+The [TinyFarm character workflow](../research/tinyfarm-character-sprite-workflow.md) supplies a generated blank
+template derived from Gardener, the full Mara prompt sequence, commands, a looping preview and native evidence.
+The template guides generation; reviewing the actual imported cells is still necessary before pinning final art.

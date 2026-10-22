@@ -1,0 +1,14 @@
+[
+  {
+    "Scene": "farm",
+    "InputHash": "3591b935cc8d6007e01fc6bec0e38009198c900fc7c7a1ba145fd50b330485b5",
+    "PngHash": "ed3faed04d33f0e2954d4b329ffd8569540db8e3b22b5e104981e84c16e65618",
+    "PixelsHash": "161b6fb9890b185c2ffead3c995ed647b4085769588fc5fd68f6bc975ad39618"
+  },
+  {
+    "Scene": "riverside",
+    "InputHash": "d2cb2904345f6dc4477ef3738c0fc8bf751efefc38df46ff0d3a5bcf0a6e9bd7",
+    "PngHash": "a82d937bc5720e26a01abb454429f4fd1bc8eb3fdd4866b8584e598ef0e4cce0",
+    "PixelsHash": "4db7aeb051380f919e4dcef50ce0cfbb402cae7a549f205247b68ad520e01775"
+  }
+]

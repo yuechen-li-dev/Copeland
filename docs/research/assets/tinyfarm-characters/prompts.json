@@ -1,0 +1,76 @@
+{
+  "mode": "built-in image_gen",
+  "inputPathBase": "repository root; input IDs refer to prior prompt entries",
+  "outputPathBase": "docs/research",
+  "prompts": [
+    {
+      "id": "blank-v1",
+      "inputs": [
+        "Games/TinyFarm/TinyFarm/Assets/GateA/gardener.png"
+      ],
+      "output": "assets/tinyfarm-characters/blank-walk-template-v1.png",
+      "prompt": "Use case: precise-object-edit\nAsset type: reusable BLANK CHARACTER POSE TEMPLATE for 2D game sprite-sheet generation.\nEdit the attached Gardener sprite sheet into a neutral pose/layout reference. Preserve its 4 COLUMN by 4 ROW regular square-cell organization and the same elevated north-up orthographic camera, walking gestures, centered placement and generous separation.\nReplace EVERY character with the SAME blank matte light-gray human mannequin: a simple smooth head, featureless face (tiny nose projection permitted only to distinguish facing), plain torso, arms, hands, legs and feet. No hat, hair, scarf, coat, bag, costume details, gender cues, jewelry, shadows, colors or text. The mannequin is a pose guide that any character can be painted over.\nEXACT layout: sixteen figures total, one in each equal square cell. ROW 1 faces DOWN toward the viewer. ROW 2 faces UP away from viewer. ROW 3 faces LEFT (nose and toes point to the LEFT edge of the image). ROW 4 faces RIGHT (nose and toes point to RIGHT edge). Do not put two right-facing rows.\nColumns show one consistent four-frame walk family: 1 neutral/idle, 2 left foot forward with opposite arm, 3 feet passing/near-neutral, 4 right foot forward with opposite arm. Side views must clearly alternate the forward foot. All have same body size and proportions. Both soles remain within their own cell. In each cell, centered at 50% width, head near 13% height, lowest grounded sole near 87% height. Keep about 13% top and bottom clear margins and at least 18% horizontal clear margins. Simplified game proportions similar to the source, not realistic anatomical diagrams.\nOutput a square transparent RGBA PNG with only the sixteen gray mannequins; no visible grid lines, foot lines, letters, numbers, titles or checkerboard. No source Gardener identity remains."
+    },
+    {
+      "id": "blank-v1-repair-rejected",
+      "inputs": [
+        "blank-v1"
+      ],
+      "output": null,
+      "prompt": "Use case: precise-object-edit\nAsset type: reusable blank 4x4 character sprite layout template.\nEdit this gray mannequin template. Preserve the exact 4x4 equal-cell layout, head/body proportions, size, positions, row directions and camera. Row1 front/down, row2 back/up, row3 LEFT, row4 RIGHT.\nMake only these repairs:\n1. Remove all white edge flecks and floating pixels. Clean gray silhouettes with true transparent background.\n2. Make the fourth pose in EACH row the OPPOSITE walk step from the second pose. The template currently repeats the second pose in column4; fix that. Front/back: swap which leg is extended and which arm swings forward. Side-left row: column2 visible near arm swings BACK toward image RIGHT, near leg swings FORWARD toward image LEFT; column4 visible near arm swings FORWARD toward image LEFT and near leg swings BACK toward image RIGHT. Side-right row: column2 near arm FORWARD toward image RIGHT and near leg BACK toward image LEFT; column4 near arm BACK toward image LEFT and near leg FORWARD toward image RIGHT. Keep torso and head location invariant. Use a slightly darker gray on FAR limbs so opposite foot phases can be distinguished; near limbs light gray.\nNo character identity, clothing, hair, accessories, floor, shadow, visible grid, checkerboard, text, label or watermark. Output sixteen clean matte-gray mannequins only on genuine transparency."
+    },
+    {
+      "id": "mara-from-blank-v1",
+      "inputs": [
+        "blank-v1",
+        "Games/TinyFarm/TinyFarm/Assets/mara-dialogue.png",
+        "Games/TinyFarm/TinyFarm/Assets/GateA/gardener.png"
+      ],
+      "output": "assets/tinyfarm-characters/mara-template-v1-trial.png",
+      "prompt": "Use case: identity-preserve\nAsset type: production 2D game character sprite sheet, 4 columns by 4 rows, transparent RGBA.\nInput images: IMAGE 1 is the blank sixteen-pose layout template and is the PRIMARY SPATIAL AUTHORITY. IMAGE 2 is Mara's canonical identity and clothes. IMAGE 3 is the Gardener sheet for painted game-art STYLE ONLY, not identity.\nDress/replace every gray mannequin in image 1 with the SAME Mara from image 2: young adult farmer woman, copper-auburn hair in a loose practical bun with side wisps, hazel eyes, freckles, muted brick-red kerchief knotted at her left side, olive-green rolled-sleeve shirt, brown full-length bib overalls with small brass buckles, brown work boots. No hat, dress, apron or bag. Translate her identity into charming softly painted gouache miniature game art matching image 3; keep her adult identity legible with a large head and compact body. No pixel-art texture.\nPreserve the template's regular 4x4 grid, elevated orthographic camera, centered positions, identical scale, full-body framing and sixteen figures. Each equal cell contains exactly one figure, never overlap cells. Row 1 faces DOWN toward viewer; row 2 faces UP away; row 3 faces LEFT, nose and toes toward LEFT image edge; row 4 faces RIGHT, nose and toes toward RIGHT edge.\nColumns: 1 idle/feet together; 2 LEFT leg steps forward, right arm forward; 3 passing/feet near together; 4 RIGHT leg steps forward, left arm forward. Correct the template's repeated step pose: columns 2 and 4 must exchange near/far legs and opposite arms visibly, not repeat the same step. Do not change facing across a row. Same head size, hair, clothing and body proportions in every cell. Match overall template size, foot grounding and generous clear margins.\nClean silhouette cutouts on true transparency. Remove ALL template white flecks, halos, scattered pixels, mannequin remnants and shadows. No floor, checkerboard, grid, labels, text, border, watermark or extra objects. Soft directional painting light shared by all figures, no glow. The output is ONLY the finished 4x4 Mara sheet."
+    },
+    {
+      "id": "blank-v2-colored-limbs",
+      "inputs": [
+        "Games/TinyFarm/TinyFarm/Assets/GateA/gardener.png"
+      ],
+      "output": "assets/tinyfarm-characters/blank-walk-template-v2.png",
+      "prompt": "Use case: precise-object-edit\nAsset type: BLANK CHARACTER SPRITE GENERATION TEMPLATE, square 4x4 contact sheet.\nTransform the referenced Gardener sprite sheet into a reusable pose template with NO character identity. Keep the sixteen cell positions, camera, compact head/body proportions and down/up/left/right row order. Replace all characters by blank smooth gray mannequins on a perfectly opaque warm ivory background. No hat, hair, clothes, scarf, face, bag or other identity. This is an ANIMATION GUIDE, with colored limbs to make left/right leg phase unambiguous: mannequin's anatomical LEFT arm and LEFT leg are muted BLUE; anatomical RIGHT arm and RIGHT leg are muted ORANGE. Head and torso remain neutral gray.\nExactly four equal rows and four equal columns:\nrow1 FRONT/DOWN, row2 BACK/UP, row3 profile LEFT, row4 profile RIGHT.\nColumn1 neutral standing. Column2 BLUE leg forward / ORANGE leg back, BLUE arm back / ORANGE arm forward. Column3 passing upright with feet near together. Column4 ORANGE leg forward / BLUE leg back, ORANGE arm back / BLUE arm forward.\nThe second and fourth columns MUST show different color limbs in front, a full opposing stride, not repeated poses. For side rows use clear spread arm swing and near/far overlap so it visibly walks instead of repeating one step.\nClean flat illustrated forms, simple dark outlines, no texture, no specks, no grid or annotations, no shadows, no labels, no checkerboard. All heads same size and centered in cells. Preserve generous gutters. Entire soles visible in every cell. All sixteen figures have exactly one head, two arms, two legs. This image is a pose guide, not final game art."
+    },
+    {
+      "id": "mara-from-blank-v2",
+      "inputs": [
+        "blank-v2-colored-limbs",
+        "Games/TinyFarm/TinyFarm/Assets/mara-dialogue.png",
+        "Games/TinyFarm/TinyFarm/Assets/GateA/gardener.png"
+      ],
+      "output": null,
+      "prompt": "Use case: identity-preserve\nAsset type: finished 4x4 game character walk sprite sheet on true transparency.\nIMAGE 1 is the PRIMARY pose/layout template. IMAGE 2 is Mara's identity/clothing reference. IMAGE 3 is the style reference only.\nReplace all sixteen blank mannequins in image1 with Mara: same auburn loose bun with wisps, hazel eyes and freckles, red side-knotted kerchief, olive green rolled-sleeve shirt, brown bib OVERALLS full-length trouser legs, brass buckles and brown work boots as image2. Softly painted gouache miniature art matching the Gardener in image3. Chibi game proportions but identifiable adult woman. No hat, bag, apron dress, tools or pixel-art.\nFollow image1 positions and EXACT grid, four equal columns and four equal rows. Row1 faces DOWN/front, row2 UP/back, row3 LEFT/profile, row4 RIGHT/profile. Columns idle / left step / passing / right step. Keep all heads/body sizes, positions and margins aligned. Every cell has exactly one full figure.\nThe template blue/orange limbs encode DIFFERENT limbs: preserve their overlap and swing poses, then cover them with normal brown overalls, olive sleeves and natural skin. Never copy blue/orange colors into final art. Column2 and column4 exchange which leg is in front and arm is forward. In side rows the NEAR arm swings in OPPOSITE directions in columns2 and4: never repeat the same side-step pose. Keep heads and torsos facing the same way in each row.\nCompletely remove template ivory background and ALL guide markings/colors, leaving only the finished characters with clean silhouettes, generous transparent cell gutters and consistent grounded soles. No shadow, floor, grid, labels, text, border, checkerboard, speckles or loose pixels. All sixteen sprites share light direction, color and identity. Output square RGBA PNG."
+    },
+    {
+      "id": "mara-opposite-stride-repair",
+      "inputs": [
+        "mara-from-blank-v2"
+      ],
+      "output": "assets/tinyfarm-characters/mara-rejected-tight-gutters.png",
+      "prompt": "Use case: precise-object-edit\nEdit target: this finished Mara 4x4 sprite sheet. Change ONLY the fourth cell (rightmost column) of the TOP TWO rows. Keep all other fourteen figures, positions, style, scale, identity and transparency identical.\nProblem: front-facing row1 column4 and back-facing row2 column4 repeat column2's boot stride. Fix both so the boot on the RIGHT SIDE OF THE IMAGE is now extended forward/lower, and the boot on the LEFT SIDE OF THE IMAGE is bent back/raised. Correspondingly the arm/hand on the LEFT SIDE OF THE IMAGE swings forward and the hand on the RIGHT SIDE OF THE IMAGE swings back. The rightmost front and back walking poses must visibly use the opposite leg from their second-column poses. Do not mirror whole characters: bun, kerchief, clothes stay on their correct sides. Preserve head and torso position, keep grounded sole same baseline and no cropping. All four rows and columns preserved, no extra cells. True transparent background, no text or loose pixels.\nThe left-facing and right-facing rows already work: do not repaint or change them."
+    },
+    {
+      "id": "mara-gutter-repair-selected",
+      "inputs": [
+        "mara-opposite-stride-repair"
+      ],
+      "output": "../../Games/TinyFarm/TinyFarm/Assets/characters/mara-v1/walk-sheet.png",
+      "prompt": "Use case: precise-object-edit\nAsset type: game-ready 4x4 RGBA sprite atlas with STRICT EMPTY GUTTERS.\nEdit this Mara walk sheet. The art and walk poses are good; the figures are TOO TALL and cross the equal row boundaries when sliced into a regular 4x4 grid. Correct ONLY the layout/scale.\nShrink EVERY figure to 72 percent of its current size, keeping its painting and pose intact. Put each smaller full-body figure in the exact center of its own equal square cell of an evenly spaced 4 COLUMN by 4 ROW grid. Cell center positions are x=12.5%,37.5%,62.5%,87.5% of full image width and y=12.5%,37.5%,62.5%,87.5% of full image height. Keep the feet of each row at 82% of EACH CELL height. Every individual figure is at most 68% of cell height including its hair and boots, leaving at least 14% empty transparent margin above AND below it in EVERY cell. Do not fill the available cell area. We intentionally need smaller figures with MUCH MORE empty space; the game scales them at import.\nPreserve all sixteen poses, their row order (front, back, left, right) and column order (idle, step1, passing, step2). Preserve identity, proportions, clothing, hair, colors and lighting. No mirroring/reordering poses. Do not add shadows, reflections, specks, grid lines, text or labels. Only the 16 smaller sprites with generous fully transparent gutters on a square RGBA canvas."
+    },
+    {
+      "id": "mara-portrait-selected",
+      "inputs": [
+        "mara-opposite-stride-repair",
+        "Games/TinyFarm/TinyFarm/Assets/mara-dialogue.png"
+      ],
+      "output": "../../Games/TinyFarm/TinyFarm/Assets/characters/mara-v1/portrait.png",
+      "prompt": "Use case: identity-preserve\nAsset type: transparent square dialogue portrait for TinyFarm.\nReference image1 is the selected finished Mara game sprite sheet: match its identity, painted gouache style and colors exactly. Reference image2 is her original portrait: preserve her recognizable face, auburn hair, freckles, hazel eyes, red kerchief, olive-green shirt and brown overall bib.\nPaint one attractive warm expressive chest-up portrait of Mara, a young adult farm woman, friendly calm smile, slight three-quarter turn toward image RIGHT, gaze toward player. Loose practical copper-auburn bun and face-framing wisps, red kerchief tied at her side, rolled olive sleeves and brown overalls with brass buckles. Same design as the selected sprites, with more facial detail suitable for dialogue. Painterly cozy storybook gouache rendering, soft natural light, warm skin, adult proportions, no pixel art, no harsh outlines or gloss.\nComposition: one bust centered, full hair silhouette fits comfortably in square with 6 percent top/side clear margin, cropped naturally at lower chest along bottom edge. Transparent RGBA background, no floor, shadows, scenery, labels, text, frame, checkerboard or watermark. Keep clean alpha edges. Do not include the sprite sheet or multiple figures."
+    }
+  ]
+}

@@ -16,24 +16,29 @@ public enum TinyFarmTerrainMode
     Multiscale,
 }
 
-/// <summary>Bounded static-material experiment. The river boundary is projected from the session's liquid mask.</summary>
+/// <summary>Static ground composition from the shared authored roads and shoreline, with a checked bake for normal play.</summary>
 internal sealed class TinyFarmTerrainStudy
 {
-    private const int PixelsPerUnit = 48;
-    public const int Padding = 1;
+    public const int PixelsPerUnit = 48;
+    public const int Padding = 4;
     private readonly TinyFarmTerrainMode mode;
-    private readonly MaterialImage meadow;
-    private readonly MaterialImage dirt;
+    private readonly SpriteAtlasResource meadowSource;
+    private readonly SpriteAtlasResource dirtSource;
+    private readonly string? bakedDirectory;
+    private MaterialImage? meadow;
+    private MaterialImage? dirt;
     private readonly Dictionary<SceneId, SpriteAtlasResource> cache = new();
     private byte[]? cachedLiquidMask;
     public double BuildMilliseconds { get; private set; }
     public long CachedBytes { get; private set; }
 
-    public TinyFarmTerrainStudy(TinyFarmTerrainMode mode, SpriteAtlasResource meadow, SpriteAtlasResource dirt)
+    public TinyFarmTerrainStudy(TinyFarmTerrainMode mode, SpriteAtlasResource meadow, SpriteAtlasResource dirt,
+        string? bakedDirectory = null)
     {
         this.mode = mode;
-        this.meadow = new(meadow);
-        this.dirt = new(dirt, maximumDimension: 192);
+        meadowSource = meadow;
+        dirtSource = dirt;
+        this.bakedDirectory = bakedDirectory;
     }
 
     public static bool Supports(SceneId? scene)
@@ -56,14 +61,28 @@ internal sealed class TinyFarmTerrainStudy
         {
             return resource;
         }
+        if (mode == TinyFarmTerrainMode.Multiscale && bakedDirectory is not null)
+        {
+            long loaded = Stopwatch.GetTimestamp();
+            resource = TinyFarmTerrainBake.Read(bakedDirectory, frame, meadowSource, dirtSource);
+            cache.Add(scene, resource);
+            CachedBytes += resource.Rgba8.Length;
+            if (scene == TinyFarmSceneIds.Riverside)
+            {
+                cachedLiquidMask = field.Fluid.LiquidMask.Cells.ToArray();
+            }
+            Console.WriteLine($"TINYFARM_TERRAIN_LOADED scene={scene.Value} ms={Stopwatch.GetElapsedTime(loaded).TotalMilliseconds:F2} bytes={resource.Rgba8.Length} sha256={resource.ContentHash}");
+            return resource;
+        }
         long started = Stopwatch.GetTimestamp();
+        meadow ??= new(meadowSource);
+        dirt ??= new(dirtSource, maximumDimension: 192);
         int width = checked((frame.SceneWidth + Padding * 2) * PixelsPerUnit);
         int height = checked((frame.SceneHeight + Padding * 2) * PixelsPerUnit);
         var ground = new Vector3[width * height];
         var soil = new Vector3[ground.Length];
         float[] coverage = new float[ground.Length];
         bool riverside = frame.ActiveScene == TinyFarmSceneIds.Riverside;
-        var shore = riverside ? new Shoreline(field) : null;
         if (riverside)
         {
             cachedLiquidMask = field.Fluid.LiquidMask.Cells.ToArray();
@@ -95,12 +114,16 @@ internal sealed class TinyFarmTerrainStudy
                 }
                 else
                 {
-                    double distance = shore!.SignedDistance(worldX, worldY);
+                    double distance = TinyFarmLandscape.RiverDistance(worldX, worldY);
                     // Negative is wet. Wet ground becomes a muted riverbed beneath the live water pass.
                     double dryDistance = Math.Max(distance, 0);
                     double shaped = dryDistance + (mode == TinyFarmTerrainMode.Alpha ? 0 : detail);
                     double widthOfEdge = mode == TinyFarmTerrainMode.Alpha ? .34 : .09;
-                    coverage[index] = 1 - Smooth(.55 - widthOfEdge, .55 + widthOfEdge, shaped);
+                    double bankWidth = .38 + .13 * Math.Sin(worldY * 1.6) + .04 * Noise(worldX * 2, worldY * 2);
+                    float bank = 1 - Smooth(bankWidth - widthOfEdge, bankWidth + widthOfEdge, shaped);
+                    double pathDistance = GroundBrushRasterizer.SignedDistance(new(worldX, worldY), TinyFarmSliceArt.RiversidePathStrokes);
+                    float road = 1 - Smooth(-widthOfEdge, widthOfEdge, pathDistance + detail);
+                    coverage[index] = Math.Max(bank, road);
                     float damp = 1 - Smooth(0, .38, dryDistance);
                     Vector3 dampTint = Vector3.Lerp(Vector3.One, new(.48f, .53f, .48f), damp);
                     float bankShadow = 1 - .18f * (1 - Smooth(0, .085, Math.Abs(distance)));
@@ -212,69 +235,4 @@ internal sealed class TinyFarmTerrainStudy
         }
     }
 
-    private sealed class Shoreline
-    {
-        private readonly List<(Vector2 Start, Vector2 End)> edges = [];
-        private readonly TinyFarmFieldDefinition definition;
-        private readonly byte[] wet;
-        private readonly float cell;
-        private readonly Vector2 origin;
-
-        public Shoreline(TinyFarmFieldRuntime field)
-        {
-            definition = field.Definition;
-            wet = field.Fluid.LiquidMask.Cells.ToArray();
-            cell = definition.CellSize / (float)ScenePosition.UnitsPerTile;
-            origin = new(definition.Origin.XUnits / (float)ScenePosition.UnitsPerTile,
-                definition.Origin.YUnits / (float)ScenePosition.UnitsPerTile);
-            bool IsWet(int x, int y) => x >= 0 && y >= 0 && x < definition.Width && y < definition.Height && wet[y * definition.Width + x] != 0;
-            for (int y = 0; y < definition.Height; y++)
-            {
-                for (int x = 0; x < definition.Width; x++)
-                {
-                    if (!IsWet(x, y))
-                    {
-                        continue;
-                    }
-                    Vector2 at = origin + new Vector2(x * cell, y * cell);
-                    if (!IsWet(x - 1, y))
-                    {
-                        edges.Add((at, at + new Vector2(0, cell)));
-                    }
-                    if (!IsWet(x + 1, y))
-                    {
-                        edges.Add((at + new Vector2(cell, 0), at + new Vector2(cell, cell)));
-                    }
-                    if (!IsWet(x, y - 1))
-                    {
-                        edges.Add((at, at + new Vector2(cell, 0)));
-                    }
-                    if (!IsWet(x, y + 1))
-                    {
-                        edges.Add((at + new Vector2(0, cell), at + new Vector2(cell, cell)));
-                    }
-                }
-            }
-            if (edges.Count == 0)
-            {
-                throw new InvalidDataException("The terrain study requires a liquid mask with a boundary.");
-            }
-        }
-
-        public double SignedDistance(double x, double y)
-        {
-            Vector2 point = new((float)x, (float)y);
-            float nearest = float.PositiveInfinity;
-            foreach (var edge in edges)
-            {
-                Vector2 direction = edge.End - edge.Start;
-                float amount = Math.Clamp(Vector2.Dot(point - edge.Start, direction) / direction.LengthSquared(), 0, 1);
-                nearest = Math.Min(nearest, Vector2.DistanceSquared(point, edge.Start + direction * amount));
-            }
-            int column = (int)Math.Floor((x - origin.X) / cell);
-            int row = (int)Math.Floor((y - origin.Y) / cell);
-            bool inside = column >= 0 && row >= 0 && column < definition.Width && row < definition.Height && wet[row * definition.Width + column] != 0;
-            return Math.Sqrt(nearest) * (inside ? -1 : 1);
-        }
-    }
 }

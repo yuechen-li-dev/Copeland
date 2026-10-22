@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using Aurelian.Composition;
 using Aurelian.GameWorld2D;
 using Aurelian.Graphics.Vulkan.Device;
@@ -10,7 +9,7 @@ using TinyFarm.InputMan;
 namespace TinyFarm.Native;
 
 /// <summary>
-/// Mara's dialogue portrait from the supper prototype, drawn beside the dialogue panel while she is speaking. It sits
+/// Mara's painted portrait, matching her world sprite, drawn beside the dialogue panel while she is speaking. It sits
 /// between the world and the HUD so the panel text stays on top.
 /// </summary>
 internal sealed class TinyFarmPortrait(
@@ -21,7 +20,8 @@ internal sealed class TinyFarmPortrait(
     string path,
     Func<TinyFarmPresentationLayout> getLayout) : INativeLayerPresenter
 {
-    private readonly SpriteAtlasResource resource = Load(path);
+    private readonly SpriteAtlasResource resource = TinyFarmM24Assets.LoadResource("mara-portrait-v1", path,
+        "ac55e0807d72338c22491e35c19bce6e4db3ca7f74bc9ff96e6210a6a1b0e0e8", SpriteSampling.Linear);
     private VulkanOrderedQuadRenderer? renderer;
     private NativeSpriteResourceScope? resources;
 
@@ -56,13 +56,5 @@ internal sealed class TinyFarmPortrait(
         renderer?.Dispose();
         resources = null;
         renderer = null;
-    }
-
-    private static SpriteAtlasResource Load(string path)
-    {
-        TinyFarmImage image = TinyFarmImage.Load(path);
-        byte[] rgba = image.ToRgba();
-        return new SpriteAtlasResource(new SpriteAssetId("mara-portrait"), Convert.ToHexStringLower(SHA256.HashData(rgba)),
-            (uint)image.Width, (uint)image.Height, rgba, SpriteSampling.Linear);
     }
 }

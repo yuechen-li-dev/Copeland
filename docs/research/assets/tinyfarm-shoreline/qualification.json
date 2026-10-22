@@ -1,0 +1,119 @@
+{
+  "Outcome": "Success: authored shoreline, concept-derived clutter and normal native play",
+  "Date": "2026-10-22",
+  "Default": "multiscale using baked ground",
+  "NativeGpu": "NVIDIA GeForce RTX 3070",
+  "Extent": "1920x1080",
+  "MaterialMatrix": {
+    "Modes": 4,
+    "StepsEach": 12,
+    "ExactFactComparisonsIncludingBaseline": 3168,
+    "StateAndFieldAgreement": true
+  },
+  "Wading": {
+    "Steps": 17,
+    "Errors": 0,
+    "Wading": true,
+    "MovementDisturbances": true,
+    "Log": "artifacts/local/tinyfarm-shoreline/wading-final/trace.jsonl"
+  },
+  "Tests": {
+    "TinyFarm": 417,
+    "Spatial2D": 27,
+    "Total": 444,
+    "FailuresFinal": 0,
+    "Log": "artifacts/local/tinyfarm-shoreline/live-tests-recheck.log",
+    "Note": "One earlier zero-allocation microtest failed with 1216 bytes; unchanged focused and full reruns passed. Logs retained."
+  },
+  "GroundLoadSingleObservationsMilliseconds": {
+    "Farm": 32.15,
+    "Riverside": 15.86
+  },
+  "DerivedRgbaBytes": 8773632,
+  "MeasurementsExclude": "Total scene loading, GPU frame time, source arrays and GPU copies",
+  "Scope": "Farm and Riverside. Some NPC, forage and chest art remains placeholder; water detail is simpler than concept.",
+  "CapturesAndTraces": [
+    {
+      "Path": "artifacts/local/tinyfarm-shoreline/final-matrix/legacy/00-farm.png",
+      "Sha256": "d7738441ae210f0bd71eb6f94251e9b9637008007024b35cf29d12f40e460f91"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-shoreline/final-matrix/legacy/01-riverside.png",
+      "Sha256": "923dae11f12ecce47e5bdc7599374b0e42c0fa7509735ce031a34694c0211c7e"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-shoreline/final-matrix/legacy/02-bank-moved.png",
+      "Sha256": "0f453c12509102b035b98b546b047f0aaad857ccc44516f5b8c35ca235bf9d4d"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-shoreline/final-matrix/legacy/trace.jsonl",
+      "Sha256": "eba30edfb73489f4c530bcd5d8a5b5601cb0d6a352acf99ad004935014044a85"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-shoreline/final-matrix/legacy/native.log",
+      "Sha256": "114dfedbad41f55247e3f779214d0b0e6c8733a2628a5e955d30c91159012e89"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-shoreline/final-matrix/alpha/00-farm.png",
+      "Sha256": "e081a5ce7ef1667eb37bddc6d00221f76abad1f31c258665a90969d964ae7da5"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-shoreline/final-matrix/alpha/01-riverside.png",
+      "Sha256": "ebc3b1a3b9b6c9b5c333383d9eb9a52abd3bfedf7bd93ea1b24e871036273d06"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-shoreline/final-matrix/alpha/02-bank-moved.png",
+      "Sha256": "97383e54286f0328e0c25c72141f5a8569445210995f1b209d6cb203b17970a9"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-shoreline/final-matrix/alpha/trace.jsonl",
+      "Sha256": "fa90746a4b5ff3dfc036425f08f5b85b3744c9046c0bb5754246483c60359797"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-shoreline/final-matrix/alpha/native.log",
+      "Sha256": "b357a513f717e969df7c70ec1140f67f223c6f02f602157a5b20a0e5e45dd747"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-shoreline/final-matrix/detail/00-farm.png",
+      "Sha256": "465a12b20b116541bdade17ddc1090e04c2cd60738d62cb9a48ba30dfa57d2fd"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-shoreline/final-matrix/detail/01-riverside.png",
+      "Sha256": "3c4562ca5412244ca1afe069918f842c2c677d37a0ad1de5dbbefc6e215b1d39"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-shoreline/final-matrix/detail/02-bank-moved.png",
+      "Sha256": "35c4375fc3038b3234467fd65bec4620563a70940d18b8db899944ba47f4c5b0"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-shoreline/final-matrix/detail/trace.jsonl",
+      "Sha256": "faf53ea74684eb970037b37fa49e51eba118a095c06be5d05cca3c426a6e0fd0"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-shoreline/final-matrix/detail/native.log",
+      "Sha256": "fa99a15a1d8a5193c39abb8076582a18ea6454c6d1737461f5a93c0b4084a42d"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-shoreline/final-matrix/multiscale/00-farm.png",
+      "Sha256": "de29de9796480e25bb35d1372bec30a6e3ab34ae43cfe3052a163b5611d01b36"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-shoreline/final-matrix/multiscale/01-riverside.png",
+      "Sha256": "43614f2c0cc6153a1b54d0df98c885bfb7e295a09987c87a228b7be8be1976e5"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-shoreline/final-matrix/multiscale/02-bank-moved.png",
+      "Sha256": "bbcc76802a3f4e4d6e8d158be4a3af575187670feee1e48b4cd8e0b0d83ce37b"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-shoreline/final-matrix/multiscale/trace.jsonl",
+      "Sha256": "318c063fe56194723e990035ac7b6ea265e244c9a61d9fbf6e8b495eee86b460"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-shoreline/final-matrix/multiscale/native.log",
+      "Sha256": "8247b44fcd16c4476f5f6daa937ef7e3844b7d3f66b883f27dd8b554c66367f6"
+    }
+  ],
+  "Imagegen": "Games/TinyFarm/TinyFarm/Assets/shoreline/provenance.json",
+  "FullEvidence": "artifacts/local/tinyfarm-shoreline"
+}

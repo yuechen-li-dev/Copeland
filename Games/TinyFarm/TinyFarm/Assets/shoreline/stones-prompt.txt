@@ -1,0 +1,5 @@
+Use case: stylized-concept
+Asset type: one isolated transparent square sprite cutout for TinyFarm's painterly riverside.
+Input image: the riverside concept is the sole art direction and palette reference.
+Subject: one small cluster of three rounded weathered river stones: a larger squat gray-ochre stone, a smaller flat stone beside it, and a tiny pebble. Patches of subdued moss on their upper faces, irregular natural silhouettes, readable simple massing, sparse hand-painted gouache marks. Same shallow oblique north-up game camera and warm upper-left daylight as the concept. No huge boulder, shiny crystals or cartoon outlines.
+Composition: cluster centered with its ground contact line at 86% canvas height, fills 80% width and 55% height. Complete silhouette, genuinely transparent RGBA background. No surrounding earth tile, vegetation, flowers, water, ripples, frame, text, labels, or painted checkerboard. Soft contact shadow confined close underneath the stones. Square 1024x1024 composition.

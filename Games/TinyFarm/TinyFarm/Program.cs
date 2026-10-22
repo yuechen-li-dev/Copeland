@@ -2,6 +2,17 @@ using Aurelian.Games;
 using TinyFarm;
 using TinyFarm.Native;
 
+int bakeOption = Array.IndexOf(args, "--bake-terrain");
+if (bakeOption >= 0)
+{
+    if (bakeOption + 1 >= args.Length)
+    {
+        throw new ArgumentException("--bake-terrain requires a ground output directory.");
+    }
+    TinyFarmTerrainBake.Write(Path.Combine(AppContext.BaseDirectory, "Assets"), Path.GetFullPath(args[bakeOption + 1]));
+    return;
+}
+
 int evidenceOption = Array.IndexOf(args, "--terrain-evidence");
 if (evidenceOption >= 0)
 {
@@ -13,7 +24,7 @@ if (evidenceOption >= 0)
     return;
 }
 
-TinyFarmTerrainMode terrain = TinyFarmTerrainMode.Legacy;
+TinyFarmTerrainMode terrain = TinyFarmTerrainMode.Multiscale;
 int terrainOption = Array.IndexOf(args, "--terrain");
 if (terrainOption >= 0)
 {

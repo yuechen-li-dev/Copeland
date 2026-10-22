@@ -67,8 +67,10 @@ public sealed class TinyFarmFieldRuntime
             for (int x = 0; x < definition.Width; x++)
             {
                 int index = (y * definition.Width) + x;
-                bool wet = x > 0 && x < definition.Width - 1
-                    && y > 0 && y < definition.Height - 1;
+                double cell = definition.CellSize / (double)ScenePosition.UnitsPerTile;
+                double worldX = definition.Origin.XUnits / (double)ScenePosition.UnitsPerTile + x * cell;
+                double worldY = definition.Origin.YUnits / (double)ScenePosition.UnitsPerTile + y * cell;
+                bool wet = TinyFarmLandscape.RiverOverlapsCell(worldX, worldY, cell);
                 fluid.LiquidMask.Cells[index] = wet ? (byte)1 : (byte)0;
                 fluid.ConductiveMask.Cells[index] = wet ? (byte)1 : (byte)0;
                 fluid.FlowY.Cells[index] = wet ? 0.025f : 0;
@@ -79,13 +81,18 @@ public sealed class TinyFarmFieldRuntime
 
     public static TinyFarmFieldRuntime Restore(TinyFarmFieldSnapshot snapshot)
     {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        if (snapshot.DefinitionId == "tinyfarm.riverside.stream.v1")
+        {
+            return RestoreRectangularStream(snapshot);
+        }
         ValidateSnapshot(snapshot);
         TinyFarmFieldRuntime runtime = CreateDefault();
         ReactiveFluidSnapshot authored = runtime.Fluid.Snapshot();
         if (!snapshot.Fluid.LiquidMask.SequenceEqual(authored.LiquidMask)
             || !snapshot.Fluid.ConductiveMask.SequenceEqual(authored.ConductiveMask))
         {
-            throw new InvalidDataException("TinyFarm field topology does not match the authored pond recipe.");
+            throw new InvalidDataException("TinyFarm field topology does not match the authored river recipe.");
         }
         runtime.Fluid.RestoreSnapshot(snapshot.Fluid);
         runtime.ChargedWaterCooldownRemaining = snapshot.ChargedWaterCooldownTicks;
@@ -118,7 +125,8 @@ public sealed class TinyFarmFieldRuntime
             && y >= 0
             && x < Definition.Width * Definition.CellSize
             && y < Definition.Height * Definition.CellSize
-            && Fluid.Sample(x, y).Liquid;
+            && TinyFarmLandscape.IsRiver(position.XUnits / (double)ScenePosition.UnitsPerTile,
+                position.YUnits / (double)ScenePosition.UnitsPerTile);
     }
 
     public int ApplyMovement(SceneId scene, ScenePosition from, ScenePosition to)
@@ -311,15 +319,64 @@ public sealed class TinyFarmFieldRuntime
     private static TinyFarmFieldDefinition DefaultDefinition()
     {
         return new TinyFarmFieldDefinition(
-            "tinyfarm.riverside.stream.v1",
+            "tinyfarm.riverside.stream.v2",
             TinyFarmSceneIds.Riverside,
             new ScenePosition(
-                (10 * ScenePosition.UnitsPerTile) - (ScenePosition.UnitsPerTile / 2),
-                -(ScenePosition.UnitsPerTile / 2)),
-            Width: 14,
-            Height: 22,
+                7 * ScenePosition.UnitsPerTile,
+                -2 * ScenePosition.UnitsPerTile),
+            Width: 20,
+            Height: 28,
             CellSize: ScenePosition.UnitsPerTile / 2,
             SemanticOwner: "TinyFarmSession");
+    }
+
+    private static TinyFarmFieldRuntime RestoreRectangularStream(TinyFarmFieldSnapshot snapshot)
+    {
+        // Explicit migration of the previous authored domain. Preserve dynamics in the spatial overlap only.
+        var old = new ReactiveFluid2D(14, 22, ScenePosition.UnitsPerTile / 2);
+        if (snapshot.Version != SnapshotVersion || snapshot.ChargedWaterCooldownTicks < 0
+            || snapshot.PlayerMovementPenaltyTicks < 0 || snapshot.ChargedWaterContactCount < 0)
+        {
+            throw new InvalidDataException("Invalid legacy river snapshot.");
+        }
+        for (int y = 0; y < 22; y++)
+        {
+            for (int x = 0; x < 14; x++)
+            {
+                byte expected = x > 0 && x < 13 && y > 0 && y < 21 ? (byte)1 : (byte)0;
+                int index = y * 14 + x;
+                if (snapshot.Fluid.LiquidMask.Length != 308 || snapshot.Fluid.ConductiveMask.Length != 308
+                    || snapshot.Fluid.LiquidMask[index] != expected || snapshot.Fluid.ConductiveMask[index] != expected)
+                {
+                    throw new InvalidDataException("Legacy river topology is not the authored rectangle.");
+                }
+            }
+        }
+        old.RestoreSnapshot(snapshot.Fluid);
+        var current = CreateDefault();
+        ReactiveFluidSnapshot target = current.Fluid.Snapshot();
+        for (int y = 0; y < target.Height; y++)
+        {
+            for (int x = 0; x < target.Width; x++)
+            {
+                int index = y * target.Width + x;
+                int oldX = x - 5;
+                int oldY = y - 3;
+                if (target.LiquidMask[index] == 0 || oldX < 0 || oldX >= 14 || oldY < 0 || oldY >= 22
+                    || old.LiquidMask[oldX, oldY] == 0)
+                {
+                    continue;
+                }
+                int source = oldY * 14 + oldX;
+                target.HeightField[index] = snapshot.Fluid.HeightField[source];
+                target.Velocity[index] = snapshot.Fluid.Velocity[source];
+                target.Foam[index] = snapshot.Fluid.Foam[source];
+                target.Charge[index] = snapshot.Fluid.Charge[source];
+                target.FlowX[index] = snapshot.Fluid.FlowX[source];
+                target.FlowY[index] = snapshot.Fluid.FlowY[source];
+            }
+        }
+        return Restore(snapshot with { DefinitionId = current.Definition.Id, Fluid = target with { Tick = snapshot.Fluid.Tick } });
     }
 
     private static void ValidateSnapshot(TinyFarmFieldSnapshot snapshot)

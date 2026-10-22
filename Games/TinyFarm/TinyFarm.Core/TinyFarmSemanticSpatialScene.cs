@@ -86,18 +86,19 @@ public static class TinyFarmSemanticSpatialScene
 
         WorldSurface meadow = new(
             "surface.meadow",
-            Rectangle(0, 0, 9.5, 10),
+            TinyFarmLandscape.WestMeadow,
             Elevation: 0,
             SemanticMaterial: "Meadow",
             Traversal: WorldTraversalPolicy.Walkable,
             PresentationRecipeId: "meadow-slab");
         WorldSurface water = new(
             "surface.river",
-            Rectangle(9.5, 0, 6.5, 10),
+            TinyFarmLandscape.River,
             Elevation: -0.18,
             SemanticMaterial: "WaterSurface",
             Traversal: WorldTraversalPolicy.Restricted,
             PresentationRecipeId: "water-live");
+        WorldSurface eastMeadow = meadow with { Id = "surface.east-meadow", Boundary = TinyFarmLandscape.EastMeadow };
         WorldSurface bridge = new(
             "surface.bridge-deck",
             Rectangle(9.2, 4.25, 2.4, 1.5),
@@ -112,21 +113,6 @@ public static class TinyFarmSemanticSpatialScene
             SemanticMaterial: "CultivatedSoil",
             Traversal: WorldTraversalPolicy.Walkable,
             PresentationRecipeId: "crop-live");
-
-        WorldPath path = new(
-            "path.farmhouse-well-south-gate",
-            [
-                new SpatialPoint3D(3.5, 4.2, 0.03),
-                new SpatialPoint3D(5.1, 4.9, 0.03),
-                new SpatialPoint3D(6.1, 5.7, 0.03),
-                new SpatialPoint3D(7.6, 6.0, 0.03),
-                new SpatialPoint3D(8.6, 7.6, 0.03),
-                new SpatialPoint3D(8.2, 9.7, 0.03),
-            ],
-            Width: 1.15,
-            SemanticMaterial: "PackedDirt",
-            Traversal: WorldTraversalPolicy.Walkable,
-            PresentationRecipeId: "dirt-path-overlay");
 
         WorldPatch[] patches =
         [
@@ -181,8 +167,8 @@ public static class TinyFarmSemanticSpatialScene
             SceneId,
             Width: 16,
             Depth: 10,
-            [meadow, water, bridge, cropPlot],
-            [path],
+            [meadow, water, eastMeadow, bridge, cropPlot],
+            TinyFarmLandscape.RiversideRoads,
             patches,
             objects,
             recipes,

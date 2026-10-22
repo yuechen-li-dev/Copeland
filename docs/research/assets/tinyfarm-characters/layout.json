@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Authoring recipe; documentation, not a new runtime authority",
+  "template": "blank-walk-template-v2.png",
+  "templateBackground": "Opaque ivory guide; finished sprites must have true transparency",
+  "columns": ["idle", "step-a", "passing", "step-b"],
+  "rows": ["down", "up", "left", "right"],
+  "camera": "Match GateA/gardener.png: elevated orthographic north-up game view",
+  "generationGuidance": {
+    "maximumFigureHeightFractionOfCell": 0.68,
+    "footAnchorFractionOfCell": [0.5, 0.82],
+    "oppositeStepRequirement": "Columns 1 and 3 must exchange leading leg and arm; verify visually",
+    "invariants": ["identity", "body proportions", "camera", "row facing", "uniform scale", "transparent gutters"]
+  },
+  "import": {
+    "owner": "Aurelian.GameWorld2D.GridSpriteSheet.Import",
+    "alphaThresholdExclusive": 16,
+    "heightAt48PixelsPerMetre": 64,
+    "scale": "Uniform, based on maximum trimmed height across all sixteen frames",
+    "pivot": "Trimmed bottom centre per frame",
+    "cellEdges": "Integer-rounded normalized grid edges; image need not be divisible by four",
+    "walkTicksPerFrame": 8,
+    "tickRate": 60,
+    "idleColumn": 0
+  },
+  "review": {
+    "geometry": ["16 nonempty cells", "all cell margins greater than zero", "some fully transparent pixels"],
+    "visual": ["correct facing", "opposite limbs", "consistent identity", "clean edges", "motion at game size"],
+    "command": "Aurelian.ArtSlots review-sheet <sheet.png> --out <directory>"
+  }
+}

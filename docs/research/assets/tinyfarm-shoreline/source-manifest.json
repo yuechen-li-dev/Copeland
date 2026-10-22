@@ -1,0 +1,158 @@
+{
+  "Date": "2026-10-22",
+  "Baseline": "e4c6b034",
+  "Sources": [
+    {
+      "Path": "docs/research/tinyfarm-natural-shoreline.md",
+      "Sha256": "639b03d2b59f795593931e21606b06ed2e1d2dbd8755bd10fb0f2ffea9d8a468"
+    },
+    {
+      "Path": "docs/research/tinyfarm-terrain-blending-experiment.md",
+      "Sha256": "0cad26d1523794018589a2a6edcf26e5fe16c7ea5b35be1c11afde8dfe22fc62"
+    },
+    {
+      "Path": "Games/TinyFarm/Playtests/shoreline-native.json",
+      "Sha256": "c81124a0ee9a41c491ef9f624ecef7ededfe93d1224f7b596735c1dd415eec74"
+    },
+    {
+      "Path": "Games/TinyFarm/README.md",
+      "Sha256": "28b043c38b28e74356d86a0fcc3de237c3fc2f8136a75379afa9ba2e17ab8460"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm.Core.Tests/TinyFarmLandscapeTests.cs",
+      "Sha256": "38e5671416cabfc253927de21501585e712c6ba56bce164a2ea431fdaf32c898"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm.Core.Tests/TinyFarmProductionFieldM21Tests.cs",
+      "Sha256": "c999f49468bde41b5eb60c0b8219e9269addcf5b13777cf0bbdcefd351d90357"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm.Core.Tests/TinyFarmSemanticSpatialM24Tests.cs",
+      "Sha256": "a44c49500f45769dae2058c3a335fe36a0cc7d6a371c6d7e91e325115525c4d6"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm.Core/TinyFarmLandscape.cs",
+      "Sha256": "c3368d9a27d6433aa38b6655dac5684f93292ff724147af9cdd338ce9042d818"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm.Core/TinyFarmSemanticSpatialScene.cs",
+      "Sha256": "bf12222aa5c33a142a4a8d826f97be30f65bdbf5e48b62aaaa02426dcd43b835"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm.Runtime/TinyFarmFieldRuntime.cs",
+      "Sha256": "98caacd6f5dff23537c5094e55ab5a26ad6f454f9349ed7c1dfff8d981c74f8a"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm.Runtime/TinyFarmSession.cs",
+      "Sha256": "fc3711e5f86659a63ab68bd0943c2fef03cc54e5af88838c526f1b667f3547d9"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Assets/art/art-slots.json",
+      "Sha256": "cb8619bb4471919f4e3da6f206e094b01ce44b65fb7cfd42e6be7916ecc3b30d"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Assets/art/placeholders/bank-clutter.svg",
+      "Sha256": "ce1e548ceef45066001c1001d03d02867c91a1fe8e828dcc50603a217a2a87ca"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Assets/art/placeholders/riverside-reeds.svg",
+      "Sha256": "6e8075fe56d38570ff1e89d75682e51bb2d31f14441deac4e1d9ff55d6da23e5"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Assets/Shaders/PainterlyTerrainWater.v.ts",
+      "Sha256": "170a6d27cb51dbfacd20bd9e46059f1225d263fad6161c5ec87f5805d080fded"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Assets/shoreline/cattails-prompt.txt",
+      "Sha256": "c1d6c9943a3f2c82ef2fc150cb6164d9b1ee55d5d389b6d1e3f85baa2608cad2"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Assets/shoreline/cattails.png",
+      "Sha256": "743443599dec5fc68f253960a964ae3f9b9a1e6b9b430f8031c5cc94d6c8c98a"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Assets/shoreline/concept-prompt.txt",
+      "Sha256": "fdeceba88246c9c5ed6fb1b4e3c9bacaf9aeb9ed7a1160a1bc41c3c5299394d2"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Assets/shoreline/concept-riverside.png",
+      "Sha256": "cab93d119d35710692326f9a1cfda9390a8c7067cff23d3ae6c3ebb0d9932ec4"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Assets/shoreline/grass-flowers.png",
+      "Sha256": "51a6d4cad5ddb894602b7a7bd58bbdf044757121b8a16b9cb8d20cd7d2ec305d"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Assets/shoreline/grass-prompt.txt",
+      "Sha256": "2a20a2403197f28fdd756af6be26d0919d5086f6217b1e898cc16d1db26595a0"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Assets/shoreline/ground/farm.png",
+      "Sha256": "ed3faed04d33f0e2954d4b329ffd8569540db8e3b22b5e104981e84c16e65618"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Assets/shoreline/ground/manifest.json",
+      "Sha256": "4acb230dc2fdb67c45d98c715c889c128ca7458e430c1324f4bed4709634f718"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Assets/shoreline/ground/riverside.png",
+      "Sha256": "a82d937bc5720e26a01abb454429f4fd1bc8eb3fdd4866b8584e598ef0e4cce0"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Assets/shoreline/provenance.json",
+      "Sha256": "afc89cbd9fd7eef85bddaf5d854ac45ee8ed64ae16ed04cc23cee8e550d9e187"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Assets/shoreline/river-stones.png",
+      "Sha256": "b1a6f8a2d40fbbbb03457dabd63f82ea5a1bd4f9f68769267531da74eeb4bfc2"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Assets/shoreline/stones-prompt.txt",
+      "Sha256": "dbfc553aa9b8bd5a5020a1636749f6ff554d2f4430fef846c38421827c834f1a"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Program.cs",
+      "Sha256": "3f5ac5ab55dcb32d3af3d19381abb5294989982c33f556d34af1b415c86f838f"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/TinyFarm.csproj",
+      "Sha256": "65ceaf99f3a8597566632b1f852903e944dfe91cd264fa81b39ccc7bee6f1809"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/TinyFarmApp.cs",
+      "Sha256": "45909fb7f5a7554aad201809c3a76e43703a689b298bf72ee3d3adfbddb22b19"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/TinyFarmLandscapeClutter.cs",
+      "Sha256": "72f5f2206222b708aa5340bf5c126cf00ca042a5686f0ffb65d9ab4d1cab1d7c"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/TinyFarmLayers.cs",
+      "Sha256": "bd0166b96bcdc3af51b481b52650a49e21ddb8a57355afade820f0ef0818b067"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/TinyFarmRiverProjection.cs",
+      "Sha256": "170bdc7c1b8522322f28e433c5cd2e4b58561bcedf862511ccad6e18725b0de0"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/TinyFarmSliceArt.cs",
+      "Sha256": "707001f42345f8742177ec5e6b971df55a8ba243cc6c20169578b68994f5b23f"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/TinyFarmSliceWorldPresenter.cs",
+      "Sha256": "70af50639d23bc652cce7250723525cbdcc7fe4f03b2eecc93dbc8a2593519bf"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/TinyFarmTerrainBake.cs",
+      "Sha256": "745049d6536aab6c34e89fb215e39e7755868518ade169e005fbea93775ddbab"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/TinyFarmTerrainEvidence.cs",
+      "Sha256": "19aba46fa207cfcd15775233bf1e2a5601d5312a4f2b340f0f8e07cd8ad20175"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/TinyFarmTerrainStudy.cs",
+      "Sha256": "1475959ea8fa40e748ffd069ae240bc726c1476873d96cec60b8485068984e95"
+    }
+  ]
+}

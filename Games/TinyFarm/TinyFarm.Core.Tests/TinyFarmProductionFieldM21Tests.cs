@@ -32,8 +32,8 @@ public sealed class TinyFarmProductionFieldM21Tests
 
         Assert.Equal("TinyFarmSession", first.Field.Definition.SemanticOwner);
         Assert.Equal(TinyFarmSceneIds.Riverside, first.Field.Definition.Scene);
-        Assert.Equal(14 * 22, first.Field.Fluid.HeightField.Count);
-        Assert.Equal(12 * 20, first.Field.Fluid.LiquidMask.ReadOnlyCells.ToArray().Count(value => value != 0));
+        Assert.Equal(20 * 28, first.Field.Fluid.HeightField.Count);
+        Assert.InRange(first.Field.Fluid.LiquidMask.ReadOnlyCells.ToArray().Count(value => value != 0), 250, 450);
         Assert.NotSame(first.Field, second.Field);
         Assert.Equal(first.Field.SemanticHash, second.Field.SemanticHash);
     }
@@ -370,7 +370,7 @@ public sealed class TinyFarmProductionFieldM21Tests
             ["tinyfarm.live.field", "tinyfarm.live.combat", "tinyfarm.spatial.m24", "tinyfarm.presentation.m25"],
             surfaces.RegisteredSurfaceIds);
         Assert.NotEqual(before, after);
-        Assert.Contains("wet-cells: 240", after, StringComparison.Ordinal);
+        Assert.Contains($"wet-cells: {host.Session.Field.Fluid.LiquidMask.ReadOnlyCells.ToArray().Count(value => value != 0)}", after, StringComparison.Ordinal);
         Assert.Contains("snapshot-version: 1", after, StringComparison.Ordinal);
         Assert.Contains("TinyFarm.Player.Combat.ActiveAction",
             surfaces.Capture().Pages.Single().Cards[1].Body.RawText,

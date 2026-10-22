@@ -1,0 +1,29 @@
+{
+  "Tool": "Built-in imagegen",
+  "Workflow": "Native screenshot -> concept target -> separate transparent sprites; no game scene pixels used as a background",
+  "Reference": "artifacts/local/tinyfarm-terrain-study/multiscale/01-riverside.png",
+  "Prompts": [
+    "concept-prompt.txt",
+    "cattails-prompt.txt",
+    "stones-prompt.txt",
+    "grass-prompt.txt"
+  ],
+  "Images": [
+    {
+      "Path": "concept-riverside.png",
+      "Sha256": "cab93d119d35710692326f9a1cfda9390a8c7067cff23d3ae6c3ebb0d9932ec4"
+    },
+    {
+      "Path": "cattails.png",
+      "Sha256": "743443599dec5fc68f253960a964ae3f9b9a1e6b9b430f8031c5cc94d6c8c98a"
+    },
+    {
+      "Path": "river-stones.png",
+      "Sha256": "b1a6f8a2d40fbbbb03457dabd63f82ea5a1bd4f9f68769267531da74eeb4bfc2"
+    },
+    {
+      "Path": "grass-flowers.png",
+      "Sha256": "51a6d4cad5ddb894602b7a7bd58bbdf044757121b8a16b9cb8d20cd7d2ec305d"
+    }
+  ]
+}

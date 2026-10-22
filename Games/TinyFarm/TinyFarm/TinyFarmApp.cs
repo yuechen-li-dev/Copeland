@@ -43,7 +43,7 @@ public sealed class TinyFarmApp : IGame
 
     /// <param name="legacySaveDirectory">Where the pre-shell build kept its saves (default %LOCALAPPDATA%\TinyFarm\saves).</param>
     public TinyFarmApp(string? assetDirectory = null, string? legacySaveDirectory = null,
-        TinyFarmTerrainMode terrain = TinyFarmTerrainMode.Legacy)
+        TinyFarmTerrainMode terrain = TinyFarmTerrainMode.Multiscale)
     {
         if (!Enum.IsDefined(terrain))
         {
@@ -245,6 +245,9 @@ public sealed class TinyFarmApp : IGame
         facts.Set("tinyfarm.rejected", game.RejectedActions);
         facts.Set("tinyfarm.semantic-hash", TinyFarmSemanticHash.Compute(state));
         facts.Set("tinyfarm.field-hash", game.Host.Session.Field.SemanticHash);
+        var playerScene = state.ActorScene(TinyFarmIds.Player);
+        facts.Set("tinyfarm.wading", game.Host.Session.Field.Contains(playerScene.Scene, playerScene.WorldPosition));
+        facts.Set("tinyfarm.water-disturbed", game.Host.Session.Field.RecentEvents.Any(item => item.Kind == "movement-disturbance"));
         facts.Set("tinyfarm.search", game.Menus.Search);
         facts.Set("tinyfarm.search-focused", game.Menus.SearchFocused);
         facts.Set("tinyfarm.hotbar", state.SelectedHotbarSlot);
@@ -271,8 +274,7 @@ public sealed class TinyFarmApp : IGame
         world = new TinyFarmWorldPresenter(new LayerId("tinyfarm-world"), graphics.Plant,
             assets.Shader("AnalyticShape2D.v.ts"), assets.Shader("SoftShockwave.v.ts"),
             TinyFarmShaders.Compile(Path.Combine(assetDirectory, "Shaders", "ForwardTextured.v.ts")),
-            TinyFarmShaders.Compile(Path.Combine(assetDirectory, "Shaders",
-                terrain == TinyFarmTerrainMode.Legacy ? "PainterlyWater.v.ts" : "PainterlyTerrainWater.v.ts")),
+            TinyFarmShaders.Compile(Path.Combine(assetDirectory, "Shaders", "PainterlyTerrainWater.v.ts")),
             atlas, painterly, artSlots, game, () => frame, () => layout, terrain);
         TinyFarmNativeUiFont font = TinyFarmNativeUiFont.Create(Path.Combine(assetDirectory, "SpaceMono-Regular.ttf"));
         overlay = new TinyFarmNativeOverlay(new LayerId("tinyfarm-hud"), graphics.Plant,
@@ -280,7 +282,7 @@ public sealed class TinyFarmApp : IGame
             font, () => ui.Resources(frame), game, () => layout, () => world.LastCamera);
         portrait = new TinyFarmPortrait(new LayerId("tinyfarm-portrait"), graphics.Plant,
             TinyFarmShaders.Compile(Path.Combine(assetDirectory, "Shaders", "ForwardTextured.v.ts")), game,
-            Path.Combine(assetDirectory, "mara-dialogue.png"), () => layout);
+            Path.Combine(assetDirectory, "characters", "mara-v1", "portrait.png"), () => layout);
         graphics.Layers.Add(world, 0);
         graphics.Layers.Add(portrait, 50);
         graphics.Layers.Add(overlay, 100);

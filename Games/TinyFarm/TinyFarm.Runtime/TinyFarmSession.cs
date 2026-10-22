@@ -275,6 +275,8 @@ public sealed class TinyFarmSession
             var envelope = new IntentEnvelope(TinyFarmIds.Player, new SliceTickIntent(),
                 State.Minute, nextSequence++, IntentSourceKind.Human);
             IntentResult result = resolver.ReduceSliceTick(State, envelope);
+            ActorSceneState slicePlayer = State.ActorScene(TinyFarmIds.Player);
+            Field.AdvanceTick(slicePlayer.Scene, slicePlayer.WorldPosition);
             return new TinyFarmStepResult(State, [result], []);
         }
         TinyFarmStepResult? combat = AdvanceCombatTick();

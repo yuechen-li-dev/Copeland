@@ -1,18 +1,16 @@
 {
-  // TinyFarm art slots. Placeholders are flat SVGs that fix silhouette, scale and pivot; finals are painted PNGs.
-  // House style for every final: the Gate A painterly cutouts (Assets/GateA/mara.png, gardener.png, props.png):
-  // soft top-left daylight, gentle hand-painted texture, warm greens and browns, a thin dark outline, transparent
-  // background, top-down three-quarter view. See docs/Aurelian/art-slots.md.
   "schemaVersion": 1,
   "slots": [
     {
       "id": "object.reeds",
       "placeholder": "placeholders/riverside-reeds.svg",
-      "width": 96,
+      "width": 320,
       "height": 320,
-      "worldHeight": 2.4,
-      "usage": "Riverside scene object 'reeds' (blocks a 1 x 3 tile strip by the water). Drawn standing, bottom-centre on the strip's lower edge.",
-      "brief": "A tall clump of riverbank reeds and cattails, a few brown seed heads, two or three arching leaves; reads as a natural fence beside the water."
+      "worldHeight": 1.3,
+      "usage": "Riverside reeds object, bottom centre on its semantic footprint; also reused in presentation-only shore clusters.",
+      "brief": "A tall clump of riverbank reeds and cattails, a few brown seed heads, two or three arching leaves; reads as a natural fence beside the water.",
+      "final": "../shoreline/cattails.png",
+      "finalSha256": "743443599dec5fc68f253960a964ae3f9b9a1e6b9b430f8031c5cc94d6c8c98a"
     },
     {
       "id": "forage.riverside-hen-of-the-woods",
@@ -98,6 +96,28 @@
       "worldHeight": 1.333,
       "usage": "Sela's walk sheet, same layout as Assets/GateA/gardener.png (rows down, up, left, right; four frames each).",
       "brief": "Sela, the village shopkeeper: dark hair in a bun, brick-red dress with a cream apron; brisk and friendly. Match the gardener sheet's proportions and style."
+    },
+    {
+      "id": "prop.bank-rocks",
+      "placeholder": "placeholders/bank-clutter.svg",
+      "final": "../shoreline/river-stones.png",
+      "finalSha256": "b1a6f8a2d40fbbbb03457dabd63f82ea5a1bd4f9f68769267531da74eeb4bfc2",
+      "width": 320,
+      "height": 320,
+      "worldHeight": 0.55,
+      "usage": "Small decorative cluster, bottom-centre on authored terrain; does not invent collision.",
+      "brief": "Follow the shoreline concept palette and camera. Preserve transparent background."
+    },
+    {
+      "id": "prop.bank-grass",
+      "placeholder": "placeholders/bank-clutter.svg",
+      "final": "../shoreline/grass-flowers.png",
+      "finalSha256": "51a6d4cad5ddb894602b7a7bd58bbdf044757121b8a16b9cb8d20cd7d2ec305d",
+      "width": 320,
+      "height": 320,
+      "worldHeight": 0.5,
+      "usage": "Small decorative cluster, bottom-centre on authored terrain; does not invent collision.",
+      "brief": "Follow the shoreline concept palette and camera. Preserve transparent background."
     }
   ]
 }

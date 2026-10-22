@@ -1,0 +1,6 @@
+Use case: stylized-concept
+Asset type: isolated transparent sprite cutout, square canvas, for TinyFarm's painterly 2D farming game.
+Input image: the approved riverside concept; extract and faithfully reproduce its cattail-and-sedge visual language as ONE reusable sprite, not a crop with background.
+Subject: a compact natural clump of 5 brown cattail heads at varied heights, broad arching green sedge leaves, a few shorter fine grasses at the base. Warm green-gold foliage, subtle ochre highlights, restrained dark green contact shadow inside the plant base only.
+Camera/style: same north-up shallow oblique game view, hand-painted gouache/storybook brushwork, soft upper-left daylight, same palette and medium-size detail as the reference. Complete roots/base silhouette visible, sprite centered horizontally with base at 90% canvas height, foliage fills about 82% canvas height and 78% width.
+Constraints: genuinely transparent RGBA background; no ground tile, water, dirt patch, stones, stump, frame, labels or text. One plant cluster only. No gray/white/checkerboard background painted into pixels. Square 1024x1024 composition.

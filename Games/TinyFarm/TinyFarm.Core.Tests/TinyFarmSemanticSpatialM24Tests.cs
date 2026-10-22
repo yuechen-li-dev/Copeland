@@ -13,8 +13,8 @@ public sealed class TinyFarmSemanticSpatialM24Tests
         CompiledSemanticWorld compiled = TinyFarmSemanticSpatialScene.Compile();
 
         Assert.Equal("tinyfarm.riverside-farmhouse.m24", scene.Id);
-        Assert.Equal(4, scene.Surfaces.Count);
-        Assert.Single(scene.Paths);
+        Assert.Equal(5, scene.Surfaces.Count);
+        Assert.Equal(2, scene.Paths.Count);
         Assert.Equal(2, scene.Patches.Count);
         Assert.Equal(8, scene.Objects.Count);
         Assert.Equal(5, scene.ArtRecipes.Count);
@@ -25,7 +25,7 @@ public sealed class TinyFarmSemanticSpatialM24Tests
         Assert.Equal(32 * 20, compiled.Navigation.Count);
         Assert.Contains(compiled.Navigation, item => item.SurfaceId == "surface.river" && !item.Walkable);
         Assert.Contains(compiled.Navigation, item => item.SurfaceId == "surface.bridge-deck" && item.Walkable);
-        Assert.Contains(compiled.Navigation, item => item.SurfaceId == "path.farmhouse-well-south-gate");
+        Assert.Contains(compiled.Navigation, item => item.SurfaceId == "path.riverside-entry-bench-bank");
     }
 
     [Fact]
@@ -64,14 +64,14 @@ public sealed class TinyFarmSemanticSpatialM24Tests
     {
         SemanticWorldScene original = TinyFarmSemanticSpatialScene.Create();
         CompiledSemanticWorld originalCompiled = SemanticWorldCompiler.Compile(original, 0.5);
-        WorldPath path = Assert.Single(original.Paths);
+        WorldPath path = original.Paths[0];
         WorldPath curved = path with
         {
             Centerline = path.Centerline
-                .Select((point, index) => index == 2 ? point with { X = point.X + 0.75 } : point)
+                .Select((point, index) => index == 36 ? point with { X = point.X + 0.75 } : point)
                 .ToArray()
         };
-        SemanticWorldScene pathEdited = original with { Paths = [curved] };
+        SemanticWorldScene pathEdited = original with { Paths = [curved, original.Paths[1]] };
         CompiledSemanticWorld pathCompiled = SemanticWorldCompiler.Compile(pathEdited, 0.5);
         Assert.NotEqual(
             originalCompiled.Navigation.Select(item => item.SurfaceId),

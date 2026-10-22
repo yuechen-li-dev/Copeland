@@ -5,5 +5,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Aurelian/Aurelian.Assets/Aurelian.Assets.csproj" />
+    <ProjectReference Include="../../src/Integrations/Aurelian.GameWorld2D/Aurelian.GameWorld2D.csproj" />
   </ItemGroup>
 </Project>

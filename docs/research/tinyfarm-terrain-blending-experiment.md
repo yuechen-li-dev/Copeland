@@ -1,5 +1,9 @@
 # TinyFarm terrain blending experiment
 
+Historical first trial (`e4c6b034`). The [next shoreline trial](tinyfarm-natural-shoreline.md) changes the authored
+geometry, adds concept-derived clutter and makes baked multiscale ground the normal launch. The results below
+describe the original rectangular river and are retained as the comparison baseline.
+
 This experiment adds three opt-in ground treatments to the actual TinyFarm game. It covers the Farm path and the Riverside bank, with native Vulkan screenshots from a fixed walkthrough. The normal launch still selects `legacy`.
 
 ```powershell
