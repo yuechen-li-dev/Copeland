@@ -25,6 +25,7 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
     private WorldNpcResult? priorObservation;
     private WorldNpcObservation? priorNpc;
     private OwnedNpcIdentity? ownedNpc;
+    private ulong ownedMovementId;
 
     public SkyrimHostPlaytestControl(Stream pipe, TextReader commandInput, CancellationToken cancellationToken)
     {
@@ -154,6 +155,26 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
                 active = false;
                 held = PlaytestButtons.None;
                 transition = true;
+            }
+            else if (parts is ["owned-move", var dxText, var dyText, var dzText]
+                && float.TryParse(dxText, NumberStyles.Float, CultureInfo.InvariantCulture, out float dx)
+                && float.TryParse(dyText, NumberStyles.Float, CultureInfo.InvariantCulture, out float dy)
+                && float.TryParse(dzText, NumberStyles.Float, CultureInfo.InvariantCulture, out float dz))
+            {
+                if (!behaviorsAllowed || ownedNpc is null) throw new ArgumentException("owned_move_not_ready");
+                WorldNpcResult source = await context.ObserveOwnedNpcAsync(cancellationToken).ConfigureAwait(false);
+                WorldNpcObservation actor = source.Npcs.Single(npc => npc.FormId == ownedNpc.FormId);
+                WorldNpcResult result = await context.MoveOwnedNpcAsync(source, ownedNpc,
+                    actor.PositionX + dx, actor.PositionY + dy, actor.PositionZ + dz, cancellationToken).ConfigureAwait(false);
+                ownedMovementId = result.OwnedMovement?.MovementId ?? 0;
+                Console.WriteLine("SKYRIM_HOST_OWNED_NPC " + JsonSerializer.Serialize(result, MarionetteWireJsonContext.Default.WorldNpcResult));
+            }
+            else if (parts is ["owned-cancel"])
+            {
+                if (ownedNpc is null || ownedMovementId == 0) throw new ArgumentException("owned_move_not_held");
+                WorldNpcResult result = await context.CancelOwnedMovementAsync(ownedNpc, ownedMovementId,
+                    cancellationToken).ConfigureAwait(false);
+                Console.WriteLine("SKYRIM_HOST_OWNED_NPC " + JsonSerializer.Serialize(result, MarionetteWireJsonContext.Default.WorldNpcResult));
             }
             else if (parts is ["owned-spawn"] or ["owned-inspect"] or ["owned-tune"] or ["owned-release"])
             {

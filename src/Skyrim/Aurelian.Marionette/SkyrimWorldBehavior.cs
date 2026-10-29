@@ -7,14 +7,21 @@ public sealed record WorldNpcRequest(
     uint Radius = 4096, uint MaxResults = 8, uint TargetFormId = 0,
     ulong ExpectedWorldGeneration = 0, ulong ExpectedObservationSequence = 0,
     float ExpectedBaseSpeed = 0, float DesiredBaseSpeed = 0,
-    ulong ExpectedOwnedLeaseId = 0, string NpcBaseKey = "");
+    ulong ExpectedOwnedLeaseId = 0, string NpcBaseKey = "",
+    float TargetPositionX = 0, float TargetPositionY = 0, float TargetPositionZ = 0,
+    float StoppingDistance = 48, uint MovementDurationMilliseconds = 10000, ulong ExpectedMovementId = 0);
 
 public sealed record OwnedNpcIdentity(ulong WorldGeneration, ulong LeaseId, uint FormId, uint BaseFormId);
 
 public sealed record WorldNpcObservation(
     uint FormId, uint BaseFormId, uint CellFormId, string Name,
     float PositionX, float PositionY, float PositionZ, float Distance,
-    float BaseSpeedMultiplier, float SpeedMultiplier, bool Loaded, bool Dead);
+    float BaseSpeedMultiplier, float SpeedMultiplier, bool Loaded, bool Dead,
+    bool Moving = false, bool AiEnabled = false, bool AnimationSpeedAvailable = false, float AnimationSpeed = 0);
+
+public sealed record OwnedNpcMovement(ulong MovementId, string State, string Reason,
+    float TargetX, float TargetY, float TargetZ, float StoppingDistance, float Distance,
+    float ElapsedSeconds, uint MarkerFormId, bool MarkerActive, float StopRequestedSeconds = 0);
 
 public sealed record WorldNpcResult(
     int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence,
@@ -22,7 +29,7 @@ public sealed record WorldNpcResult(
     float BeforeBaseSpeed, float AfterBaseSpeed, WorldNpcObservation[] Npcs,
     OwnedNpcIdentity? OwnedNpc = null, string OwnedNpcState = "none",
     ulong OwnedCreatedCount = 0, ulong OwnedRetiredCount = 0, uint OwnedActiveCount = 0,
-    uint OwnedBaseLiveCount = 0, bool OwnedBaseCountComplete = false);
+    uint OwnedBaseLiveCount = 0, bool OwnedBaseCountComplete = false, OwnedNpcMovement? OwnedMovement = null);
 
 public sealed record NpcNumberProof(
     ulong WorldGeneration, uint FormId, uint BaseFormId, string Name,
@@ -48,6 +55,36 @@ public sealed class SkyrimHostContext
     }
 
     public SkyrimStateResult State { get; }
+
+    public ValueTask<WorldNpcResult> MoveOwnedNpcAsync(WorldNpcResult source, OwnedNpcIdentity identity,
+        float x, float y, float z, CancellationToken cancellationToken, float stoppingDistance = 48,
+        uint durationMilliseconds = 10000, string? expectedFailure = null)
+    {
+        if (source.OwnedNpc != identity || source.WorldGeneration != State.WorldGeneration
+            || source.OwnedNpcState != "live")
+        {
+            throw new SkyrimWorldCommandDeferredException("owned_npc_identity_mismatch");
+        }
+        if (!float.IsFinite(x) || !float.IsFinite(y) || !float.IsFinite(z)
+            || !float.IsFinite(stoppingDistance) || stoppingDistance is < 16 or > 128
+            || durationMilliseconds is < 500 or > 15000)
+        {
+            throw new ArgumentOutOfRangeException(nameof(stoppingDistance));
+        }
+        return SendAsync(new WorldNpcRequest(1, "move_owned_npc", Guid.NewGuid().ToString("N"), 2000,
+            TargetFormId: identity.FormId, ExpectedWorldGeneration: identity.WorldGeneration,
+            ExpectedOwnedLeaseId: identity.LeaseId, ExpectedObservationSequence: source.ObservationSequence,
+            TargetPositionX: x, TargetPositionY: y, TargetPositionZ: z, StoppingDistance: stoppingDistance,
+            MovementDurationMilliseconds: durationMilliseconds), cancellationToken, expectedFailure);
+    }
+
+    public ValueTask<WorldNpcResult> CancelOwnedMovementAsync(OwnedNpcIdentity identity, ulong movementId,
+        CancellationToken cancellationToken, string? expectedFailure = null)
+    {
+        return SendAsync(new WorldNpcRequest(1, "cancel_owned_npc_movement", Guid.NewGuid().ToString("N"), 2000,
+            TargetFormId: identity.FormId, ExpectedWorldGeneration: identity.WorldGeneration,
+            ExpectedOwnedLeaseId: identity.LeaseId, ExpectedMovementId: movementId), cancellationToken, expectedFailure);
+    }
 
     public ValueTask<WorldNpcResult> ObserveOwnedNpcAsync(CancellationToken cancellationToken)
     {
@@ -108,7 +145,7 @@ public sealed class SkyrimHostContext
         string? expectedFailure = null)
     {
         if ((!State.WorldReady || State.WorldPaused)
-            && request.MessageKind is not ("query_owned_npc" or "release_owned_npc"))
+            && request.MessageKind is not ("query_owned_npc" or "release_owned_npc" or "cancel_owned_npc_movement"))
         {
             throw new SkyrimWorldCommandDeferredException("world_not_command_ready");
         }
