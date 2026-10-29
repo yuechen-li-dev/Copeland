@@ -21,6 +21,8 @@ public enum PlaytestButtons : uint
     MenuAccept = 4096,
     MenuCancel = 8192,
     MouseLeft = 16384,
+    Wait = 32768,
+    QuickSave = 65536,
 }
 
 public sealed record PlaytestRequest(
@@ -155,7 +157,7 @@ public sealed class PlaytestSession : IAsyncDisposable
     public Task<PlaytestObservation> UpdateAsync(PlaytestButtons buttons, float mouseX = 0, float mouseY = 0,
         CancellationToken cancellationToken = default)
     {
-        if ((uint)buttons > 32767 || !float.IsFinite(mouseX) || !float.IsFinite(mouseY)
+        if ((uint)buttons > 131071 || !float.IsFinite(mouseX) || !float.IsFinite(mouseY)
             || Math.Abs(mouseX) > 200 || Math.Abs(mouseY) > 200)
         {
             throw new ArgumentOutOfRangeException(nameof(buttons), "Playtest input exceeds the bounded protocol.");

@@ -28,7 +28,7 @@ public enum SkyrimWorldOwnerState
 /// callbacks enter as ordered facts through the owner's mailbox; portable
 /// lifecycle events leave through the existing per-agent event bus.
 /// </summary>
-public sealed class SkyrimWorldOwnerRuntime
+public sealed partial class SkyrimWorldOwnerRuntime
 {
     private readonly AiWorld world = new();
     private readonly AiAgent owner;

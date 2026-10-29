@@ -45,7 +45,7 @@ public sealed record SkyrimCheckpointResult(
 /// index contains correlation metadata only; agent/HFSM/blackboard data remains
 /// solely inside the DOM1 artifact produced by Dominatus.Core.
 /// </summary>
-public sealed class SkyrimCheckpointStore
+public sealed partial class SkyrimCheckpointStore
 {
     private const int IndexFormatVersion = 2;
     private const string IndexFileName = "skyrim-checkpoints.index.json";
@@ -254,23 +254,10 @@ public sealed class SkyrimCheckpointStore
                 FailureReason: exception.Message);
         }
 
-        var restored = new SkyrimWorldOwnerRuntime(sessionScope);
+        SkyrimWorldOwnerRuntime restored;
         try
         {
-            foreach (AgentCheckpoint agentCheckpoint in checkpoint.Agents.Skip(1))
-            {
-                Dictionary<string, object> values = BbJsonCodec.DeserializeSnapshot(
-                    agentCheckpoint.BlackboardBlob);
-                if (!values.ContainsKey(SkyrimWorldCheckpointKeys.SemanticAgentId.Name))
-                {
-                    continue;
-                }
-
-                restored.AddRestoredImportedRuntimeAgent(ReadImportedAgent(values));
-            }
-
-            DominatusCheckpointBuilder.Restore(restored.DominatusWorld, checkpoint);
-            restored.RestoreSemanticStateFromBlackboards();
+            restored = RestoreWorld(checkpoint, sessionScope);
         }
         catch (Exception exception) when (exception is InvalidOperationException or InvalidDataException or ArgumentException or OverflowException)
         {

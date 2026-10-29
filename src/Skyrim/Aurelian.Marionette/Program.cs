@@ -47,7 +47,9 @@ internal static class Program
                     }
                     if (config.EnableOwnedNpcAgent)
                     {
-                        behaviors.Add(new OwnedNpcAgentBehavior());
+                        var ownedAgent = new OwnedNpcAgentBehavior();
+                        behaviors.Add(ownedAgent);
+                        if (config.EnablePatrolTrial) behaviors.Add(new PatrolTrialBehavior(ownedAgent));
                     }
                     LiveSaveCorrelationReport report = await client.RunWorldHostAsync(behaviors, shutdown.Token).ConfigureAwait(false);
                     Console.WriteLine(JsonSerializer.Serialize(report, MarionetteWireJsonContext.Default.LiveSaveCorrelationReport));

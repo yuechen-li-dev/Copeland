@@ -26,10 +26,13 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
     private WorldNpcObservation? priorNpc;
     private OwnedNpcIdentity? ownedNpc;
     private ulong ownedMovementId;
+    private readonly OwnedNpcAgentBehavior? ownedAgent;
 
-    public SkyrimHostPlaytestControl(Stream pipe, TextReader commandInput, CancellationToken cancellationToken)
+    public SkyrimHostPlaytestControl(Stream pipe, TextReader commandInput, CancellationToken cancellationToken,
+        OwnedNpcAgentBehavior? ownedAgent = null)
     {
         input = new PlaytestSession(pipe, ownsPipe: false);
+        this.ownedAgent = ownedAgent;
         shutdown = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         reader = Task.Run(() => ReadCommandsAsync(commandInput));
         Console.Error.WriteLine("SKYRIM_HOST_CONTROL_READY inspect | input <buttons> <seconds> | look <x> <y> | release | save | load | npc-change | stale | owned-spawn | owned-inspect | owned-tune | owned-release");
@@ -65,7 +68,7 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
                 active = state.Active;
                 bool finished = Stopwatch.GetTimestamp() >= releaseAt;
                 // Gameplay keys never survive a managed lifecycle gate closing.
-                bool blocked = !behaviorsAllowed && ((uint)held & 127U) != 0;
+                bool blocked = !behaviorsAllowed && ((uint)held & (127U | 32768U | 65536U)) != 0;
                 if (active)
                 {
                     await input.UpdateAsync(finished || blocked ? PlaytestButtons.None : held,
@@ -95,6 +98,12 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
             {
                 observation = await input.ObserveAsync(cancellationToken).ConfigureAwait(false);
             }
+            else if (parts is ["quest-inspect"])
+            {
+                var result = await context.QuestUiAsync("query", cancellationToken).ConfigureAwait(false);
+                Console.WriteLine("SKYRIM_HOST_QUEST " + JsonSerializer.Serialize(result.QuestUi,
+                    MarionetteWireJsonContext.Default.QuestUiObservation));
+            }
             else if (parts is ["release"])
             {
                 observation = await input.EndAsync(cancellationToken).ConfigureAwait(false);
@@ -103,11 +112,11 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
             }
             else if (parts is ["input", var buttonsText, var durationText]
                 && Enum.TryParse(buttonsText, true, out PlaytestButtons buttons)
-                && (uint)buttons <= 32767
+                && (uint)buttons <= 131071
                 && double.TryParse(durationText, NumberStyles.Float, CultureInfo.InvariantCulture, out double seconds)
                 && double.IsFinite(seconds) && seconds is > 0 and <= 5)
             {
-                if (!behaviorsAllowed && ((uint)buttons & 127U) != 0)
+                if (!behaviorsAllowed && ((uint)buttons & (127U | 32768U | 65536U)) != 0)
                 {
                     throw new ArgumentException("gameplay_lifecycle_gate_closed");
                 }
@@ -149,6 +158,10 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
             else if (parts is ["save"] or ["load"])
             {
                 if (!behaviorsAllowed) throw new ArgumentException("gameplay_lifecycle_gate_closed");
+                if (parts[0] == "save" && ownedAgent is not null)
+                {
+                    await ownedAgent.PrepareSaveAsync(context, cancellationToken).ConfigureAwait(false);
+                }
                 observation = parts[0] == "save"
                     ? await input.SaveCheckpointAsync(cancellationToken).ConfigureAwait(false)
                     : await input.LoadCheckpointAsync(cancellationToken).ConfigureAwait(false);
@@ -238,6 +251,10 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
                 || exception.Message.StartsWith("world_npc_command_failed:", StringComparison.Ordinal)))
         {
             held = PlaytestButtons.None;
+            if (command == "save" && exception is InvalidDataException)
+            {
+                ownedAgent?.CancelSavePreparation();
+            }
             Emit(command ?? "renew", "rejected", exception.Message, null, context, behaviorsAllowed, readySeconds, readyTicks);
             return true;
         }

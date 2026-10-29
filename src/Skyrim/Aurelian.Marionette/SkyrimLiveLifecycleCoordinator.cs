@@ -41,6 +41,35 @@ public sealed class SkyrimLiveLifecycleCoordinator
 
     public SkyrimWorldOwnerRuntime CurrentWorld { get; private set; }
 
+    public WorldCheckpointResult? EmbeddedCheckpoint { get; set; }
+
+    public SkyrimLifecycleProcessingResult RestoreEmbedded(SkyrimSaveIdentity loaded)
+    {
+        WorldCheckpointResult source = EmbeddedCheckpoint
+            ?? throw new InvalidOperationException("embedded_checkpoint_not_queried");
+        if (source.LoadStatus == "absent")
+        {
+            CurrentWorld.ClearOwnedAgentState();
+            CurrentWorld.ClearPatrolTrial();
+            CurrentWorld.CompleteUntrackedLoad();
+            return new SkyrimLifecycleProcessingResult(true, "load_completed_without_checkpoint");
+        }
+        try
+        {
+            if (source.LoadStatus != "ready") throw new InvalidDataException("embedded_checkpoint_corrupt");
+            CurrentWorld = checkpoints.RestoreEmbedded(source.CheckpointHex, restoreSessionScope);
+            CurrentWorld.CompleteCheckpointRestore(loaded, "embedded-cosave", false);
+            Tick(CurrentWorld);
+            return new SkyrimLifecycleProcessingResult(true, "checkpoint_restored");
+        }
+        catch (Exception exception) when (exception is IOException or InvalidDataException or InvalidOperationException or ArgumentException or OverflowException)
+        {
+            CurrentWorld.RequireRestoration(exception.Message);
+            return new SkyrimLifecycleProcessingResult(false, "checkpoint_restore_failed",
+                new SkyrimCheckpointResult(SkyrimCheckpointStatus.CheckpointCorrupt, FailureReason: exception.Message));
+        }
+    }
+
     public bool CanRunBehaviors => CurrentWorld.CanIssueBodyCommands && saves.Count == 0 && loads.Count == 0;
 
     public void AbortPendingSaves()
@@ -85,6 +114,11 @@ public sealed class SkyrimLiveLifecycleCoordinator
     {
         AbortPendingSaves();
         SkyrimSaveIdentity save = CreateIdentity(observation, operationId);
+        if (EmbeddedCheckpoint is not null)
+        {
+            saves[operationId] = save;
+            return new SkyrimLifecycleProcessingResult(true, "embedded_save_started");
+        }
         CurrentWorld.Post(new SkyrimWorldFact(
             SkyrimWorldFactKind.SaveOperationStarted,
             sequence,
@@ -115,6 +149,8 @@ public sealed class SkyrimLiveLifecycleCoordinator
         {
             return new SkyrimLifecycleProcessingResult(false, "save_operation_not_staged");
         }
+        if (EmbeddedCheckpoint is not null)
+            return new SkyrimLifecycleProcessingResult(true, "embedded_save_serialized");
         SkyrimCheckpointResult committed = checkpoints.Commit(operationId);
         if (!committed.Completed)
         {
@@ -163,11 +199,12 @@ public sealed class SkyrimLiveLifecycleCoordinator
         {
             return new SkyrimLifecycleProcessingResult(false, "load_operation_not_started");
         }
+        SkyrimSaveIdentity loaded = CreateIdentity(observation with { SaveName = started.SaveName }, operationId);
+        if (EmbeddedCheckpoint is not null) return RestoreEmbedded(loaded);
         if (CurrentWorld.RestorationIsRequired)
         {
             return new SkyrimLifecycleProcessingResult(false, "restoration_required_before_load_completion");
         }
-        SkyrimSaveIdentity loaded = CreateIdentity(observation with { SaveName = started.SaveName }, operationId);
         bool rollback = CurrentWorld.Timeline is not null
             && loaded.Timeline.GameTime.GameDays < CurrentWorld.Timeline.GameTime.GameDays;
         CurrentWorld.Post(new SkyrimWorldFact(
@@ -183,6 +220,7 @@ public sealed class SkyrimLiveLifecycleCoordinator
         {
             // The controller may attach after Skyrim has already loaded a world. That
             // baseline load has no managed history to restore and remains command-ready.
+            CurrentWorld.ClearOwnedAgentState();
             CurrentWorld.CompleteUntrackedLoad();
             return new SkyrimLifecycleProcessingResult(true, "load_completed_without_checkpoint", restored);
         }
@@ -234,6 +272,8 @@ public sealed class SkyrimLiveLifecycleCoordinator
             SourceCallback: observation.SourceCallback));
         Tick(CurrentWorld);
         loads.Clear();
+        CurrentWorld.ClearOwnedAgentState();
+        CurrentWorld.ClearPatrolTrial();
         return new SkyrimLifecycleProcessingResult(true, "new_game_started");
     }
 

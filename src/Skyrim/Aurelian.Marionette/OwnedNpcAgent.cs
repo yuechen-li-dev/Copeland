@@ -21,7 +21,8 @@ public sealed record OwnedNpcAgentFact(OwnedNpcIdentity Identity, ulong Sequence
 
 public sealed record OwnedNpcAgentStatus(OwnedNpcIdentity Identity, long Tick,
     string State, string? SelectedOption, int Waypoint, int CompletedLegs,
-    int ConsecutiveFailures, ulong MovementId, string Reason);
+    int ConsecutiveFailures, ulong MovementId, string Reason,
+    Guid SemanticId = default, float RemainingWaitSeconds = 0);
 
 /// <summary>
 /// One generation-bound Dominatus brain. Skyrim facts are inputs; typed intents
@@ -47,12 +48,19 @@ public sealed class OwnedNpcAgentRuntime
     private int waypoint;
     private int completedLegs;
     private int failures;
+    private readonly Vector3 origin;
+    private readonly Vector3 patrolOffset;
+    private float waitUntil;
+    private bool restoringWait;
 
     public OwnedNpcAgentRuntime(OwnedNpcAgentFact initial, float restSeconds = 1.5f,
-        int maximumRetries = 2, Vector3? patrolOffset = null)
+        int maximumRetries = 2, Vector3? patrolOffset = null, OwnedNpcAgentSaveState? saved = null)
     {
         ArgumentNullException.ThrowIfNull(initial);
-        Vector3 offset = patrolOffset ?? new Vector3(256, 256, 0);
+        saved?.Validate();
+        Vector3 offset = saved?.Offset.Vector ?? patrolOffset ?? new Vector3(256, 256, 0);
+        restSeconds = saved?.RestSeconds ?? restSeconds;
+        maximumRetries = saved?.MaximumRetries ?? maximumRetries;
         if (!initial.Available || initial.Identity.WorldGeneration == 0
             || initial.Identity.LeaseId == 0 || initial.Sequence == 0
             || !Finite(initial.Position) || !Finite(offset)
@@ -63,7 +71,22 @@ public sealed class OwnedNpcAgentRuntime
         }
         fact = initial;
         lastPhysicalSequence = initial.Sequence;
-        waypoints = [initial.Position + offset, initial.Position];
+        origin = saved?.Origin.Vector ?? initial.Position;
+        this.patrolOffset = offset;
+        waypoints = [origin + offset, origin];
+        if (waypoints.Any(point => !Finite(point) || Vector3.Distance(point, initial.Position) > 1024))
+        {
+            throw new InvalidDataException("owned_agent_checkpoint_route_outside_body_range");
+        }
+        SemanticId = saved?.AgentId ?? Guid.NewGuid();
+        ResumeMode = saved?.Mode ?? "patrol";
+        waypoint = saved?.Waypoint ?? 0;
+        completedLegs = saved?.CompletedLegs ?? 0;
+        failures = saved?.Failures ?? 0;
+        stopped = ResumeMode == "stopped";
+        restoringWait = ResumeMode is "rest" or "recover";
+        waitUntil = saved?.RemainingWaitSeconds ?? 0;
+        state = ResumeMode switch { "rest" => "resting", "recover" => "recovering", "stopped" => "stopped", _ => "starting" };
         RestSeconds = restSeconds;
         MaximumRetries = maximumRetries;
         var brain = OwnedNpcAgentFlow.Define(this).CreateBrain();
@@ -74,14 +97,51 @@ public sealed class OwnedNpcAgentRuntime
 
     public float RestSeconds { get; }
     public int MaximumRetries { get; }
+    public Guid SemanticId { get; }
+    internal string ResumeMode { get; }
     public OwnedNpcIdentity Identity => fact.Identity;
     public bool BodyLost => !fact.Available;
     public bool MustStop => stopped || failures > MaximumRetries;
     public bool NeedsRecovery => failures > 0;
     public bool ReceiptAccepted => receiptAccepted;
     public OwnedNpcAgentStatus Status => new(Identity, ticks, state, trace.SelectedOption,
-        waypoint, completedLegs, failures, movementId, reason);
+        waypoint, completedLegs, failures, movementId, reason, SemanticId, RemainingWait);
     public FlowInspection FlowInspection => OwnedNpcAgentFlow.Define(this).Inspect();
+
+    private float RemainingWait => state switch
+    {
+        "resting" => Math.Clamp(waitUntil - world.Clock.Time, 0, RestSeconds),
+        "recovering" => Math.Clamp(waitUntil - world.Clock.Time, 0, 1.0f),
+        _ => 0,
+    };
+
+    public OwnedNpcAgentSaveState Capture(uint cellFormId)
+    {
+        string mode = state switch
+        {
+            "resting" => "rest",
+            "recovering" => "recover",
+            "releasing" or "stopped" => "stopped",
+            _ => "patrol",
+        };
+        var saved = new OwnedNpcAgentSaveState(1, SemanticId, "owned-patrol-v1", cellFormId,
+            OwnedAgentPoint.From(origin), OwnedAgentPoint.From(patrolOffset), waypoint,
+            completedLegs, failures, mode, RemainingWait, RestSeconds, MaximumRetries);
+        saved.Validate();
+        return saved;
+    }
+
+    internal float BeginWait(string nextState, float duration)
+    {
+        if (restoringWait)
+        {
+            duration = Math.Max(0, waitUntil - world.Clock.Time);
+            restoringWait = false;
+        }
+        state = nextState;
+        waitUntil = world.Clock.Time + duration;
+        return duration;
+    }
 
     public void Observe(OwnedNpcAgentFact next)
     {
@@ -119,7 +179,7 @@ public sealed class OwnedNpcAgentRuntime
 
     public void Receive(OwnedNpcAgentReceipt receipt)
     {
-        if (receipt.Identity != Identity || receipt.IntentId != awaitingReceipt)
+        if (awaitingReceipt == 0 || receipt.Identity != Identity || receipt.IntentId != awaitingReceipt)
         {
             throw new InvalidDataException("owned_agent_receipt_correlation_invalid");
         }
@@ -227,7 +287,19 @@ public static partial class OwnedNpcAgentFlow
     [DominatusFlow("aurelian.skyrim.owned-npc.m4")]
     public static partial FlowDefinition Define(OwnedNpcAgentRuntime runtime);
 
-    [DominatusState("aurelian.skyrim.owned-npc.choose", Root = true)]
+    [DominatusState("aurelian.skyrim.owned-npc.resume", Root = true)]
+    private static IEnumerator<AiStep> Resume(AiCtx context, OwnedNpcAgentRuntime runtime)
+    {
+        yield return Ai.Goto(runtime.ResumeMode switch
+        {
+            "rest" => States.Rest,
+            "recover" => States.Recover,
+            "stopped" => States.Stopped,
+            _ => States.Choose,
+        }, "enter semantic resume point with fresh native identity");
+    }
+
+    [DominatusState("aurelian.skyrim.owned-npc.choose")]
     private static IEnumerator<AiStep> Choose(AiCtx context, OwnedNpcAgentRuntime runtime)
     {
         runtime.SetState("deciding");
@@ -279,16 +351,14 @@ public static partial class OwnedNpcAgentFlow
     [DominatusState("aurelian.skyrim.owned-npc.rest")]
     private static IEnumerator<AiStep> Rest(AiCtx context, OwnedNpcAgentRuntime runtime)
     {
-        runtime.SetState("resting");
-        yield return Ai.Wait(runtime.RestSeconds);
+        yield return Ai.Wait(runtime.BeginWait("resting", runtime.RestSeconds));
         yield return Ai.Goto(States.Choose, "rest complete");
     }
 
     [DominatusState("aurelian.skyrim.owned-npc.recover")]
     private static IEnumerator<AiStep> Recover(AiCtx context, OwnedNpcAgentRuntime runtime)
     {
-        runtime.SetState("recovering");
-        yield return Ai.Wait(1.0f);
+        yield return Ai.Wait(runtime.BeginWait("recovering", 1.0f));
         // Retry the same waypoint after backoff; only a real arrival advances it.
         if (runtime.BodyLost || runtime.MustStop)
         {

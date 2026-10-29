@@ -72,8 +72,10 @@ public sealed partial class MarionetteTransportClient
         int failedLoads = 0;
         string? lastOutcome = null;
         bool firstTick = true;
+        bool embedded = hello.Capabilities.Contains("query_world_checkpoint", StringComparer.Ordinal);
+        OwnedNpcAgentBehavior? ownedAgent = behaviors.OfType<OwnedNpcAgentBehavior>().SingleOrDefault();
         await using SkyrimHostPlaytestControl? control = _config.EnablePlaytestShell
-            ? new SkyrimHostPlaytestControl(pipe, playtestCommands ?? Console.In, cancellationToken) : null;
+            ? new SkyrimHostPlaytestControl(pipe, playtestCommands ?? Console.In, cancellationToken, ownedAgent) : null;
         var uptime = System.Diagnostics.Stopwatch.StartNew();
         double lastTickSeconds = 0;
         double nextHeartbeat = 0;
@@ -84,6 +86,11 @@ public sealed partial class MarionetteTransportClient
         {
             while (!cancellationToken.IsCancellationRequested)
             {
+                if (embedded)
+                {
+                    coordinator.EmbeddedCheckpoint = await ExchangeCheckpointAsync(pipe,
+                        new WorldCheckpointRequest(1, "query_world_checkpoint", Guid.NewGuid().ToString("N")), cancellationToken);
+                }
                 SkyrimStateResult state = await QueryHostStateAsync(pipe, cancellationToken).ConfigureAwait(false);
                 // Drain lifecycle events after the engine query: a load may complete
                 // while that query waits for Skyrim's main thread.
@@ -94,6 +101,17 @@ public sealed partial class MarionetteTransportClient
                 if (firstTick && state.WorldReady)
                 {
                     afterSequence = batch.Observations.LastOrDefault()?.Sequence ?? 0;
+                    if (embedded && state.GameTimeDays.HasValue)
+                    {
+                        coordinator.EmbeddedCheckpoint = await ExchangeCheckpointAsync(pipe,
+                            new WorldCheckpointRequest(1, "query_world_checkpoint", Guid.NewGuid().ToString("N")), cancellationToken);
+                        var baseline = new SkyrimSaveIdentity("native-loaded-world", new SkyrimTimelineStamp(session,
+                            new SkyrimGameTimestamp(state.GameTimeDays.Value), 1), 1);
+                        var restored = coordinator.RestoreEmbedded(baseline);
+                        ownedAgent?.ObserveLifecycle(new LifecycleObservation("load_completed", 1, 1,
+                            baseline.SaveName, state.GameTimeDays, "embedded_attach"), restored, coordinator.CurrentWorld);
+                        Console.Error.WriteLine($"SKYRIM_HOST embedded_attach={restored.Outcome}");
+                    }
                 }
                 else
                 {
@@ -103,11 +121,21 @@ public sealed partial class MarionetteTransportClient
                         {
                             throw new InvalidDataException("lifecycle_history_gap");
                         }
+                        if (embedded && observation.Kind == "load_completed")
+                        {
+                            coordinator.EmbeddedCheckpoint = await ExchangeCheckpointAsync(pipe,
+                                new WorldCheckpointRequest(1, "query_world_checkpoint", Guid.NewGuid().ToString("N")), cancellationToken);
+                        }
+                        if (!embedded && observation.Kind == "save_started" && ownedAgent is not null && !ownedAgent.SavePrepared)
+                        {
+                            coordinator.CurrentWorld.RequireRestoration("owned_agent_save_requires_preparation");
+                        }
                         SkyrimLifecycleProcessingResult result = coordinator.Process(observation);
+                        ownedAgent?.ObserveLifecycle(observation, result, coordinator.CurrentWorld);
                         afterSequence = observation.Sequence;
                         processed++;
                         lastOutcome = result.Outcome;
-                        if (result.Outcome == "save_checkpoint_committed") saves++;
+                        if (result.Outcome is "save_checkpoint_committed" or "embedded_save_serialized") saves++;
                         else if (result.Outcome == "checkpoint_restored") restoredLoads++;
                         else if (result.Outcome == "load_failed_without_restore") failedLoads++;
                         Console.Error.WriteLine($"SKYRIM_HOST lifecycle={observation.Kind} sequence={observation.Sequence} " +
@@ -158,13 +186,22 @@ public sealed partial class MarionetteTransportClient
                 }
                 try
                 {
-                    var context = new SkyrimHostContext(pipe, state);
+                    var context = new SkyrimHostContext(pipe, state, current);
                     bool transition = control is not null && await control.TickAsync(context,
                         canRun, readySeconds, readyTicks, cancellationToken).ConfigureAwait(false);
                     if (!transition)
                     {
                         await SkyrimWorldBehaviorGate.TickAsync(coordinator, state,
                             context, behaviors, cancellationToken).ConfigureAwait(false);
+                    }
+                    if (embedded && canRun && !transition)
+                    {
+                        string snapshot = store.ExportEmbedded(current);
+                        var published = await ExchangeCheckpointAsync(pipe, new WorldCheckpointRequest(1,
+                            "publish_world_checkpoint", Guid.NewGuid().ToString("N"),
+                            coordinator.EmbeddedCheckpoint!.Epoch, snapshot), cancellationToken);
+                        if (published.Status != "completed")
+                            Console.Error.WriteLine("SKYRIM_HOST checkpoint_publication_deferred=boundary_changed");
                     }
                 }
                 catch (SkyrimWorldCommandDeferredException exception)

@@ -9,7 +9,8 @@ public sealed record WorldNpcRequest(
     float ExpectedBaseSpeed = 0, float DesiredBaseSpeed = 0,
     ulong ExpectedOwnedLeaseId = 0, string NpcBaseKey = "",
     float TargetPositionX = 0, float TargetPositionY = 0, float TargetPositionZ = 0,
-    float StoppingDistance = 48, uint MovementDurationMilliseconds = 10000, ulong ExpectedMovementId = 0);
+    float StoppingDistance = 48, uint MovementDurationMilliseconds = 10000, ulong ExpectedMovementId = 0,
+    string QuestAction = "query", string QuestText = "", ulong QuestPrompt = 0);
 
 public sealed record OwnedNpcIdentity(ulong WorldGeneration, ulong LeaseId, uint FormId, uint BaseFormId);
 
@@ -29,7 +30,8 @@ public sealed record WorldNpcResult(
     float BeforeBaseSpeed, float AfterBaseSpeed, WorldNpcObservation[] Npcs,
     OwnedNpcIdentity? OwnedNpc = null, string OwnedNpcState = "none",
     ulong OwnedCreatedCount = 0, ulong OwnedRetiredCount = 0, uint OwnedActiveCount = 0,
-    uint OwnedBaseLiveCount = 0, bool OwnedBaseCountComplete = false, OwnedNpcMovement? OwnedMovement = null);
+    uint OwnedBaseLiveCount = 0, bool OwnedBaseCountComplete = false, OwnedNpcMovement? OwnedMovement = null,
+    QuestUiObservation? QuestUi = null);
 
 public sealed record NpcNumberProof(
     ulong WorldGeneration, uint FormId, uint BaseFormId, string Name,
@@ -48,13 +50,23 @@ public sealed class SkyrimHostContext
     private readonly Stream pipe;
     private WorldNpcResult? observation;
 
-    internal SkyrimHostContext(Stream pipe, SkyrimStateResult state)
+    internal SkyrimHostContext(Stream pipe, SkyrimStateResult state, SkyrimWorldOwnerRuntime? worldOwner = null)
     {
         this.pipe = pipe;
         State = state;
+        WorldOwner = worldOwner;
     }
 
     public SkyrimStateResult State { get; }
+    public SkyrimWorldOwnerRuntime? WorldOwner { get; }
+
+    public ValueTask<WorldNpcResult> QuestUiAsync(string action, CancellationToken cancellationToken,
+        string text = "", ulong prompt = 0)
+    {
+        return SendAsync(new WorldNpcRequest(1, "quest_ui", Guid.NewGuid().ToString("N"), 2000,
+            ExpectedWorldGeneration: State.WorldGeneration, QuestAction: action, QuestText: text,
+            QuestPrompt: prompt), cancellationToken);
+    }
 
     public ValueTask<WorldNpcResult> MoveOwnedNpcAsync(WorldNpcResult source, OwnedNpcIdentity identity,
         float x, float y, float z, CancellationToken cancellationToken, float stoppingDistance = 48,

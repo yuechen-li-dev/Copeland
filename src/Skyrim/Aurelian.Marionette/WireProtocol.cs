@@ -80,7 +80,8 @@ public sealed record LocalTransportConfig(
     bool EnablePlaytestShell = false,
     bool EnableOwnedNpcProof = false,
     bool EnableOwnedMovementProof = false,
-    bool EnableOwnedNpcAgent = false)
+    bool EnableOwnedNpcAgent = false,
+    bool EnablePatrolTrial = false)
 {
     public string PipeName => $"MarionetteSSE.{Profile}.{GetCurrentUserSid()}.ed-m2b2";
 
@@ -134,7 +135,7 @@ public sealed record EligibleHostFixtureCandidate(
     uint? LocalFormId = null,
     bool LightPlugin = false);
 public sealed record EligibleHostFixturesResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status, ulong RuntimeSequence, uint OriginPlayerFormId, uint InspectedActorCount, uint CandidateCount, EligibleHostFixtureCandidate[] Candidates, string? FailureReason);
-public sealed record SkyrimStateResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status, string? Diagnostic, bool BridgeReady, ulong RuntimeSequence, bool PlayerAvailable, uint? PlayerFormId, uint? CrosshairTargetFormId, bool PendingRequestPresent, uint? PendingRequestGeneration, uint? PendingTargetFormId, bool ActiveHostSession, uint? ActiveHostGeneration, uint? ActiveHostFormId, uint? CameraTargetFormId, bool ActorObservationAvailable = false, uint? ActorGeneration = null, uint? ActorFormId = null, bool ActorLoaded = false, bool ActorDead = false, bool ActorMoving = false, float ActorPositionX = 0, float ActorPositionY = 0, float ActorPositionZ = 0, float ActorHeadingRadians = 0, uint? ActorCellFormId = null, float? ActorVelocityX = null, float? ActorVelocityY = null, float? ActorVelocityZ = null, string BoundedDirectDisplacementCapability = "unsupported", string AnimatedLocomotionCapability = "unsupported", string GoalDirectedMovementCapability = "unsupported", string CameraFollowingCapability = "unsupported", string ActorActivationCapability = "unsupported", string AttackCapability = "unsupported", string JumpCapability = "unsupported", string SneakCapability = "unsupported", double? GameTimeDays = null, bool WorldReady = false, bool WorldPaused = true, ulong WorldGeneration = 0);
+public sealed record SkyrimStateResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status, string? Diagnostic, bool BridgeReady, ulong RuntimeSequence, bool PlayerAvailable, uint? PlayerFormId, uint? CrosshairTargetFormId, bool PendingRequestPresent, uint? PendingRequestGeneration, uint? PendingTargetFormId, bool ActiveHostSession, uint? ActiveHostGeneration, uint? ActiveHostFormId, uint? CameraTargetFormId, bool ActorObservationAvailable = false, uint? ActorGeneration = null, uint? ActorFormId = null, bool ActorLoaded = false, bool ActorDead = false, bool ActorMoving = false, float ActorPositionX = 0, float ActorPositionY = 0, float ActorPositionZ = 0, float ActorHeadingRadians = 0, uint? ActorCellFormId = null, float? ActorVelocityX = null, float? ActorVelocityY = null, float? ActorVelocityZ = null, string BoundedDirectDisplacementCapability = "unsupported", string AnimatedLocomotionCapability = "unsupported", string GoalDirectedMovementCapability = "unsupported", string CameraFollowingCapability = "unsupported", string ActorActivationCapability = "unsupported", string AttackCapability = "unsupported", string JumpCapability = "unsupported", string SneakCapability = "unsupported", double? GameTimeDays = null, bool WorldReady = false, bool WorldPaused = true, ulong WorldGeneration = 0, uint PlayerCellFormId = 0, float PlayerPositionX = 0, float PlayerPositionY = 0, float PlayerPositionZ = 0);
 public sealed record BeginHostSessionRequest(int ProtocolVersion, string MessageKind, string RequestId, uint ExpectedPendingRequestGeneration, uint ExpectedTargetFormId, int TimeoutMilliseconds);
 public sealed record MoveHostKnownSpikeRequest(int ProtocolVersion, string MessageKind, string RequestId, uint ExpectedHostGeneration, uint Distance, string Direction, int TimeoutMilliseconds);
 public sealed record MoveTowardRequest(int ProtocolVersion, string MessageKind, string RequestId, uint ExpectedHostGeneration, uint ActorFormId, ulong ExpectedObservationSequence, float TargetPositionX, float TargetPositionY, float TargetPositionZ, float StoppingDistance, float MaximumDistance, string SpeedPolicy, int TimeoutMilliseconds);
@@ -164,6 +165,10 @@ public sealed record DisconnectRestorationReport(int ProtocolVersion, string Ses
 [JsonSerializable(typeof(OwnedNpcMovement))]
 [JsonSerializable(typeof(OwnedMovementProof))]
 [JsonSerializable(typeof(OwnedNpcAgentStatus))]
+[JsonSerializable(typeof(WorldCheckpointRequest))]
+[JsonSerializable(typeof(WorldCheckpointResult))]
+[JsonSerializable(typeof(QuestUiObservation))]
+[JsonSerializable(typeof(PatrolTrialState))]
 [JsonSerializable(typeof(PlaytestRequest))]
 [JsonSerializable(typeof(HostPlaytestResult))]
 [JsonSerializable(typeof(HostHeartbeat))]

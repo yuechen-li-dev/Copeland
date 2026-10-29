@@ -10,14 +10,88 @@ public sealed class OwnedNpcAgentBehavior(TimeSpan? startupDelay = null) : ISkyr
     private OwnedNpcAgentRuntime? runtime;
     private OwnedNpcIdentity? identity;
     private ulong generation;
-    private bool spawnedThisGeneration;
     private float readySeconds;
     private long lastTimestamp;
     private long nextReport;
     private string lastReportedState = "";
     private int loadTicks;
+    private uint cellFormId;
+    private OwnedNpcAgentSaveState? restorePlan;
+    private OwnedNpcAgentSaveState? restoredCheckpoint;
+    private OwnedNpcAgentSaveState? frozenSave;
+    private bool preparingSave;
+    public bool SavePrepared { get; private set; }
 
     public OwnedNpcAgentStatus? Status => runtime?.Status;
+
+    public async ValueTask PrepareSaveAsync(SkyrimHostContext context, CancellationToken cancellationToken)
+    {
+        SkyrimWorldOwnerRuntime owner = context.WorldOwner
+            ?? throw new InvalidOperationException("owned_agent_checkpoint_owner_missing");
+        if (!preparingSave)
+        {
+            frozenSave = runtime?.Capture(cellFormId) ?? owner.ReadOwnedAgentState();
+            preparingSave = true;
+            SavePrepared = false;
+        }
+        if (frozenSave is not null) owner.WriteOwnedAgentState(frozenSave);
+        WorldNpcResult source = await context.ObserveOwnedNpcAsync(cancellationToken).ConfigureAwait(false);
+        if (source.OwnedActiveCount != 0 || source.OwnedMovement?.MarkerActive == true)
+        {
+            if (identity is null || source.OwnedNpc != identity)
+                throw new InvalidDataException("owned_agent_save_foreign_body");
+            await context.ReleaseOwnedNpcAsync(identity, cancellationToken).ConfigureAwait(false);
+            throw new SkyrimWorldCommandDeferredException("owned_agent_save_retirement_pending");
+        }
+        SavePrepared = true;
+        LogCheckpoint("SKYRIM_AGENT_SAVE_PREPARED", frozenSave);
+    }
+
+    public void CancelSavePreparation()
+    {
+        if (!preparingSave) return;
+        ResumeAfterSave();
+    }
+
+    public void ObserveLifecycle(LifecycleObservation observation, SkyrimLifecycleProcessingResult result,
+        SkyrimWorldOwnerRuntime owner)
+    {
+        if (observation.Kind == "save_serialized" && result.Accepted && preparingSave)
+        {
+            LogCheckpoint("SKYRIM_AGENT_SAVE_COMMITTED", frozenSave);
+            ResumeAfterSave();
+        }
+        else if (observation.Kind == "load_started" || observation.Kind == "new_game_started")
+        {
+            preparingSave = false;
+            SavePrepared = false;
+            frozenSave = null;
+        }
+        else if (result.Outcome == "checkpoint_restored")
+        {
+            restoredCheckpoint = owner.ReadOwnedAgentState();
+            LogCheckpoint("SKYRIM_AGENT_CHECKPOINT_LOADED", restoredCheckpoint);
+        }
+    }
+
+    private void ResumeAfterSave()
+    {
+        restorePlan = frozenSave;
+        frozenSave = null;
+        preparingSave = false;
+        SavePrepared = false;
+        runtime = null;
+        identity = null;
+        loadTicks = 0;
+        lastTimestamp = 0;
+        lastReportedState = "";
+    }
+
+    private static void LogCheckpoint(string label, OwnedNpcAgentSaveState? saved)
+    {
+        Console.WriteLine(label + " " + JsonSerializer.Serialize(saved,
+            OwnedNpcCheckpointJsonContext.Default.OwnedNpcAgentSaveState));
+    }
 
     public async ValueTask TickAsync(SkyrimHostContext context, CancellationToken cancellationToken)
     {
@@ -34,16 +108,28 @@ public sealed class OwnedNpcAgentBehavior(TimeSpan? startupDelay = null) : ISkyr
         lastTimestamp = now;
         if (generation != context.State.WorldGeneration)
         {
-            // Native lifecycle retirement is authoritative. Never carry an intent,
-            // body lease, route anchor, or brain from the old world into the new one.
+            // Only committed semantic state selected by the lifecycle owner can
+            // cross worlds. Native identities and in-flight work never do.
             generation = context.State.WorldGeneration;
             runtime = null;
             identity = null;
-            spawnedThisGeneration = false;
+            restorePlan = restoredCheckpoint;
+            restoredCheckpoint = null;
             readySeconds = 0;
             loadTicks = 0;
             lastReportedState = "";
             Console.WriteLine($"SKYRIM_AGENT_WORLD_RESET generation={generation}");
+            if (restorePlan is null) context.WorldOwner?.ClearOwnedAgentState();
+        }
+        if (preparingSave) return;
+        if (restorePlan is not null && context.State.PlayerCellFormId != 0
+            && !restorePlan.CanMaterialize(context.State.PlayerCellFormId,
+                new(context.State.PlayerPositionX, context.State.PlayerPositionY, context.State.PlayerPositionZ)))
+        {
+            if (lastReportedState != "dormant")
+                Console.WriteLine("SKYRIM_AGENT_DORMANT reason=outside_saved_route_region");
+            lastReportedState = "dormant";
+            return;
         }
         readySeconds += delta;
         if (readySeconds < (startupDelay ?? TimeSpan.FromSeconds(8)).TotalSeconds)
@@ -54,7 +140,7 @@ public sealed class OwnedNpcAgentBehavior(TimeSpan? startupDelay = null) : ISkyr
         WorldNpcResult source = await context.ObserveOwnedNpcAsync(cancellationToken).ConfigureAwait(false);
         if (identity is null)
         {
-            if (spawnedThisGeneration)
+            if (restorePlan?.Mode == "stopped")
             {
                 return;
             }
@@ -68,7 +154,6 @@ public sealed class OwnedNpcAgentBehavior(TimeSpan? startupDelay = null) : ISkyr
             }
             WorldNpcResult spawned = await context.SpawnOwnedNpcAsync(cancellationToken).ConfigureAwait(false);
             identity = spawned.OwnedNpc ?? throw new InvalidDataException("owned_agent_spawn_identity_missing");
-            spawnedThisGeneration = true;
             return;
         }
         if (source.OwnedNpc != identity)
@@ -87,7 +172,11 @@ public sealed class OwnedNpcAgentBehavior(TimeSpan? startupDelay = null) : ISkyr
                 }
                 return;
             }
-            runtime = new OwnedNpcAgentRuntime(Fact(source, actor!, true));
+            cellFormId = actor!.CellFormId;
+            if (restorePlan is not null && restorePlan.CellFormId != cellFormId)
+                throw new InvalidDataException("owned_agent_checkpoint_cell_mismatch");
+            runtime = new OwnedNpcAgentRuntime(Fact(source, actor, true), saved: restorePlan);
+            restorePlan = null;
             Console.WriteLine("SKYRIM_AGENT_BOUND " + JsonSerializer.Serialize(identity,
                 MarionetteWireJsonContext.Default.OwnedNpcIdentity));
         }
@@ -103,6 +192,7 @@ public sealed class OwnedNpcAgentBehavior(TimeSpan? startupDelay = null) : ISkyr
         {
             await DispatchAsync(context, source, intent, cancellationToken).ConfigureAwait(false);
         }
+        context.WorldOwner?.WriteOwnedAgentState(runtime.Capture(cellFormId));
         OwnedNpcAgentStatus status = runtime.Status;
         if (status.State != lastReportedState || now >= nextReport)
         {
