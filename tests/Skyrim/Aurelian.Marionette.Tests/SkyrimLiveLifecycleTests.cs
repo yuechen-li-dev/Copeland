@@ -10,6 +10,39 @@ namespace Marionette.Skyrim.App.Tests;
 
 public sealed class SkyrimLiveLifecycleTests
 {
+    [Fact]
+    public void CheckpointOperationNumbersCanRepeatAcrossNativeSessions()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "skyrim-restarted-save-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var first = new SkyrimCheckpointStore(directory);
+            var firstSave = new SkyrimSaveIdentity("FirstSessionSave",
+                new SkyrimTimelineStamp(Session, new SkyrimGameTimestamp(10), 3), 3);
+            Assert.Equal(SkyrimCheckpointStatus.Staged,
+                first.CaptureProvisional(ReadyOwner(), firstSave, new BodyBindingRegistry(), 3).Status);
+            Assert.True(first.Commit(3).Completed);
+
+            var restarted = new SkyrimCheckpointStore(directory);
+            var nextSession = new SkyrimSessionId(Guid.NewGuid());
+            var nextSave = new SkyrimSaveIdentity("NextSessionSave",
+                new SkyrimTimelineStamp(nextSession, new SkyrimGameTimestamp(11), 3), 3);
+            Assert.Equal(SkyrimCheckpointStatus.SaveOperationUnavailable, restarted.Commit(3).Status);
+            Assert.Equal(SkyrimCheckpointStatus.Staged,
+                restarted.CaptureProvisional(ReadyOwner(), nextSave, new BodyBindingRegistry(), 3).Status);
+            SkyrimCheckpointResult committed = restarted.Commit(3);
+            Assert.True(committed.Completed);
+            Assert.Equal("NextSessionSave", committed.Entry!.Save.SaveName);
+            Assert.Equal(committed.Entry, restarted.Commit(3).Entry);
+            Assert.Equal(2, restarted.ReadEntries().Count);
+            Assert.Equal(2, restarted.ReadEntries().Select(entry => entry.CheckpointArtifactId).Distinct().Count());
+        }
+        finally
+        {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private static readonly SkyrimSessionId Session = new(
         Guid.Parse("f65aca2d-34d7-443c-b57c-aa1a95d105d7"));
 

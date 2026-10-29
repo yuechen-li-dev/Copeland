@@ -22,7 +22,8 @@ public sealed partial class MarionetteTransportClient
     }
 
     public async ValueTask<LiveSaveCorrelationReport> RunWorldHostAsync(
-        IReadOnlyList<ISkyrimWorldBehavior> behaviors, CancellationToken cancellationToken)
+        IReadOnlyList<ISkyrimWorldBehavior> behaviors, CancellationToken cancellationToken,
+        TextReader? playtestCommands = null)
     {
         if (string.IsNullOrWhiteSpace(_config.CheckpointDirectory))
         {
@@ -71,6 +72,14 @@ public sealed partial class MarionetteTransportClient
         int failedLoads = 0;
         string? lastOutcome = null;
         bool firstTick = true;
+        await using SkyrimHostPlaytestControl? control = _config.EnablePlaytestShell
+            ? new SkyrimHostPlaytestControl(pipe, playtestCommands ?? Console.In, cancellationToken) : null;
+        var uptime = System.Diagnostics.Stopwatch.StartNew();
+        double lastTickSeconds = 0;
+        double nextHeartbeat = 0;
+        double readySeconds = 0;
+        long readyTicks = 0;
+        bool previouslyReady = false;
         try
         {
             while (!cancellationToken.IsCancellationRequested)
@@ -128,16 +137,41 @@ public sealed partial class MarionetteTransportClient
                     Console.Error.WriteLine($"SKYRIM_HOST state=WorldPaused generation={state.WorldGeneration}");
                 }
                 lastGeneration = state.WorldGeneration;
+                bool canRun = SkyrimWorldBehaviorGate.CanRun(coordinator, state);
+                double elapsed = uptime.Elapsed.TotalSeconds;
+                if (canRun)
+                {
+                    readyTicks++;
+                    if (previouslyReady && elapsed - lastTickSeconds <= 1)
+                    {
+                        readySeconds += elapsed - lastTickSeconds;
+                    }
+                }
+                previouslyReady = canRun;
+                lastTickSeconds = elapsed;
+                if (elapsed >= nextHeartbeat)
+                {
+                    var heartbeat = new HostHeartbeat(elapsed, readySeconds, readyTicks, state.WorldGeneration, canRun);
+                    Console.WriteLine("SKYRIM_HOST_HEARTBEAT " + System.Text.Json.JsonSerializer.Serialize(
+                        heartbeat, MarionetteWireJsonContext.Default.HostHeartbeat));
+                    nextHeartbeat = elapsed + 5;
+                }
                 try
                 {
-                    await SkyrimWorldBehaviorGate.TickAsync(coordinator, state,
-                        new SkyrimHostContext(pipe, state), behaviors, cancellationToken).ConfigureAwait(false);
+                    var context = new SkyrimHostContext(pipe, state);
+                    bool transition = control is not null && await control.TickAsync(context,
+                        canRun, readySeconds, readyTicks, cancellationToken).ConfigureAwait(false);
+                    if (!transition)
+                    {
+                        await SkyrimWorldBehaviorGate.TickAsync(coordinator, state,
+                            context, behaviors, cancellationToken).ConfigureAwait(false);
+                    }
                 }
                 catch (SkyrimWorldCommandDeferredException exception)
                 {
                     Console.Error.WriteLine($"SKYRIM_HOST behavior_deferred={exception.Message}");
                 }
-                await Task.Delay(200, cancellationToken).ConfigureAwait(false);
+                await Task.Delay(control is null ? 200 : 80, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

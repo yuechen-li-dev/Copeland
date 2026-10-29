@@ -14,6 +14,13 @@ public enum PlaytestButtons : uint
     Activate = 32,
     Jump = 64,
     Pause = 128,
+    MenuUp = 256,
+    MenuDown = 512,
+    MenuLeft = 1024,
+    MenuRight = 2048,
+    MenuAccept = 4096,
+    MenuCancel = 8192,
+    MouseLeft = 16384,
 }
 
 public sealed record PlaytestRequest(
@@ -48,7 +55,16 @@ public sealed record PlaytestObservation(
     uint ControlFlags = 0,
     ulong MappedEvents = 0,
     float MoveInputX = 0,
-    float MoveInputY = 0);
+    float MoveInputY = 0,
+    string CheckpointName = "",
+    uint CellFormId = 0,
+    uint CrosshairFormId = 0,
+    string CrosshairName = "",
+    bool MessageBoxOpen = false,
+    bool TravelAutosaveSuppressed = false,
+    int MenuAcceptKey = -1,
+    ulong MenuEvents = 0,
+    float CursorX = 0, float CursorY = 0, float CursorWidth = 0, float CursorHeight = 0);
 
 public sealed partial class MarionetteTransportClient
 {
@@ -80,10 +96,36 @@ public sealed class PlaytestSession : IAsyncDisposable
     private readonly SemaphoreSlim gate = new(1, 1);
     private ulong lastSequence;
     private bool active;
+    private readonly bool ownsPipe;
 
-    internal PlaytestSession(Stream pipe)
+    internal PlaytestSession(Stream pipe, bool ownsPipe = true)
     {
         this.pipe = pipe;
+        this.ownsPipe = ownsPipe;
+    }
+
+    public Task<PlaytestObservation> BeginForMenusAsync(CancellationToken cancellationToken = default)
+    {
+        return SendAsync("playtest_begin", PlaytestButtons.None, 0, 0, cancellationToken);
+    }
+
+    public Task<PlaytestObservation> SaveCheckpointAsync(CancellationToken cancellationToken = default)
+    {
+        return SendAsync("playtest_save", PlaytestButtons.None, 0, 0, cancellationToken);
+    }
+
+    public Task<PlaytestObservation> PointMenuAsync(float x, float y, CancellationToken cancellationToken = default)
+    {
+        if (!float.IsFinite(x) || !float.IsFinite(y) || x is < 0 or > 1 || y is < 0 or > 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(x));
+        }
+        return SendAsync("playtest_pointer", PlaytestButtons.None, x, y, cancellationToken);
+    }
+
+    public Task<PlaytestObservation> LoadCheckpointAsync(CancellationToken cancellationToken = default)
+    {
+        return SendAsync("playtest_load", PlaytestButtons.None, 0, 0, cancellationToken);
     }
 
     public async Task<PlaytestObservation> BeginAsync(CancellationToken cancellationToken = default)
@@ -113,7 +155,7 @@ public sealed class PlaytestSession : IAsyncDisposable
     public Task<PlaytestObservation> UpdateAsync(PlaytestButtons buttons, float mouseX = 0, float mouseY = 0,
         CancellationToken cancellationToken = default)
     {
-        if ((uint)buttons > 255 || !float.IsFinite(mouseX) || !float.IsFinite(mouseY)
+        if ((uint)buttons > 32767 || !float.IsFinite(mouseX) || !float.IsFinite(mouseY)
             || Math.Abs(mouseX) > 200 || Math.Abs(mouseY) > 200)
         {
             throw new ArgumentOutOfRangeException(nameof(buttons), "Playtest input exceeds the bounded protocol.");
@@ -142,9 +184,16 @@ public sealed class PlaytestSession : IAsyncDisposable
                 await EndAsync().ConfigureAwait(false);
             }
         }
+        catch (IOException) when (!ownsPipe)
+        {
+            // The owner closes the connection; native disconnect cleanup releases input.
+        }
         finally
         {
-            await pipe.DisposeAsync().ConfigureAwait(false);
+            if (ownsPipe)
+            {
+                await pipe.DisposeAsync().ConfigureAwait(false);
+            }
             gate.Dispose();
         }
     }

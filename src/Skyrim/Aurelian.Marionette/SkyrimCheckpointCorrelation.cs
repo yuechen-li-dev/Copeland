@@ -51,6 +51,7 @@ public sealed class SkyrimCheckpointStore
     private const string IndexFileName = "skyrim-checkpoints.index.json";
     private readonly string directory;
     private readonly Dictionary<long, SkyrimCheckpointIndexEntry> staged = new();
+    private readonly Dictionary<long, SkyrimCheckpointIndexEntry> committedOperations = new();
 
     public SkyrimCheckpointStore(string directory)
     {
@@ -145,18 +146,26 @@ public sealed class SkyrimCheckpointStore
 
     public SkyrimCheckpointResult Commit(long operationId)
     {
-        List<SkyrimCheckpointIndexEntry> entries = ReadIndex();
-        SkyrimCheckpointIndexEntry? committed = entries.SingleOrDefault(
-            entry => entry.SaveOperationId == operationId);
-        if (committed is not null)
-        {
-            return new SkyrimCheckpointResult(SkyrimCheckpointStatus.Completed, committed);
-        }
         if (!staged.Remove(operationId, out SkyrimCheckpointIndexEntry? provisional))
         {
+            // Callback operation IDs restart with each native process. Only this
+            // store's known operations are eligible for an idempotent retry.
+            if (committedOperations.TryGetValue(operationId, out SkyrimCheckpointIndexEntry? known))
+            {
+                return new SkyrimCheckpointResult(SkyrimCheckpointStatus.Completed, known);
+            }
             return new SkyrimCheckpointResult(
                 SkyrimCheckpointStatus.SaveOperationUnavailable,
                 FailureReason: "provisional_save_operation_unavailable");
+        }
+
+        List<SkyrimCheckpointIndexEntry> entries = ReadIndex();
+        SkyrimCheckpointIndexEntry? committed = entries.SingleOrDefault(
+            entry => entry.CheckpointArtifactId == provisional.CheckpointArtifactId);
+        if (committed is not null)
+        {
+            committedOperations[operationId] = committed;
+            return new SkyrimCheckpointResult(SkyrimCheckpointStatus.Completed, committed);
         }
 
         string? parent = entries.LastOrDefault(entry => entry.ActiveLineage)?.CheckpointArtifactId;
@@ -167,6 +176,7 @@ public sealed class SkyrimCheckpointStore
         };
         entries.Add(committed);
         WriteIndex(entries);
+        committedOperations[operationId] = committed;
         return new SkyrimCheckpointResult(SkyrimCheckpointStatus.Completed, committed);
     }
 

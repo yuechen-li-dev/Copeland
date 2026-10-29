@@ -63,6 +63,13 @@ public sealed class PlaytestSessionTests
             ControlFlags = 1023,
             MappedEvents = 79,
             MoveInputY = 1,
+            CheckpointName = "AurelianPlaytestM1-test",
+            CellFormId = 0x1234,
+            CrosshairFormId = 0x5678,
+            CrosshairName = "Whiterun",
+            MessageBoxOpen = true,
+            TravelAutosaveSuppressed = true,
+            MenuAcceptKey = 18,
         };
         using var stream = new MemoryStream(MarionetteWireProtocol.Encode(expected));
         PlaytestObservation actual = await MarionetteWireProtocol.ReadAsync<PlaytestObservation>(stream, default);

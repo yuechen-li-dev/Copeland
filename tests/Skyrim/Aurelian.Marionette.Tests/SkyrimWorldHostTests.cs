@@ -9,6 +9,69 @@ namespace Marionette.Skyrim.App.Tests;
 public sealed class SkyrimWorldHostTests
 {
     [Fact]
+    public async Task HostServicesMenuInputOnItsOwnConnectionWhileGameplayIsPaused()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        string directory = Path.Combine(Path.GetTempPath(), "skyrim-control-" + Guid.NewGuid().ToString("N"));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var config = new LocalTransportConfig("host-control-" + Guid.NewGuid().ToString("N"), "test", "test",
+            CheckpointDirectory: directory, EnablePlaytestShell: true);
+        using var server = new NamedPipeServerStream(config.PipeName, PipeDirection.InOut, 1,
+            PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+        var inputKinds = new List<string>();
+        int queries = 0;
+        ulong sequence = 0;
+        Task serve = Task.Run(async () =>
+        {
+            await server.WaitForConnectionAsync(timeout.Token);
+            await MarionetteWireProtocol.ReadAsync<ClientHello>(server, timeout.Token);
+            await MarionetteWireProtocol.WriteAsync(server, new ServerHello(1, "server_hello", true,
+                "control-session", "test", ["query_lifecycle_observations", "query_world_npcs", "playtest_begin"], null), timeout.Token);
+            while (true)
+            {
+                PlaytestRequest request = await MarionetteWireProtocol.ReadAsync<PlaytestRequest>(server, timeout.Token);
+                if (request.MessageKind == "query_skyrim_state")
+                {
+                    if (++queries > 5) break;
+                    await MarionetteWireProtocol.WriteAsync(server,
+                        State(request.RequestId, ++sequence) with { WorldPaused = true }, timeout.Token);
+                }
+                else if (request.MessageKind == "query_lifecycle_observations")
+                {
+                    await MarionetteWireProtocol.WriteAsync(server, new LifecycleObservationsResult(
+                        1, "lifecycle_observations_result", request.RequestId, ++sequence, "completed", []), timeout.Token);
+                }
+                else if (request.MessageKind.StartsWith("playtest_", StringComparison.Ordinal)
+                    || request.MessageKind == "query_playtest_state")
+                {
+                    inputKinds.Add(request.MessageKind);
+                    Assert.DoesNotContain((uint)PlaytestButtons.Forward, new[] { request.InputButtons });
+                    await MarionetteWireProtocol.WriteAsync(server, new PlaytestObservation(1, "playtest_result",
+                        request.RequestId, ++sequence, "completed", "", true, false, false, true,
+                        request.InputButtons, 1, 0x14, 0, 0, 0, 0, 0), timeout.Token);
+                }
+                else throw new InvalidDataException("unexpected request:" + request.MessageKind);
+            }
+            server.Disconnect();
+        });
+        var behavior = new CountingBehavior();
+        try
+        {
+            using var commands = new StringReader("input MenuAccept 0.1\ninput Forward 1\ninspect\n");
+            await new MarionetteTransportClient(config).RunWorldHostAsync([behavior], timeout.Token, commands);
+            await serve;
+            Assert.Contains("playtest_begin", inputKinds);
+            Assert.Contains("playtest_update", inputKinds);
+            Assert.Contains("playtest_end", inputKinds);
+            Assert.Empty(behavior.Generations);
+        }
+        finally
+        {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task OrdinaryNpcObservationUsesGeneratedWireMetadata()
     {
         var npc = new WorldNpcObservation(0x123, 0x456, 0x789, "Ordinary NPC",
