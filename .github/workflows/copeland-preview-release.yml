@@ -3,6 +3,11 @@ name: Copeland Preview Release
 on:
   workflow_dispatch:
     inputs:
+      publish_managed_wgsl:
+        description: Qualify and publish the managed VTS/WGSL compiler family only
+        required: true
+        default: false
+        type: boolean
       version:
         description: Coordinated release version
         required: true
@@ -42,8 +47,84 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  build-managed-wgsl:
+    if: ${{ inputs.publish_managed_wgsl }}
+    runs-on: windows-latest
+    env:
+      MSBUILDDISABLENODEREUSE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout the Aetheris-qualified compiler source
+        uses: actions/checkout@v4
+        with:
+          ref: 70b6cbe742ecfb2947c9c6a31cfa8e1d3a89067b
+          path: artifacts/local/compiler-source
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test, pack and qualify the managed compiler family
+        shell: pwsh
+        run: ./tools/Build-ManagedWgslRelease.ps1 -SourceRoot artifacts/local/compiler-source
+      - uses: actions/upload-artifact@v4
+        with:
+          name: managed-wgsl-0.1.0
+          path: artifacts/local/managed-wgsl-release/candidate
+          if-no-files-found: error
+
+  smoke-managed-wgsl-linux:
+    if: ${{ inputs.publish_managed_wgsl }}
+    needs: build-managed-wgsl
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/download-artifact@v4
+        with:
+          name: managed-wgsl-0.1.0
+          path: artifacts/local/managed-wgsl-tested
+      - name: Compile VTS using the exact Windows-built packages on Linux
+        shell: pwsh
+        run: ./tools/Test-ManagedWgslPackage.ps1 -Feed artifacts/local/managed-wgsl-tested/nuget -OutputDirectory "$env:RUNNER_TEMP/wgsl-consumer"
+
+  publish-managed-wgsl:
+    if: ${{ inputs.publish_managed_wgsl }}
+    needs: [build-managed-wgsl, smoke-managed-wgsl-linux]
+    runs-on: windows-latest
+    environment: copeland-publication
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: managed-wgsl-0.1.0
+          path: release
+      - uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: ${{ vars.NUGET_USER }}
+      - name: Publish the tested dependency closure in order
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: |
+          $receipt = Get-Content release/qualification.json -Raw | ConvertFrom-Json
+          foreach ($id in Get-Content release/PACKAGE_ORDER.txt) {
+            $name = "$id.0.1.0.nupkg"
+            $package = "release/nuget/$name"
+            if ((Get-FileHash $package -Algorithm SHA256).Hash.ToLowerInvariant() -ne $receipt.packages.$name) { throw "Qualified package changed: $id" }
+            dotnet nuget push $package --source https://api.nuget.org/v3/index.json --api-key $env:NUGET_API_KEY --skip-duplicate
+            if ($LASTEXITCODE -ne 0) { throw "Publication failed: $id" }
+          }
+
   build-and-verify:
-    if: ${{ inputs.publish_nuget || inputs.publish_npm || inputs.create_github_release || !inputs.publish_machina_typography_openfont }}
+    if: ${{ !inputs.publish_managed_wgsl && (inputs.publish_nuget || inputs.publish_npm || inputs.create_github_release || !inputs.publish_machina_typography_openfont) }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
