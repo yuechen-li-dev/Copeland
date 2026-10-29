@@ -32,6 +32,10 @@ internal static class Program
                     {
                         behaviors.Add(new NpcNumberProofBehavior());
                     }
+                    if (config.EnableOwnedNpcProof)
+                    {
+                        behaviors.Add(new OwnedNpcProofBehavior());
+                    }
                     LiveSaveCorrelationReport report = await client.RunWorldHostAsync(behaviors, shutdown.Token).ConfigureAwait(false);
                     Console.WriteLine(JsonSerializer.Serialize(report, MarionetteWireJsonContext.Default.LiveSaveCorrelationReport));
                 }

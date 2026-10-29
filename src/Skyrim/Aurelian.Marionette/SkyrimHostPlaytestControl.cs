@@ -24,13 +24,14 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
     private bool active;
     private WorldNpcResult? priorObservation;
     private WorldNpcObservation? priorNpc;
+    private OwnedNpcIdentity? ownedNpc;
 
     public SkyrimHostPlaytestControl(Stream pipe, TextReader commandInput, CancellationToken cancellationToken)
     {
         input = new PlaytestSession(pipe, ownsPipe: false);
         shutdown = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         reader = Task.Run(() => ReadCommandsAsync(commandInput));
-        Console.Error.WriteLine("SKYRIM_HOST_CONTROL_READY inspect | input <buttons> <seconds> | look <x> <y> | release | save | load | npc-change | stale");
+        Console.Error.WriteLine("SKYRIM_HOST_CONTROL_READY inspect | input <buttons> <seconds> | look <x> <y> | release | save | load | npc-change | stale | owned-spawn | owned-inspect | owned-tune | owned-release");
     }
 
     private async Task ReadCommandsAsync(TextReader commandInput)
@@ -154,6 +155,38 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
                 held = PlaytestButtons.None;
                 transition = true;
             }
+            else if (parts is ["owned-spawn"] or ["owned-inspect"] or ["owned-tune"] or ["owned-release"])
+            {
+                WorldNpcResult result;
+                if (parts[0] == "owned-spawn")
+                {
+                    if (!behaviorsAllowed) throw new ArgumentException("gameplay_lifecycle_gate_closed");
+                    result = await context.SpawnOwnedNpcAsync(cancellationToken).ConfigureAwait(false);
+                    ownedNpc = result.OwnedNpc;
+                }
+                else if (parts[0] == "owned-release")
+                {
+                    if (ownedNpc is null) throw new ArgumentException("owned_identity_not_held");
+                    result = await context.ReleaseOwnedNpcAsync(ownedNpc, cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    result = await context.ObserveOwnedNpcAsync(cancellationToken).ConfigureAwait(false);
+                    if (parts[0] == "owned-tune")
+                    {
+                        if (!behaviorsAllowed || ownedNpc is null || result.OwnedNpc != ownedNpc)
+                        {
+                            throw new ArgumentException("owned_identity_not_held");
+                        }
+                        WorldNpcObservation actor = result.Npcs.Single(npc => npc.FormId == ownedNpc.FormId);
+                        await context.SetBaseSpeedAsync(result, actor, actor.BaseSpeedMultiplier + 5,
+                            cancellationToken, ownedNpc).ConfigureAwait(false);
+                        result = await context.ObserveOwnedNpcAsync(cancellationToken).ConfigureAwait(false);
+                    }
+                }
+                Console.WriteLine("SKYRIM_HOST_OWNED_NPC " +
+                    JsonSerializer.Serialize(result, MarionetteWireJsonContext.Default.WorldNpcResult));
+            }
             else if (parts is ["npc-change"])
             {
                 if (!behaviorsAllowed) throw new ArgumentException("gameplay_lifecycle_gate_closed");
@@ -180,7 +213,8 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
             return transition;
         }
         catch (Exception exception) when (exception is ArgumentException or SkyrimWorldCommandDeferredException
-            || exception is InvalidDataException && exception.Message.StartsWith("playtest_failed:", StringComparison.Ordinal))
+            || exception is InvalidDataException && (exception.Message.StartsWith("playtest_failed:", StringComparison.Ordinal)
+                || exception.Message.StartsWith("world_npc_command_failed:", StringComparison.Ordinal)))
         {
             held = PlaytestButtons.None;
             Emit(command ?? "renew", "rejected", exception.Message, null, context, behaviorsAllowed, readySeconds, readyTicks);

@@ -6,7 +6,10 @@ public sealed record WorldNpcRequest(
     int ProtocolVersion, string MessageKind, string RequestId, int TimeoutMilliseconds,
     uint Radius = 4096, uint MaxResults = 8, uint TargetFormId = 0,
     ulong ExpectedWorldGeneration = 0, ulong ExpectedObservationSequence = 0,
-    float ExpectedBaseSpeed = 0, float DesiredBaseSpeed = 0);
+    float ExpectedBaseSpeed = 0, float DesiredBaseSpeed = 0,
+    ulong ExpectedOwnedLeaseId = 0, string NpcBaseKey = "");
+
+public sealed record OwnedNpcIdentity(ulong WorldGeneration, ulong LeaseId, uint FormId, uint BaseFormId);
 
 public sealed record WorldNpcObservation(
     uint FormId, uint BaseFormId, uint CellFormId, string Name,
@@ -16,7 +19,10 @@ public sealed record WorldNpcObservation(
 public sealed record WorldNpcResult(
     int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence,
     string Status, string FailureReason, ulong WorldGeneration, ulong ObservationSequence,
-    float BeforeBaseSpeed, float AfterBaseSpeed, WorldNpcObservation[] Npcs);
+    float BeforeBaseSpeed, float AfterBaseSpeed, WorldNpcObservation[] Npcs,
+    OwnedNpcIdentity? OwnedNpc = null, string OwnedNpcState = "none",
+    ulong OwnedCreatedCount = 0, ulong OwnedRetiredCount = 0, uint OwnedActiveCount = 0,
+    uint OwnedBaseLiveCount = 0, bool OwnedBaseCountComplete = false);
 
 public sealed record NpcNumberProof(
     ulong WorldGeneration, uint FormId, uint BaseFormId, string Name,
@@ -43,6 +49,25 @@ public sealed class SkyrimHostContext
 
     public SkyrimStateResult State { get; }
 
+    public ValueTask<WorldNpcResult> ObserveOwnedNpcAsync(CancellationToken cancellationToken)
+    {
+        return SendAsync(new WorldNpcRequest(1, "query_owned_npc", Guid.NewGuid().ToString("N"), 2000), cancellationToken);
+    }
+
+    public ValueTask<WorldNpcResult> SpawnOwnedNpcAsync(CancellationToken cancellationToken, string? expectedFailure = null)
+    {
+        return SendAsync(new WorldNpcRequest(1, "spawn_owned_npc", Guid.NewGuid().ToString("N"), 2000,
+            ExpectedWorldGeneration: State.WorldGeneration, NpcBaseKey: "hunter"), cancellationToken, expectedFailure);
+    }
+
+    public ValueTask<WorldNpcResult> ReleaseOwnedNpcAsync(OwnedNpcIdentity identity,
+        CancellationToken cancellationToken, string? expectedFailure = null, uint? targetOverride = null)
+    {
+        return SendAsync(new WorldNpcRequest(1, "release_owned_npc", Guid.NewGuid().ToString("N"), 2000,
+            TargetFormId: targetOverride ?? identity.FormId, ExpectedWorldGeneration: identity.WorldGeneration,
+            ExpectedOwnedLeaseId: identity.LeaseId), cancellationToken, expectedFailure);
+    }
+
     public async ValueTask<WorldNpcResult> ObserveNpcsAsync(CancellationToken cancellationToken, bool refresh = false)
     {
         if (observation is null || refresh)
@@ -54,11 +79,16 @@ public sealed class SkyrimHostContext
     }
 
     public ValueTask<WorldNpcResult> SetBaseSpeedAsync(WorldNpcResult source, WorldNpcObservation npc,
-        float desired, CancellationToken cancellationToken)
+        float desired, CancellationToken cancellationToken, OwnedNpcIdentity? owned = null)
     {
         if (source.WorldGeneration != State.WorldGeneration || !source.Npcs.Contains(npc))
         {
             throw new SkyrimWorldCommandDeferredException("stale_npc_observation");
+        }
+        if (owned is not null && (owned.FormId != npc.FormId || owned.WorldGeneration != source.WorldGeneration
+            || source.OwnedNpc != owned || source.OwnedNpcState != "live"))
+        {
+            throw new SkyrimWorldCommandDeferredException("owned_npc_identity_mismatch");
         }
         if (!float.IsFinite(desired) || Math.Abs(desired - npc.BaseSpeedMultiplier) > 10
             || desired is < 1 or > 300)
@@ -71,12 +101,14 @@ public sealed class SkyrimHostContext
             ExpectedWorldGeneration: source.WorldGeneration,
             ExpectedObservationSequence: source.ObservationSequence,
             ExpectedBaseSpeed: npc.BaseSpeedMultiplier,
-            DesiredBaseSpeed: desired), cancellationToken);
+            DesiredBaseSpeed: desired, ExpectedOwnedLeaseId: owned?.LeaseId ?? 0), cancellationToken);
     }
 
-    private async ValueTask<WorldNpcResult> SendAsync(WorldNpcRequest request, CancellationToken cancellationToken)
+    private async ValueTask<WorldNpcResult> SendAsync(WorldNpcRequest request, CancellationToken cancellationToken,
+        string? expectedFailure = null)
     {
-        if (!State.WorldReady || State.WorldPaused)
+        if ((!State.WorldReady || State.WorldPaused)
+            && request.MessageKind is not ("query_owned_npc" or "release_owned_npc"))
         {
             throw new SkyrimWorldCommandDeferredException("world_not_command_ready");
         }
@@ -84,6 +116,12 @@ public sealed class SkyrimHostContext
         timeout.CancelAfter(TimeSpan.FromSeconds(4));
         await MarionetteWireProtocol.WriteAsync(pipe, request, timeout.Token).ConfigureAwait(false);
         WorldNpcResult result = await MarionetteWireProtocol.ReadAsync<WorldNpcResult>(pipe, timeout.Token).ConfigureAwait(false);
+        if (request.MessageKind is "spawn_owned_npc" or "query_owned_npc" or "release_owned_npc"
+            || request.ExpectedOwnedLeaseId != 0)
+        {
+            Console.WriteLine("SKYRIM_OWNED_COMMAND kind=" + request.MessageKind + " " +
+                JsonSerializer.Serialize(result, MarionetteWireJsonContext.Default.WorldNpcResult));
+        }
         if (result.ProtocolVersion != 1 || result.MessageKind != "world_npc_result"
             || result.RequestId != request.RequestId || result.ServerSequence == 0)
         {
@@ -91,6 +129,10 @@ public sealed class SkyrimHostContext
         }
         if (result.Status != "completed")
         {
+            if (expectedFailure is not null && result.FailureReason == expectedFailure)
+            {
+                return result;
+            }
             if (request.MessageKind == "query_world_npcs" && result.FailureReason is
                 "dispatch_timeout" or "dispatch_unavailable" or "queue_full")
             {
@@ -102,6 +144,10 @@ public sealed class SkyrimHostContext
                 throw new SkyrimWorldCommandDeferredException(result.FailureReason);
             }
             throw new InvalidDataException($"world_npc_command_failed:{result.FailureReason}");
+        }
+        if (expectedFailure is not null)
+        {
+            throw new InvalidDataException("expected_native_refusal_missing:" + expectedFailure);
         }
         if (result.WorldGeneration != State.WorldGeneration)
         {
