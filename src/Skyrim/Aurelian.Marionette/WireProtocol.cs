@@ -150,6 +150,8 @@ public sealed record SessionBootstrapReport(int ProtocolVersion, string SessionI
 public sealed record DisconnectRestorationReport(int ProtocolVersion, string SessionId, bool Authenticated, uint TargetFormId, uint HostGeneration, bool SkyrimForegroundAtBegin, bool ActiveBeforeDisconnect, bool Reconnected, bool SessionCleared, uint? PlayerFormId, uint? CameraTargetFormId, ulong ServerSequenceStart, ulong ServerSequenceEnd);
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+[JsonSerializable(typeof(PlaytestRequest))]
+[JsonSerializable(typeof(PlaytestObservation))]
 [JsonSerializable(typeof(LocalTransportConfig))]
 [JsonSerializable(typeof(ClientHello))]
 [JsonSerializable(typeof(ServerHello))]
