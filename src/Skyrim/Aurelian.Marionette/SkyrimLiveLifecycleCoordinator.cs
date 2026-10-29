@@ -41,6 +41,8 @@ public sealed class SkyrimLiveLifecycleCoordinator
 
     public SkyrimWorldOwnerRuntime CurrentWorld { get; private set; }
 
+    public bool CanRunBehaviors => CurrentWorld.CanIssueBodyCommands && saves.Count == 0 && loads.Count == 0;
+
     public void AbortPendingSaves()
     {
         foreach (long operationId in saves.Keys.ToArray())

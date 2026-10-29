@@ -16,225 +16,190 @@ public sealed record LiveSaveCorrelationReport(
 
 public sealed partial class MarionetteTransportClient
 {
-    public async ValueTask<LiveSaveCorrelationReport> RunLiveSaveCorrelationAsync(
-        CancellationToken cancellationToken)
+    public ValueTask<LiveSaveCorrelationReport> RunLiveSaveCorrelationAsync(CancellationToken cancellationToken)
+    {
+        return RunWorldHostAsync([], cancellationToken);
+    }
+
+    public async ValueTask<LiveSaveCorrelationReport> RunWorldHostAsync(
+        IReadOnlyList<ISkyrimWorldBehavior> behaviors, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(_config.CheckpointDirectory))
         {
             throw new InvalidDataException("checkpoint_directory_required");
         }
-
         using var pipe = new System.IO.Pipes.NamedPipeClientStream(
-            ".",
-            _config.PipeName,
-            System.IO.Pipes.PipeDirection.InOut,
-            System.IO.Pipes.PipeOptions.Asynchronous);
-        await pipe.ConnectAsync(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
+            ".", _config.PipeName, System.IO.Pipes.PipeDirection.InOut, System.IO.Pipes.PipeOptions.Asynchronous);
+        Console.Error.WriteLine("SKYRIM_HOST waiting_for_bridge");
+        await pipe.ConnectAsync(cancellationToken).ConfigureAwait(false);
         ServerHello hello = await AuthenticateAsync(pipe, cancellationToken).ConfigureAwait(false);
-        if (!hello.Capabilities.Contains("query_lifecycle_observations", StringComparer.Ordinal))
+        foreach (string capability in new[] { "query_lifecycle_observations", "query_world_npcs" })
         {
-            throw new InvalidDataException("lifecycle_observation_capability_missing");
+            if (!hello.Capabilities.Contains(capability, StringComparer.Ordinal))
+            {
+                throw new InvalidDataException($"host_capability_missing:{capability}");
+            }
         }
-
-        GameplayReadyState ready = await WaitForGameplayReadyAsync(
-            pipe,
-            cancellationToken).ConfigureAwait(false);
-        SkyrimStateResult initial = ready.State;
+        if (_config.StartupSaveId is not null)
+        {
+            string requestId = Guid.NewGuid().ToString("N");
+            using var loadTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            loadTimeout.CancelAfter(TimeSpan.FromSeconds(6));
+            await MarionetteWireProtocol.WriteAsync(pipe, new LoadDevelopmentSessionRequest(
+                1, "load_development_session", requestId, _config.StartupSaveId, 5000), loadTimeout.Token).ConfigureAwait(false);
+            SessionLoadResult load = await MarionetteWireProtocol.ReadAsync<SessionLoadResult>(pipe, loadTimeout.Token).ConfigureAwait(false);
+            if (load.RequestId != requestId || load.MessageKind != "load_development_session_result"
+                || load.SaveId != _config.StartupSaveId || load.Status != "loading")
+            {
+                throw new InvalidDataException($"startup_save_rejected:{load.FailureReason}");
+            }
+            Console.Error.WriteLine($"SKYRIM_HOST startup_save={load.SaveId} generation={load.LoadGeneration}");
+        }
         SkyrimSessionId session = CreateSessionId(hello.SessionId!);
         var world = new SkyrimWorldOwnerRuntime(hello.SessionId!);
         world.Post(new SkyrimWorldFact(SkyrimWorldFactKind.BackendConnected, 1));
         TickWorldOwner(world);
-        world.Post(new SkyrimWorldFact(
-            SkyrimWorldFactKind.WorldReady,
-            2,
-            new SkyrimTimelineStamp(
-                session,
-                new SkyrimGameTimestamp(ready.GameTimeDays),
-                checked((long)initial.RuntimeSequence))));
-        TickWorldOwner(world);
-        RediscoverBodies(world, hello.SessionId!, ready.Candidates);
-
         var store = new SkyrimCheckpointStore(_config.CheckpointDirectory);
         var coordinator = new SkyrimLiveLifecycleCoordinator(
-            session,
-            world,
-            store,
-            new BodyBindingRegistry(),
-            hello.SessionId!);
-        Console.Error.WriteLine("M4A_MANAGED world_state=WorldReady lifecycle=polling");
-
+            session, world, store, new BodyBindingRegistry(), hello.SessionId!);
+        Console.Error.WriteLine("SKYRIM_HOST connected world_state=AwaitingWorld");
         ulong afterSequence = 0;
+        ulong lastGeneration = 0;
         int processed = 0;
         int saves = 0;
         int restoredLoads = 0;
         int failedLoads = 0;
         string? lastOutcome = null;
+        bool firstTick = true;
         try
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                string requestId = Guid.NewGuid().ToString("N");
-                await MarionetteWireProtocol.WriteAsync(
-                    pipe,
-                    new LifecycleObservationsRequest(
-                        MarionetteWireProtocol.Version,
-                        "query_lifecycle_observations",
-                        requestId,
-                        afterSequence),
-                    cancellationToken).ConfigureAwait(false);
-                LifecycleObservationsResult batch = await MarionetteWireProtocol.ReadAsync<LifecycleObservationsResult>(
-                    pipe,
-                    cancellationToken).ConfigureAwait(false);
-                if (batch.MessageKind != "lifecycle_observations_result"
-                    || batch.RequestId != requestId
-                    || batch.Status != "completed")
+                SkyrimStateResult state = await QueryHostStateAsync(pipe, cancellationToken).ConfigureAwait(false);
+                // Drain lifecycle events after the engine query: a load may complete
+                // while that query waits for Skyrim's main thread.
+                LifecycleObservationsResult batch = await QueryHostLifecycleAsync(
+                    pipe, afterSequence, cancellationToken).ConfigureAwait(false);
+                // Attaching to an already-loaded world starts at its present lifecycle
+                // cursor. Historical saves and loads are not replayed into a new owner.
+                if (firstTick && state.WorldReady)
                 {
-                    throw new InvalidDataException("lifecycle_observation_response_invalid");
+                    afterSequence = batch.Observations.LastOrDefault()?.Sequence ?? 0;
                 }
-
-                foreach (LifecycleObservation observation in batch.Observations)
+                else
                 {
-                    SkyrimLifecycleProcessingResult result = coordinator.Process(observation);
-                    afterSequence = Math.Max(afterSequence, observation.Sequence);
-                    processed++;
-                    lastOutcome = result.Outcome;
-                    if (result.Outcome == "save_checkpoint_committed")
+                    foreach (LifecycleObservation observation in batch.Observations)
                     {
-                        saves++;
+                        if (observation.Sequence != afterSequence + 1)
+                        {
+                            throw new InvalidDataException("lifecycle_history_gap");
+                        }
+                        SkyrimLifecycleProcessingResult result = coordinator.Process(observation);
+                        afterSequence = observation.Sequence;
+                        processed++;
+                        lastOutcome = result.Outcome;
+                        if (result.Outcome == "save_checkpoint_committed") saves++;
+                        else if (result.Outcome == "checkpoint_restored") restoredLoads++;
+                        else if (result.Outcome == "load_failed_without_restore") failedLoads++;
+                        Console.Error.WriteLine($"SKYRIM_HOST lifecycle={observation.Kind} sequence={observation.Sequence} " +
+                            $"operation={observation.OperationId} outcome={result.Outcome} state={coordinator.CurrentWorld.State}");
                     }
-                    else if (result.Outcome == "checkpoint_restored")
-                    {
-                        restoredLoads++;
-                        await RediscoverBodiesAsync(
-                            pipe,
-                            coordinator.CurrentWorld,
-                            hello.SessionId!,
-                            cancellationToken).ConfigureAwait(false);
-                    }
-                    else if (result.Outcome == "load_failed_without_restore")
-                    {
-                        failedLoads++;
-                    }
-                    Console.Error.WriteLine(
-                        $"M4A_MANAGED kind={observation.Kind} operation={observation.OperationId} " +
-                        $"sequence={observation.Sequence} save={observation.SaveName ?? "none"} " +
-                        $"outcome={result.Outcome} world_state={coordinator.CurrentWorld.State}");
                 }
-
-                await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken).ConfigureAwait(false);
+                firstTick = false;
+                SkyrimWorldOwnerRuntime current = coordinator.CurrentWorld;
+                bool nativeReady = state.WorldReady && !state.WorldPaused && !state.ActiveHostSession;
+                if (nativeReady && state.GameTimeDays.HasValue && current.State is
+                    SkyrimWorldOwnerState.AwaitingWorld or SkyrimWorldOwnerState.WorldPaused or SkyrimWorldOwnerState.WorldReady)
+                {
+                    if (current.State != SkyrimWorldOwnerState.WorldReady || lastGeneration != state.WorldGeneration)
+                    {
+                        current.Post(new SkyrimWorldFact(SkyrimWorldFactKind.WorldReady, current.LastFactSequence + 1,
+                            new SkyrimTimelineStamp(session, new SkyrimGameTimestamp(state.GameTimeDays.Value),
+                                checked((long)state.RuntimeSequence))));
+                        TickWorldOwner(current);
+                        Console.Error.WriteLine($"SKYRIM_HOST state=WorldReady generation={state.WorldGeneration}");
+                    }
+                }
+                else if (!nativeReady && current.State == SkyrimWorldOwnerState.WorldReady && current.Timeline is not null)
+                {
+                    current.Post(new SkyrimWorldFact(SkyrimWorldFactKind.WorldPaused, current.LastFactSequence + 1,
+                        current.Timeline));
+                    TickWorldOwner(current);
+                    Console.Error.WriteLine($"SKYRIM_HOST state=WorldPaused generation={state.WorldGeneration}");
+                }
+                lastGeneration = state.WorldGeneration;
+                try
+                {
+                    await SkyrimWorldBehaviorGate.TickAsync(coordinator, state,
+                        new SkyrimHostContext(pipe, state), behaviors, cancellationToken).ConfigureAwait(false);
+                }
+                catch (SkyrimWorldCommandDeferredException exception)
+                {
+                    Console.Error.WriteLine($"SKYRIM_HOST behavior_deferred={exception.Message}");
+                }
+                await Task.Delay(200, cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (Exception exception) when (
-            exception is EndOfStreamException or IOException
-            && !cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            Console.Error.WriteLine($"M4A_MANAGED transport_closed={exception.GetType().Name}");
+            Console.Error.WriteLine("SKYRIM_HOST shutdown_requested");
+        }
+        catch (IOException exception)
+        {
+            Console.Error.WriteLine($"SKYRIM_HOST transport_closed={exception.GetType().Name}");
         }
         finally
         {
             coordinator.AbortPendingSaves();
+            SkyrimWorldOwnerRuntime current = coordinator.CurrentWorld;
+            current.Post(new SkyrimWorldFact(SkyrimWorldFactKind.BackendDisconnected, current.LastFactSequence + 1));
+            TickWorldOwner(current);
         }
-
         IReadOnlyList<SkyrimCheckpointIndexEntry> entries = store.ReadEntries();
-        return new LiveSaveCorrelationReport(
-            MarionetteWireProtocol.Version,
-            hello.SessionId!,
-            processed,
-            saves,
-            restoredLoads,
-            failedLoads,
-            lastOutcome,
-            entries.Where(entry => entry.ActiveLineage)
-                .Select(entry => entry.Save.SaveName)
-                .ToArray(),
-            entries.Where(entry => !entry.ActiveLineage)
-                .Select(entry => entry.Save.SaveName)
-                .ToArray());
+        return new LiveSaveCorrelationReport(1, hello.SessionId!, processed, saves, restoredLoads, failedLoads, lastOutcome,
+            entries.Where(entry => entry.ActiveLineage).Select(entry => entry.Save.SaveName).ToArray(),
+            entries.Where(entry => !entry.ActiveLineage).Select(entry => entry.Save.SaveName).ToArray());
     }
 
-    private async ValueTask RediscoverBodiesAsync(
-        Stream pipe,
-        SkyrimWorldOwnerRuntime world,
-        string sessionScope,
-        CancellationToken cancellationToken)
+    private static async ValueTask<LifecycleObservationsResult> QueryHostLifecycleAsync(
+        Stream pipe, ulong afterSequence, CancellationToken cancellationToken)
     {
-        StableHostCandidateQuery query = await WaitForStableHostCandidatesAsync(
-            pipe,
-            cancellationToken).ConfigureAwait(false);
-        RediscoverBodies(world, sessionScope, query);
-    }
-
-    private static void RediscoverBodies(
-        SkyrimWorldOwnerRuntime world,
-        string sessionScope,
-        StableHostCandidateQuery query)
-    {
-        SkyrimCandidateSet candidates = SkyrimCandidateLowerer.Lower(
-            sessionScope,
-            query.First,
-            world.Registry);
-        long sequence = world.LastFactSequence;
-        foreach (AgentBodyCandidate candidate in candidates.Candidates)
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(4));
+        string requestId = Guid.NewGuid().ToString("N");
+        await MarionetteWireProtocol.WriteAsync(pipe,
+            new LifecycleObservationsRequest(1, "query_lifecycle_observations", requestId, afterSequence), timeout.Token).ConfigureAwait(false);
+        LifecycleObservationsResult result = await MarionetteWireProtocol.ReadAsync<LifecycleObservationsResult>(pipe, timeout.Token).ConfigureAwait(false);
+        if (result.ProtocolVersion != 1 || result.RequestId != requestId || result.MessageKind != "lifecycle_observations_result"
+            || result.Status != "completed")
         {
-            SkyrimBodyCandidateMapping mapping = candidates.BackendMappings[candidate.Body.Id];
-            world.Post(new SkyrimWorldFact(
-                SkyrimWorldFactKind.BodyLoaded,
-                ++sequence,
-                Body: candidate.Body,
-                Origin: mapping.Origin,
-                ImportedData: candidate.Agent.Data));
-            TickWorldOwner(world);
+            throw new InvalidDataException("lifecycle_observation_response_invalid");
         }
+        return result;
     }
 
-    private async ValueTask<GameplayReadyState> WaitForGameplayReadyAsync(
-        Stream pipe,
-        CancellationToken cancellationToken)
+    private static async ValueTask<SkyrimStateResult> QueryHostStateAsync(Stream pipe, CancellationToken cancellationToken)
     {
-        Console.Error.WriteLine("M4A_MANAGED waiting_for_gameplay");
-        while (!cancellationToken.IsCancellationRequested)
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(4));
+        string requestId = Guid.NewGuid().ToString("N");
+        await MarionetteWireProtocol.WriteAsync(pipe,
+            new SkyrimStateRequest(1, "query_skyrim_state", requestId, 2000), timeout.Token).ConfigureAwait(false);
+        SkyrimStateResult result = await MarionetteWireProtocol.ReadAsync<SkyrimStateResult>(pipe, timeout.Token).ConfigureAwait(false);
+        if (result.ProtocolVersion != 1 || result.RequestId != requestId || result.MessageKind != "skyrim_state_result")
         {
-            SkyrimStateResult? state = await TryQueryStateAsync(pipe, cancellationToken).ConfigureAwait(false);
-            if (state is { PlayerAvailable: true, GameTimeDays: not null })
-            {
-                StableHostCandidateQuery candidates = await WaitForStableHostCandidatesAsync(
-                    pipe,
-                    cancellationToken).ConfigureAwait(false);
-                return new GameplayReadyState(state, candidates, state.GameTimeDays.Value);
-            }
-
-            await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+            throw new InvalidDataException("world_state_response_invalid");
         }
-
-        throw new OperationCanceledException(cancellationToken);
-    }
-
-    private async ValueTask<StableHostCandidateQuery> WaitForStableHostCandidatesAsync(
-        Stream pipe,
-        CancellationToken cancellationToken)
-    {
-        while (!cancellationToken.IsCancellationRequested)
+        if (result.Status == "failed" && result.Diagnostic is
+            "dispatch_timeout" or "dispatch_unavailable" or "runtime_unavailable" or "queue_full")
         {
-            try
-            {
-                return await QueryStableHostCandidatesAsync(
-                    pipe,
-                    cancellationToken).ConfigureAwait(false);
-            }
-            catch (InvalidDataException exception) when (
-                exception.Message == "eligible_host_fixture_selection_invalid")
-            {
-                // A load can expose the bridge before its deterministic host fixture is ready.
-            }
-
-            await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+            Console.Error.WriteLine($"SKYRIM_HOST world_query_deferred={result.Diagnostic}");
+            return result with { WorldReady = false, WorldPaused = true };
         }
-
-        throw new OperationCanceledException(cancellationToken);
+        if (result.Status != "completed")
+        {
+            throw new InvalidDataException($"world_state_failed:{result.Diagnostic}");
+        }
+        return result;
     }
-
-    private sealed record GameplayReadyState(
-        SkyrimStateResult State,
-        StableHostCandidateQuery Candidates,
-        double GameTimeDays);
 }
