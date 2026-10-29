@@ -27,6 +27,11 @@ internal static class Program
                 Console.CancelKeyPress += cancel;
                 try
                 {
+                    if (config.EnableOwnedNpcAgent && (config.EnableOwnedNpcProof
+                        || config.EnableOwnedMovementProof || config.EnableNpcNumberProof))
+                    {
+                        throw new InvalidDataException("owned_agent_and_proofs_are_exclusive");
+                    }
                     var behaviors = new List<ISkyrimWorldBehavior> { new ObserveWorldNpcsBehavior() };
                     if (config.EnableNpcNumberProof)
                     {
@@ -39,6 +44,10 @@ internal static class Program
                     if (config.EnableOwnedMovementProof)
                     {
                         behaviors.Add(new OwnedNpcMovementProofBehavior());
+                    }
+                    if (config.EnableOwnedNpcAgent)
+                    {
+                        behaviors.Add(new OwnedNpcAgentBehavior());
                     }
                     LiveSaveCorrelationReport report = await client.RunWorldHostAsync(behaviors, shutdown.Token).ConfigureAwait(false);
                     Console.WriteLine(JsonSerializer.Serialize(report, MarionetteWireJsonContext.Default.LiveSaveCorrelationReport));

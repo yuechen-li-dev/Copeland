@@ -79,7 +79,8 @@ public sealed record LocalTransportConfig(
     string? StartupSaveId = null,
     bool EnablePlaytestShell = false,
     bool EnableOwnedNpcProof = false,
-    bool EnableOwnedMovementProof = false)
+    bool EnableOwnedMovementProof = false,
+    bool EnableOwnedNpcAgent = false)
 {
     public string PipeName => $"MarionetteSSE.{Profile}.{GetCurrentUserSid()}.ed-m2b2";
 
@@ -162,6 +163,7 @@ public sealed record DisconnectRestorationReport(int ProtocolVersion, string Ses
 [JsonSerializable(typeof(OwnedNpcIdentity))]
 [JsonSerializable(typeof(OwnedNpcMovement))]
 [JsonSerializable(typeof(OwnedMovementProof))]
+[JsonSerializable(typeof(OwnedNpcAgentStatus))]
 [JsonSerializable(typeof(PlaytestRequest))]
 [JsonSerializable(typeof(HostPlaytestResult))]
 [JsonSerializable(typeof(HostHeartbeat))]
