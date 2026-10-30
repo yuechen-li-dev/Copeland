@@ -1,0 +1,842 @@
+{
+  "Accepted": true,
+  "NicForwardingQualified": false,
+  "SourceHashes": {
+    "src/Aurelian/Aurelian.Graphics/Vulkan/Resources/Allocation/RawVulkanMemoryAllocator.cs": "e0d57a20f4393d5c473ac30471c04fbf2cafd869a92437c31c9cc6b6ba2f7893",
+    "tools/Aurelian.RouterResearch/Assets/Router.v.ts": "271f697caa766f1006f6108c9a022b5e3dd40c4aec061c1f21f6e0af51115605",
+    "tools/Aurelian.RouterResearch/Program.cs": "1f5abfa8336e80fe65c52da91c3bcdc0921aaafdc124692d7b377aaf08321084",
+    "tools/Aurelian.RouterResearch/RouterCpu.cs": "5c7d2080707de4da2c78957ceeba34abfa214940024037b0a26942a5055e3ee0",
+    "tools/Aurelian.RouterResearch/RouterFixture.cs": "4bd6d4c9b986455e0b5350312e4907f82cd5c330c541a003761005fef8f9a081",
+    "tools/Aurelian.RouterResearch/RouterGpu.cs": "fa07188022c77bc61cb066816c86eb61b7940107a152ba75ee779af629c88de2",
+    "tools/Aurelian.RouterResearch/StreamingResearch.cs": "e9a60e3d9d64ef7e6e6fb9b83a2664e6b43cd9c3a3c34c909fbf93c499c0aa40"
+  },
+  "BinarySha256": "cf3df10886eed8ac9ebf7c719430bd187c1592cea0c316ff65f7394eb98e4966",
+  "RawRunHashes": {
+    "validation": "53642926c4337761d32e4ff954c3901773d1c5a9414153842a7683bb60eb230d",
+    "round1": "4df4df5acd8f158b30335add744bf7f8e4ecd6a69374149f281010261481c5ab",
+    "round2": "d62f991d6fc85a3a43562a3c1d612af50ceb82dd11c51c2e6924ffe8e1a55ef9",
+    "round3": "b76e6c694c83d49d5fe822d0a4e4ab32311fe3e74955330b32b77d48d30ab660"
+  },
+  "Cases": [
+    {
+      "Case": "n1024-c8-r0-mixed",
+      "Packets": 1024,
+      "Rules": 0,
+      "Measurements": {
+        "gpu-depth1": [
+          {
+            "AmortizedBatchUs": 70.3109375,
+            "BatchCompletionP95Us": 74.8,
+            "ProcessCpuMsPerMillionInputs": 13.369266117844626,
+            "AverageProcessCpuCores": 0.1862469306505829
+          },
+          {
+            "AmortizedBatchUs": 70.93437499999999,
+            "BatchCompletionP95Us": 84.8,
+            "ProcessCpuMsPerMillionInputs": 35.32127097800926,
+            "AverageProcessCpuCores": 0.49693628839478843
+          },
+          {
+            "AmortizedBatchUs": 71.121875,
+            "BatchCompletionP95Us": 82.6,
+            "ProcessCpuMsPerMillionInputs": 35.65137631425234,
+            "AverageProcessCpuCores": 0.49693925176055637
+          }
+        ],
+        "gpu-depth2": [
+          {
+            "AmortizedBatchUs": 35.017187500000006,
+            "BatchCompletionP95Us": 77.5,
+            "ProcessCpuMsPerMillionInputs": 18.165225074404763,
+            "AverageProcessCpuCores": 0.4983037739534624
+          },
+          {
+            "AmortizedBatchUs": 37.0171875,
+            "BatchCompletionP95Us": 93.6,
+            "ProcessCpuMsPerMillionInputs": 24.977184477306547,
+            "AverageProcessCpuCores": 0.6843963992088676
+          },
+          {
+            "AmortizedBatchUs": 35.7453125,
+            "BatchCompletionP95Us": 92.1,
+            "ProcessCpuMsPerMillionInputs": 25.217349712665264,
+            "AverageProcessCpuCores": 0.6860713250726687
+          }
+        ],
+        "gpu-depth4": [
+          {
+            "AmortizedBatchUs": 24.7453125,
+            "BatchCompletionP95Us": 118.2,
+            "ProcessCpuMsPerMillionInputs": 24.932661866830067,
+            "AverageProcessCpuCores": 0.997862976649208
+          },
+          {
+            "AmortizedBatchUs": 24.4125,
+            "BatchCompletionP95Us": 113.3,
+            "ProcessCpuMsPerMillionInputs": 23.222588873528814,
+            "AverageProcessCpuCores": 0.9373024166505701
+          },
+          {
+            "AmortizedBatchUs": 24.3375,
+            "BatchCompletionP95Us": 100.2,
+            "ProcessCpuMsPerMillionInputs": 22.9985767622086,
+            "AverageProcessCpuCores": 0.9358368307843301
+          }
+        ],
+        "gpu-depth8": [
+          {
+            "AmortizedBatchUs": 24.9390625,
+            "BatchCompletionP95Us": 215,
+            "ProcessCpuMsPerMillionInputs": 25.65263192864913,
+            "AverageProcessCpuCores": 1.0574929822277481
+          },
+          {
+            "AmortizedBatchUs": 24.7140625,
+            "BatchCompletionP95Us": 195.6,
+            "ProcessCpuMsPerMillionInputs": 21.260255461285826,
+            "AverageProcessCpuCores": 0.8749923000677594
+          },
+          {
+            "AmortizedBatchUs": 24.684375,
+            "BatchCompletionP95Us": 226.3,
+            "ProcessCpuMsPerMillionInputs": 19.804738200129794,
+            "AverageProcessCpuCores": 0.8105491702570254
+          }
+        ],
+        "parallel-all": [
+          {
+            "AmortizedBatchUs": 11.001562499999999,
+            "BatchCompletionP95Us": 14.3,
+            "ProcessCpuMsPerMillionInputs": 83.888018572772,
+            "AverageProcessCpuCores": 8.308113316169063
+          },
+          {
+            "AmortizedBatchUs": 10.829687499999999,
+            "BatchCompletionP95Us": 14.5,
+            "ProcessCpuMsPerMillionInputs": 91.50791417214018,
+            "AverageProcessCpuCores": 9.180974163564539
+          },
+          {
+            "AmortizedBatchUs": 10.9796875,
+            "BatchCompletionP95Us": 13.8,
+            "ProcessCpuMsPerMillionInputs": 90.76691668534062,
+            "AverageProcessCpuCores": 9.123905131384234
+          }
+        ],
+        "parallel-simd": [
+          {
+            "AmortizedBatchUs": 10.251562499999999,
+            "BatchCompletionP95Us": 13.5,
+            "ProcessCpuMsPerMillionInputs": 78.08608496749162,
+            "AverageProcessCpuCores": 7.619066271187998
+          },
+          {
+            "AmortizedBatchUs": 10.631250000000001,
+            "BatchCompletionP95Us": 14.2,
+            "ProcessCpuMsPerMillionInputs": 77.11652154228436,
+            "AverageProcessCpuCores": 7.498437325661333
+          },
+          {
+            "AmortizedBatchUs": 10.685937500000001,
+            "BatchCompletionP95Us": 14,
+            "ProcessCpuMsPerMillionInputs": 78.94654937137831,
+            "AverageProcessCpuCores": 7.811106498600649
+          }
+        ],
+        "scalar": [
+          {
+            "AmortizedBatchUs": 17.6625,
+            "BatchCompletionP95Us": 17.8,
+            "ProcessCpuMsPerMillionInputs": 17.619848801963048,
+            "AverageProcessCpuCores": 0.9980207252975898
+          },
+          {
+            "AmortizedBatchUs": 17.6328125,
+            "BatchCompletionP95Us": 17.7,
+            "ProcessCpuMsPerMillionInputs": 17.37903082289294,
+            "AverageProcessCpuCores": 0.9980960320093389
+          },
+          {
+            "AmortizedBatchUs": 17.495312499999997,
+            "BatchCompletionP95Us": 17.7,
+            "ProcessCpuMsPerMillionInputs": 17.45856872139588,
+            "AverageProcessCpuCores": 0.9989622779856285
+          }
+        ],
+        "simd": [
+          {
+            "AmortizedBatchUs": 17.8078125,
+            "BatchCompletionP95Us": 18,
+            "ProcessCpuMsPerMillionInputs": 17.538838002873565,
+            "AverageProcessCpuCores": 0.9988624953902496
+          },
+          {
+            "AmortizedBatchUs": 17.707812500000003,
+            "BatchCompletionP95Us": 17.9,
+            "ProcessCpuMsPerMillionInputs": 18.165225074404763,
+            "AverageProcessCpuCores": 0.9996892965666271
+          },
+          {
+            "AmortizedBatchUs": 17.690624999999997,
+            "BatchCompletionP95Us": 17.9,
+            "ProcessCpuMsPerMillionInputs": 17.49861131020642,
+            "AverageProcessCpuCores": 0.9980741161854085
+          }
+        ]
+      },
+      "Gpu": {
+        "1": {
+          "InputMpps": 14.435878232521258,
+          "WorstRoundBatchP95Us": 84.8,
+          "SpeedupByRound": [
+            0.1458032400720016,
+            0.1498744438080973,
+            0.15024825343820028
+          ]
+        },
+        "2": {
+          "InputMpps": 28.647112820736986,
+          "WorstRoundBatchP95Us": 93.6,
+          "SpeedupByRound": [
+            0.29275802061487655,
+            0.28719767000126634,
+            0.2989465401932072
+          ]
+        },
+        "4": {
+          "InputMpps": 41.94572452636969,
+          "WorstRoundBatchP95Us": 118.2,
+          "SpeedupByRound": [
+            0.414283008145482,
+            0.435483870967742,
+            0.4390729327170006
+          ]
+        },
+        "8": {
+          "InputMpps": 41.43390023392552,
+          "WorstRoundBatchP95Us": 226.3,
+          "SpeedupByRound": [
+            0.41106446964475907,
+            0.430170070177657,
+            0.4329028991011521
+          ]
+        }
+      }
+    },
+    {
+      "Case": "n1024-c8-r2048-mixed",
+      "Packets": 1024,
+      "Rules": 2048,
+      "Measurements": {
+        "gpu-depth1": [
+          {
+            "AmortizedBatchUs": 91.89375000000001,
+            "BatchCompletionP95Us": 104.8,
+            "ProcessCpuMsPerMillionInputs": 44.878791360294116,
+            "AverageProcessCpuCores": 0.4947759575300151
+          },
+          {
+            "AmortizedBatchUs": 91.4203125,
+            "BatchCompletionP95Us": 100.8,
+            "ProcessCpuMsPerMillionInputs": 22.706531343005953,
+            "AverageProcessCpuCores": 0.24816161872845957
+          },
+          {
+            "AmortizedBatchUs": 90.9125,
+            "BatchCompletionP95Us": 102.6,
+            "ProcessCpuMsPerMillionInputs": 11.353265671502976,
+            "AverageProcessCpuCores": 0.12462731447878264
+          }
+        ],
+        "gpu-depth2": [
+          {
+            "AmortizedBatchUs": 45.9578125,
+            "BatchCompletionP95Us": 110.1,
+            "ProcessCpuMsPerMillionInputs": 26.328432048025306,
+            "AverageProcessCpuCores": 0.5569357661475728
+          },
+          {
+            "AmortizedBatchUs": 46.0453125,
+            "BatchCompletionP95Us": 118.5,
+            "ProcessCpuMsPerMillionInputs": 29.253813386694784,
+            "AverageProcessCpuCores": 0.6221158708228652
+          },
+          {
+            "AmortizedBatchUs": 45.8859375,
+            "BatchCompletionP95Us": 107.9,
+            "ProcessCpuMsPerMillionInputs": 20.47766937068635,
+            "AverageProcessCpuCores": 0.4349631210925399
+          }
+        ],
+        "gpu-depth4": [
+          {
+            "AmortizedBatchUs": 45.775,
+            "BatchCompletionP95Us": 183.9,
+            "ProcessCpuMsPerMillionInputs": 23.119377367424242,
+            "AverageProcessCpuCores": 0.4986930253192433
+          },
+          {
+            "AmortizedBatchUs": 45.8703125,
+            "BatchCompletionP95Us": 186.1,
+            "ProcessCpuMsPerMillionInputs": 26.009299538352273,
+            "AverageProcessCpuCores": 0.5612979243651796
+          },
+          {
+            "AmortizedBatchUs": 45.8328125,
+            "BatchCompletionP95Us": 184.7,
+            "ProcessCpuMsPerMillionInputs": 23.119377367424242,
+            "AverageProcessCpuCores": 0.4992056639475267
+          }
+        ],
+        "gpu-depth8": [
+          {
+            "AmortizedBatchUs": 46.224999999999994,
+            "BatchCompletionP95Us": 362.4,
+            "ProcessCpuMsPerMillionInputs": 14.537718237900153,
+            "AverageProcessCpuCores": 0.3112543600510756
+          },
+          {
+            "AmortizedBatchUs": 46.246875,
+            "BatchCompletionP95Us": 365,
+            "ProcessCpuMsPerMillionInputs": 29.075436475800306,
+            "AverageProcessCpuCores": 0.6219519379425312
+          },
+          {
+            "AmortizedBatchUs": 46.240625,
+            "BatchCompletionP95Us": 363.2,
+            "ProcessCpuMsPerMillionInputs": 14.537718237900153,
+            "AverageProcessCpuCores": 0.31148244913516526
+          }
+        ],
+        "parallel-all": [
+          {
+            "AmortizedBatchUs": 12.509374999999999,
+            "BatchCompletionP95Us": 17.4,
+            "ProcessCpuMsPerMillionInputs": 81.9958076275215,
+            "AverageProcessCpuCores": 8.124538526211712
+          },
+          {
+            "AmortizedBatchUs": 12.91875,
+            "BatchCompletionP95Us": 16.8,
+            "ProcessCpuMsPerMillionInputs": 89.05170769091474,
+            "AverageProcessCpuCores": 8.81236957693026
+          },
+          {
+            "AmortizedBatchUs": 11.8859375,
+            "BatchCompletionP95Us": 15.6,
+            "ProcessCpuMsPerMillionInputs": 87.94127917680584,
+            "AverageProcessCpuCores": 8.427414070840019
+          }
+        ],
+        "parallel-simd": [
+          {
+            "AmortizedBatchUs": 12.821874999999999,
+            "BatchCompletionP95Us": 18.7,
+            "ProcessCpuMsPerMillionInputs": 75.42130214716094,
+            "AverageProcessCpuCores": 7.556104513140078
+          },
+          {
+            "AmortizedBatchUs": 13.190625,
+            "BatchCompletionP95Us": 18.1,
+            "ProcessCpuMsPerMillionInputs": 81.41122213224085,
+            "AverageProcessCpuCores": 7.869529103367339
+          },
+          {
+            "AmortizedBatchUs": 13.389062500000001,
+            "BatchCompletionP95Us": 18.3,
+            "ProcessCpuMsPerMillionInputs": 77.56551106770833,
+            "AverageProcessCpuCores": 7.618146715214992
+          }
+        ],
+        "scalar": [
+          {
+            "AmortizedBatchUs": 26.46875,
+            "BatchCompletionP95Us": 31.2,
+            "ProcessCpuMsPerMillionInputs": 23.767584209501557,
+            "AverageProcessCpuCores": 0.9971620767296274
+          },
+          {
+            "AmortizedBatchUs": 26.8390625,
+            "BatchCompletionP95Us": 30.5,
+            "ProcessCpuMsPerMillionInputs": 25.86235434322034,
+            "AverageProcessCpuCores": 0.9994706803276985
+          },
+          {
+            "AmortizedBatchUs": 26.3734375,
+            "BatchCompletionP95Us": 31.8,
+            "ProcessCpuMsPerMillionInputs": 24.143653579905063,
+            "AverageProcessCpuCores": 0.9988086210767796
+          }
+        ],
+        "simd": [
+          {
+            "AmortizedBatchUs": 24.1734375,
+            "BatchCompletionP95Us": 27.1,
+            "ProcessCpuMsPerMillionInputs": 21.674416281960227,
+            "AverageProcessCpuCores": 0.9988377523913174
+          },
+          {
+            "AmortizedBatchUs": 24.121875,
+            "BatchCompletionP95Us": 26.6,
+            "ProcessCpuMsPerMillionInputs": 22.11418704710145,
+            "AverageProcessCpuCores": 0.9974584758036523
+          },
+          {
+            "AmortizedBatchUs": 23.7140625,
+            "BatchCompletionP95Us": 26.5,
+            "ProcessCpuMsPerMillionInputs": 22.63915291172107,
+            "AverageProcessCpuCores": 0.9987024857305389
+          }
+        ]
+      },
+      "Gpu": {
+        "1": {
+          "InputMpps": 11.201011810148866,
+          "WorstRoundBatchP95Us": 104.8,
+          "SpeedupByRound": [
+            0.1361286812215194,
+            0.14131159308824284,
+            0.13074040973463497
+          ]
+        },
+        "2": {
+          "InputMpps": 22.28130418522422,
+          "WorstRoundBatchP95Us": 118.5,
+          "SpeedupByRound": [
+            0.27219256791214763,
+            0.2805660185279446,
+            0.2590322470800559
+          ]
+        },
+        "4": {
+          "InputMpps": 22.342072069000782,
+          "WorstRoundBatchP95Us": 186.1,
+          "SpeedupByRound": [
+            0.2732796286182414,
+            0.281636406989815,
+            0.25933249241468653
+          ]
+        },
+        "8": {
+          "InputMpps": 22.145029397850916,
+          "WorstRoundBatchP95Us": 365,
+          "SpeedupByRound": [
+            0.27061925365062195,
+            0.27934319886478814,
+            0.25704534702980336
+          ]
+        }
+      }
+    },
+    {
+      "Case": "n8192-c8-r0-mixed",
+      "Packets": 8192,
+      "Rules": 0,
+      "Measurements": {
+        "gpu-depth1": [
+          {
+            "AmortizedBatchUs": 152.6921875,
+            "BatchCompletionP95Us": 200.1,
+            "ProcessCpuMsPerMillionInputs": 10.698269575070112,
+            "AverageProcessCpuCores": 0.4271336374720093
+          },
+          {
+            "AmortizedBatchUs": 164.140625,
+            "BatchCompletionP95Us": 214,
+            "ProcessCpuMsPerMillionInputs": 8.765388937557445,
+            "AverageProcessCpuCores": 0.3095897326769437
+          },
+          {
+            "AmortizedBatchUs": 148.6125,
+            "BatchCompletionP95Us": 199.1,
+            "ProcessCpuMsPerMillionInputs": 12.271544512580423,
+            "AverageProcessCpuCores": 0.4331376112346887
+          }
+        ],
+        "gpu-depth2": [
+          {
+            "AmortizedBatchUs": 88.98125,
+            "BatchCompletionP95Us": 252.5,
+            "ProcessCpuMsPerMillionInputs": 10.195531343158923,
+            "AverageProcessCpuCores": 0.811902439804304
+          },
+          {
+            "AmortizedBatchUs": 101.5375,
+            "BatchCompletionP95Us": 287.3,
+            "ProcessCpuMsPerMillionInputs": 13.836792537144252,
+            "AverageProcessCpuCores": 0.8023677006758652
+          },
+          {
+            "AmortizedBatchUs": 80.3578125,
+            "BatchCompletionP95Us": 246.1,
+            "ProcessCpuMsPerMillionInputs": 10.575017621440272,
+            "AverageProcessCpuCores": 0.6817409253589378
+          }
+        ],
+        "gpu-depth4": [
+          {
+            "AmortizedBatchUs": 85.2609375,
+            "BatchCompletionP95Us": 486.6,
+            "ProcessCpuMsPerMillionInputs": 11.920928955078125,
+            "AverageProcessCpuCores": 1.1758156843811676
+          },
+          {
+            "AmortizedBatchUs": 91.12968749999999,
+            "BatchCompletionP95Us": 532.6,
+            "ProcessCpuMsPerMillionInputs": 12.622160070082721,
+            "AverageProcessCpuCores": 1.117814687190738
+          },
+          {
+            "AmortizedBatchUs": 77.1734375,
+            "BatchCompletionP95Us": 452.4,
+            "ProcessCpuMsPerMillionInputs": 11.29351164165296,
+            "AverageProcessCpuCores": 1.118773800047973
+          }
+        ],
+        "gpu-depth8": [
+          {
+            "AmortizedBatchUs": 85.15,
+            "BatchCompletionP95Us": 907.1,
+            "ProcessCpuMsPerMillionInputs": 12.444925832224417,
+            "AverageProcessCpuCores": 1.1782039706714027
+          },
+          {
+            "AmortizedBatchUs": 89.6765625,
+            "BatchCompletionP95Us": 1001.4,
+            "ProcessCpuMsPerMillionInputs": 12.772423880440849,
+            "AverageProcessCpuCores": 1.116975203349059
+          },
+          {
+            "AmortizedBatchUs": 87.55937499999999,
+            "BatchCompletionP95Us": 918.2,
+            "ProcessCpuMsPerMillionInputs": 12.208180255200489,
+            "AverageProcessCpuCores": 1.0614292301925818
+          }
+        ],
+        "parallel-all": [
+          {
+            "AmortizedBatchUs": 62.88125,
+            "BatchCompletionP95Us": 75.6,
+            "ProcessCpuMsPerMillionInputs": 36.716461181640625,
+            "AverageProcessCpuCores": 4.808693438274262
+          },
+          {
+            "AmortizedBatchUs": 62.6984375,
+            "BatchCompletionP95Us": 86.5,
+            "ProcessCpuMsPerMillionInputs": 30.763687626008064,
+            "AverageProcessCpuCores": 3.996673169253913
+          },
+          {
+            "AmortizedBatchUs": 63.014062499999994,
+            "BatchCompletionP95Us": 74.1,
+            "ProcessCpuMsPerMillionInputs": 34.128465960102695,
+            "AverageProcessCpuCores": 4.436903680145388
+          }
+        ],
+        "parallel-simd": [
+          {
+            "AmortizedBatchUs": 65.4859375,
+            "BatchCompletionP95Us": 86.1,
+            "ProcessCpuMsPerMillionInputs": 34.13257435855702,
+            "AverageProcessCpuCores": 4.17751240334608
+          },
+          {
+            "AmortizedBatchUs": 64.2578125,
+            "BatchCompletionP95Us": 82.1,
+            "ProcessCpuMsPerMillionInputs": 29.556022202673038,
+            "AverageProcessCpuCores": 3.734957086837055
+          },
+          {
+            "AmortizedBatchUs": 65.640625,
+            "BatchCompletionP95Us": 89.4,
+            "ProcessCpuMsPerMillionInputs": 23.64481776213843,
+            "AverageProcessCpuCores": 2.9831559084783676
+          }
+        ],
+        "scalar": [
+          {
+            "AmortizedBatchUs": 144.5390625,
+            "BatchCompletionP95Us": 147.6,
+            "ProcessCpuMsPerMillionInputs": 18.76442520706742,
+            "AverageProcessCpuCores": 1.0520581128186524
+          },
+          {
+            "AmortizedBatchUs": 145.14375,
+            "BatchCompletionP95Us": 148.3,
+            "ProcessCpuMsPerMillionInputs": 17.99385502653302,
+            "AverageProcessCpuCores": 0.997817175147647
+          },
+          {
+            "AmortizedBatchUs": 144.84375,
+            "BatchCompletionP95Us": 148.4,
+            "ProcessCpuMsPerMillionInputs": 18.76442520706742,
+            "AverageProcessCpuCores": 1.0481731501149685
+          }
+        ],
+        "simd": [
+          {
+            "AmortizedBatchUs": 145.0734375,
+            "BatchCompletionP95Us": 149.6,
+            "ProcessCpuMsPerMillionInputs": 17.99385502653302,
+            "AverageProcessCpuCores": 0.9816197589848639
+          },
+          {
+            "AmortizedBatchUs": 145.76406250000002,
+            "BatchCompletionP95Us": 149.9,
+            "ProcessCpuMsPerMillionInputs": 17.99385502653302,
+            "AverageProcessCpuCores": 0.9853871034112525
+          },
+          {
+            "AmortizedBatchUs": 145.8203125,
+            "BatchCompletionP95Us": 149.5,
+            "ProcessCpuMsPerMillionInputs": 17.99385502653302,
+            "AverageProcessCpuCores": 0.9964871833811447
+          }
+        ]
+      },
+      "Gpu": {
+        "1": {
+          "InputMpps": 53.65042006487726,
+          "WorstRoundBatchP95Us": 214,
+          "SpeedupByRound": [
+            0.41181707479303753,
+            0.3819800095192765,
+            0.42401589704769105
+          ]
+        },
+        "2": {
+          "InputMpps": 92.06433939734494,
+          "WorstRoundBatchP95Us": 287.3,
+          "SpeedupByRound": [
+            0.7066797780431271,
+            0.6174904591899545,
+            0.7841684652627895
+          ]
+        },
+        "4": {
+          "InputMpps": 96.08151446845163,
+          "WorstRoundBatchP95Us": 532.6,
+          "SpeedupByRound": [
+            0.7375153481041655,
+            0.6880133052140666,
+            0.8165252778846347
+          ]
+        },
+        "8": {
+          "InputMpps": 93.55937042721013,
+          "WorstRoundBatchP95Us": 1001.4,
+          "SpeedupByRound": [
+            0.7384762184380504,
+            0.6991619187008868,
+            0.7196723651807703
+          ]
+        }
+      }
+    },
+    {
+      "Case": "n8192-c8-r2048-mixed",
+      "Packets": 8192,
+      "Rules": 2048,
+      "Measurements": {
+        "gpu-depth1": [
+          {
+            "AmortizedBatchUs": 164.36093749999998,
+            "BatchCompletionP95Us": 195.6,
+            "ProcessCpuMsPerMillionInputs": 13.245476616753471,
+            "AverageProcessCpuCores": 0.36721273975564583
+          },
+          {
+            "AmortizedBatchUs": 169.1359375,
+            "BatchCompletionP95Us": 213.2,
+            "ProcessCpuMsPerMillionInputs": 10.276662892308728,
+            "AverageProcessCpuCores": 0.3079322560861209
+          },
+          {
+            "AmortizedBatchUs": 167.35625,
+            "BatchCompletionP95Us": 192,
+            "ProcessCpuMsPerMillionInputs": 6.622738308376736,
+            "AverageProcessCpuCores": 0.18286039296552162
+          }
+        ],
+        "gpu-depth2": [
+          {
+            "AmortizedBatchUs": 90.865625,
+            "BatchCompletionP95Us": 255.1,
+            "ProcessCpuMsPerMillionInputs": 9.4495168546351,
+            "AverageProcessCpuCores": 0.8065736196720973
+          },
+          {
+            "AmortizedBatchUs": 91.8265625,
+            "BatchCompletionP95Us": 248.7,
+            "ProcessCpuMsPerMillionInputs": 9.685754776000977,
+            "AverageProcessCpuCores": 0.8117966593743181
+          },
+          {
+            "AmortizedBatchUs": 91.3953125,
+            "BatchCompletionP95Us": 261.4,
+            "ProcessCpuMsPerMillionInputs": 9.934107462565104,
+            "AverageProcessCpuCores": 0.6839758826621715
+          }
+        ],
+        "gpu-depth4": [
+          {
+            "AmortizedBatchUs": 75.5546875,
+            "BatchCompletionP95Us": 441,
+            "ProcessCpuMsPerMillionInputs": 9.743066934438852,
+            "AverageProcessCpuCores": 1.059307670404469
+          },
+          {
+            "AmortizedBatchUs": 77.50625,
+            "BatchCompletionP95Us": 431.1,
+            "ProcessCpuMsPerMillionInputs": 9.442319964418317,
+            "AverageProcessCpuCores": 0.9957422063257512
+          },
+          {
+            "AmortizedBatchUs": 77.47187500000001,
+            "BatchCompletionP95Us": 438.6,
+            "ProcessCpuMsPerMillionInputs": 9.5367431640625,
+            "AverageProcessCpuCores": 0.9992413759473808
+          }
+        ],
+        "gpu-depth8": [
+          {
+            "AmortizedBatchUs": 78.815625,
+            "BatchCompletionP95Us": 838.8,
+            "ProcessCpuMsPerMillionInputs": 9.349748200061274,
+            "AverageProcessCpuCores": 0.9910555256697255
+          },
+          {
+            "AmortizedBatchUs": 80.784375,
+            "BatchCompletionP95Us": 797.1,
+            "ProcessCpuMsPerMillionInputs": 9.442319964418317,
+            "AverageProcessCpuCores": 0.9985241812600977
+          },
+          {
+            "AmortizedBatchUs": 80.728125,
+            "BatchCompletionP95Us": 826.9,
+            "ProcessCpuMsPerMillionInputs": 10.132789611816406,
+            "AverageProcessCpuCores": 1.061691415817713
+          }
+        ],
+        "parallel-all": [
+          {
+            "AmortizedBatchUs": 75.521875,
+            "BatchCompletionP95Us": 98.1,
+            "ProcessCpuMsPerMillionInputs": 43.63911492483957,
+            "AverageProcessCpuCores": 5.116931622218086
+          },
+          {
+            "AmortizedBatchUs": 74.84843749999999,
+            "BatchCompletionP95Us": 96.3,
+            "ProcessCpuMsPerMillionInputs": 48.22557622736151,
+            "AverageProcessCpuCores": 5.547386699675404
+          },
+          {
+            "AmortizedBatchUs": 74.8609375,
+            "BatchCompletionP95Us": 93.7,
+            "ProcessCpuMsPerMillionInputs": 55.063338506789435,
+            "AverageProcessCpuCores": 6.038960133400007
+          }
+        ],
+        "parallel-simd": [
+          {
+            "AmortizedBatchUs": 80.76093750000001,
+            "BatchCompletionP95Us": 105.3,
+            "ProcessCpuMsPerMillionInputs": 41.0123702582963,
+            "AverageProcessCpuCores": 4.668633119836119
+          },
+          {
+            "AmortizedBatchUs": 78.03437500000001,
+            "BatchCompletionP95Us": 99.4,
+            "ProcessCpuMsPerMillionInputs": 38.79924990096182,
+            "AverageProcessCpuCores": 4.302240018005062
+          },
+          {
+            "AmortizedBatchUs": 79.209375,
+            "BatchCompletionP95Us": 104.8,
+            "ProcessCpuMsPerMillionInputs": 43.826944687787226,
+            "AverageProcessCpuCores": 4.6752452471581485
+          }
+        ],
+        "scalar": [
+          {
+            "AmortizedBatchUs": 247.6984375,
+            "BatchCompletionP95Us": 261.3,
+            "ProcessCpuMsPerMillionInputs": 30.70542306611032,
+            "AverageProcessCpuCores": 1.0595607784007164
+          },
+          {
+            "AmortizedBatchUs": 248.371875,
+            "BatchCompletionP95Us": 254.2,
+            "ProcessCpuMsPerMillionInputs": 28.899221709280305,
+            "AverageProcessCpuCores": 0.9971525312318145
+          },
+          {
+            "AmortizedBatchUs": 248.1375,
+            "BatchCompletionP95Us": 253.9,
+            "ProcessCpuMsPerMillionInputs": 31.66496753692627,
+            "AverageProcessCpuCores": 1.0422433746673159
+          }
+        ],
+        "simd": [
+          {
+            "AmortizedBatchUs": 219.8359375,
+            "BatchCompletionP95Us": 227,
+            "ProcessCpuMsPerMillionInputs": 22.178472474563954,
+            "AverageProcessCpuCores": 0.9807063674910746
+          },
+          {
+            "AmortizedBatchUs": 214.728125,
+            "BatchCompletionP95Us": 222,
+            "ProcessCpuMsPerMillionInputs": 22.178472474563954,
+            "AverageProcessCpuCores": 0.9957822646398913
+          },
+          {
+            "AmortizedBatchUs": 220.5734375,
+            "BatchCompletionP95Us": 227.4,
+            "ProcessCpuMsPerMillionInputs": 23.260349180640244,
+            "AverageProcessCpuCores": 0.9799502185288987
+          }
+        ]
+      },
+      "Gpu": {
+        "1": {
+          "InputMpps": 48.94947156141465,
+          "WorstRoundBatchP95Us": 213.2,
+          "SpeedupByRound": [
+            0.45948797900961114,
+            0.4425342041811781,
+            0.4473148597677112
+          ]
+        },
+        "2": {
+          "InputMpps": 89.6326056109278,
+          "WorstRoundBatchP95Us": 261.4,
+          "SpeedupByRound": [
+            0.8311380128623999,
+            0.8151066038217427,
+            0.8190894636965107
+          ]
+        },
+        "4": {
+          "InputMpps": 105.74159977411156,
+          "WorstRoundBatchP95Us": 441,
+          "SpeedupByRound": [
+            0.9995657119222416,
+            0.9657084106120474,
+            0.9662982533984107
+          ]
+        },
+        "8": {
+          "InputMpps": 101.47640614717609,
+          "WorstRoundBatchP95Us": 838.8,
+          "SpeedupByRound": [
+            0.9582094286507276,
+            0.9265212177478627,
+            0.9273216428599079
+          ]
+        }
+      }
+    }
+  ]
+}

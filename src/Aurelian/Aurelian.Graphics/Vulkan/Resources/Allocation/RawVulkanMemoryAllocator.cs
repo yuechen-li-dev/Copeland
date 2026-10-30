@@ -10,6 +10,7 @@ public sealed unsafe class RawVulkanMemoryAllocator : IVulkanMemoryAllocator
     private readonly Vk vk;
     private readonly Silk.NET.Vulkan.Device device;
     private readonly PhysicalDeviceMemoryProperties memoryProperties;
+    private readonly bool preferCachedReadback;
     private ulong allocationCount;
     private ulong freeCount;
     private ulong liveAllocationCount;
@@ -20,12 +21,17 @@ public sealed unsafe class RawVulkanMemoryAllocator : IVulkanMemoryAllocator
     private ulong mappedLiveBytes;
     private bool disposed;
 
-    public RawVulkanMemoryAllocator(AurelianVulkanPlant plant)
+    public RawVulkanMemoryAllocator(AurelianVulkanPlant plant) : this(plant, preferCachedReadback: true)
+    {
+    }
+
+    internal RawVulkanMemoryAllocator(AurelianVulkanPlant plant, bool preferCachedReadback)
     {
         ArgumentNullException.ThrowIfNull(plant);
         vk = plant.Vk;
         device = plant.Device;
         PlantId = plant.Context.Id;
+        this.preferCachedReadback = preferCachedReadback;
         vk.GetPhysicalDeviceMemoryProperties(plant.PhysicalDevice, out memoryProperties);
     }
 
@@ -183,20 +189,37 @@ public sealed unsafe class RawVulkanMemoryAllocator : IVulkanMemoryAllocator
 
     public bool TryFindMemoryTypeIndex(uint memoryTypeBits, VulkanMemoryUsage usage, out uint index)
     {
-        MemoryPropertyFlags requiredFlags = RequiredFlags(usage);
-        for (uint i = 0; i < memoryProperties.MemoryTypeCount; i++)
-        {
-            uint bit = 1u << (int)i;
-            if ((memoryTypeBits & bit) == 0)
-            {
-                continue;
-            }
+        return TrySelectMemoryType(memoryProperties, memoryTypeBits, usage, preferCachedReadback, out index);
+    }
 
-            MemoryType memoryType = memoryProperties.MemoryTypes[(int)i];
-            if ((memoryType.PropertyFlags & requiredFlags) == requiredFlags)
+    internal static bool TrySelectMemoryType(PhysicalDeviceMemoryProperties properties,
+        uint memoryTypeBits, VulkanMemoryUsage usage, bool preferCachedReadback, out uint index)
+    {
+        MemoryPropertyFlags requiredFlags = RequiredFlags(usage);
+        // CPU readback must avoid write-combined memory when a coherent cached
+        // type is available. Coherency remains required, so no invalidate path is
+        // introduced. Retain the original compatible fallback on other devices.
+        int passes = usage == VulkanMemoryUsage.GpuToCpu && preferCachedReadback ? 2 : 1;
+        for (int pass = 0; pass < passes; pass++)
+        {
+            var flags = requiredFlags;
+            if (passes == 2 && pass == 0)
             {
-                index = i;
-                return true;
+                flags |= MemoryPropertyFlags.HostCachedBit;
+            }
+            for (uint candidate = 0; candidate < properties.MemoryTypeCount; candidate++)
+            {
+                uint bit = 1u << (int)candidate;
+                if ((memoryTypeBits & bit) == 0)
+                {
+                    continue;
+                }
+                MemoryType memoryType = properties.MemoryTypes[(int)candidate];
+                if ((memoryType.PropertyFlags & flags) == flags)
+                {
+                    index = candidate;
+                    return true;
+                }
             }
         }
 

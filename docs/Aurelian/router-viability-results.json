@@ -1,0 +1,6056 @@
+{
+  "Outcome": "Meaningful progression; bounded host-memory viability established, GPU advantage not established",
+  "Date": "2026-10-30",
+  "GitBase": "09abad9b23a13cadb8ca71d1007b97ecfdc4a0b5",
+  "Cpu": [
+    {
+      "Name": "AMD Ryzen 7 7700X 8-Core Processor             ",
+      "NumberOfCores": 8,
+      "NumberOfLogicalProcessors": 16
+    }
+  ],
+  "PlantFacts": {
+    "PlantId": {
+      "Value": 0
+    },
+    "PhysicalDeviceName": "NVIDIA GeForce RTX 3070",
+    "DeviceType": "DiscreteGpu",
+    "ApiVersion": 4211029,
+    "DriverVersion": 2559967232,
+    "VendorId": 4318,
+    "DeviceId": 9352,
+    "QueueFamilyIndex": 0,
+    "TimelineSemaphores": true,
+    "EnabledInstanceExtensions": [],
+    "EnabledDeviceExtensions": [],
+    "EnabledValidationLayers": [],
+    "CooperativeMatrixEnabled": false,
+    "CooperativeMatrixDiagnostic": "NotRequested"
+  },
+  "SourceHashes": {
+    "src/Aurelian/Aurelian.Graphics/Properties/AssemblyInfo.cs": "4937aae4c656d580b415b4585cf194b47f90447bceb990d5b895510451d0146e",
+    "src/Aurelian/Aurelian.Graphics/Vulkan/Resources/Allocation/RawVulkanMemoryAllocator.cs": "e0d57a20f4393d5c473ac30471c04fbf2cafd869a92437c31c9cc6b6ba2f7893",
+    "tools/Aurelian.RouterResearch/Assets/Router.v.ts": "271f697caa766f1006f6108c9a022b5e3dd40c4aec061c1f21f6e0af51115605",
+    "tools/Aurelian.RouterResearch/Aurelian.RouterResearch.csproj": "5db2b32eb974e981f78a4353873414211dc5e186197edeec4e92ae31df69f903",
+    "tools/Aurelian.RouterResearch/README.md": "f765f11bf3f24aa53d283b429959b38e82c34a9fdb81eecc86d3857f88fce094",
+    "tools/Aurelian.RouterResearch/Program.cs": "af86e8e001df5fdf45ecbeaaedbfb78838d1b5f2f8a76335578820aa5a22b8fe",
+    "tools/Aurelian.RouterResearch/RouterCpu.cs": "5c7d2080707de4da2c78957ceeba34abfa214940024037b0a26942a5055e3ee0",
+    "tools/Aurelian.RouterResearch/RouterFixture.cs": "4bd6d4c9b986455e0b5350312e4907f82cd5c330c541a003761005fef8f9a081",
+    "tools/Aurelian.RouterResearch/RouterGpu.cs": "89cca4fc540476bd68eb8488a5b178cffacbe96bc62c4aaea4961c851793f8d3",
+    "tools/Aurelian.RouterResearch/Run-Research.ps1": "d5431f0ea51de205684878c967753e6f1507871a207216324f26735297071daa",
+    "tools/Aurelian.RouterResearch/summarize.py": "dc4fe13d66808be004a7501cb5d0de8d2a78c78f0ccfc66fe3f9651a40dc50f0",
+    "tools/Aurelian.RouterResearch/test_integrity.py": "fea9939544c96f7a197dc2b01af71166baee69574d188d04cf6041b498e47410"
+  },
+  "BinaryHashes": {
+    "Aurelian.RouterResearch.dll": "4f1d2348b5109eb3328f8445a4cc8b60e8bb56a9c6cf297b519fd6f3e1e6367e",
+    "Aurelian.Graphics.dll": "e56c5a31016ae16249e62c80308b7c8f09476040d8da612fb0da831851330600",
+    "Aurelian.Shaders.dll": "53272cb7d85b3cc122eb1a7c79a04c5c86d3f2e7f849edf7ec1a997c7aae2928",
+    "Copeland.TS.dll": "e03b8d7bc14935881e80dc61d053a08bcfa082e8f858a24a7feb03f2b3790cf0"
+  },
+  "RawRunHashes": {
+    "validation": "71bffd9d5f659a6adc9c13eb3de5adfca2c0d769fce9c8ec8ad5961807e2b306",
+    "round1": "ad26b9a68810ebba6ce2b388b10e92fdecb64b53f78511d923d2419a0f1ce71b",
+    "round2": "87c7a898ff1a455241d32ec734e641450a1b48a2fbde19a6f4400c06f3897d76",
+    "round3": "821eb5092c50dd3027fa6a222d0164c36e88251ab31fae224f4b1bd4a51ac414"
+  },
+  "SamplesPerRound": 24080,
+  "CorrectnessChecksPerRun": 363,
+  "HostUsefulnessCases": 19,
+  "GpuAdvantageCases": 0,
+  "ReadbackAblation": {
+    "Case": "n8192-c8-r2048-mixed",
+    "OriginalMedianUs": 888.6,
+    "CachedMedianUs": 180.95,
+    "FullPathSpeedupByRound": [
+      3.497969274236271,
+      4.925658807212205,
+      4.910748825642443
+    ],
+    "OriginalMappedReadMedianUs": 718.9,
+    "CachedMappedReadMedianUs": 11.649999999999999
+  },
+  "Results": {
+    "Accepted": true,
+    "NicForwardingQualified": false,
+    "Cases": [
+      {
+        "Case": "n1-c1-r0-mixed",
+        "Packets": 1,
+        "Candidates": 1,
+        "Rules": 0,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 55.4,
+        "GpuWorstRoundP95Us": 65.3,
+        "GpuInputMpps": 0.018050541516245487,
+        "SpeedupByRound": [
+          0.006065518783542039,
+          0.004089575812274368,
+          0.005217785843920145
+        ],
+        "MinimumSpeedup": 0.004089575812274368,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 55.5,
+              "P95Us": 60.8,
+              "GpuMedianUs": 3.872
+            },
+            {
+              "MedianUs": 55.3,
+              "P95Us": 60.3,
+              "GpuMedianUs": 3.904
+            },
+            {
+              "MedianUs": 55.2,
+              "P95Us": 58.7,
+              "GpuMedianUs": 3.872
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 51.0,
+              "P95Us": 63.6,
+              "GpuMedianUs": 3.792
+            },
+            {
+              "MedianUs": 52.6,
+              "P95Us": 66.6,
+              "GpuMedianUs": 3.7439999999999998
+            },
+            {
+              "MedianUs": 53.4,
+              "P95Us": 65.5,
+              "GpuMedianUs": 3.8080000000000003
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 55.9,
+              "P95Us": 65.3,
+              "GpuMedianUs": 3.84
+            },
+            {
+              "MedianUs": 55.4,
+              "P95Us": 64.7,
+              "GpuMedianUs": 3.76
+            },
+            {
+              "MedianUs": 55.1,
+              "P95Us": 63.5,
+              "GpuMedianUs": 3.664
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 3.4078125000000004,
+              "P95Us": 4.73125,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 3.3382812499999996,
+              "P95Us": 4.64375,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 3.62421875,
+              "P95Us": 3.85625,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 2.3515625,
+              "P95Us": 2.8578125,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2.234375,
+              "P95Us": 2.609375,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2.06953125,
+              "P95Us": 2.3890625,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 0.35703125,
+              "P95Us": 0.378125,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.240625,
+              "P95Us": 0.2859375,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.2875,
+              "P95Us": 0.3265625,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 0.3390625,
+              "P95Us": 0.4265625,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.2265625,
+              "P95Us": 0.271875,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.2890625,
+              "P95Us": 0.36875,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n64-c1-r0-mixed",
+        "Packets": 64,
+        "Candidates": 1,
+        "Rules": 0,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 57.3,
+        "GpuWorstRoundP95Us": 63.4,
+        "GpuInputMpps": 1.1169284467713787,
+        "SpeedupByRound": [
+          0.22164048865619546,
+          0.01624548736462094,
+          0.23472949389179756
+        ],
+        "MinimumSpeedup": 0.01624548736462094,
+        "HostUsefulnessGate": true,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 60.9,
+              "P95Us": 69.1,
+              "GpuMedianUs": 4.096
+            },
+            {
+              "MedianUs": 58.9,
+              "P95Us": 63.9,
+              "GpuMedianUs": 3.984
+            },
+            {
+              "MedianUs": 61.0,
+              "P95Us": 62.5,
+              "GpuMedianUs": 4.128
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 52.9,
+              "P95Us": 54,
+              "GpuMedianUs": 4.08
+            },
+            {
+              "MedianUs": 51.8,
+              "P95Us": 56,
+              "GpuMedianUs": 4.159999999999999
+            },
+            {
+              "MedianUs": 53.2,
+              "P95Us": 60.3,
+              "GpuMedianUs": 4.064
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 57.3,
+              "P95Us": 63.4,
+              "GpuMedianUs": 4.064
+            },
+            {
+              "MedianUs": 55.4,
+              "P95Us": 57.7,
+              "GpuMedianUs": 4.096
+            },
+            {
+              "MedianUs": 57.3,
+              "P95Us": 59.7,
+              "GpuMedianUs": 4.192
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 12.95,
+              "P95Us": 16.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 5.95,
+              "P95Us": 9.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.649999999999999,
+              "P95Us": 18.3,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 12.7,
+              "P95Us": 14.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 3.0,
+              "P95Us": 3.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 13.45,
+              "P95Us": 15.4,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 13.9,
+              "P95Us": 14,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.9,
+              "P95Us": 1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 13.9,
+              "P95Us": 14.6,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 13.9,
+              "P95Us": 14,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.9,
+              "P95Us": 1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 13.9,
+              "P95Us": 14.6,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n1024-c1-r0-mixed",
+        "Packets": 1024,
+        "Candidates": 1,
+        "Rules": 0,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 64.7,
+        "GpuWorstRoundP95Us": 73.4,
+        "GpuInputMpps": 15.826893353941268,
+        "SpeedupByRound": [
+          0.18125960061443935,
+          0.17928902627511592,
+          0.19088098918083463
+        ],
+        "MinimumSpeedup": 0.17928902627511592,
+        "HostUsefulnessGate": true,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 156.14999999999998,
+              "P95Us": 168.4,
+              "GpuMedianUs": 4.144
+            },
+            {
+              "MedianUs": 153.6,
+              "P95Us": 159.2,
+              "GpuMedianUs": 4.176
+            },
+            {
+              "MedianUs": 152.7,
+              "P95Us": 160.6,
+              "GpuMedianUs": 4.159999999999999
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 52.7,
+              "P95Us": 55.3,
+              "GpuMedianUs": 4.032
+            },
+            {
+              "MedianUs": 52.8,
+              "P95Us": 58.5,
+              "GpuMedianUs": 4.064
+            },
+            {
+              "MedianUs": 52.6,
+              "P95Us": 54.6,
+              "GpuMedianUs": 4.064
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 65.1,
+              "P95Us": 67.2,
+              "GpuMedianUs": 4.128
+            },
+            {
+              "MedianUs": 64.7,
+              "P95Us": 73.4,
+              "GpuMedianUs": 4.096
+            },
+            {
+              "MedianUs": 64.7,
+              "P95Us": 68.7,
+              "GpuMedianUs": 4.112
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 12.0,
+              "P95Us": 15.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 11.600000000000001,
+              "P95Us": 16.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 12.350000000000001,
+              "P95Us": 15.9,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 11.8,
+              "P95Us": 14.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 12.2,
+              "P95Us": 14.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 12.95,
+              "P95Us": 14.3,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 14.8,
+              "P95Us": 15.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.9,
+              "P95Us": 15.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.9,
+              "P95Us": 15.1,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 15.0,
+              "P95Us": 15.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 15.0,
+              "P95Us": 15.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 15.0,
+              "P95Us": 15.4,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n8192-c1-r0-mixed",
+        "Packets": 8192,
+        "Candidates": 1,
+        "Rules": 0,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 138.25,
+        "GpuWorstRoundP95Us": 204.9,
+        "GpuInputMpps": 59.25497287522604,
+        "SpeedupByRound": [
+          0.49364855328158086,
+          0.5078096621867055,
+          0.5092224231464738
+        ],
+        "MinimumSpeedup": 0.49364855328158086,
+        "HostUsefulnessGate": true,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 851.6,
+              "P95Us": 921.4,
+              "GpuMedianUs": 3.072
+            },
+            {
+              "MedianUs": 845.6,
+              "P95Us": 897,
+              "GpuMedianUs": 3.072
+            },
+            {
+              "MedianUs": 846.1,
+              "P95Us": 903.5,
+              "GpuMedianUs": 3.072
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 55.7,
+              "P95Us": 63.2,
+              "GpuMedianUs": 4.8
+            },
+            {
+              "MedianUs": 54.9,
+              "P95Us": 59.7,
+              "GpuMedianUs": 4.72
+            },
+            {
+              "MedianUs": 54.9,
+              "P95Us": 62.7,
+              "GpuMedianUs": 4.672
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 141.7,
+              "P95Us": 204.9,
+              "GpuMedianUs": 3.072
+            },
+            {
+              "MedianUs": 137.64999999999998,
+              "P95Us": 185,
+              "GpuMedianUs": 3.072
+            },
+            {
+              "MedianUs": 138.25,
+              "P95Us": 185.3,
+              "GpuMedianUs": 3.072
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 69.95,
+              "P95Us": 82.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 69.9,
+              "P95Us": 75.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 70.4,
+              "P95Us": 74.5,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 73.7,
+              "P95Us": 91.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 76.4,
+              "P95Us": 80,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 75.5,
+              "P95Us": 90,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 126.6,
+              "P95Us": 132.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 126.6,
+              "P95Us": 127.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 126.9,
+              "P95Us": 127.5,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 128.4,
+              "P95Us": 178.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 126.9,
+              "P95Us": 127.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 127.6,
+              "P95Us": 128.2,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n65536-c1-r0-mixed",
+        "Packets": 65536,
+        "Candidates": 1,
+        "Rules": 0,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 976.15,
+        "GpuWorstRoundP95Us": 4558.1,
+        "GpuInputMpps": 67.13722276289505,
+        "SpeedupByRound": [
+          0.597346719254213,
+          0.8651683850684385,
+          0.6258027760513777
+        ],
+        "MinimumSpeedup": 0.597346719254213,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 6610.25,
+              "P95Us": 7530.5,
+              "GpuMedianUs": 15.360000000000001
+            },
+            {
+              "MedianUs": 9169.05,
+              "P95Us": 10137.9,
+              "GpuMedianUs": 15.360000000000001
+            },
+            {
+              "MedianUs": 6708.65,
+              "P95Us": 7598.8,
+              "GpuMedianUs": 15.360000000000001
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 79.8,
+              "P95Us": 235.5,
+              "GpuMedianUs": 16.224
+            },
+            {
+              "MedianUs": 97.1,
+              "P95Us": 278.3,
+              "GpuMedianUs": 16.688000000000002
+            },
+            {
+              "MedianUs": 79.95,
+              "P95Us": 230.7,
+              "GpuMedianUs": 16.416
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 976.15,
+              "P95Us": 1878.3,
+              "GpuMedianUs": 15.360000000000001
+            },
+            {
+              "MedianUs": 3641.95,
+              "P95Us": 4558.1,
+              "GpuMedianUs": 15.360000000000001
+            },
+            {
+              "MedianUs": 965.4,
+              "P95Us": 1892.7,
+              "GpuMedianUs": 15.360000000000001
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 583.1,
+              "P95Us": 660.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 3150.8999999999996,
+              "P95Us": 3317.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 604.15,
+              "P95Us": 696.7,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 596.0,
+              "P95Us": 669.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 3156.3,
+              "P95Us": 3359.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 630.0,
+              "P95Us": 657.2,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 1118.8000000000002,
+              "P95Us": 1194.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 3628.45,
+              "P95Us": 3746.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1120.4,
+              "P95Us": 1156.3,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 1125.3000000000002,
+              "P95Us": 1176.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 3634.4,
+              "P95Us": 3701.4,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1125.3000000000002,
+              "P95Us": 1152.9,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n1-c1-r64-mixed",
+        "Packets": 1,
+        "Candidates": 1,
+        "Rules": 64,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 84.1,
+        "GpuWorstRoundP95Us": 111.4,
+        "GpuInputMpps": 0.011890606420927468,
+        "SpeedupByRound": [
+          0.0003726893261776983,
+          0.00027888680131517144,
+          0.0003715814506539834
+        ],
+        "MinimumSpeedup": 0.00027888680131517144,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 84.0,
+              "P95Us": 88.7,
+              "GpuMedianUs": 9.536
+            },
+            {
+              "MedianUs": 106.3,
+              "P95Us": 109.5,
+              "GpuMedianUs": 14.656
+            },
+            {
+              "MedianUs": 84.1,
+              "P95Us": 88.9,
+              "GpuMedianUs": 10.08
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 73.19999999999999,
+              "P95Us": 87.9,
+              "GpuMedianUs": 9.472
+            },
+            {
+              "MedianUs": 94.25,
+              "P95Us": 450.5,
+              "GpuMedianUs": 14.72
+            },
+            {
+              "MedianUs": 73.3,
+              "P95Us": 86.6,
+              "GpuMedianUs": 10.112
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 83.85,
+              "P95Us": 89.6,
+              "GpuMedianUs": 9.632
+            },
+            {
+              "MedianUs": 106.45,
+              "P95Us": 111.4,
+              "GpuMedianUs": 14.608
+            },
+            {
+              "MedianUs": 84.1,
+              "P95Us": 87.4,
+              "GpuMedianUs": 10.048
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 1.459375,
+              "P95Us": 1.7546875,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.43671875,
+              "P95Us": 1.7515625,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.40078125,
+              "P95Us": 1.61875,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 0.8960937499999999,
+              "P95Us": 1.06875,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.8804687499999999,
+              "P95Us": 1.0296875,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.88359375,
+              "P95Us": 0.9890625,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 0.03125,
+              "P95Us": 0.0421875,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.0296875,
+              "P95Us": 0.0421875,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.03125,
+              "P95Us": 0.04375,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 0.034375,
+              "P95Us": 0.046875,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.034375,
+              "P95Us": 0.0421875,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.03125,
+              "P95Us": 0.0421875,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n64-c1-r64-mixed",
+        "Packets": 64,
+        "Candidates": 1,
+        "Rules": 64,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 91.55,
+        "GpuWorstRoundP95Us": 113.7,
+        "GpuInputMpps": 0.6990715456034954,
+        "SpeedupByRound": [
+          0.012181616832779624,
+          0.010582010582010583,
+          0.012015292190060077
+        ],
+        "MinimumSpeedup": 0.010582010582010583,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 93.8,
+              "P95Us": 99.3,
+              "GpuMedianUs": 15.312000000000001
+            },
+            {
+              "MedianUs": 107.7,
+              "P95Us": 117.1,
+              "GpuMedianUs": 17.856
+            },
+            {
+              "MedianUs": 95.35,
+              "P95Us": 105.7,
+              "GpuMedianUs": 16.607999999999997
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 76.7,
+              "P95Us": 82.1,
+              "GpuMedianUs": 15.216000000000001
+            },
+            {
+              "MedianUs": 89.0,
+              "P95Us": 96.8,
+              "GpuMedianUs": 17.919999999999998
+            },
+            {
+              "MedianUs": 77.9,
+              "P95Us": 79,
+              "GpuMedianUs": 16.351999999999997
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 90.3,
+              "P95Us": 93.9,
+              "GpuMedianUs": 15.232
+            },
+            {
+              "MedianUs": 103.95,
+              "P95Us": 113.7,
+              "GpuMedianUs": 17.92
+            },
+            {
+              "MedianUs": 91.55,
+              "P95Us": 95.4,
+              "GpuMedianUs": 16.576
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 3.75,
+              "P95Us": 8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 5.45,
+              "P95Us": 8.4,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 4.6,
+              "P95Us": 7.5,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 2.6,
+              "P95Us": 3.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2.7,
+              "P95Us": 3.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2.6,
+              "P95Us": 3.8,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 1.15,
+              "P95Us": 1.4,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.1,
+              "P95Us": 1.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.2,
+              "P95Us": 1.3,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 1.1,
+              "P95Us": 1.4,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.1,
+              "P95Us": 1.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.1,
+              "P95Us": 1.4,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n1024-c1-r64-mixed",
+        "Packets": 1024,
+        "Candidates": 1,
+        "Rules": 64,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 120.0,
+        "GpuWorstRoundP95Us": 136.1,
+        "GpuInputMpps": 8.533333333333333,
+        "SpeedupByRound": [
+          0.11041666666666666,
+          0.10241935483870968,
+          0.10418410041841003
+        ],
+        "MinimumSpeedup": 0.10241935483870968,
+        "HostUsefulnessGate": true,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 207.64999999999998,
+              "P95Us": 213.1,
+              "GpuMedianUs": 17.744
+            },
+            {
+              "MedianUs": 211.35,
+              "P95Us": 221.9,
+              "GpuMedianUs": 19.136
+            },
+            {
+              "MedianUs": 207.1,
+              "P95Us": 211.5,
+              "GpuMedianUs": 17.663999999999998
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 86.8,
+              "P95Us": 92,
+              "GpuMedianUs": 17.856
+            },
+            {
+              "MedianUs": 90.5,
+              "P95Us": 93.1,
+              "GpuMedianUs": 19.168
+            },
+            {
+              "MedianUs": 86.9,
+              "P95Us": 90.3,
+              "GpuMedianUs": 17.776
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 120.0,
+              "P95Us": 123.5,
+              "GpuMedianUs": 17.808
+            },
+            {
+              "MedianUs": 124.0,
+              "P95Us": 136.1,
+              "GpuMedianUs": 19.216
+            },
+            {
+              "MedianUs": 119.5,
+              "P95Us": 122.6,
+              "GpuMedianUs": 17.792
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 13.25,
+              "P95Us": 17,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 12.7,
+              "P95Us": 17.4,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 12.45,
+              "P95Us": 17.3,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 13.55,
+              "P95Us": 16.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.649999999999999,
+              "P95Us": 15.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.25,
+              "P95Us": 16.6,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 21.75,
+              "P95Us": 23.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 20.2,
+              "P95Us": 21.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 21.55,
+              "P95Us": 23.7,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 19.7,
+              "P95Us": 20.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 19.6,
+              "P95Us": 21.4,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 20.8,
+              "P95Us": 22.1,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n8192-c1-r64-mixed",
+        "Packets": 8192,
+        "Candidates": 1,
+        "Rules": 64,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 280.1,
+        "GpuWorstRoundP95Us": 313.4,
+        "GpuInputMpps": 29.24669760799714,
+        "SpeedupByRound": [
+          0.27336722721939777,
+          0.3224721090844696,
+          0.3355944305605141
+        ],
+        "MinimumSpeedup": 0.27336722721939777,
+        "HostUsefulnessGate": true,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 964.5,
+              "P95Us": 1018.1,
+              "GpuMedianUs": 15.360000000000001
+            },
+            {
+              "MedianUs": 990.1500000000001,
+              "P95Us": 1061.1,
+              "GpuMedianUs": 16.384
+            },
+            {
+              "MedianUs": 987.75,
+              "P95Us": 1039.6,
+              "GpuMedianUs": 15.360000000000001
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 90.15,
+              "P95Us": 101.8,
+              "GpuMedianUs": 18.223999999999997
+            },
+            {
+              "MedianUs": 93.5,
+              "P95Us": 98.5,
+              "GpuMedianUs": 19.759999999999998
+            },
+            {
+              "MedianUs": 90.05,
+              "P95Us": 101.9,
+              "GpuMedianUs": 18.32
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 255.7,
+              "P95Us": 313.4,
+              "GpuMedianUs": 15.360000000000001
+            },
+            {
+              "MedianUs": 282.35,
+              "P95Us": 302.7,
+              "GpuMedianUs": 16.384
+            },
+            {
+              "MedianUs": 280.1,
+              "P95Us": 294.5,
+              "GpuMedianUs": 15.360000000000001
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 70.25,
+              "P95Us": 92.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 91.85,
+              "P95Us": 105.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 94.0,
+              "P95Us": 106.3,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 69.9,
+              "P95Us": 93.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 91.05,
+              "P95Us": 109.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 102.1,
+              "P95Us": 114,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 199.9,
+              "P95Us": 214.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 207.8,
+              "P95Us": 217,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 222.3,
+              "P95Us": 233,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 165.9,
+              "P95Us": 175.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 186.14999999999998,
+              "P95Us": 193.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 197.35000000000002,
+              "P95Us": 200.2,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n65536-c1-r64-mixed",
+        "Packets": 65536,
+        "Candidates": 1,
+        "Rules": 64,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 2275.0,
+        "GpuWorstRoundP95Us": 2606,
+        "GpuInputMpps": 28.807032967032967,
+        "SpeedupByRound": [
+          0.27041758241758246,
+          0.2920736551853064,
+          0.2748174784788057
+        ],
+        "MinimumSpeedup": 0.27041758241758246,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 7963.799999999999,
+              "P95Us": 8509.9,
+              "GpuMedianUs": 222.272
+            },
+            {
+              "MedianUs": 7840.65,
+              "P95Us": 8213,
+              "GpuMedianUs": 217.872
+            },
+            {
+              "MedianUs": 7871.1,
+              "P95Us": 8244,
+              "GpuMedianUs": 213.77599999999998
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 822.3499999999999,
+              "P95Us": 903.9,
+              "GpuMedianUs": 207.312
+            },
+            {
+              "MedianUs": 669.9000000000001,
+              "P95Us": 881.2,
+              "GpuMedianUs": 199.904
+            },
+            {
+              "MedianUs": 801.3,
+              "P95Us": 883.8,
+              "GpuMedianUs": 199.23200000000003
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 2275.0,
+              "P95Us": 2606,
+              "GpuMedianUs": 222.432
+            },
+            {
+              "MedianUs": 2139.7,
+              "P95Us": 2549.7,
+              "GpuMedianUs": 199.68
+            },
+            {
+              "MedianUs": 2294.25,
+              "P95Us": 2589.5,
+              "GpuMedianUs": 196.608
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 615.2,
+              "P95Us": 692.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 624.95,
+              "P95Us": 682,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 630.5,
+              "P95Us": 689,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 639.8499999999999,
+              "P95Us": 794.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 655.6,
+              "P95Us": 715.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 675.15,
+              "P95Us": 753.9,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 1793.9,
+              "P95Us": 1838.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1677.0,
+              "P95Us": 1700.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1788.2,
+              "P95Us": 1831.7,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 1456.5,
+              "P95Us": 1504.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1430.75,
+              "P95Us": 1453.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1500.1,
+              "P95Us": 1529.1,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n1-c1-r512-mixed",
+        "Packets": 1,
+        "Candidates": 1,
+        "Rules": 512,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 119.75,
+        "GpuWorstRoundP95Us": 133.2,
+        "GpuInputMpps": 0.008350730688935281,
+        "SpeedupByRound": [
+          0.0002893518518518519,
+          0.0002617670522536897,
+          0.0003001043841336117
+        ],
+        "MinimumSpeedup": 0.0002617670522536897,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 119.45,
+              "P95Us": 124,
+              "GpuMedianUs": 28.191999999999997
+            },
+            {
+              "MedianUs": 125.3,
+              "P95Us": 135.1,
+              "GpuMedianUs": 30.416
+            },
+            {
+              "MedianUs": 120.05,
+              "P95Us": 122.9,
+              "GpuMedianUs": 28.992
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 107.15,
+              "P95Us": 452,
+              "GpuMedianUs": 28.032
+            },
+            {
+              "MedianUs": 110.9,
+              "P95Us": 469.6,
+              "GpuMedianUs": 30.4
+            },
+            {
+              "MedianUs": 105.9,
+              "P95Us": 508.8,
+              "GpuMedianUs": 28.752
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 118.8,
+              "P95Us": 124.7,
+              "GpuMedianUs": 28.032
+            },
+            {
+              "MedianUs": 125.35,
+              "P95Us": 133.2,
+              "GpuMedianUs": 30.176000000000002
+            },
+            {
+              "MedianUs": 119.75,
+              "P95Us": 126.6,
+              "GpuMedianUs": 28.752
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 1.4125,
+              "P95Us": 1.6109375,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.43359375,
+              "P95Us": 1.5703125,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.4078125,
+              "P95Us": 1.7046875,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 0.9171875,
+              "P95Us": 1.2390625,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.91484375,
+              "P95Us": 1.1078125,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.91875,
+              "P95Us": 1.2484375,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 0.05078125,
+              "P95Us": 0.075,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.046875,
+              "P95Us": 0.065625,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.0484375,
+              "P95Us": 0.071875,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 0.034375,
+              "P95Us": 0.046875,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.0328125,
+              "P95Us": 0.04375,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.0359375,
+              "P95Us": 0.05,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n64-c1-r512-mixed",
+        "Packets": 64,
+        "Candidates": 1,
+        "Rules": 512,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 118.7,
+        "GpuWorstRoundP95Us": 129.4,
+        "GpuInputMpps": 0.5391743892165122,
+        "SpeedupByRound": [
+          0.011794439764111203,
+          0.010586319218241044,
+          0.01102629346904156
+        ],
+        "MinimumSpeedup": 0.010586319218241044,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 122.65,
+              "P95Us": 127.8,
+              "GpuMedianUs": 36.4
+            },
+            {
+              "MedianUs": 126.3,
+              "P95Us": 132,
+              "GpuMedianUs": 39.12
+            },
+            {
+              "MedianUs": 121.25,
+              "P95Us": 132.2,
+              "GpuMedianUs": 36.672000000000004
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 103.7,
+              "P95Us": 105.9,
+              "GpuMedianUs": 36.48
+            },
+            {
+              "MedianUs": 107.5,
+              "P95Us": 112.1,
+              "GpuMedianUs": 39.088
+            },
+            {
+              "MedianUs": 103.0,
+              "P95Us": 108.7,
+              "GpuMedianUs": 36.704
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 118.7,
+              "P95Us": 124.4,
+              "GpuMedianUs": 36.56
+            },
+            {
+              "MedianUs": 122.8,
+              "P95Us": 129.4,
+              "GpuMedianUs": 39.296
+            },
+            {
+              "MedianUs": 117.9,
+              "P95Us": 123.9,
+              "GpuMedianUs": 36.672000000000004
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 4.1,
+              "P95Us": 8.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 4.0,
+              "P95Us": 8.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 4.15,
+              "P95Us": 8.7,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 2.6,
+              "P95Us": 3.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2.4,
+              "P95Us": 3.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2.6,
+              "P95Us": 3.6,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 1.5,
+              "P95Us": 1.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.4,
+              "P95Us": 1.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.5,
+              "P95Us": 2,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 1.4,
+              "P95Us": 1.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.3,
+              "P95Us": 1.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.3,
+              "P95Us": 1.9,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n1024-c1-r512-mixed",
+        "Packets": 1024,
+        "Candidates": 1,
+        "Rules": 512,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 133.4,
+        "GpuWorstRoundP95Us": 142.7,
+        "GpuInputMpps": 7.67616191904048,
+        "SpeedupByRound": [
+          0.10569715142428786,
+          0.10783582089552238,
+          0.11051004636785162
+        ],
+        "MinimumSpeedup": 0.10569715142428786,
+        "HostUsefulnessGate": true,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 220.3,
+              "P95Us": 225.5,
+              "GpuMedianUs": 36.112
+            },
+            {
+              "MedianUs": 220.9,
+              "P95Us": 228.3,
+              "GpuMedianUs": 36.672000000000004
+            },
+            {
+              "MedianUs": 216.64999999999998,
+              "P95Us": 221.7,
+              "GpuMedianUs": 34.208000000000006
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 101.15,
+              "P95Us": 116.6,
+              "GpuMedianUs": 36.32
+            },
+            {
+              "MedianUs": 101.6,
+              "P95Us": 106.5,
+              "GpuMedianUs": 36.736
+            },
+            {
+              "MedianUs": 97.2,
+              "P95Us": 106.2,
+              "GpuMedianUs": 34.175999999999995
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 133.4,
+              "P95Us": 142.7,
+              "GpuMedianUs": 36.32
+            },
+            {
+              "MedianUs": 134.0,
+              "P95Us": 139.1,
+              "GpuMedianUs": 36.704
+            },
+            {
+              "MedianUs": 129.4,
+              "P95Us": 134.2,
+              "GpuMedianUs": 34.512
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 14.100000000000001,
+              "P95Us": 21.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.55,
+              "P95Us": 19.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.95,
+              "P95Us": 19.9,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 14.95,
+              "P95Us": 19.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.45,
+              "P95Us": 18.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.3,
+              "P95Us": 18.4,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 30.9,
+              "P95Us": 37.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 27.6,
+              "P95Us": 28.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 30.4,
+              "P95Us": 31,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 25.2,
+              "P95Us": 28,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 24.4,
+              "P95Us": 25,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 24.9,
+              "P95Us": 26,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n8192-c1-r512-mixed",
+        "Packets": 8192,
+        "Candidates": 1,
+        "Rules": 512,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 264.2,
+        "GpuWorstRoundP95Us": 323.9,
+        "GpuInputMpps": 31.00681302043906,
+        "SpeedupByRound": [
+          0.28267820199360544,
+          0.30261165783497346,
+          0.30974139607233137
+        ],
+        "MinimumSpeedup": 0.28267820199360544,
+        "HostUsefulnessGate": true,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 973.25,
+              "P95Us": 1003.7,
+              "GpuMedianUs": 30.720000000000002
+            },
+            {
+              "MedianUs": 971.85,
+              "P95Us": 985.5,
+              "GpuMedianUs": 31.744
+            },
+            {
+              "MedianUs": 965.3499999999999,
+              "P95Us": 1021.3,
+              "GpuMedianUs": 29.696
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 101.25,
+              "P95Us": 108.5,
+              "GpuMedianUs": 33.792
+            },
+            {
+              "MedianUs": 101.4,
+              "P95Us": 113.3,
+              "GpuMedianUs": 34.048
+            },
+            {
+              "MedianUs": 97.6,
+              "P95Us": 106.9,
+              "GpuMedianUs": 31.824
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 265.85,
+              "P95Us": 323.9,
+              "GpuMedianUs": 30.720000000000002
+            },
+            {
+              "MedianUs": 264.2,
+              "P95Us": 316.9,
+              "GpuMedianUs": 31.6
+            },
+            {
+              "MedianUs": 257.15,
+              "P95Us": 278.9,
+              "GpuMedianUs": 28.832
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 75.15,
+              "P95Us": 101.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 79.94999999999999,
+              "P95Us": 98.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 79.65,
+              "P95Us": 98.3,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 77.6,
+              "P95Us": 97.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 81.25,
+              "P95Us": 104.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 84.05000000000001,
+              "P95Us": 99.5,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 276.6,
+              "P95Us": 289.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 243.64999999999998,
+              "P95Us": 252.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 273.85,
+              "P95Us": 290.7,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 213.3,
+              "P95Us": 219.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 204.0,
+              "P95Us": 206.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 214.1,
+              "P95Us": 219.9,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n65536-c1-r512-mixed",
+        "Packets": 65536,
+        "Candidates": 1,
+        "Rules": 512,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 2272.25,
+        "GpuWorstRoundP95Us": 2659.7,
+        "GpuInputMpps": 28.84189679832765,
+        "SpeedupByRound": [
+          0.2785679462449922,
+          0.2803388711629442,
+          0.28301928326142467
+        ],
+        "MinimumSpeedup": 0.2785679462449922,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 7972.700000000001,
+              "P95Us": 8366.3,
+              "GpuMedianUs": 259.072
+            },
+            {
+              "MedianUs": 7831.85,
+              "P95Us": 8350.7,
+              "GpuMedianUs": 230.4
+            },
+            {
+              "MedianUs": 7880.55,
+              "P95Us": 8229.5,
+              "GpuMedianUs": 226.816
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 817.3,
+              "P95Us": 945.3,
+              "GpuMedianUs": 257.248
+            },
+            {
+              "MedianUs": 823.65,
+              "P95Us": 938.8,
+              "GpuMedianUs": 229.44
+            },
+            {
+              "MedianUs": 794.15,
+              "P95Us": 931.9,
+              "GpuMedianUs": 225.328
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 2358.8500000000004,
+              "P95Us": 2659.7,
+              "GpuMedianUs": 254.97599999999997
+            },
+            {
+              "MedianUs": 2272.25,
+              "P95Us": 2578,
+              "GpuMedianUs": 227.328
+            },
+            {
+              "MedianUs": 2271.4,
+              "P95Us": 2655,
+              "GpuMedianUs": 224.256
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 657.1,
+              "P95Us": 766,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 637.0,
+              "P95Us": 722.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 642.85,
+              "P95Us": 751.4,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 729.75,
+              "P95Us": 853.4,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 699.75,
+              "P95Us": 808.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 721.45,
+              "P95Us": 858.1,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 2436.3,
+              "P95Us": 2486.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2156.3,
+              "P95Us": 2234.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2397.55,
+              "P95Us": 2657,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 1891.0,
+              "P95Us": 1925.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1817.6,
+              "P95Us": 1852.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1855.7,
+              "P95Us": 1910.8,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n1-c1-r2048-mixed",
+        "Packets": 1,
+        "Candidates": 1,
+        "Rules": 2048,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 117.1,
+        "GpuWorstRoundP95Us": 136.4,
+        "GpuInputMpps": 0.008539709649871904,
+        "SpeedupByRound": [
+          0.0002802092228864219,
+          0.0002516296012269939,
+          0.00030912769784172665
+        ],
+        "MinimumSpeedup": 0.0002516296012269939,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 117.05,
+              "P95Us": 119.6,
+              "GpuMedianUs": 31.392000000000003
+            },
+            {
+              "MedianUs": 130.75,
+              "P95Us": 135.7,
+              "GpuMedianUs": 39.104
+            },
+            {
+              "MedianUs": 111.65,
+              "P95Us": 133,
+              "GpuMedianUs": 27.936
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 105.1,
+              "P95Us": 477.7,
+              "GpuMedianUs": 31.424
+            },
+            {
+              "MedianUs": 117.95,
+              "P95Us": 451.1,
+              "GpuMedianUs": 39.024
+            },
+            {
+              "MedianUs": 114.9,
+              "P95Us": 452.3,
+              "GpuMedianUs": 27.968
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 117.1,
+              "P95Us": 121,
+              "GpuMedianUs": 31.311999999999998
+            },
+            {
+              "MedianUs": 130.4,
+              "P95Us": 136.4,
+              "GpuMedianUs": 38.976
+            },
+            {
+              "MedianUs": 111.2,
+              "P95Us": 131.7,
+              "GpuMedianUs": 27.904000000000003
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 1.47265625,
+              "P95Us": 2.0265625,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.4140625,
+              "P95Us": 1.603125,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.4328125,
+              "P95Us": 2.05625,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 0.9015625,
+              "P95Us": 1.353125,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.8859375,
+              "P95Us": 0.975,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.89765625,
+              "P95Us": 1.3515625,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 0.0375,
+              "P95Us": 0.0609375,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.0359375,
+              "P95Us": 0.046875,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.0359375,
+              "P95Us": 0.0515625,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 0.0328125,
+              "P95Us": 0.04375,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.0328125,
+              "P95Us": 0.0421875,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.034375,
+              "P95Us": 0.046875,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n64-c1-r2048-mixed",
+        "Packets": 64,
+        "Candidates": 1,
+        "Rules": 2048,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 118.35,
+        "GpuWorstRoundP95Us": 128.7,
+        "GpuInputMpps": 0.5407689057879173,
+        "SpeedupByRound": [
+          0.010650887573964497,
+          0.011829319814110688,
+          0.012032660077352814
+        ],
+        "MinimumSpeedup": 0.010650887573964497,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 130.55,
+              "P95Us": 132.7,
+              "GpuMedianUs": 47.455999999999996
+            },
+            {
+              "MedianUs": 122.1,
+              "P95Us": 127.2,
+              "GpuMedianUs": 42.175999999999995
+            },
+            {
+              "MedianUs": 120.1,
+              "P95Us": 129.5,
+              "GpuMedianUs": 41.152
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 113.0,
+              "P95Us": 119.2,
+              "GpuMedianUs": 47.616
+            },
+            {
+              "MedianUs": 104.5,
+              "P95Us": 110.3,
+              "GpuMedianUs": 42.048
+            },
+            {
+              "MedianUs": 103.1,
+              "P95Us": 112.3,
+              "GpuMedianUs": 41.088
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 126.75,
+              "P95Us": 128.7,
+              "GpuMedianUs": 47.536
+            },
+            {
+              "MedianUs": 118.35,
+              "P95Us": 122.2,
+              "GpuMedianUs": 42.352000000000004
+            },
+            {
+              "MedianUs": 116.35,
+              "P95Us": 126.1,
+              "GpuMedianUs": 41.2
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 4.0,
+              "P95Us": 9.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 4.1,
+              "P95Us": 7.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 4.5,
+              "P95Us": 9.6,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 2.7,
+              "P95Us": 3.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2.6,
+              "P95Us": 3.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2.6,
+              "P95Us": 4.4,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 1.6,
+              "P95Us": 2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.5,
+              "P95Us": 1.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.7,
+              "P95Us": 2.4,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 1.35,
+              "P95Us": 1.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.4,
+              "P95Us": 1.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.4,
+              "P95Us": 2.1,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n1024-c1-r2048-mixed",
+        "Packets": 1024,
+        "Candidates": 1,
+        "Rules": 2048,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 111.05,
+        "GpuWorstRoundP95Us": 134,
+        "GpuInputMpps": 9.221071589374157,
+        "SpeedupByRound": [
+          0.1364250337685727,
+          0.10290742157612855,
+          0.13188798554652212
+        ],
+        "MinimumSpeedup": 0.10290742157612855,
+        "HostUsefulnessGate": true,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 200.14999999999998,
+              "P95Us": 221.1,
+              "GpuMedianUs": 40.08
+            },
+            {
+              "MedianUs": 217.45,
+              "P95Us": 221.4,
+              "GpuMedianUs": 41.232
+            },
+            {
+              "MedianUs": 198.35000000000002,
+              "P95Us": 220.5,
+              "GpuMedianUs": 39.888000000000005
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 93.0,
+              "P95Us": 100.5,
+              "GpuMedianUs": 39.775999999999996
+            },
+            {
+              "MedianUs": 98.55,
+              "P95Us": 103.5,
+              "GpuMedianUs": 41.12
+            },
+            {
+              "MedianUs": 92.1,
+              "P95Us": 97.3,
+              "GpuMedianUs": 39.744
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 111.05,
+              "P95Us": 121.8,
+              "GpuMedianUs": 39.711999999999996
+            },
+            {
+              "MedianUs": 130.7,
+              "P95Us": 134,
+              "GpuMedianUs": 41.104
+            },
+            {
+              "MedianUs": 110.7,
+              "P95Us": 118.8,
+              "GpuMedianUs": 39.824
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 15.600000000000001,
+              "P95Us": 21.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 13.45,
+              "P95Us": 18.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.6,
+              "P95Us": 20.8,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 15.149999999999999,
+              "P95Us": 18.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.65,
+              "P95Us": 18,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 16.7,
+              "P95Us": 18.8,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 31.0,
+              "P95Us": 36.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 27.4,
+              "P95Us": 29.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 30.4,
+              "P95Us": 33,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 25.0,
+              "P95Us": 27.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 24.0,
+              "P95Us": 26,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 25.5,
+              "P95Us": 27.7,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n8192-c1-r2048-mixed",
+        "Packets": 8192,
+        "Candidates": 1,
+        "Rules": 2048,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 184.2,
+        "GpuWorstRoundP95Us": 248.7,
+        "GpuInputMpps": 44.47339847991314,
+        "SpeedupByRound": [
+          0.45113197128658195,
+          0.47700859019706926,
+          0.4486970684039088
+        ],
+        "MinimumSpeedup": 0.4486970684039088,
+        "HostUsefulnessGate": true,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 889.95,
+              "P95Us": 952.8,
+              "GpuMedianUs": 36.864000000000004
+            },
+            {
+              "MedianUs": 905.1500000000001,
+              "P95Us": 920.1,
+              "GpuMedianUs": 37.888
+            },
+            {
+              "MedianUs": 890.7,
+              "P95Us": 914.9,
+              "GpuMedianUs": 36.864000000000004
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 94.5,
+              "P95Us": 105.6,
+              "GpuMedianUs": 39.312
+            },
+            {
+              "MedianUs": 94.80000000000001,
+              "P95Us": 104.7,
+              "GpuMedianUs": 39.616
+            },
+            {
+              "MedianUs": 94.0,
+              "P95Us": 102,
+              "GpuMedianUs": 39.328
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 181.1,
+              "P95Us": 233.1,
+              "GpuMedianUs": 37.088
+            },
+            {
+              "MedianUs": 197.9,
+              "P95Us": 248.7,
+              "GpuMedianUs": 37.536
+            },
+            {
+              "MedianUs": 184.2,
+              "P95Us": 236,
+              "GpuMedianUs": 37.184000000000005
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 81.69999999999999,
+              "P95Us": 106.4,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 94.4,
+              "P95Us": 113.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 82.65,
+              "P95Us": 103.7,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 83.65,
+              "P95Us": 110,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 99.30000000000001,
+              "P95Us": 126.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 83.85,
+              "P95Us": 106.3,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 281.2,
+              "P95Us": 300.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 262.9,
+              "P95Us": 280.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 279.5,
+              "P95Us": 290,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 222.4,
+              "P95Us": 232.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 226.35000000000002,
+              "P95Us": 244.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 218.05,
+              "P95Us": 230,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n65536-c1-r2048-mixed",
+        "Packets": 65536,
+        "Candidates": 1,
+        "Rules": 2048,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 1307.1999999999998,
+        "GpuWorstRoundP95Us": 5693.7,
+        "GpuInputMpps": 50.13463892288863,
+        "SpeedupByRound": [
+          0.5777616279069768,
+          0.7973220469411313,
+          0.5651699029126214
+        ],
+        "MinimumSpeedup": 0.5651699029126214,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 6736.55,
+              "P95Us": 8241,
+              "GpuMedianUs": 78.32
+            },
+            {
+              "MedianUs": 8921.75,
+              "P95Us": 11253.7,
+              "GpuMedianUs": 212.992
+            },
+            {
+              "MedianUs": 6870.9,
+              "P95Us": 8237.9,
+              "GpuMedianUs": 78.432
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 367.7,
+              "P95Us": 1009.9,
+              "GpuMedianUs": 80.24000000000001
+            },
+            {
+              "MedianUs": 466.65,
+              "P95Us": 1834.5,
+              "GpuMedianUs": 83.104
+            },
+            {
+              "MedianUs": 392.85,
+              "P95Us": 979.4,
+              "GpuMedianUs": 81.232
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 1307.1999999999998,
+              "P95Us": 2736.8,
+              "GpuMedianUs": 77.824
+            },
+            {
+              "MedianUs": 3248.75,
+              "P95Us": 5693.7,
+              "GpuMedianUs": 79.904
+            },
+            {
+              "MedianUs": 1236.0,
+              "P95Us": 2680,
+              "GpuMedianUs": 78.27199999999999
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 755.25,
+              "P95Us": 851.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2590.3,
+              "P95Us": 2732.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 698.55,
+              "P95Us": 762.3,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 798.3499999999999,
+              "P95Us": 917,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2623.95,
+              "P95Us": 2811.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 740.6,
+              "P95Us": 849.2,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 2484.2,
+              "P95Us": 2518.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 3984.0,
+              "P95Us": 4100.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2397.45,
+              "P95Us": 2444.4,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 1941.3,
+              "P95Us": 1977.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 3630.3500000000004,
+              "P95Us": 3689.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1850.1999999999998,
+              "P95Us": 1899.2,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n1-c8-r0-mixed",
+        "Packets": 1,
+        "Candidates": 8,
+        "Rules": 0,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 103.8,
+        "GpuWorstRoundP95Us": 113.3,
+        "GpuInputMpps": 0.009633911368015415,
+        "SpeedupByRound": [
+          0.00027095375722543355,
+          0.0002513212316176471,
+          0.0002776015228426396
+        ],
+        "MinimumSpeedup": 0.0002513212316176471,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 103.8,
+              "P95Us": 107.3,
+              "GpuMedianUs": 11.68
+            },
+            {
+              "MedianUs": 109.3,
+              "P95Us": 116,
+              "GpuMedianUs": 12.544
+            },
+            {
+              "MedianUs": 98.55,
+              "P95Us": 100.2,
+              "GpuMedianUs": 9.696
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 91.25,
+              "P95Us": 462.7,
+              "GpuMedianUs": 11.616
+            },
+            {
+              "MedianUs": 99.94999999999999,
+              "P95Us": 474.4,
+              "GpuMedianUs": 12.655999999999999
+            },
+            {
+              "MedianUs": 87.0,
+              "P95Us": 518.1,
+              "GpuMedianUs": 9.84
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 103.8,
+              "P95Us": 109.7,
+              "GpuMedianUs": 11.648
+            },
+            {
+              "MedianUs": 108.8,
+              "P95Us": 113.3,
+              "GpuMedianUs": 12.288
+            },
+            {
+              "MedianUs": 98.5,
+              "P95Us": 100.8,
+              "GpuMedianUs": 9.92
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 1.4234375,
+              "P95Us": 1.8015625,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.4671875,
+              "P95Us": 1.6421875,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.40390625,
+              "P95Us": 1.559375,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 0.865625,
+              "P95Us": 0.978125,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.871875,
+              "P95Us": 0.9734375,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.8695312500000001,
+              "P95Us": 0.96875,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 0.028125,
+              "P95Us": 0.0375,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.02734375,
+              "P95Us": 0.0359375,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.02734375,
+              "P95Us": 0.0375,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 0.028125,
+              "P95Us": 0.0359375,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.0328125,
+              "P95Us": 0.0390625,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.028125,
+              "P95Us": 0.0359375,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n64-c8-r0-mixed",
+        "Packets": 64,
+        "Candidates": 8,
+        "Rules": 0,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 102.5,
+        "GpuWorstRoundP95Us": 107.3,
+        "GpuInputMpps": 0.624390243902439,
+        "SpeedupByRound": [
+          0.00878048780487805,
+          0.008555133079847909,
+          0.009297520661157025
+        ],
+        "MinimumSpeedup": 0.008555133079847909,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 106.8,
+              "P95Us": 114.1,
+              "GpuMedianUs": 11.072000000000001
+            },
+            {
+              "MedianUs": 108.45,
+              "P95Us": 111,
+              "GpuMedianUs": 12.288
+            },
+            {
+              "MedianUs": 100.65,
+              "P95Us": 103.1,
+              "GpuMedianUs": 9.92
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 87.25,
+              "P95Us": 93.2,
+              "GpuMedianUs": 10.815999999999999
+            },
+            {
+              "MedianUs": 90.5,
+              "P95Us": 93.4,
+              "GpuMedianUs": 12.464
+            },
+            {
+              "MedianUs": 81.95,
+              "P95Us": 85.1,
+              "GpuMedianUs": 9.440000000000001
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 102.5,
+              "P95Us": 107.3,
+              "GpuMedianUs": 10.768
+            },
+            {
+              "MedianUs": 105.2,
+              "P95Us": 106.9,
+              "GpuMedianUs": 12.144
+            },
+            {
+              "MedianUs": 96.8,
+              "P95Us": 101.1,
+              "GpuMedianUs": 9.440000000000001
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 3.9,
+              "P95Us": 9.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 4.0,
+              "P95Us": 8.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 4.0,
+              "P95Us": 8.5,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 2.5,
+              "P95Us": 4.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2.3499999999999996,
+              "P95Us": 3.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2.5,
+              "P95Us": 3.6,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 0.9,
+              "P95Us": 0.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.9,
+              "P95Us": 0.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.9,
+              "P95Us": 1,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 0.9,
+              "P95Us": 1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.9,
+              "P95Us": 1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.9,
+              "P95Us": 1.1,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n1024-c8-r0-mixed",
+        "Packets": 1024,
+        "Candidates": 8,
+        "Rules": 0,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 120.15,
+        "GpuWorstRoundP95Us": 125.9,
+        "GpuInputMpps": 8.52267998335414,
+        "SpeedupByRound": [
+          0.09363295880149812,
+          0.1020242914979757,
+          0.10122699386503069
+        ],
+        "MinimumSpeedup": 0.09363295880149812,
+        "HostUsefulnessGate": true,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 207.35000000000002,
+              "P95Us": 217.3,
+              "GpuMedianUs": 10.432
+            },
+            {
+              "MedianUs": 210.35000000000002,
+              "P95Us": 212.7,
+              "GpuMedianUs": 11.552
+            },
+            {
+              "MedianUs": 202.1,
+              "P95Us": 212.6,
+              "GpuMedianUs": 9.52
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 86.1,
+              "P95Us": 89.7,
+              "GpuMedianUs": 10.656
+            },
+            {
+              "MedianUs": 89.25,
+              "P95Us": 98.3,
+              "GpuMedianUs": 11.488
+            },
+            {
+              "MedianUs": 80.7,
+              "P95Us": 82.7,
+              "GpuMedianUs": 9.440000000000001
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 120.15,
+              "P95Us": 122.1,
+              "GpuMedianUs": 10.672
+            },
+            {
+              "MedianUs": 123.5,
+              "P95Us": 125.9,
+              "GpuMedianUs": 11.616
+            },
+            {
+              "MedianUs": 114.1,
+              "P95Us": 119.1,
+              "GpuMedianUs": 9.376000000000001
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 11.25,
+              "P95Us": 15.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 13.7,
+              "P95Us": 16.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 11.55,
+              "P95Us": 15.3,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 12.3,
+              "P95Us": 14.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 12.6,
+              "P95Us": 15,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 12.35,
+              "P95Us": 14.4,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 14.1,
+              "P95Us": 14.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 15.1,
+              "P95Us": 15.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.2,
+              "P95Us": 14.3,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 14.3,
+              "P95Us": 14.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 15.1,
+              "P95Us": 15.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.4,
+              "P95Us": 14.6,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n8192-c8-r0-mixed",
+        "Packets": 8192,
+        "Candidates": 8,
+        "Rules": 0,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 260.7,
+        "GpuWorstRoundP95Us": 311.7,
+        "GpuInputMpps": 31.423091676256234,
+        "SpeedupByRound": [
+          0.3207714083510262,
+          0.24012274645186038,
+          0.24910465578989255
+        ],
+        "MinimumSpeedup": 0.24012274645186038,
+        "HostUsefulnessGate": true,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 989.9,
+              "P95Us": 1037.8,
+              "GpuMedianUs": 9.216000000000001
+            },
+            {
+              "MedianUs": 969.25,
+              "P95Us": 1020.8,
+              "GpuMedianUs": 10.24
+            },
+            {
+              "MedianUs": 959.4000000000001,
+              "P95Us": 984.3,
+              "GpuMedianUs": 7.295999999999999
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 89.8,
+              "P95Us": 96.3,
+              "GpuMedianUs": 11.84
+            },
+            {
+              "MedianUs": 93.3,
+              "P95Us": 101.4,
+              "GpuMedianUs": 13.184
+            },
+            {
+              "MedianUs": 84.15,
+              "P95Us": 88,
+              "GpuMedianUs": 10.656
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 282.6,
+              "P95Us": 303.2,
+              "GpuMedianUs": 8.303999999999998
+            },
+            {
+              "MedianUs": 260.7,
+              "P95Us": 311.7,
+              "GpuMedianUs": 10.24
+            },
+            {
+              "MedianUs": 251.3,
+              "P95Us": 304,
+              "GpuMedianUs": 7.376
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 90.65,
+              "P95Us": 98.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 62.6,
+              "P95Us": 70,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 62.6,
+              "P95Us": 71.5,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 96.25,
+              "P95Us": 99.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 68.8,
+              "P95Us": 82.4,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 71.35,
+              "P95Us": 75.3,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 141.3,
+              "P95Us": 144.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 116.4,
+              "P95Us": 117.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 117.0,
+              "P95Us": 117.4,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 142.7,
+              "P95Us": 144.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 116.75,
+              "P95Us": 121.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 118.1,
+              "P95Us": 118.6,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n65536-c8-r0-mixed",
+        "Packets": 65536,
+        "Candidates": 8,
+        "Rules": 0,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 2154.7,
+        "GpuWorstRoundP95Us": 3581.3,
+        "GpuInputMpps": 30.415371049334016,
+        "SpeedupByRound": [
+          0.2527098734636492,
+          0.23970854411286957,
+          0.30685890020596446
+        ],
+        "MinimumSpeedup": 0.23970854411286957,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 7630.8,
+              "P95Us": 9282.8,
+              "GpuMedianUs": 179.536
+            },
+            {
+              "MedianUs": 7503.35,
+              "P95Us": 9162.8,
+              "GpuMedianUs": 178.176
+            },
+            {
+              "MedianUs": 7377.5,
+              "P95Us": 8081.5,
+              "GpuMedianUs": 176.12800000000001
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 813.85,
+              "P95Us": 1165.7,
+              "GpuMedianUs": 179.728
+            },
+            {
+              "MedianUs": 518.0,
+              "P95Us": 1165.2,
+              "GpuMedianUs": 178.832
+            },
+            {
+              "MedianUs": 245.8,
+              "P95Us": 839.1,
+              "GpuMedianUs": 153.66400000000002
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 2204.8999999999996,
+              "P95Us": 3581.3,
+              "GpuMedianUs": 177.15200000000002
+            },
+            {
+              "MedianUs": 2154.7,
+              "P95Us": 3497.1,
+              "GpuMedianUs": 178.176
+            },
+            {
+              "MedianUs": 1772.15,
+              "P95Us": 2489.3,
+              "GpuMedianUs": 176.12800000000001
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 557.2,
+              "P95Us": 630.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 516.5,
+              "P95Us": 579.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 543.8,
+              "P95Us": 598.2,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 594.1500000000001,
+              "P95Us": 639.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 528.1,
+              "P95Us": 592.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 566.7,
+              "P95Us": 645.5,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 1065.8,
+              "P95Us": 1099.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1006.3,
+              "P95Us": 1035.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1045.75,
+              "P95Us": 1067.4,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 1075.9,
+              "P95Us": 1111.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1009.95,
+              "P95Us": 1041.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1057.15,
+              "P95Us": 1115.3,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n1-c8-r64-mixed",
+        "Packets": 1,
+        "Candidates": 8,
+        "Rules": 64,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 108.0,
+        "GpuWorstRoundP95Us": 122.5,
+        "GpuInputMpps": 0.009259259259259259,
+        "SpeedupByRound": [
+          0.00027412280701754384,
+          0.00027501157943492357,
+          0.00028935185185185184
+        ],
+        "MinimumSpeedup": 0.00027412280701754384,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 113.5,
+              "P95Us": 115.6,
+              "GpuMedianUs": 17.232
+            },
+            {
+              "MedianUs": 107.95,
+              "P95Us": 110.3,
+              "GpuMedianUs": 15.76
+            },
+            {
+              "MedianUs": 107.5,
+              "P95Us": 110.3,
+              "GpuMedianUs": 15.647999999999998
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 101.45,
+              "P95Us": 463.4,
+              "GpuMedianUs": 17.535999999999998
+            },
+            {
+              "MedianUs": 95.5,
+              "P95Us": 464,
+              "GpuMedianUs": 15.984
+            },
+            {
+              "MedianUs": 95.4,
+              "P95Us": 493.7,
+              "GpuMedianUs": 16.0
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 114.0,
+              "P95Us": 122.5,
+              "GpuMedianUs": 17.6
+            },
+            {
+              "MedianUs": 107.95,
+              "P95Us": 110.2,
+              "GpuMedianUs": 15.968
+            },
+            {
+              "MedianUs": 108.0,
+              "P95Us": 113.4,
+              "GpuMedianUs": 15.872
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 1.44921875,
+              "P95Us": 1.6828125,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.43359375,
+              "P95Us": 1.6640625,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.37734375,
+              "P95Us": 1.5234375,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 0.87578125,
+              "P95Us": 0.9828125,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.89140625,
+              "P95Us": 0.95625,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.87890625,
+              "P95Us": 0.965625,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 0.03125,
+              "P95Us": 0.040625,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.03125,
+              "P95Us": 0.040625,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.03125,
+              "P95Us": 0.0375,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 0.03125,
+              "P95Us": 0.0421875,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.0296875,
+              "P95Us": 0.0359375,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.03125,
+              "P95Us": 0.0390625,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n64-c8-r64-mixed",
+        "Packets": 64,
+        "Candidates": 8,
+        "Rules": 64,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 114.1,
+        "GpuWorstRoundP95Us": 118.4,
+        "GpuInputMpps": 0.5609114811568799,
+        "SpeedupByRound": [
+          0.009640666082383875,
+          0.009507346585998272,
+          0.010338345864661654
+        ],
+        "MinimumSpeedup": 0.009507346585998272,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 117.55,
+              "P95Us": 125.5,
+              "GpuMedianUs": 21.6
+            },
+            {
+              "MedianUs": 118.9,
+              "P95Us": 122.4,
+              "GpuMedianUs": 22.976
+            },
+            {
+              "MedianUs": 110.2,
+              "P95Us": 114.2,
+              "GpuMedianUs": 19.136
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 99.15,
+              "P95Us": 101.4,
+              "GpuMedianUs": 21.647999999999996
+            },
+            {
+              "MedianUs": 100.45,
+              "P95Us": 103.8,
+              "GpuMedianUs": 22.880000000000003
+            },
+            {
+              "MedianUs": 91.2,
+              "P95Us": 93.5,
+              "GpuMedianUs": 19.136
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 114.1,
+              "P95Us": 116.2,
+              "GpuMedianUs": 21.647999999999996
+            },
+            {
+              "MedianUs": 115.7,
+              "P95Us": 118.4,
+              "GpuMedianUs": 22.880000000000003
+            },
+            {
+              "MedianUs": 106.4,
+              "P95Us": 109.6,
+              "GpuMedianUs": 19.088
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 3.8,
+              "P95Us": 8.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 3.8,
+              "P95Us": 8.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 3.8,
+              "P95Us": 8.1,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 2.55,
+              "P95Us": 3.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2.6,
+              "P95Us": 3.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2.4,
+              "P95Us": 3.2,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 1.2,
+              "P95Us": 1.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.1,
+              "P95Us": 1.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.2,
+              "P95Us": 1.3,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 1.1,
+              "P95Us": 1.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.1,
+              "P95Us": 1.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.1,
+              "P95Us": 1.5,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n1024-c8-r64-mixed",
+        "Packets": 1024,
+        "Candidates": 8,
+        "Rules": 64,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 126.15,
+        "GpuWorstRoundP95Us": 130.7,
+        "GpuInputMpps": 8.117320650019817,
+        "SpeedupByRound": [
+          0.10503369005152596,
+          0.10160642570281125,
+          0.1090909090909091
+        ],
+        "MinimumSpeedup": 0.10160642570281125,
+        "HostUsefulnessGate": true,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 214.4,
+              "P95Us": 234.6,
+              "GpuMedianUs": 20.176000000000002
+            },
+            {
+              "MedianUs": 212.1,
+              "P95Us": 220,
+              "GpuMedianUs": 19.584
+            },
+            {
+              "MedianUs": 214.3,
+              "P95Us": 218.7,
+              "GpuMedianUs": 20.352
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 92.9,
+              "P95Us": 98,
+              "GpuMedianUs": 20.368000000000002
+            },
+            {
+              "MedianUs": 91.05,
+              "P95Us": 96.9,
+              "GpuMedianUs": 19.744
+            },
+            {
+              "MedianUs": 92.8,
+              "P95Us": 97.1,
+              "GpuMedianUs": 20.288
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 126.15,
+              "P95Us": 130.7,
+              "GpuMedianUs": 20.256
+            },
+            {
+              "MedianUs": 124.5,
+              "P95Us": 128.9,
+              "GpuMedianUs": 19.648
+            },
+            {
+              "MedianUs": 126.5,
+              "P95Us": 129.2,
+              "GpuMedianUs": 20.336
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 13.35,
+              "P95Us": 18.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 12.65,
+              "P95Us": 17,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 13.8,
+              "P95Us": 18,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 13.25,
+              "P95Us": 16.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.2,
+              "P95Us": 17.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.65,
+              "P95Us": 16.8,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 21.6,
+              "P95Us": 24.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 20.2,
+              "P95Us": 20.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 21.95,
+              "P95Us": 23.4,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 19.5,
+              "P95Us": 20.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 19.0,
+              "P95Us": 19.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 20.3,
+              "P95Us": 22.1,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n8192-c8-r64-mixed",
+        "Packets": 8192,
+        "Candidates": 8,
+        "Rules": 64,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 261.25,
+        "GpuWorstRoundP95Us": 323.4,
+        "GpuInputMpps": 31.356937799043063,
+        "SpeedupByRound": [
+          0.263732057416268,
+          0.2594875746484299,
+          0.2899441340782123
+        ],
+        "MinimumSpeedup": 0.2594875746484299,
+        "HostUsefulnessGate": true,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 970.2,
+              "P95Us": 1015.8,
+              "GpuMedianUs": 17.408
+            },
+            {
+              "MedianUs": 968.25,
+              "P95Us": 991.3,
+              "GpuMedianUs": 17.296
+            },
+            {
+              "MedianUs": 975.8,
+              "P95Us": 1005,
+              "GpuMedianUs": 17.872
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 96.4,
+              "P95Us": 109.9,
+              "GpuMedianUs": 21.008000000000003
+            },
+            {
+              "MedianUs": 94.2,
+              "P95Us": 99.6,
+              "GpuMedianUs": 20.16
+            },
+            {
+              "MedianUs": 96.4,
+              "P95Us": 105.1,
+              "GpuMedianUs": 20.96
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 261.25,
+              "P95Us": 317.5,
+              "GpuMedianUs": 18.432000000000002
+            },
+            {
+              "MedianUs": 259.55,
+              "P95Us": 310.3,
+              "GpuMedianUs": 16.928
+            },
+            {
+              "MedianUs": 268.5,
+              "P95Us": 323.4,
+              "GpuMedianUs": 18.432000000000002
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 68.9,
+              "P95Us": 81.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 70.05,
+              "P95Us": 77.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 77.85,
+              "P95Us": 86.6,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 71.3,
+              "P95Us": 89.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 67.35,
+              "P95Us": 89,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 83.9,
+              "P95Us": 91,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 195.7,
+              "P95Us": 213.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 183.2,
+              "P95Us": 196.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 200.95,
+              "P95Us": 224.2,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 161.05,
+              "P95Us": 165.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 159.6,
+              "P95Us": 162.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 174.1,
+              "P95Us": 182.8,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n65536-c8-r64-mixed",
+        "Packets": 65536,
+        "Candidates": 8,
+        "Rules": 64,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 2277.05,
+        "GpuWorstRoundP95Us": 3688.1,
+        "GpuInputMpps": 28.781098350936517,
+        "SpeedupByRound": [
+          0.2543581102974532,
+          0.27892477759393813,
+          0.266111855251312
+        ],
+        "MinimumSpeedup": 0.2543581102974532,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 7913.15,
+              "P95Us": 9498.7,
+              "GpuMedianUs": 218.976
+            },
+            {
+              "MedianUs": 7708.85,
+              "P95Us": 8148.5,
+              "GpuMedianUs": 218.656
+            },
+            {
+              "MedianUs": 7890.200000000001,
+              "P95Us": 9115.4,
+              "GpuMedianUs": 219.67999999999998
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 825.75,
+              "P95Us": 1184.1,
+              "GpuMedianUs": 201.87199999999999
+            },
+            {
+              "MedianUs": 759.4,
+              "P95Us": 877.9,
+              "GpuMedianUs": 199.904
+            },
+            {
+              "MedianUs": 830.75,
+              "P95Us": 1145.8,
+              "GpuMedianUs": 201.856
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 2314.6499999999996,
+              "P95Us": 3670,
+              "GpuMedianUs": 198.656
+            },
+            {
+              "MedianUs": 2085.1499999999996,
+              "P95Us": 2469,
+              "GpuMedianUs": 196.608
+            },
+            {
+              "MedianUs": 2277.05,
+              "P95Us": 3688.1,
+              "GpuMedianUs": 218.336
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 588.75,
+              "P95Us": 680.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 581.6,
+              "P95Us": 656.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 605.95,
+              "P95Us": 671.1,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 652.75,
+              "P95Us": 727.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 627.65,
+              "P95Us": 688.4,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 629.15,
+              "P95Us": 720.2,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 1725.55,
+              "P95Us": 1822.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1622.4,
+              "P95Us": 1657.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1734.8,
+              "P95Us": 1786,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 1378.3,
+              "P95Us": 1401.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1379.75,
+              "P95Us": 1433,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1444.6,
+              "P95Us": 1476,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n1-c8-r512-mixed",
+        "Packets": 1,
+        "Candidates": 8,
+        "Rules": 512,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 116.0,
+        "GpuWorstRoundP95Us": 133.8,
+        "GpuInputMpps": 0.008620689655172414,
+        "SpeedupByRound": [
+          0.0002545577967416602,
+          0.00028582317073170735,
+          0.0002963362068965518
+        ],
+        "MinimumSpeedup": 0.0002545577967416602,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 129.1,
+              "P95Us": 133.4,
+              "GpuMedianUs": 32.480000000000004
+            },
+            {
+              "MedianUs": 114.8,
+              "P95Us": 117.1,
+              "GpuMedianUs": 23.216
+            },
+            {
+              "MedianUs": 115.95,
+              "P95Us": 118.8,
+              "GpuMedianUs": 24.496
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 117.1,
+              "P95Us": 461.4,
+              "GpuMedianUs": 32.512
+            },
+            {
+              "MedianUs": 102.1,
+              "P95Us": 461.1,
+              "GpuMedianUs": 23.2
+            },
+            {
+              "MedianUs": 103.69999999999999,
+              "P95Us": 472.4,
+              "GpuMedianUs": 24.544
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 128.9,
+              "P95Us": 133.8,
+              "GpuMedianUs": 32.352
+            },
+            {
+              "MedianUs": 114.8,
+              "P95Us": 120.5,
+              "GpuMedianUs": 23.328000000000003
+            },
+            {
+              "MedianUs": 116.0,
+              "P95Us": 119.9,
+              "GpuMedianUs": 24.704
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 1.41640625,
+              "P95Us": 1.653125,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.42734375,
+              "P95Us": 1.6125,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.41796875,
+              "P95Us": 1.596875,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 0.9039062499999999,
+              "P95Us": 1.1015625,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.8960937499999999,
+              "P95Us": 1.0390625,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.92109375,
+              "P95Us": 1.0953125,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 0.0484375,
+              "P95Us": 0.0765625,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.04375,
+              "P95Us": 0.059375,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.0484375,
+              "P95Us": 0.0703125,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 0.0328125,
+              "P95Us": 0.0515625,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.0328125,
+              "P95Us": 0.04375,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.034375,
+              "P95Us": 0.0453125,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n64-c8-r512-mixed",
+        "Packets": 64,
+        "Candidates": 8,
+        "Rules": 512,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 124.0,
+        "GpuWorstRoundP95Us": 131.1,
+        "GpuInputMpps": 0.5161290322580645,
+        "SpeedupByRound": [
+          0.011345218800648297,
+          0.010887096774193548,
+          0.010967489228358792
+        ],
+        "MinimumSpeedup": 0.010887096774193548,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 126.9,
+              "P95Us": 130.9,
+              "GpuMedianUs": 39.872
+            },
+            {
+              "MedianUs": 127.25,
+              "P95Us": 129.6,
+              "GpuMedianUs": 40.128
+            },
+            {
+              "MedianUs": 130.85000000000002,
+              "P95Us": 137.1,
+              "GpuMedianUs": 41.376000000000005
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 108.65,
+              "P95Us": 114.3,
+              "GpuMedianUs": 39.648
+            },
+            {
+              "MedianUs": 108.6,
+              "P95Us": 110.2,
+              "GpuMedianUs": 40.128
+            },
+            {
+              "MedianUs": 112.4,
+              "P95Us": 116.2,
+              "GpuMedianUs": 41.456
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 123.4,
+              "P95Us": 125.2,
+              "GpuMedianUs": 39.584
+            },
+            {
+              "MedianUs": 124.0,
+              "P95Us": 127.2,
+              "GpuMedianUs": 40.288
+            },
+            {
+              "MedianUs": 127.65,
+              "P95Us": 131.1,
+              "GpuMedianUs": 41.488
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 4.0,
+              "P95Us": 8.4,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 4.0,
+              "P95Us": 8.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 4.0,
+              "P95Us": 8.8,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 2.6,
+              "P95Us": 3.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2.55,
+              "P95Us": 3.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2.8,
+              "P95Us": 3.6,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 1.6,
+              "P95Us": 1.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.5,
+              "P95Us": 1.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.6,
+              "P95Us": 1.9,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 1.4,
+              "P95Us": 1.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.35,
+              "P95Us": 1.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.4,
+              "P95Us": 1.8,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n1024-c8-r512-mixed",
+        "Packets": 1024,
+        "Candidates": 8,
+        "Rules": 512,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 131.4,
+        "GpuWorstRoundP95Us": 145.6,
+        "GpuInputMpps": 7.792998477929984,
+        "SpeedupByRound": [
+          0.1097293343087052,
+          0.11124076234928043,
+          0.11111111111111112
+        ],
+        "MinimumSpeedup": 0.1097293343087052,
+        "HostUsefulnessGate": true,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 225.0,
+              "P95Us": 237.4,
+              "GpuMedianUs": 38.208
+            },
+            {
+              "MedianUs": 215.35000000000002,
+              "P95Us": 222.2,
+              "GpuMedianUs": 33.424
+            },
+            {
+              "MedianUs": 217.9,
+              "P95Us": 233.9,
+              "GpuMedianUs": 35.28
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 104.6,
+              "P95Us": 110.4,
+              "GpuMedianUs": 38.112
+            },
+            {
+              "MedianUs": 96.69999999999999,
+              "P95Us": 97.8,
+              "GpuMedianUs": 33.6
+            },
+            {
+              "MedianUs": 98.95,
+              "P95Us": 106,
+              "GpuMedianUs": 35.2
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 136.7,
+              "P95Us": 145.6,
+              "GpuMedianUs": 38.06400000000001
+            },
+            {
+              "MedianUs": 128.55,
+              "P95Us": 132.1,
+              "GpuMedianUs": 33.568
+            },
+            {
+              "MedianUs": 131.4,
+              "P95Us": 138.5,
+              "GpuMedianUs": 35.28
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 15.0,
+              "P95Us": 21,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.3,
+              "P95Us": 19.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.600000000000001,
+              "P95Us": 20.1,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 15.35,
+              "P95Us": 19.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.850000000000001,
+              "P95Us": 18.4,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.799999999999999,
+              "P95Us": 19.2,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 31.1,
+              "P95Us": 32.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 27.65,
+              "P95Us": 28.4,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 31.1,
+              "P95Us": 31.5,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 25.3,
+              "P95Us": 27.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 24.55,
+              "P95Us": 25,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 25.4,
+              "P95Us": 27.2,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n8192-c8-r512-mixed",
+        "Packets": 8192,
+        "Candidates": 8,
+        "Rules": 512,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 269.1,
+        "GpuWorstRoundP95Us": 336.5,
+        "GpuInputMpps": 30.442214790040875,
+        "SpeedupByRound": [
+          0.294314381270903,
+          0.31615120274914094,
+          0.3527260059223132
+        ],
+        "MinimumSpeedup": 0.294314381270903,
+        "HostUsefulnessGate": true,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 975.8,
+              "P95Us": 1013.7,
+              "GpuMedianUs": 32.768
+            },
+            {
+              "MedianUs": 969.3499999999999,
+              "P95Us": 1037.3,
+              "GpuMedianUs": 28.672
+            },
+            {
+              "MedianUs": 995.05,
+              "P95Us": 1025.5,
+              "GpuMedianUs": 29.696
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 104.95,
+              "P95Us": 113.1,
+              "GpuMedianUs": 35.488
+            },
+            {
+              "MedianUs": 96.85,
+              "P95Us": 106.6,
+              "GpuMedianUs": 31.056
+            },
+            {
+              "MedianUs": 99.6,
+              "P95Us": 107.7,
+              "GpuMedianUs": 32.864
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 269.1,
+              "P95Us": 323.4,
+              "GpuMedianUs": 32.768
+            },
+            {
+              "MedianUs": 261.9,
+              "P95Us": 307.8,
+              "GpuMedianUs": 28.576
+            },
+            {
+              "MedianUs": 287.05,
+              "P95Us": 336.5,
+              "GpuMedianUs": 29.728
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 79.2,
+              "P95Us": 91.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 82.8,
+              "P95Us": 98.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 101.25,
+              "P95Us": 121.9,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 81.0,
+              "P95Us": 107.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 85.15,
+              "P95Us": 101,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 103.4,
+              "P95Us": 125.8,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 274.2,
+              "P95Us": 290.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 241.14999999999998,
+              "P95Us": 260.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 298.4,
+              "P95Us": 318.8,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 211.1,
+              "P95Us": 216.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 204.5,
+              "P95Us": 210.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 234.6,
+              "P95Us": 238.9,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n65536-c8-r512-mixed",
+        "Packets": 65536,
+        "Candidates": 8,
+        "Rules": 512,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 2283.2,
+        "GpuWorstRoundP95Us": 3854.1,
+        "GpuInputMpps": 28.70357393132446,
+        "SpeedupByRound": [
+          0.22684956686011878,
+          0.2807170364936732,
+          0.290666608269096
+        ],
+        "MinimumSpeedup": 0.22684956686011878,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 8616.55,
+              "P95Us": 118899.6,
+              "GpuMedianUs": 525.312
+            },
+            {
+              "MedianUs": 7770.1,
+              "P95Us": 8177.2,
+              "GpuMedianUs": 227.328
+            },
+            {
+              "MedianUs": 7781.55,
+              "P95Us": 8505.2,
+              "GpuMedianUs": 228.352
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 971.0,
+              "P95Us": 1500,
+              "GpuMedianUs": 526.896
+            },
+            {
+              "MedianUs": 791.9000000000001,
+              "P95Us": 926.2,
+              "GpuMedianUs": 225.136
+            },
+            {
+              "MedianUs": 808.05,
+              "P95Us": 932.7,
+              "GpuMedianUs": 228.07999999999998
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 2937.8500000000004,
+              "P95Us": 3854.1,
+              "GpuMedianUs": 525.312
+            },
+            {
+              "MedianUs": 2181.2,
+              "P95Us": 2500.3,
+              "GpuMedianUs": 225.61599999999999
+            },
+            {
+              "MedianUs": 2283.2,
+              "P95Us": 2738,
+              "GpuMedianUs": 227.744
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 666.45,
+              "P95Us": 752.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 612.3,
+              "P95Us": 694.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 663.65,
+              "P95Us": 742.1,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 715.75,
+              "P95Us": 1004.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 702.3499999999999,
+              "P95Us": 788.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 720.35,
+              "P95Us": 800.3,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 2375.2,
+              "P95Us": 2422.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2058.15,
+              "P95Us": 2078,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2345.4,
+              "P95Us": 2386.2,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 1834.0,
+              "P95Us": 1894.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1730.85,
+              "P95Us": 1751.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1815.0,
+              "P95Us": 1873,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n1-c8-r2048-mixed",
+        "Packets": 1,
+        "Candidates": 8,
+        "Rules": 2048,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 110.4,
+        "GpuWorstRoundP95Us": 174.6,
+        "GpuInputMpps": 0.009057971014492754,
+        "SpeedupByRound": [
+          0.00026704926273458447,
+          0.000336178671655753,
+          0.00031136775362318843
+        ],
+        "MinimumSpeedup": 0.00026704926273458447,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 146.75,
+              "P95Us": 173.8,
+              "GpuMedianUs": 46.912
+            },
+            {
+              "MedianUs": 107.1,
+              "P95Us": 127.6,
+              "GpuMedianUs": 25.872
+            },
+            {
+              "MedianUs": 110.3,
+              "P95Us": 117,
+              "GpuMedianUs": 27.552
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 156.0,
+              "P95Us": 611.1,
+              "GpuMedianUs": 47.008
+            },
+            {
+              "MedianUs": 97.65,
+              "P95Us": 489.3,
+              "GpuMedianUs": 25.984
+            },
+            {
+              "MedianUs": 98.55000000000001,
+              "P95Us": 411.6,
+              "GpuMedianUs": 27.823999999999998
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 149.2,
+              "P95Us": 174.6,
+              "GpuMedianUs": 47.104
+            },
+            {
+              "MedianUs": 106.9,
+              "P95Us": 128.3,
+              "GpuMedianUs": 25.984
+            },
+            {
+              "MedianUs": 110.4,
+              "P95Us": 114.3,
+              "GpuMedianUs": 27.872
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 1.48203125,
+              "P95Us": 1.771875,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.3898437499999998,
+              "P95Us": 1.5890625,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.409375,
+              "P95Us": 1.6296875,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 0.9328125,
+              "P95Us": 1.15625,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.8953125,
+              "P95Us": 1.071875,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.90234375,
+              "P95Us": 1.046875,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 0.040625,
+              "P95Us": 0.059375,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.0359375,
+              "P95Us": 0.05,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.041406250000000006,
+              "P95Us": 0.05625,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 0.03984375,
+              "P95Us": 0.0546875,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.0359375,
+              "P95Us": 0.05,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 0.034375,
+              "P95Us": 0.0453125,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n64-c8-r2048-mixed",
+        "Packets": 64,
+        "Candidates": 8,
+        "Rules": 2048,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 127.3,
+        "GpuWorstRoundP95Us": 160.7,
+        "GpuInputMpps": 0.5027494108405341,
+        "SpeedupByRound": [
+          0.008357441337190614,
+          0.012105490704712493,
+          0.01021209740769835
+        ],
+        "MinimumSpeedup": 0.008357441337190614,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 159.4,
+              "P95Us": 165.9,
+              "GpuMedianUs": 65.136
+            },
+            {
+              "MedianUs": 119.19999999999999,
+              "P95Us": 123.8,
+              "GpuMedianUs": 40.400000000000006
+            },
+            {
+              "MedianUs": 131.0,
+              "P95Us": 133.3,
+              "GpuMedianUs": 48.096
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 140.25,
+              "P95Us": 142.3,
+              "GpuMedianUs": 65.10399999999998
+            },
+            {
+              "MedianUs": 101.8,
+              "P95Us": 111.4,
+              "GpuMedianUs": 40.384
+            },
+            {
+              "MedianUs": 113.7,
+              "P95Us": 116.6,
+              "GpuMedianUs": 47.983999999999995
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 155.55,
+              "P95Us": 160.7,
+              "GpuMedianUs": 64.99199999999999
+            },
+            {
+              "MedianUs": 115.65,
+              "P95Us": 123.7,
+              "GpuMedianUs": 40.400000000000006
+            },
+            {
+              "MedianUs": 127.3,
+              "P95Us": 131.3,
+              "GpuMedianUs": 48.0
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 4.1,
+              "P95Us": 8.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 4.1,
+              "P95Us": 9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 4.05,
+              "P95Us": 8.6,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 2.5,
+              "P95Us": 3.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2.6,
+              "P95Us": 3.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2.8,
+              "P95Us": 3.6,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 1.6,
+              "P95Us": 1.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.5,
+              "P95Us": 1.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.7,
+              "P95Us": 1.9,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 1.3,
+              "P95Us": 1.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.4,
+              "P95Us": 1.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1.3,
+              "P95Us": 1.6,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n1024-c8-r2048-mixed",
+        "Packets": 1024,
+        "Candidates": 8,
+        "Rules": 2048,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 111.05,
+        "GpuWorstRoundP95Us": 151.5,
+        "GpuInputMpps": 9.221071589374157,
+        "SpeedupByRound": [
+          0.10178817056396149,
+          0.12464589235127477,
+          0.1305718144979739
+        ],
+        "MinimumSpeedup": 0.10178817056396149,
+        "HostUsefulnessGate": true,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 232.2,
+              "P95Us": 250.3,
+              "GpuMedianUs": 50.336
+            },
+            {
+              "MedianUs": 194.05,
+              "P95Us": 205.5,
+              "GpuMedianUs": 37.536
+            },
+            {
+              "MedianUs": 198.0,
+              "P95Us": 208.3,
+              "GpuMedianUs": 39.744
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 113.7,
+              "P95Us": 119.4,
+              "GpuMedianUs": 50.4
+            },
+            {
+              "MedianUs": 88.35,
+              "P95Us": 89.8,
+              "GpuMedianUs": 37.760000000000005
+            },
+            {
+              "MedianUs": 92.2,
+              "P95Us": 94.5,
+              "GpuMedianUs": 39.92
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 145.4,
+              "P95Us": 151.5,
+              "GpuMedianUs": 50.288
+            },
+            {
+              "MedianUs": 105.9,
+              "P95Us": 109,
+              "GpuMedianUs": 37.744
+            },
+            {
+              "MedianUs": 111.05,
+              "P95Us": 122.1,
+              "GpuMedianUs": 39.856
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 15.55,
+              "P95Us": 21.4,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 13.2,
+              "P95Us": 19.4,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.5,
+              "P95Us": 20.5,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 14.8,
+              "P95Us": 18.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.25,
+              "P95Us": 18.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 14.55,
+              "P95Us": 19.4,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 31.0,
+              "P95Us": 34.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 27.7,
+              "P95Us": 30.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 30.6,
+              "P95Us": 31.5,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 24.6,
+              "P95Us": 26.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 24.6,
+              "P95Us": 25.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 25.35,
+              "P95Us": 26.8,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n8192-c8-r2048-mixed",
+        "Packets": 8192,
+        "Candidates": 8,
+        "Rules": 2048,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 180.95,
+        "GpuWorstRoundP95Us": 343.1,
+        "GpuInputMpps": 45.272174633876766,
+        "SpeedupByRound": [
+          0.30407911001236093,
+          0.4524271844660195,
+          0.4150317767339044
+        ],
+        "MinimumSpeedup": 0.30407911001236093,
+        "HostUsefulnessGate": true,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 990.45,
+              "P95Us": 1037.8,
+              "GpuMedianUs": 47.104
+            },
+            {
+              "MedianUs": 887.8499999999999,
+              "P95Us": 925.3,
+              "GpuMedianUs": 34.816
+            },
+            {
+              "MedianUs": 888.6,
+              "P95Us": 916.6,
+              "GpuMedianUs": 36.864000000000004
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 115.6,
+              "P95Us": 128.7,
+              "GpuMedianUs": 49.184
+            },
+            {
+              "MedianUs": 89.9,
+              "P95Us": 97.6,
+              "GpuMedianUs": 36.928000000000004
+            },
+            {
+              "MedianUs": 93.7,
+              "P95Us": 102.5,
+              "GpuMedianUs": 39.135999999999996
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 283.15,
+              "P95Us": 343.1,
+              "GpuMedianUs": 46.336
+            },
+            {
+              "MedianUs": 180.25,
+              "P95Us": 197.1,
+              "GpuMedianUs": 34.816
+            },
+            {
+              "MedianUs": 180.95,
+              "P95Us": 230.8,
+              "GpuMedianUs": 36.944
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 86.7,
+              "P95Us": 108.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 81.55000000000001,
+              "P95Us": 99.4,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 75.1,
+              "P95Us": 98.5,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 86.1,
+              "P95Us": 116.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 85.5,
+              "P95Us": 102.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 78.4,
+              "P95Us": 99,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 280.45,
+              "P95Us": 297.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 246.14999999999998,
+              "P95Us": 261,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 273.45,
+              "P95Us": 290.6,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 220.7,
+              "P95Us": 235.4,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 205.3,
+              "P95Us": 208.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 210.95,
+              "P95Us": 215.1,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n65536-c8-r2048-mixed",
+        "Packets": 65536,
+        "Candidates": 8,
+        "Rules": 2048,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 2341.25,
+        "GpuWorstRoundP95Us": 5436,
+        "GpuInputMpps": 27.99188467698879,
+        "SpeedupByRound": [
+          0.3024666310731447,
+          0.623732951883,
+          0.49365389309250673
+        ],
+        "MinimumSpeedup": 0.3024666310731447,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 7712.0,
+              "P95Us": 8180.8,
+              "GpuMedianUs": 256.0
+            },
+            {
+              "MedianUs": 8796.7,
+              "P95Us": 11065.2,
+              "GpuMedianUs": 317.88800000000003
+            },
+            {
+              "MedianUs": 6868.85,
+              "P95Us": 8404.9,
+              "GpuMedianUs": 78.576
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 845.55,
+              "P95Us": 989.1,
+              "GpuMedianUs": 257.264
+            },
+            {
+              "MedianUs": 974.0,
+              "P95Us": 2147.5,
+              "GpuMedianUs": 316.928
+            },
+            {
+              "MedianUs": 395.3,
+              "P95Us": 1031,
+              "GpuMedianUs": 80.672
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 2341.25,
+              "P95Us": 2697.8,
+              "GpuMedianUs": 254.0
+            },
+            {
+              "MedianUs": 4054.7,
+              "P95Us": 5436,
+              "GpuMedianUs": 314.48
+            },
+            {
+              "MedianUs": 1229.1,
+              "P95Us": 2584.2,
+              "GpuMedianUs": 77.824
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 708.15,
+              "P95Us": 785.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2529.05,
+              "P95Us": 2638.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 606.75,
+              "P95Us": 748.9,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 741.25,
+              "P95Us": 878.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2559.2,
+              "P95Us": 2694.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 694.5,
+              "P95Us": 782.7,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 2419.35,
+              "P95Us": 2469.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 3892.15,
+              "P95Us": 3949.9,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 2351.05,
+              "P95Us": 2401.4,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 1892.0,
+              "P95Us": 1922.4,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 3547.7,
+              "P95Us": 3620.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 1777.55,
+              "P95Us": 1833.4,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n8192-c8-r2048-early",
+        "Packets": 8192,
+        "Candidates": 8,
+        "Rules": 2048,
+        "Distribution": "early",
+        "GpuHostMedianUs": 320.4,
+        "GpuWorstRoundP95Us": 1078.1,
+        "GpuInputMpps": 25.568039950062424,
+        "SpeedupByRound": [
+          0.31164169787765295,
+          0.15547146010722168,
+          0.26192910702113154
+        ],
+        "MinimumSpeedup": 0.15547146010722168,
+        "HostUsefulnessGate": false,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 1028.05,
+              "P95Us": 1431.9,
+              "GpuMedianUs": 38.912
+            },
+            {
+              "MedianUs": 1182.15,
+              "P95Us": 3310.7,
+              "GpuMedianUs": 51.2
+            },
+            {
+              "MedianUs": 998.95,
+              "P95Us": 1117,
+              "GpuMedianUs": 35.839999999999996
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 122.7,
+              "P95Us": 680.7,
+              "GpuMedianUs": 41.872
+            },
+            {
+              "MedianUs": 152.55,
+              "P95Us": 747.7,
+              "GpuMedianUs": 53.711999999999996
+            },
+            {
+              "MedianUs": 119.75,
+              "P95Us": 134.9,
+              "GpuMedianUs": 39.199999999999996
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 320.4,
+              "P95Us": 840.6,
+              "GpuMedianUs": 38.912
+            },
+            {
+              "MedianUs": 475.65,
+              "P95Us": 1078.1,
+              "GpuMedianUs": 51.2
+            },
+            {
+              "MedianUs": 293.4,
+              "P95Us": 360.3,
+              "GpuMedianUs": 35.839999999999996
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 99.85,
+              "P95Us": 111.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 73.94999999999999,
+              "P95Us": 92.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 76.85,
+              "P95Us": 87.8,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 106.7,
+              "P95Us": 117.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 77.4,
+              "P95Us": 104.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 83.1,
+              "P95Us": 96.3,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 173.7,
+              "P95Us": 174.7,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 145.7,
+              "P95Us": 149.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 149.5,
+              "P95Us": 152.2,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 178.1,
+              "P95Us": 181.4,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 150.6,
+              "P95Us": 155.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 153.1,
+              "P95Us": 174.2,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n8192-c8-r2048-late",
+        "Packets": 8192,
+        "Candidates": 8,
+        "Rules": 2048,
+        "Distribution": "late",
+        "GpuHostMedianUs": 300.25,
+        "GpuWorstRoundP95Us": 446.2,
+        "GpuInputMpps": 27.283930058284763,
+        "SpeedupByRound": [
+          0.25545378850957534,
+          0.17596153846153847,
+          0.2382493188010899
+        ],
+        "MinimumSpeedup": 0.17596153846153847,
+        "HostUsefulnessGate": true,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 1008.1500000000001,
+              "P95Us": 1081.4,
+              "GpuMedianUs": 40.96
+            },
+            {
+              "MedianUs": 1125.65,
+              "P95Us": 1168.6,
+              "GpuMedianUs": 51.2
+            },
+            {
+              "MedianUs": 1001.3,
+              "P95Us": 1042.4,
+              "GpuMedianUs": 38.912
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 125.35,
+              "P95Us": 131.6,
+              "GpuMedianUs": 44.544
+            },
+            {
+              "MedianUs": 140.45,
+              "P95Us": 149.8,
+              "GpuMedianUs": 54.448
+            },
+            {
+              "MedianUs": 122.69999999999999,
+              "P95Us": 127.2,
+              "GpuMedianUs": 42.384
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 300.25,
+              "P95Us": 361.9,
+              "GpuMedianUs": 41.984
+            },
+            {
+              "MedianUs": 416.0,
+              "P95Us": 446.2,
+              "GpuMedianUs": 51.2
+            },
+            {
+              "MedianUs": 293.6,
+              "P95Us": 342,
+              "GpuMedianUs": 38.912
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 76.69999999999999,
+              "P95Us": 82.3,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 73.2,
+              "P95Us": 79.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 69.95,
+              "P95Us": 84.9,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 82.55,
+              "P95Us": 88.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 78.5,
+              "P95Us": 95.4,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 80.25,
+              "P95Us": 92.7,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 166.3,
+              "P95Us": 167.6,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 159.6,
+              "P95Us": 161.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 162.64999999999998,
+              "P95Us": 163.2,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 152.2,
+              "P95Us": 154.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 145.2,
+              "P95Us": 161,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 145.5,
+              "P95Us": 148.1,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      },
+      {
+        "Case": "n4099-c8-r512-mixed",
+        "Packets": 4099,
+        "Candidates": 8,
+        "Rules": 512,
+        "Distribution": "mixed",
+        "GpuHostMedianUs": 242.05,
+        "GpuWorstRoundP95Us": 316.8,
+        "GpuInputMpps": 16.934517661640157,
+        "SpeedupByRound": [
+          0.18446601941747573,
+          0.1431992337164751,
+          0.18748683378976194
+        ],
+        "MinimumSpeedup": 0.1431992337164751,
+        "HostUsefulnessGate": true,
+        "GpuAdvantageGate": false,
+        "Measurements": {
+          "gpu-original-readback": [
+            {
+              "MedianUs": 596.2,
+              "P95Us": 613.7,
+              "GpuMedianUs": 64.512
+            },
+            {
+              "MedianUs": 667.0,
+              "P95Us": 676.5,
+              "GpuMedianUs": 76.8
+            },
+            {
+              "MedianUs": 591.4,
+              "P95Us": 601.1,
+              "GpuMedianUs": 60.864
+            }
+          ],
+          "gpu-resident": [
+            {
+              "MedianUs": 147.95,
+              "P95Us": 157.2,
+              "GpuMedianUs": 68.19200000000001
+            },
+            {
+              "MedianUs": 164.8,
+              "P95Us": 169.5,
+              "GpuMedianUs": 79.83999999999999
+            },
+            {
+              "MedianUs": 143.4,
+              "P95Us": 153.3,
+              "GpuMedianUs": 64.496
+            }
+          ],
+          "gpu-transfer-commit": [
+            {
+              "MedianUs": 242.05,
+              "P95Us": 252.8,
+              "GpuMedianUs": 64.512
+            },
+            {
+              "MedianUs": 313.2,
+              "P95Us": 316.8,
+              "GpuMedianUs": 76.8
+            },
+            {
+              "MedianUs": 237.35000000000002,
+              "P95Us": 242.9,
+              "GpuMedianUs": 61.440000000000005
+            }
+          ],
+          "parallel-all": [
+            {
+              "MedianUs": 47.45,
+              "P95Us": 58.1,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 44.85,
+              "P95Us": 56,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 44.5,
+              "P95Us": 55.8,
+              "GpuMedianUs": null
+            }
+          ],
+          "parallel-simd": [
+            {
+              "MedianUs": 44.650000000000006,
+              "P95Us": 60.5,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 45.5,
+              "P95Us": 57.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 46.150000000000006,
+              "P95Us": 59.1,
+              "GpuMedianUs": null
+            }
+          ],
+          "scalar": [
+            {
+              "MedianUs": 135.4,
+              "P95Us": 140,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 120.2,
+              "P95Us": 124.8,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 134.95,
+              "P95Us": 143.9,
+              "GpuMedianUs": null
+            }
+          ],
+          "simd": [
+            {
+              "MedianUs": 105.2,
+              "P95Us": 109.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 103.1,
+              "P95Us": 106.2,
+              "GpuMedianUs": null
+            },
+            {
+              "MedianUs": 106.85,
+              "P95Us": 109.4,
+              "GpuMedianUs": null
+            }
+          ]
+        }
+      }
+    ],
+    "PassingGpuAdvantageCases": []
+  }
+}
