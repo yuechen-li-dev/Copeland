@@ -26,6 +26,7 @@ internal sealed unsafe class RouterGpu : IDisposable
     private readonly Vulkan3DGpuTimings timings;
     private readonly List<AurelianVulkanBuffer> buffers = [];
     private readonly RouterFixture fixture;
+    private readonly int packetsPerWorkgroup;
     private readonly AurelianVulkanBuffer input;
     private readonly AurelianVulkanBuffer tables;
     private readonly AurelianVulkanBuffer output;
@@ -42,10 +43,13 @@ internal sealed unsafe class RouterGpu : IDisposable
     public double LastMappedReadMicroseconds { get; private set; }
     private ulong pendingFence;
 
-    public RouterGpu(AurelianVulkanPlant plant, RouterFixture fixture, byte[] spirv, bool preferCachedReadback = true)
+    public RouterGpu(AurelianVulkanPlant plant, RouterFixture fixture, byte[] spirv,
+        bool preferCachedReadback = true, int packetsPerWorkgroup = 64)
     {
+        Require(packetsPerWorkgroup is 16 or 64, "Packet kernels declare either sixteen or sixty-four packets per workgroup.");
         this.plant = plant;
         this.fixture = fixture;
+        this.packetsPerWorkgroup = packetsPerWorkgroup;
         allocator = new(plant, preferCachedReadback);
         fences = VulkanFenceBundle.Create(plant);
         commands = VulkanCommandBufferPool.Create(plant);
@@ -157,7 +161,7 @@ internal sealed unsafe class RouterGpu : IDisposable
         DescriptorSet set = descriptorSet;
         plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Compute,
             pipelineLayout, 0, 1, &set, 0, null);
-        plant.Vk.CmdDispatch(command.CommandBuffer, (uint)((fixture.Count + 63) / 64), 1, 1);
+        plant.Vk.CmdDispatch(command.CommandBuffer, (uint)((fixture.Count + packetsPerWorkgroup - 1) / packetsPerWorkgroup), 1, 1);
         timings.Mark(command, 1);
         if (transfer)
         {

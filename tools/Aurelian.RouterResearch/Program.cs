@@ -16,6 +16,12 @@ if (args.Length > 0 && args[0] == "--streaming")
     return;
 }
 
+if (args.Length > 0 && args[0] == "--algorithms")
+{
+    StreamingResearch.Run(args[1..].Append("--algorithms").ToArray());
+    return;
+}
+
 if (args.Length < 1 || args.Skip(1).Any(option => option is not "--validation" and not "--quick"))
 {
     throw new ArgumentException("Aurelian.RouterResearch <fresh-output> [--validation] [--quick]");

@@ -17,6 +17,14 @@ internal sealed class RouterFixture
     public uint[] Tables { get; }
     public byte[] Packets { get; }
 
+    public RouterFixture(int count, int candidateCount, PolicyRule[] rules, int seed)
+        : this(count, candidateCount, 0, seed, "random")
+    {
+        Rules = rules.ToArray();
+        Tables = MakeTables();
+        CompileRoutes();
+    }
+
     public RouterFixture(int count, int candidateCount, int ruleCount, int seed, string distribution = "mixed")
     {
         Count = count;

@@ -146,3 +146,35 @@ The [qualified report](../../docs/Aurelian/router-viability-experiment.md) retai
 the blocking-path losses and the pipeline's application-CPU tradeoff. Frozen
 primary sources are kept with `qualified2`; the streaming extension has its own
 source/binary hashes and frozen source copies.
+
+## GPU-oriented classifier comparison
+
+`--algorithms` preserves the same packet-policy contract and compares two GPU
+work decompositions within each process, with the same four CPU controls:
+
+* `gpu-depth1/4`: the original invocation-per-packet indexed serial rule scan.
+* `coop-depth1/4`: sixteen packets per 512-invocation workgroup. Headers are
+  parsed in parallel, and each packet receives a logical 32-lane rule team.
+  Neighboring lanes read neighboring SoA rule words. Five shared-memory minimum
+  reduction steps preserve the first matching rule. Parsed keys use field-major
+  shared storage for adjacent parser stores and per-team broadcast reads.
+
+The cooperative shader uses existing Visual TypeScript storage, bounded loops
+and workgroup barriers. It needs no new compiler intrinsic and does not assume
+subgroup width for correctness. Every invocation, including padding and rejected
+packets, participates in every barrier. The host records its explicit sixteen
+packets-per-workgroup contract instead of reusing the serial kernel's 64.
+
+Fifteen awkward-count/seed checks plus five rule-priority specimens cover rule
+indices 31/32/63, no match and an earlier permit overriding a later deny.
+Kernel timestamps are retained separately from complete pipeline throughput.
+
+```powershell
+./tools/Aurelian.RouterResearch/Run-Algorithms.ps1 -Output artifacts/local/router-research/algorithm-reproduction
+python tools/Aurelian.RouterResearch/summarize_streaming.py artifacts/local/router-research/algorithm-reproduction artifacts/local/router-research/reproduction --algorithms
+```
+
+Use a fresh directory and finish regression/build jobs before starting timing.
+The [algorithm report](../../docs/Aurelian/router-gpu-classification-experiment.md)
+keeps regressions as well as improvements; a faster GPU kernel does not imply
+a faster complete path than the CPU.
