@@ -224,6 +224,7 @@ public readonly record struct GameTick(long Index, float Seconds, double Time, G
 public readonly record struct GameViewRequest(int Width, int Height)
 {
     public float Aspect => (float)Width / Height;
+    public bool RetainedGeometry { get; init; }
 }
 
 /// <summary>A 3D frame: scene, world-to-clip matrix and eye position.</summary>

@@ -10,4 +10,6 @@ public sealed record VulkanCommandSubmitRequest(
     public uint SpinWaitNanoseconds { get; init; }
     /// <summary>Collects CPU phase durations. Disabled for ordinary submissions.</summary>
     public bool MeasureCpuTime { get; init; }
+    /// <summary>Optional binary signal consumed by presentation, alongside the retirement timeline.</summary>
+    public Silk.NET.Vulkan.Semaphore? SignalBinarySemaphore { get; init; }
 }

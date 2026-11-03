@@ -16,6 +16,7 @@ public sealed record NativeModel3DBatch(NativeModel3DVertex[] Vertices, ModelMat
 }
 public sealed record Native3DScene(Native3DVertex[] Geometry, IReadOnlyList<NativeModel3DBatch> Models)
 {
+    public IReadOnlyList<SceneInstance3D> Instances { get; init; } = [];
     /// <summary>Change when vertex correspondence changes; transforms and animation retain this key.</summary>
     public string? TemporalRevision { get; init; }
     /// <summary>Change when opaque shadow casters move or deform. Scene composition supplies transforms automatically.</summary>
@@ -27,4 +28,13 @@ public sealed record Native3DScene(Native3DVertex[] Geometry, IReadOnlyList<Nati
 public sealed record Native3DFrameResult(int TriangleCount, byte[]? Pixels, string? PixelSha256)
 {
     public IReadOnlyList<Native3DGpuPassTime> GpuPassTimes { get; init; } = [];
+    public Native3DRetainedStatistics? Retained { get; init; }
+    public Native3DFrameCpuTimings? CpuTimings { get; init; }
+    public Native3DCompletedGpuFrame? CompletedGpuFrame { get; init; }
 }
+
+public sealed record Native3DFrameCpuTimings(long Sequence, int Slot, double SlotWaitMilliseconds,
+    double PrepareRecordMilliseconds, double SubmitMilliseconds);
+
+public sealed record Native3DRetainedStatistics(int Instances, int DrawGroups, int UploadedMeshes,
+    long GeometryUploadBytes, long InstanceUploadBytes, ulong ResidentGeometryBytes);

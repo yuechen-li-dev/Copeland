@@ -1,3 +1,4 @@
+using Aurelian.Graphics.Vulkan.Resources.Barriers;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Aurelian.Graphics.Vulkan.Commanding;
@@ -15,9 +16,10 @@ using Silk.NET.Vulkan;
 namespace Aurelian.Graphics.Vulkan.Native3D;
 
 /// <summary>Retained surface lighting, cascades, horizon AO, light tiles, height fog and diffuse diffusion.</summary>
-internal sealed class VulkanSurfaceLighting3D : IDisposable
+internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
 {
     private readonly AurelianVulkanPlant plant;
+    private readonly VulkanFrameInFlightSet? frames;
     private readonly RawVulkanMemoryAllocator allocator;
     private readonly Stack<IDisposable> owned = new();
     private readonly VulkanTextureUploader uploader;
@@ -46,6 +48,8 @@ internal sealed class VulkanSurfaceLighting3D : IDisposable
     private AurelianVulkanTexture? environment;
     private string? environmentKey;
     private LocalLight3D[] priorLights = [];
+    private readonly AurelianVulkanBuffer[] lightUploads;
+    private bool pendingLightUpload;
     private readonly float[] packedLights = new float[32 * 16];
     private readonly AurelianVulkanTexture[] spotMaps = new AurelianVulkanTexture[2];
     private readonly Vulkan3DPass[] spotPasses = new Vulkan3DPass[2];
@@ -55,11 +59,13 @@ internal sealed class VulkanSurfaceLighting3D : IDisposable
 
     public VulkanSurfaceLighting3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
         VulkanCommandBufferPool commands, VulkanFenceBundle fences, SurfaceLightingPrograms programs,
-        CompiledGraphicsProgram shadowProgram, uint width, uint height)
+        CompiledGraphicsProgram shadowProgram, uint width, uint height, VulkanFrameInFlightSet? frames = null)
     {
         this.plant = plant;
+        this.frames = frames;
         this.allocator = allocator;
         uploader = Own(new VulkanTextureUploader(plant, allocator, commands, fences));
+        lightUploads = new AurelianVulkanBuffer[frames is null ? 1 : VulkanFrameInFlightSet.Count];
         try
         {
             Normal = Image(width, height, "surface.normal", VulkanTextureFormat.Rgba16Float);
@@ -73,34 +79,39 @@ internal sealed class VulkanSurfaceLighting3D : IDisposable
             lightData = Data(4, 32, "surface.lights");
             fallback = Data(1, 1, "surface.no-data");
             Upload(lightData, packedLights);
+            for (int index = 0; index < lightUploads.Length; index++)
+            {
+                lightUploads[index] = Own(VulkanNativeForwardTexturedRenderer.CreateMappedBuffer(plant, allocator,
+                    (ulong)packedLights.Length * 4, VulkanBufferUsage.TransferSource, VulkanMemoryUsage.CpuToGpu, "surface.light-upload"));
+            }
             Upload(fallback, [0, 0, 0, 1]);
-            tilePass = Own(new VulkanPostProcess3D(plant, allocator, programs.LightTiles, tiles, 1, Filter.Nearest));
-            aoPass = Own(new VulkanPostProcess3D(plant, allocator, programs.AmbientOcclusion, rawAo, 2, Filter.Nearest));
-            denoisePass = Own(new VulkanPostProcess3D(plant, allocator, programs.AmbientDenoise, filteredAo, 2, Filter.Nearest));
-            resolvePass = Own(new VulkanPostProcess3D(plant, allocator, programs.Resolve, Output, 15, Filter.Nearest, diffuseOutput));
+            tilePass = Own(new VulkanPostProcess3D(plant, allocator, programs.LightTiles, tiles, 1, Filter.Nearest, frames: frames));
+            aoPass = Own(new VulkanPostProcess3D(plant, allocator, programs.AmbientOcclusion, rawAo, 2, Filter.Nearest, frames: frames));
+            denoisePass = Own(new VulkanPostProcess3D(plant, allocator, programs.AmbientDenoise, filteredAo, 2, Filter.Nearest, frames: frames));
+            resolvePass = Own(new VulkanPostProcess3D(plant, allocator, programs.Resolve, Output, 15, Filter.Nearest, diffuseOutput, frames: frames));
             for (int index = 0; index < 2; index++)
             {
                 cascadeMaps[index] = Image(Lighting3DUniforms.ShadowSize, Lighting3DUniforms.ShadowSize,
                     "surface.directional-cascade", VulkanTextureFormat.R32Float);
                 cascadePasses[index] = Own(new Vulkan3DPass(plant, allocator, shadowProgram, cascadeMaps[index],
-                    Lighting3DUniforms.ShadowSize, Lighting3DUniforms.ShadowSize, true));
+                    Lighting3DUniforms.ShadowSize, Lighting3DUniforms.ShadowSize, true, frames: frames));
             }
             if (programs.HeightFog is not null || programs.VolumeResolve is not null)
             {
                 fogOutput = Image(width, height, "surface.fog", VulkanTextureFormat.Rgba16Float);
                 if (programs.HeightFog is not null)
-                    fogPass = Own(new VulkanPostProcess3D(plant, allocator, programs.HeightFog, fogOutput, 2, Filter.Nearest));
+                    fogPass = Own(new VulkanPostProcess3D(plant, allocator, programs.HeightFog, fogOutput, 2, Filter.Nearest, frames: frames));
                 if (programs.VolumeInject is not null && programs.VolumeIntegrate is not null && programs.VolumeResolve is not null)
-                    volumeLighting = Own(new VulkanVolumeLighting3D(plant, allocator, programs, fogOutput));
+                    volumeLighting = Own(new VulkanVolumeLighting3D(plant, allocator, programs, fogOutput, frames));
             }
             if (programs.SubsurfaceDiffuse is not null && programs.SubsurfaceMerge is not null)
             {
                 diffuseHorizontal = Image(width, height, "surface.diffuse-horizontal", VulkanTextureFormat.Rgba16Float);
                 diffuseVertical = Image(width, height, "surface.diffuse-vertical", VulkanTextureFormat.Rgba16Float);
                 subsurfaceOutput = Image(width, height, "surface.scattered", VulkanTextureFormat.Rgba16Float);
-                diffusionHorizontal = Own(new VulkanPostProcess3D(plant, allocator, programs.SubsurfaceDiffuse, diffuseHorizontal, 4, Filter.Nearest));
-                diffusionVertical = Own(new VulkanPostProcess3D(plant, allocator, programs.SubsurfaceDiffuse, diffuseVertical, 4, Filter.Nearest));
-                diffusionMerge = Own(new VulkanPostProcess3D(plant, allocator, programs.SubsurfaceMerge, subsurfaceOutput, 4, Filter.Nearest));
+                diffusionHorizontal = Own(new VulkanPostProcess3D(plant, allocator, programs.SubsurfaceDiffuse, diffuseHorizontal, 4, Filter.Nearest, frames: frames));
+                diffusionVertical = Own(new VulkanPostProcess3D(plant, allocator, programs.SubsurfaceDiffuse, diffuseVertical, 4, Filter.Nearest, frames: frames));
+                diffusionMerge = Own(new VulkanPostProcess3D(plant, allocator, programs.SubsurfaceMerge, subsurfaceOutput, 4, Filter.Nearest, frames: frames));
             }
             float[] emptyShadow = new float[512 * 512];
             Array.Fill(emptyShadow, 1);
@@ -110,7 +121,7 @@ internal sealed class VulkanSurfaceLighting3D : IDisposable
                     VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferDestination,
                     VulkanMemoryUsage.GpuOnly, "surface.spot-shadow", VulkanTextureFormat.R32Float));
                 Upload(spotMaps[index], emptyShadow);
-                spotPasses[index] = Own(new Vulkan3DPass(plant, allocator, shadowProgram, spotMaps[index], 512, 512, true));
+                spotPasses[index] = Own(new Vulkan3DPass(plant, allocator, shadowProgram, spotMaps[index], 512, 512, true, frames: frames));
             }
         }
         catch
@@ -203,6 +214,7 @@ internal sealed class VulkanSurfaceLighting3D : IDisposable
         probe = reflectionProbe;
         if (environmentChanged)
         {
+            frames?.Drain();
             AurelianVulkanTexture? replacement = null;
             try
             {
@@ -257,10 +269,43 @@ internal sealed class VulkanSurfaceLighting3D : IDisposable
                     spotCameras[ShadowCount++] = view * projection;
                 }
             }
-            Upload(lightData, packedLights);
+            pendingLightUpload = true;
             priorLights = lights.ToArray();
         }
         return changed;
+    }
+
+    public void RecordUploads(VulkanCommandBufferLease command)
+    {
+        if (!pendingLightUpload)
+        {
+            return;
+        }
+        AurelianVulkanBuffer staging = lightUploads[frames?.Slot ?? 0];
+        if (!staging.Write(MemoryMarshal.AsBytes(packedLights.AsSpan())).Success)
+        {
+            throw new InvalidOperationException("AUR-FRAME-003: Local light upload failed.");
+        }
+        Transition(VulkanResourceLayout.TransferDestination);
+        BufferImageCopy copy = new()
+        {
+            ImageSubresource = new(ImageAspectFlags.ColorBit, 0, 0, 1),
+            ImageExtent = new(lightData.Width, lightData.Height, 1),
+        };
+        plant.Vk.CmdCopyBufferToImage(command.CommandBuffer, staging.NativeBuffer, lightData.NativeImage,
+            ImageLayout.TransferDstOptimal, 1, &copy);
+        Transition(VulkanResourceLayout.ShaderResourceFragment);
+        pendingLightUpload = false;
+
+        void Transition(VulkanResourceLayout layout)
+        {
+            var transition = lightData.LayoutTracker.Transition("surface.light-upload", 0, 0, layout);
+            if (!transition.Success || transition.Plan is not null
+                && !VulkanBarrierCommandEmitter.EmitTextureBarriers(plant, command, [new(lightData, transition.Plan)]).Success)
+            {
+                throw new InvalidOperationException("AUR-FRAME-004: Local light upload transition failed.");
+            }
+        }
     }
 
     public Vulkan3DPass ShadowPass(int index)

@@ -33,7 +33,7 @@ internal sealed class VulkanTransparency3D : IDisposable
 
     public VulkanTransparency3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
         VulkanCommandBufferPool commands, VulkanFenceBundle fences, SurfaceLightingPrograms programs,
-        uint width, uint height, AurelianVulkanTexture shadow, Sampler sampler)
+        uint width, uint height, AurelianVulkanTexture shadow, Sampler sampler, VulkanFrameInFlightSet? frames = null)
     {
         this.plant = plant;
         try
@@ -54,11 +54,11 @@ internal sealed class VulkanTransparency3D : IDisposable
                 throw new InvalidOperationException(string.Join("; ", created.Diagnostics.Select(item => item.Message)));
             framebuffer = Own(created.Framebuffer!);
             models = Own(new VulkanModel3DBatches(plant, allocator, commands, fences, accumulationPass,
-                programs.TransparentModel!, shadow, sampler, weightedTransparency: true));
-            resolvePass = Own(new VulkanPostProcess3D(plant, allocator, programs.TransparencyResolve!, output, 3, Filter.Nearest));
+                programs.TransparentModel!, shadow, sampler, weightedTransparency: true, frames: frames));
+            resolvePass = Own(new VulkanPostProcess3D(plant, allocator, programs.TransparencyResolve!, output, 3, Filter.Nearest, frames: frames));
             if (programs.ParticleBillboards is not null)
             {
-                particleDraw = Own(new VulkanParticleBillboards3D(plant, allocator, accumulationPass, programs.ParticleBillboards));
+                particleDraw = Own(new VulkanParticleBillboards3D(plant, allocator, accumulationPass, programs.ParticleBillboards, frames));
             }
         }
         catch

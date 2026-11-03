@@ -195,9 +195,10 @@ public static class GameApp
         window.Initialize();
         using IInputContext input = window.CreateInput();
         using var graphics = new NativeGameGraphics(window, manifest.Title, visible, session.Context.Assets,
-            enableRayQueries: launch.RayQueries, vSync: initial.VSync);
+            enableRayQueries: launch.RayQueries, vSync: initial.VSync, enableFramesInFlight: !launch.Playtest);
         var menus = new GameMenuView(graphics.Font);
-        using var native = new NativeGameSession(session, window, input, graphics, menus, manageFocus: !launch.Playtest);
+        using var native = new NativeGameSession(session, window, input, graphics, menus,
+            manageFocus: !launch.Playtest, retainedGeometry: !launch.Playtest);
         var display = new WindowDisplay(window, graphics, manifest, native);
         session.Game.AttachGraphics(graphics);
         try
@@ -321,6 +322,7 @@ public static class GameApp
         private readonly NativeGameGraphics graphics;
         private readonly GameMenuView menus;
         private readonly GameHudPresenter hud;
+        private readonly bool retainedGeometry;
         private readonly CapturedGameInput captured;
         private readonly Queue<LayerInputEvent> events = new();
         private bool vSync;
@@ -328,12 +330,13 @@ public static class GameApp
         private ulong sequence;
 
         public NativeGameSession(GameSession session, IWindow window, IInputContext input, NativeGameGraphics graphics,
-            GameMenuView menus, bool manageFocus)
+            GameMenuView menus, bool manageFocus, bool retainedGeometry)
         {
             this.session = session;
             this.window = window;
             this.graphics = graphics;
             this.menus = menus;
+            this.retainedGeometry = retainedGeometry;
             vSync = graphics.VSync;
             hud = new GameHudPresenter(graphics.Font);
             captured = new CapturedGameInput(window, input, session.Input.Adapter, manageFocus, events.Enqueue, () =>
@@ -493,7 +496,10 @@ public static class GameApp
         private void Render(string? capturePath)
         {
             bool capture = capturePath is not null;
-            GameView? view = session.Game.View(new GameViewRequest(graphics.Width, graphics.Height));
+            GameView? view = session.Game.View(new GameViewRequest(graphics.Width, graphics.Height)
+            {
+                RetainedGeometry = retainedGeometry,
+            });
             NativeFrameClearColor? clear = null;
             if (view is not null)
             {

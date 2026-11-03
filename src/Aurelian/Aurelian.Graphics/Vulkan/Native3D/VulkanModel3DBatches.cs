@@ -33,8 +33,19 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
     private readonly Dictionary<(ModelTexture Texture, bool Srgb), AurelianVulkanTexture> textures = [];
     private readonly Dictionary<ModelSampler, Sampler> samplers = [];
     private readonly Dictionary<ModelMaterial, Surface> surfaces = [];
-    private AurelianVulkanBuffer? vertices;
-    private AurelianVulkanBuffer? previousVertices;
+    private readonly VulkanFrameInFlightSet? frames;
+    private readonly AurelianVulkanBuffer?[] vertexFrames = new AurelianVulkanBuffer?[VulkanFrameInFlightSet.Count];
+    private readonly AurelianVulkanBuffer?[] previousVertexFrames = new AurelianVulkanBuffer?[VulkanFrameInFlightSet.Count];
+    private AurelianVulkanBuffer? vertices
+    {
+        get => vertexFrames[frames?.Slot ?? 0];
+        set => vertexFrames[frames?.Slot ?? 0] = value;
+    }
+    private AurelianVulkanBuffer? previousVertices
+    {
+        get => previousVertexFrames[frames?.Slot ?? 0];
+        set => previousVertexFrames[frames?.Slot ?? 0] = value;
+    }
     private NativeModel3DVertex[] previousPacked = [];
     private string[] previousIdentities = [];
     private readonly bool temporal;
@@ -53,12 +64,17 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
     private static readonly ModelTexture White = new("builtin-white", 1, 1, ImmutableArray.Create<byte>(255, 255, 255, 255));
     private static readonly ModelTexture FlatNormal = new("builtin-flat-normal", 1, 1, ImmutableArray.Create<byte>(128, 128, 255, 255));
 
-    private sealed record Surface(AurelianVulkanBuffer Uniform, DescriptorPool Pool, DescriptorSet Set);
+    private sealed record Surface(Vulkan3DFrameBindings Bindings)
+    {
+        public AurelianVulkanBuffer Uniform => Bindings.Uniform;
+        public DescriptorSet Set => Bindings.Set;
+    }
 
     public VulkanModel3DBatches(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
         VulkanCommandBufferPool pool, VulkanFenceBundle fences, AurelianVulkanRenderPass pass, CompiledGraphicsProgram program,
-        AurelianVulkanTexture shadowMap, Sampler shadowSampler, bool weightedTransparency = false, bool refraction = false)
+        AurelianVulkanTexture shadowMap, Sampler shadowSampler, bool weightedTransparency = false, bool refraction = false, VulkanFrameInFlightSet? frames = null)
     {
+        this.frames = frames;
         Validate(program, weightedTransparency, refraction);
         temporal = program.VertexInputs.Count == 6;
         surfaceOnly = program.PixelTargets.Count == 5;
@@ -116,11 +132,12 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
         }
     }
 
-    public void Upload(IReadOnlyList<NativeModel3DBatch> batches, Matrix4x4 clip, Vector3 eye, float[] lighting, Matrix4x4 previousClip, bool resetHistory)
+    public void Upload(IReadOnlyList<NativeModel3DBatch> batches, Matrix4x4 clip, Vector3 eye, float[] lighting, Matrix4x4 previousClip, bool resetHistory, IReadOnlyList<ModelMaterial>? retainedMaterials = null)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
+        retainedMaterials ??= [];
         int count = batches.Sum(item => item.Vertices.Length);
-        if (count == 0)
+        if (count == 0 && retainedMaterials.Count == 0)
         {
             TrimResources([]);
             return;
@@ -135,8 +152,12 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
                     || !float.IsFinite(vertex.Uv.X) || !float.IsFinite(vertex.Uv.Y))
                     throw new InvalidDataException("Model draw vertices must be finite.");
             }
-            Surface surface = GetSurface(batch.Material);
-            ModelMaterial m = batch.Material;
+        }
+        ModelMaterial[] materials = batches.Select(batch => batch.Material).Concat(retainedMaterials).Distinct().ToArray();
+        foreach (ModelMaterial material in materials)
+        {
+            Surface surface = GetSurface(material);
+            ModelMaterial m = material;
             float[] data = [clip.M11, clip.M21, clip.M31, clip.M41, clip.M12, clip.M22, clip.M32, clip.M42,
                 clip.M13, clip.M23, clip.M33, clip.M43, clip.M14, clip.M24, clip.M34, clip.M44,
                 eye.X, eye.Y, eye.Z, 1, m.BaseColor.X, m.BaseColor.Y, m.BaseColor.Z, m.BaseColor.W,
@@ -171,7 +192,11 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
             if (data.Any(value => !float.IsFinite(value))) throw new InvalidDataException("Model camera and factors must be finite.");
             Require(surface.Uniform.Write(MemoryMarshal.AsBytes(data.AsSpan())).Success, "Model uniform upload failed.");
         }
-        TrimResources(batches.Select(item => item.Material));
+        TrimResources(materials);
+        if (count == 0)
+        {
+            return;
+        }
         ulong bytes = (ulong)count * 64;
         if (vertices is null || vertices.SizeBytes < bytes)
         {
@@ -237,6 +262,16 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
         }
     }
 
+    internal DescriptorSetLayout DescriptorLayout => layout;
+
+    internal void BindMaterial(VulkanCommandBufferLease command, AurelianVulkanGraphicsPipeline selected,
+        ModelMaterial material)
+    {
+        DescriptorSet set = surfaces[material].Set;
+        plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Graphics,
+            selected.NativePipelineLayout, 0, 1, &set, 0, null);
+    }
+
     private Surface GetSurface(ModelMaterial material)
     {
         if (surfaces.TryGetValue(material, out Surface? found)) return found;
@@ -277,82 +312,28 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
             images[index] = texture;
             filters[index] = GetSampler(binding?.Sampler ?? DefaultSampler);
         }
-        var uniform = VulkanNativeForwardTexturedRenderer.CreateMappedBuffer(plant, allocator, (ulong)uniformBytes,
-            VulkanBufferUsage.Uniform, VulkanMemoryUsage.CpuToGpu, "static-model.material");
-        DescriptorPool pool = default;
+        var bindings = new Vulkan3DFrameBindings(plant, allocator, layout, uniformBytes,
+            (uint)((resourceCount - 1) / 2), frames);
         try
         {
-            DescriptorPoolSize* sizes = stackalloc DescriptorPoolSize[3]
+            foreach (DescriptorSet set in bindings.Sets)
             {
-                new(DescriptorType.UniformBuffer, 1),
-                new(DescriptorType.SampledImage, (uint)((resourceCount - 1) / 2)),
-                new(DescriptorType.Sampler, (uint)((resourceCount - 1) / 2)),
-            };
-            DescriptorPoolCreateInfo info = new()
-            {
-                SType = StructureType.DescriptorPoolCreateInfo,
-                MaxSets = 1,
-                PoolSizeCount = 3,
-                PPoolSizes = sizes,
-            };
-            Require(plant.Vk.CreateDescriptorPool(plant.Device, &info, null, out pool) == Result.Success, "Model descriptor pool failed.");
-            DescriptorSetLayout setLayout = layout;
-            DescriptorSetAllocateInfo allocate = new()
-            {
-                SType = StructureType.DescriptorSetAllocateInfo,
-                DescriptorPool = pool,
-                DescriptorSetCount = 1,
-                PSetLayouts = &setLayout,
-            };
-            Require(plant.Vk.AllocateDescriptorSets(plant.Device, &allocate, out DescriptorSet set) == Result.Success, "Model descriptor allocation failed.");
-            DescriptorBufferInfo buffer = new(uniform.NativeBuffer, 0, (ulong)uniformBytes);
-            WriteDescriptorSet uniformWrite = new()
-            {
-                SType = StructureType.WriteDescriptorSet,
-                DstSet = set,
-                DstBinding = 0,
-                DescriptorType = DescriptorType.UniformBuffer,
-                DescriptorCount = 1,
-                PBufferInfo = &buffer,
-            };
-            plant.Vk.UpdateDescriptorSets(plant.Device, 1, &uniformWrite, 0, null);
-            WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[2];
-            for (uint index = 0; index < images.Length; index++)
-            {
-                DescriptorImageInfo image = new(default, images[index].NativeImageView!.Value, ImageLayout.ShaderReadOnlyOptimal);
-                DescriptorImageInfo sampler = new(filters[index], default, ImageLayout.Undefined);
-                writes[0] = new()
+                for (uint index = 0; index < images.Length; index++)
                 {
-                    SType = StructureType.WriteDescriptorSet,
-                    DstSet = set,
-                    DstBinding = 1 + index * 2,
-                    DescriptorType = DescriptorType.SampledImage,
-                    DescriptorCount = 1,
-                    PImageInfo = &image,
-                };
-                writes[1] = new()
+                    Vulkan3DPass.WriteImage(plant, set, 1 + index * 2, images[index], filters[index]);
+                }
+                if (!surfaceOnly && !transparent)
                 {
-                    SType = StructureType.WriteDescriptorSet,
-                    DstSet = set,
-                    DstBinding = 2 + index * 2,
-                    DescriptorType = DescriptorType.Sampler,
-                    DescriptorCount = 1,
-                    PImageInfo = &sampler,
-                };
-                plant.Vk.UpdateDescriptorSets(plant.Device, 2, writes, 0, null);
+                    Vulkan3DPass.WriteImage(plant, set, 11, shadowMap, shadowSampler);
+                }
             }
-            if (!surfaceOnly && !transparent)
-            {
-                Vulkan3DPass.WriteImage(plant, set, 11, shadowMap, shadowSampler);
-            }
-            var surface = new Surface(uniform, pool, set);
+            var surface = new Surface(bindings);
             surfaces.Add(material, surface);
             return surface;
         }
         catch
         {
-            if (pool.Handle != 0) plant.Vk.DestroyDescriptorPool(plant.Device, pool, null);
-            uniform.Dispose();
+            bindings.Dispose();
             throw;
         }
     }
@@ -387,8 +368,14 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
         foreach (ModelMaterial key in surfaces.Keys.Where(key => !materials.Contains(key)).ToArray())
         {
             Surface surface = surfaces[key];
-            plant.Vk.DestroyDescriptorPool(plant.Device, surface.Pool, null);
-            surface.Uniform.Dispose();
+            if (frames is null)
+            {
+                surface.Bindings.Dispose();
+            }
+            else
+            {
+                frames.Retire(surface.Bindings);
+            }
             surfaces.Remove(key);
         }
         var images = new HashSet<(ModelTexture Texture, bool Srgb)>();
@@ -405,12 +392,27 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
         }
         foreach (var key in textures.Keys.Where(key => !images.Contains(key)).ToArray())
         {
-            textures[key].Dispose();
+            if (frames is null)
+            {
+                textures[key].Dispose();
+            }
+            else
+            {
+                frames.Retire(textures[key]);
+            }
             textures.Remove(key);
         }
         foreach (ModelSampler key in samplers.Keys.Where(key => !filters.Contains(key)).ToArray())
         {
-            plant.Vk.DestroySampler(plant.Device, samplers[key], null);
+            Sampler stale = samplers[key];
+            if (frames is null)
+            {
+                plant.Vk.DestroySampler(plant.Device, stale, null);
+            }
+            else
+            {
+                frames.Retire(() => plant.Vk.DestroySampler(plant.Device, stale, null));
+            }
             samplers.Remove(key);
         }
     }
@@ -488,8 +490,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
         if (environmentSampler.HasValue) plant.Vk.DestroySampler(plant.Device, environmentSampler.Value, null);
         foreach (Surface surface in surfaces.Values)
         {
-            plant.Vk.DestroyDescriptorPool(plant.Device, surface.Pool, null);
-            surface.Uniform.Dispose();
+            surface.Bindings.Dispose();
         }
         foreach (Sampler sampler in samplers.Values)
         {
@@ -499,8 +500,8 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
         {
             texture.Dispose();
         }
-        previousVertices?.Dispose();
-        vertices?.Dispose();
+        foreach (var buffer in previousVertexFrames) buffer?.Dispose();
+        foreach (var buffer in vertexFrames) buffer?.Dispose();
         if (layout.Handle != 0) plant.Vk.DestroyDescriptorSetLayout(plant.Device, layout, null);
         uploader.Dispose();
     }

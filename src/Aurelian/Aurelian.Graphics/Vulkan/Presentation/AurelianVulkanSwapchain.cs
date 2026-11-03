@@ -150,7 +150,7 @@ public sealed class AurelianVulkanSwapchain : IDisposable
         };
     }
 
-    public unsafe VulkanSwapchainPresentResult Present(uint imageIndex)
+    public unsafe VulkanSwapchainPresentResult Present(uint imageIndex, Silk.NET.Vulkan.Semaphore? waitSemaphore = null)
     {
         if (disposed || swapchain.Handle == 0 || plant.Device.Handle == 0)
         {
@@ -171,11 +171,12 @@ public sealed class AurelianVulkanSwapchain : IDisposable
         }
 
         SwapchainKHR swapchainHandle = swapchain;
+        Silk.NET.Vulkan.Semaphore wait = waitSemaphore ?? default;
         PresentInfoKHR presentInfo = new()
         {
             SType = StructureType.PresentInfoKhr,
-            WaitSemaphoreCount = 0,
-            PWaitSemaphores = null,
+            WaitSemaphoreCount = waitSemaphore.HasValue ? 1u : 0u,
+            PWaitSemaphores = waitSemaphore.HasValue ? &wait : null,
             SwapchainCount = 1,
             PSwapchains = &swapchainHandle,
             PImageIndices = &imageIndex,

@@ -1,3 +1,5 @@
+using Aurelian.Graphics.Vulkan.Native3D;
+using Silk.NET.Vulkan;
 using Aurelian.Graphics.Vulkan.Commanding;
 using Aurelian.Graphics.Vulkan.Commanding.Submit;
 using Aurelian.Graphics.Vulkan.Compositor;
@@ -13,7 +15,7 @@ namespace Aurelian.Graphics.Vulkan.Native2D;
 /// Copies a completed native frame target directly to an acquired swapchain image.
 /// Pixel readback remains a separate, explicit capture operation.
 /// </summary>
-public sealed class VulkanNativeSwapchainPresenter : IDisposable
+public sealed unsafe class VulkanNativeSwapchainPresenter : IDisposable
 {
     private readonly AurelianVulkanPlant plant;
     private readonly VulkanNativeFrameTarget target;
@@ -25,11 +27,13 @@ public sealed class VulkanNativeSwapchainPresenter : IDisposable
     private readonly VulkanPresentationTargetImageSet presentationTargets;
     private readonly bool[] presentedImages;
     private bool disposed;
+    private readonly VulkanFrameInFlightSet? frames;
+    private readonly Silk.NET.Vulkan.Semaphore[] renderFinished;
 
     public VulkanNativeSwapchainPresenter(
         AurelianVulkanPlant plant,
         VulkanNativeFrameTarget target,
-        AurelianVulkanSwapchain swapchain)
+        AurelianVulkanSwapchain swapchain, bool enableFramesInFlight = false)
     {
         this.plant = plant ?? throw new ArgumentNullException(nameof(plant));
         this.target = target ?? throw new ArgumentNullException(nameof(target));
@@ -53,6 +57,20 @@ public sealed class VulkanNativeSwapchainPresenter : IDisposable
         compositor = new VulkanCompositorPassthrough(plant, commandPool, submitter);
         presentationTargets = swapchain.CreatePresentationTargetImageSet();
         presentedImages = new bool[swapchain.Images.Count];
+        renderFinished = new Silk.NET.Vulkan.Semaphore[enableFramesInFlight ? swapchain.Images.Count : 0];
+        if (enableFramesInFlight)
+        {
+            frames = new(fences.CommandListFence);
+            SemaphoreCreateInfo info = new() { SType = StructureType.SemaphoreCreateInfo };
+            for (int index = 0; index < renderFinished.Length; index++)
+            {
+                if (plant.Vk.CreateSemaphore(plant.Device, &info, null, out renderFinished[index]) != Result.Success)
+                {
+                    Dispose();
+                    throw new InvalidOperationException("AUR-FRAME-002: Presentation semaphore allocation failed.");
+                }
+            }
+        }
     }
 
     public string PresentMode => swapchain.Facts.SelectedPresentMode;
@@ -76,6 +94,7 @@ public sealed class VulkanNativeSwapchainPresenter : IDisposable
     {
         ObjectDisposedException.ThrowIf(disposed, this);
 
+        frames?.Begin();
         VulkanSwapchainAcquireResult acquire = swapchain.AcquireNextImage();
         if (acquire.Status == VulkanSwapchainAcquireStatus.OutOfDate)
         {
@@ -106,13 +125,16 @@ public sealed class VulkanNativeSwapchainPresenter : IDisposable
             CompositorPolicyKind.Passthrough,
             [outputRef],
             new PresentationTargetRef(plant.Context.Id.Value, acquire.ImageIndex.Value, frameId));
-        VulkanCompositorResult dispatch = compositor.Dispatch(request, outputs, presentationTargets);
+        Silk.NET.Vulkan.Semaphore? signal = frames is null ? null : renderFinished[imageIndex];
+        VulkanCompositorResult dispatch = compositor.Dispatch(request, outputs, presentationTargets,
+            waitForCompletion: frames is null, signal);
         if (!dispatch.Success)
         {
             throw new InvalidOperationException(Format("Native frame swapchain copy failed", dispatch.Diagnostics));
         }
 
-        VulkanSwapchainPresentResult present = swapchain.Present(acquire.ImageIndex.Value);
+        frames?.Submitted(dispatch.SignalFenceValue!.Value);
+        VulkanSwapchainPresentResult present = swapchain.Present(acquire.ImageIndex.Value, signal);
         if (present.Status == VulkanSwapchainPresentStatus.OutOfDate)
         {
             return false;
@@ -132,6 +154,15 @@ public sealed class VulkanNativeSwapchainPresenter : IDisposable
         }
 
         disposed = true;
+        // Presentation waits can outlive the copy's retirement timeline.
+        _ = plant.Vk.DeviceWaitIdle(plant.Device);
+        foreach (var semaphore in renderFinished)
+        {
+            if (semaphore.Handle != 0)
+            {
+                plant.Vk.DestroySemaphore(plant.Device, semaphore, null);
+            }
+        }
         compositor.Dispose();
         submitter.Dispose();
         commandPool.Dispose();

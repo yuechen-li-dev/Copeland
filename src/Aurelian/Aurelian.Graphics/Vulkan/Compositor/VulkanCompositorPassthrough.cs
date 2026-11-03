@@ -41,6 +41,14 @@ public sealed unsafe class VulkanCompositorPassthrough : IVulkanCompositorPassth
         CompositorDispatchRequest request,
         VulkanPlantOutputImageSet plantOutputs,
         VulkanPresentationTargetImageSet presentationTargets)
+        => Dispatch(request, plantOutputs, presentationTargets, true, null);
+
+    internal VulkanCompositorResult Dispatch(
+        CompositorDispatchRequest request,
+        VulkanPlantOutputImageSet plantOutputs,
+        VulkanPresentationTargetImageSet presentationTargets,
+        bool waitForCompletion,
+        Silk.NET.Vulkan.Semaphore? signalSemaphore)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -179,7 +187,11 @@ public sealed unsafe class VulkanCompositorPassthrough : IVulkanCompositorPassth
             return Result(VulkanCompositorStatus.Failed, CompositorDispatchStatus.Failed, request, null, diagnostics);
         }
 
-        VulkanCommandSubmitResult submit = submitter.Submit(new VulkanCommandSubmitRequest(lease, WaitForCompletion: true, DebugName: "a53.compositor.passthrough"));
+        VulkanCommandSubmitResult submit = submitter.Submit(new VulkanCommandSubmitRequest(lease,
+            WaitForCompletion: waitForCompletion, DebugName: "a53.compositor.passthrough")
+        {
+            SignalBinarySemaphore = signalSemaphore,
+        });
         if (!submit.Success)
         {
             diagnostics.Add(Diagnostic(

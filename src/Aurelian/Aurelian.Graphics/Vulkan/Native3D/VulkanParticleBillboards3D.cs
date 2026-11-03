@@ -22,10 +22,8 @@ internal sealed unsafe class VulkanParticleBillboards3D : IDisposable
 {
     private readonly AurelianVulkanPlant plant;
     private readonly DescriptorSetLayout layout;
-    private readonly DescriptorPool pool;
-    private readonly DescriptorSet set;
+    private readonly Vulkan3DFrameBindings bindings;
     private readonly Sampler sampler;
-    private readonly AurelianVulkanBuffer uniform;
     private readonly AurelianVulkanGraphicsPipeline pipeline;
     private bool disposed;
 
@@ -33,7 +31,7 @@ internal sealed unsafe class VulkanParticleBillboards3D : IDisposable
     public const int UniformBytes = 288;
 
     public VulkanParticleBillboards3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
-        AurelianVulkanRenderPass pass, CompiledGraphicsProgram program)
+        AurelianVulkanRenderPass pass, CompiledGraphicsProgram program, VulkanFrameInFlightSet? frames = null)
     {
         this.plant = plant;
         string[] fields = ["clipX", "clipY", "clipZ", "clipW", "inverseX", "inverseY", "inverseZ", "inverseW",
@@ -64,9 +62,7 @@ internal sealed unsafe class VulkanParticleBillboards3D : IDisposable
                 descriptor.Descriptor! with { EnableAdditiveBlend = true }, [layout]);
             Require(result.Success, string.Join("; ", result.Diagnostics.Select(item => item.Message)));
             pipeline = result.Pipeline!;
-            uniform = VulkanNativeForwardTexturedRenderer.CreateMappedBuffer(plant, allocator, UniformBytes,
-                VulkanBufferUsage.Uniform, VulkanMemoryUsage.CpuToGpu, "particles3d.draw");
-            (pool, set) = Vulkan3DPass.AllocateSet(plant, layout, uniform, 2);
+            bindings = new Vulkan3DFrameBindings(plant, allocator, layout, UniformBytes, 2, frames);
             sampler = Vulkan3DPass.CreateSampler(plant, Filter.Nearest);
         }
         catch
@@ -89,16 +85,16 @@ internal sealed unsafe class VulkanParticleBillboards3D : IDisposable
             fog.Density, fog.HeightFalloff, fog.BaseHeight, fog.StartDistance,
             fog.Color.X, fog.Color.Y, fog.Color.Z, fog.MaximumDistance, .. volumeParameters,
             .. Light(settings)];
-        Require(uniform.Write(MemoryMarshal.AsBytes(data.AsSpan())).Success, "Particle draw uniform upload failed.");
-        Vulkan3DPass.WriteImage(plant, set, 1, motion, sampler);
-        Vulkan3DPass.WriteImage(plant, set, 3, volume, sampler);
+        Require(bindings.Uniform.Write(MemoryMarshal.AsBytes(data.AsSpan())).Success, "Particle draw uniform upload failed.");
+        Vulkan3DPass.WriteImage(plant, bindings.Set, 1, motion, sampler);
+        Vulkan3DPass.WriteImage(plant, bindings.Set, 3, volume, sampler);
     }
 
     public void Draw(VulkanCommandBufferLease command, VulkanRenderPassScope scope,
         AurelianVulkanFramebuffer framebuffer, VulkanParticles3D particles)
     {
         if (particles.VertexCount == 0) { return; }
-        DescriptorSet descriptor = set;
+        DescriptorSet descriptor = bindings.Set;
         plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Graphics,
             pipeline.NativePipelineLayout, 0, 1, &descriptor, 0, null);
         var draw = new VulkanDrawCommandEncoder().DrawVertices(plant, command, scope,
@@ -127,10 +123,9 @@ internal sealed unsafe class VulkanParticleBillboards3D : IDisposable
     {
         if (disposed) { return; }
         disposed = true;
-        if (pool.Handle != 0) { plant.Vk.DestroyDescriptorPool(plant.Device, pool, null); }
         if (sampler.Handle != 0) { plant.Vk.DestroySampler(plant.Device, sampler, null); }
         pipeline?.Dispose();
-        uniform?.Dispose();
+        bindings?.Dispose();
         if (layout.Handle != 0) { plant.Vk.DestroyDescriptorSetLayout(plant.Device, layout, null); }
     }
 }

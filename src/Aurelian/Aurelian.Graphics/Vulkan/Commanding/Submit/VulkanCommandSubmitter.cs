@@ -80,7 +80,8 @@ public sealed unsafe class VulkanCommandSubmitter : IDisposable
         Result submitResult = SubmitAndSignal(
             validRequest.CommandBuffer.CommandBuffer,
             fences.CommandListFence.Semaphore,
-            signalValue);
+            signalValue,
+            validRequest.SignalBinarySemaphore);
         long queued = measure ? Stopwatch.GetTimestamp() : 0;
         if (submitResult != Result.Success)
         {
@@ -208,13 +209,17 @@ public sealed unsafe class VulkanCommandSubmitter : IDisposable
         }
     }
 
-    private Result SubmitAndSignal(CommandBuffer commandBuffer, VulkanSemaphore signalSemaphore, ulong signalValue)
+    private Result SubmitAndSignal(CommandBuffer commandBuffer, VulkanSemaphore signalSemaphore, ulong signalValue,
+        VulkanSemaphore? binarySemaphore)
     {
+        VulkanSemaphore* signals = stackalloc VulkanSemaphore[2] { signalSemaphore, binarySemaphore ?? default };
+        ulong* values = stackalloc ulong[2] { signalValue, 0 };
+        uint count = binarySemaphore.HasValue ? 2u : 1u;
         TimelineSemaphoreSubmitInfo timelineInfo = new()
         {
             SType = StructureType.TimelineSemaphoreSubmitInfo,
-            SignalSemaphoreValueCount = 1,
-            PSignalSemaphoreValues = &signalValue,
+            SignalSemaphoreValueCount = count,
+            PSignalSemaphoreValues = values,
         };
 
         SubmitInfo submitInfo = new()
@@ -223,8 +228,8 @@ public sealed unsafe class VulkanCommandSubmitter : IDisposable
             PNext = &timelineInfo,
             CommandBufferCount = 1,
             PCommandBuffers = &commandBuffer,
-            SignalSemaphoreCount = 1,
-            PSignalSemaphores = &signalSemaphore,
+            SignalSemaphoreCount = count,
+            PSignalSemaphores = signals,
         };
 
         return plant.Vk.QueueSubmit(plant.GraphicsQueue, 1, &submitInfo, default);

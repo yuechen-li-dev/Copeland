@@ -26,7 +26,7 @@ internal sealed class VulkanTemporal3D : IDisposable
     private Vector2 previousJitter;
 
     public VulkanTemporal3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
-        VulkanCommandBufferPool commands, VulkanFenceBundle fences, CompiledGraphicsProgram program, uint width, uint height)
+        VulkanCommandBufferPool commands, VulkanFenceBundle fences, CompiledGraphicsProgram program, uint width, uint height, VulkanFrameInFlightSet? frames = null)
     {
         this.width = width;
         this.height = height;
@@ -41,7 +41,7 @@ internal sealed class VulkanTemporal3D : IDisposable
                 // Even a rejected first-frame sample must reference a defined image layout.
                 var upload = uploader.Upload(new(history[index], new byte[checked((int)(width * height * 16))], "temporal.initialize"));
                 if (!upload.Success) throw new InvalidOperationException(string.Join("; ", upload.Diagnostics.Select(item => item.Message)));
-                passes[index] = new(plant, allocator, program, history[index], 3, Filter.Nearest);
+                passes[index] = new(plant, allocator, program, history[index], 3, Filter.Nearest, frames: frames);
             }
         }
         catch
@@ -80,7 +80,7 @@ internal sealed class VulkanTemporal3D : IDisposable
         return result;
     }
 
-    internal static Matrix4x4 Jitter(Matrix4x4 camera, Vector2 pixels, uint width, uint height)
+    internal static Matrix4x4 Jitter(Matrix4x4 camera, Vector2 pixels, uint width, uint height, VulkanFrameInFlightSet? frames = null)
     {
         // Row-vector System.Numerics: add jitter * clip.w to clip.x and clip.y.
         float x = 2 * pixels.X / width;

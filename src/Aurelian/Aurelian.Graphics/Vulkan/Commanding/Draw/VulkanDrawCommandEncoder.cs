@@ -52,7 +52,22 @@ public sealed unsafe class VulkanDrawCommandEncoder
                 NativeBuffer previousBuffer = previous.NativeBuffer;
                 plant.Vk.CmdBindVertexBuffers(commandBuffer.CommandBuffer, 1, 1, &previousBuffer, &offset);
             }
-            plant.Vk.CmdDraw(commandBuffer.CommandBuffer, request.VertexCount, 1, request.FirstVertex, 0);
+            if (request.InstanceBuffer is { } instances)
+            {
+                NativeBuffer instanceBuffer = instances.NativeBuffer;
+                plant.Vk.CmdBindVertexBuffers(commandBuffer.CommandBuffer, 1, 1, &instanceBuffer, &offset);
+            }
+            if (request.IndexBuffer is { } indices)
+            {
+                plant.Vk.CmdBindIndexBuffer(commandBuffer.CommandBuffer, indices.NativeBuffer, 0, IndexType.Uint32);
+                plant.Vk.CmdDrawIndexed(commandBuffer.CommandBuffer, request.IndexCount,
+                    request.InstanceCount, 0, (int)request.FirstVertex, request.FirstInstance);
+            }
+            else
+            {
+                plant.Vk.CmdDraw(commandBuffer.CommandBuffer, request.VertexCount,
+                    request.InstanceCount, request.FirstVertex, request.FirstInstance);
+            }
 
             return VulkanDrawCommandResult.Recorded(diagnostics);
         }
@@ -191,10 +206,36 @@ public sealed unsafe class VulkanDrawCommandEncoder
                     "Previous vertex stream requires binding one, a live buffer on this plant, and capacity for the requested vertices.", plantId));
             }
         }
-        else if (previousLayout is not null)
+        else if (previousLayout is { PerInstance: false })
         {
             diagnostics.Add(Diagnostic(VulkanDrawCommandDiagnosticCodes.VertexBufferMissing,
                 "This pipeline requires a previous-position vertex stream at binding one.", plantId));
+        }
+
+        if (request.InstanceBuffer is { } instances)
+        {
+            ulong endInstance = (ulong)request.FirstInstance + request.InstanceCount;
+            if (previousLayout is not { PerInstance: true } || request.PreviousVertexBuffer is not null
+                || instances.PlantId != plantId || instances.IsDisposed
+                || (instances.Usage & VulkanBufferUsage.Vertex) == 0 || request.InstanceCount == 0
+                || instances.SizeBytes < endInstance * previousLayout.Stride)
+            {
+                diagnostics.Add(Diagnostic(VulkanDrawCommandDiagnosticCodes.VertexBufferMissing,
+                    "Instance draws require a live instance-rate binding one and sufficient instance capacity.", plantId));
+            }
+        }
+        else if (previousLayout is { PerInstance: true })
+        {
+            diagnostics.Add(Diagnostic(VulkanDrawCommandDiagnosticCodes.VertexBufferMissing,
+                "The instance-rate vertex binding requires an instance buffer.", plantId));
+        }
+
+        if (request.IndexBuffer is { } indices && (indices.PlantId != plantId || indices.IsDisposed
+            || (indices.Usage & VulkanBufferUsage.Index) == 0 || request.IndexCount == 0
+            || (ulong)request.IndexCount * 4 > indices.SizeBytes))
+        {
+            diagnostics.Add(Diagnostic(VulkanDrawCommandDiagnosticCodes.InvalidVertexCount,
+                "Indexed draws require a live uint32 index buffer with sufficient capacity.", plantId));
         }
 
         if (request.VertexCount == 0)

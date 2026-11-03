@@ -14,6 +14,7 @@ namespace Aurelian.Graphics.Vulkan.Native3D;
 internal sealed class VulkanVolumeLighting3D : IDisposable
 {
     private readonly AurelianVulkanPlant plant;
+    private readonly VulkanFrameInFlightSet? frames;
     private readonly RawVulkanMemoryAllocator allocator;
     private readonly SurfaceLightingPrograms programs;
     private readonly uint width;
@@ -28,14 +29,15 @@ internal sealed class VulkanVolumeLighting3D : IDisposable
     private int slices;
 
     public VulkanVolumeLighting3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
-        SurfaceLightingPrograms programs, AurelianVulkanTexture output)
+        SurfaceLightingPrograms programs, AurelianVulkanTexture output, VulkanFrameInFlightSet? frames = null)
     {
         this.plant = plant;
+        this.frames = frames;
         this.allocator = allocator;
         this.programs = programs;
         width = output.Width;
         height = output.Height;
-        resolve = new(plant, allocator, programs.VolumeResolve!, output, 3, Filter.Nearest);
+        resolve = new(plant, allocator, programs.VolumeResolve!, output, 3, Filter.Nearest, frames: frames);
     }
 
     public AurelianVulkanTexture? Integrated => integrated;
@@ -55,6 +57,7 @@ internal sealed class VulkanVolumeLighting3D : IDisposable
             return;
         if (pixelSize == volume.PixelSize && slices == volume.DepthSlices)
             return;
+        frames?.Drain();
         ReleaseGrid();
         try
         {
@@ -62,8 +65,8 @@ internal sealed class VulkanVolumeLighting3D : IDisposable
             uint y = (height + (uint)volume.PixelSize - 1) / (uint)volume.PixelSize;
             source = Image(x, y * (uint)volume.DepthSlices, "volume.source");
             integrated = Image(x, y * (uint)volume.DepthSlices, "volume.integrated");
-            inject = Own(new VulkanPostProcess3D(plant, allocator, programs.VolumeInject!, source, 6, Filter.Nearest));
-            integrate = Own(new VulkanPostProcess3D(plant, allocator, programs.VolumeIntegrate!, integrated, 1, Filter.Nearest));
+            inject = Own(new VulkanPostProcess3D(plant, allocator, programs.VolumeInject!, source, 6, Filter.Nearest, frames: frames));
+            integrate = Own(new VulkanPostProcess3D(plant, allocator, programs.VolumeIntegrate!, integrated, 1, Filter.Nearest, frames: frames));
             pixelSize = volume.PixelSize;
             slices = volume.DepthSlices;
         }

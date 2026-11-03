@@ -33,7 +33,7 @@ internal sealed class VulkanRefraction3D : IDisposable
 
     public VulkanRefraction3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
         VulkanCommandBufferPool commands, VulkanFenceBundle fences, SurfaceLightingPrograms programs,
-        uint width, uint height, AurelianVulkanTexture shadow, Sampler sampler)
+        uint width, uint height, AurelianVulkanTexture shadow, Sampler sampler, VulkanFrameInFlightSet? frames = null)
     {
         this.plant = plant;
         try
@@ -58,11 +58,11 @@ internal sealed class VulkanRefraction3D : IDisposable
             Require(createdFramebuffer.Success, "Refractive framebuffer creation failed.");
             framebuffer = Own(createdFramebuffer.Framebuffer!);
             models = Own(new VulkanModel3DBatches(plant, allocator, commands, fences, pass,
-                programs.RefractiveModel!, shadow, sampler, refraction: true));
-            resolve = Own(new VulkanPostProcess3D(plant, allocator, programs.RefractionResolve!, output, 3, Filter.Nearest));
+                programs.RefractiveModel!, shadow, sampler, refraction: true, frames: frames));
+            resolve = Own(new VulkanPostProcess3D(plant, allocator, programs.RefractionResolve!, output, 3, Filter.Nearest, frames: frames));
             if (programs.WaterTemporal is not null)
             {
-                waterTemporal = Own(new VulkanTemporal3D(plant, allocator, commands, fences, programs.WaterTemporal, width, height));
+                waterTemporal = Own(new VulkanTemporal3D(plant, allocator, commands, fences, programs.WaterTemporal, width, height, frames));
             }
         }
         catch

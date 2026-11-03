@@ -69,6 +69,7 @@ public sealed class NativeGameGraphics : IDisposable
     private readonly IWindow window;
     private readonly string title;
     private readonly bool visible;
+    private readonly bool enableFramesInFlight;
     private readonly List<StaticModel> preparedModels = [];
     private readonly GameAssets assets;
     private readonly LightingCompilationController lighting;
@@ -83,13 +84,14 @@ public sealed class NativeGameGraphics : IDisposable
     public Aurelian.Runtime.Dominatus.Inspection.DominatusInspector LightingInspector => lighting.Inspector;
 
     public NativeGameGraphics(IWindow window, string title, bool visible, GameAssets? assets = null, bool enableRayQueries = false,
-        bool vSync = true)
+        bool vSync = true, bool enableFramesInFlight = true)
     {
         assets ??= new();
         this.assets = assets;
         this.window = window ?? throw new ArgumentNullException(nameof(window));
         this.title = title;
         this.visible = visible;
+        this.enableFramesInFlight = enableFramesInFlight;
         VSync = vSync;
         lightingShaderKey = LightingProgramIdentity.Compute(assets.Shader("SurfaceSolid3D.v.ts"));
         lighting = new LightingCompilationController(request =>
@@ -378,10 +380,16 @@ public sealed class NativeGameGraphics : IDisposable
                     TransparentModel = assets.Shader("TransparentModel3D.v.ts"),
                     TransparencyResolve = assets.Shader("TransparencyResolve3D.v.ts"),
                     ParticleBillboards = assets.Shader("ParticleBillboard3D.v.ts"),
-                }));
-            Presenter = OwnSurface(new VulkanNativeSwapchainPresenter(Plant, Target, Swapchain));
+                }, retainedPrograms: new(assets.Shader("InstancedModel3D.v.ts"), assets.Shader("InstancedShadow3D.v.ts")))
+            {
+                FrameMode = enableFramesInFlight ? Native3DFrameMode.Interactive : Native3DFrameMode.Capture,
+            });
+            Presenter = OwnSurface(new VulkanNativeSwapchainPresenter(Plant, Target, Swapchain, enableFramesInFlight: enableFramesInFlight));
             Menus = OwnSurface(new GameMenuNativePresenter(Plant, Target,
-                assets.Shader("AnalyticShape2D.v.ts"), assets.Shader("MsdfText.v.ts"), Font));
+                assets.Shader("AnalyticShape2D.v.ts"), assets.Shader("MsdfText.v.ts"), Font)
+            {
+                EnableFramesInFlight = enableFramesInFlight,
+            });
             Layers.Retarget(Target);
         }
         catch

@@ -21,6 +21,11 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--rendering-r0", StringComparer.Ordinal))
+{
+    RenderingR0Proof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r0"));
+    return;
+}
 if (args.Contains("--look-calibration", StringComparer.Ordinal))
 {
     SemanticLookCalibration.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/look-calibration"),

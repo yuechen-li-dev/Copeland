@@ -18,7 +18,7 @@ internal sealed class VulkanBloom3D : IDisposable
     private readonly List<VulkanPostProcess3D> upPasses = [];
 
     public VulkanBloom3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
-        CompiledGraphicsProgram program, uint width, uint height)
+        CompiledGraphicsProgram program, uint width, uint height, VulkanFrameInFlightSet? frames = null)
     {
         try
         {
@@ -30,7 +30,7 @@ internal sealed class VulkanBloom3D : IDisposable
                     VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource, VulkanMemoryUsage.GpuOnly,
                     "bloom.down", VulkanTextureFormat.Rgba16Float);
                 down.Add(image);
-                downPasses.Add(new(plant, allocator, program, image, 2));
+                downPasses.Add(new(plant, allocator, program, image, 2, frames: frames));
                 if (width == 1 && height == 1) break;
             }
             for (int level = 0; level < down.Count - 1; level++)
@@ -39,7 +39,7 @@ internal sealed class VulkanBloom3D : IDisposable
                     VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource, VulkanMemoryUsage.GpuOnly,
                     "bloom.up", VulkanTextureFormat.Rgba16Float);
                 up.Add(image);
-                upPasses.Add(new(plant, allocator, program, image, 2));
+                upPasses.Add(new(plant, allocator, program, image, 2, frames: frames));
             }
         }
         catch

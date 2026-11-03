@@ -54,6 +54,7 @@ public static class BuiltinShaderLibrary
         new("StaticModel3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Graphics),
         new("SurfaceSolid3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Graphics),
         new("SurfaceModel3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Graphics),
+        new("InstancedModel3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Graphics),
         new("SurfaceResolve3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Graphics),
         new("SurfaceLighting.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Module),
         new("SubsurfaceDiffuse3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Graphics),
@@ -66,6 +67,7 @@ public static class BuiltinShaderLibrary
         new("AmbientDenoise3D.v.ts", ShaderFamily.Lighting, ShaderSourceKind.Graphics),
 
         new("Shadow3D.v.ts", ShaderFamily.Shadows, ShaderSourceKind.Graphics),
+        new("InstancedShadow3D.v.ts", ShaderFamily.Shadows, ShaderSourceKind.Graphics),
         new("ShadowDistanceField.v.ts", ShaderFamily.Shadows, ShaderSourceKind.Module),
 
         new("CompiledDiffuseLighting.v.ts", ShaderFamily.IndirectLighting, ShaderSourceKind.Module),

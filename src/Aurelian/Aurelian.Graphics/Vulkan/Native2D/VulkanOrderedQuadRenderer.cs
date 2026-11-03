@@ -1,3 +1,4 @@
+using Aurelian.Graphics.Vulkan.Native3D;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Security.Cryptography;
@@ -57,7 +58,14 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
     private readonly Dictionary<BindingKey, BindingResource> bindings = [];
     private readonly List<RenderSubmission> submissions = new(InitialQuadCapacity);
 
-    private AurelianVulkanBuffer vertexBuffer;
+    private readonly VulkanFrameInFlightSet frames;
+    private readonly AurelianVulkanBuffer[] vertexFrames = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
+    private AurelianVulkanBuffer vertexBuffer
+    {
+        get => vertexFrames[frames.Slot];
+        set => vertexFrames[frames.Slot] = value;
+    }
+    public bool EnableFramesInFlight { get; set; }
     private byte[] vertexBytes;
     private BindingKey[] submissionKeys = new BindingKey[InitialQuadCapacity];
     private int vertexCapacityQuads = InitialQuadCapacity;
@@ -130,6 +138,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             ? new VulkanTextureUploader(plant, allocator, commandPool, fences)
             : null;
         submitter = new VulkanCommandSubmitter(plant, commandPool, fences);
+        frames = new(fences.CommandListFence);
 
         renderTarget = sharedTarget?.Texture ?? VulkanNativeForwardTexturedRenderer.CreateTexture(
             plant,
@@ -158,7 +167,10 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             ? VulkanNativeForwardTexturedRenderer.CreateSampler(plant, options.LinearFiltering)
             : default;
         descriptorPool = CreateDescriptorPool();
-        vertexBuffer = CreateVertexBuffer(vertexCapacityQuads);
+        for (int index = 0; index < vertexFrames.Length; index++)
+        {
+            vertexFrames[index] = CreateVertexBuffer(vertexCapacityQuads);
+        }
         vertexBytes = new byte[checked(vertexCapacityQuads * VerticesPerQuad * vertexStride)];
     }
 
@@ -214,6 +226,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             throw new ArgumentException("Replacement target format must match the current shared target.", nameof(target));
         }
 
+        frames.Drain();
         loadFramebuffer?.Dispose();
         clearFramebuffer.Dispose();
         sharedTarget = target;
@@ -552,6 +565,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         AurelianVulkanBuffer? readbackBuffer = null;
         try
         {
+            frames.Begin();
             EnsureVertexCapacity(submissions.Count);
             Stopwatch uploadWatch = Stopwatch.StartNew();
             int vertexByteCount = BuildVertices();
@@ -621,11 +635,12 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             Stopwatch submitWatch = Stopwatch.StartNew();
             VulkanCommandSubmitResult submit = submitter.Submit(new VulkanCommandSubmitRequest(
                 commandBuffer,
-                WaitForCompletion: true,
+                WaitForCompletion: captureReadback || !EnableFramesInFlight,
                 TimeoutNanoseconds: FenceWaitTimeoutNanoseconds,
                 DebugName: "native-2d.pass"));
             Require(submit.Success, "2D pass submission failed.");
             submitWatch.Stop();
+            frames.Submitted(submit.SignalFenceValue!.Value);
 
             Stopwatch readbackWatch = Stopwatch.StartNew();
             byte[]? pixels = readbackBuffer?.ReadBytes(checked((int)(width * height * 4)));
@@ -678,7 +693,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             texture.Texture.Dispose();
         }
         textures.Clear();
-        vertexBuffer.Dispose();
+        foreach (var buffer in vertexFrames) buffer.Dispose();
         plant.Vk.DestroyDescriptorPool(plant.Device, descriptorPool, null);
         if (usesTextureResources)
         {
@@ -921,8 +936,9 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             return;
         }
 
-        // Every preceding End2DCore submission waits for completion. Only bindings absent
-        // from this pass may be released; current draws retain their original painter order.
+        // Retirement precedes descriptor release, including asynchronous prior passes.
+        // Current draws retain their original painter order.
+        frames.Drain();
         foreach (BindingKey key in bindings.Keys.Where(key => !currentKeys.Contains(key)).ToArray())
         {
             BindingResource binding = bindings[key];
@@ -1057,7 +1073,8 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
 
     private void EnsureVertexCapacity(int requiredQuads)
     {
-        if (requiredQuads <= vertexCapacityQuads)
+        if (requiredQuads <= vertexCapacityQuads
+            && vertexBuffer.SizeBytes >= (ulong)(requiredQuads * VerticesPerQuad * vertexStride))
         {
             return;
         }

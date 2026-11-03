@@ -128,6 +128,13 @@ public static unsafe class VulkanRenderPassFactory
                 dependencyOut.DstStageMask = PipelineStageFlags.FragmentShaderBit;
                 dependencyOut.DstAccessMask = AccessFlags.ShaderReadBit;
             }
+            if (descriptor.ColorAttachments.Any(color => color.FinalLayout == VulkanResourceLayout.TransferSource))
+            {
+                // A queue submission order alone does not make attachment writes or
+                // the final layout transition visible to a following asynchronous copy.
+                dependencyOut.DstStageMask |= PipelineStageFlags.TransferBit;
+                dependencyOut.DstAccessMask |= AccessFlags.TransferReadBit;
+            }
 
             if (hasDepth)
             {

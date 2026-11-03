@@ -40,6 +40,7 @@ public static class CloudstepInput
 /// </summary>
 public sealed class CloudstepGame : IGame
 {
+    private readonly SceneGeometry3DCache retainedGeometry = new();
     private const string TitleTrack = "cloudstep.music.title";
     private const string CourseTrack = "cloudstep.music.course";
     private static readonly string[] Sounds = ["jump", "land", "gem", "checkpoint", "fall", "goal", "crumble"];
@@ -232,7 +233,7 @@ public sealed class CloudstepGame : IGame
         Vector3 back = Vector3.Normalize(new Vector3(-MathF.Sin(yaw) * MathF.Cos(pitch), MathF.Sin(pitch), MathF.Cos(yaw) * MathF.Cos(pitch)));
         Vector3 eye = boom.Update(world.Physics, cameraPivot, back, 7.5f, 1f / 60);
         Vector3 look = Vector3.Normalize(cameraPivot - eye + new Vector3(0, 0.0001f, 0));
-        return new GameView(SceneGeometry3D.BuildScene(BuildFrame()), Camera3D.Matrix(eye, look, request.Aspect, far: 260), eye);
+        return new GameView(SceneGeometry3D.BuildScene(BuildFrame(), request.RetainedGeometry ? retainedGeometry : null), Camera3D.Matrix(eye, look, request.Aspect, far: 260), eye);
     }
 
     public void BuildHud(GameHud hud)

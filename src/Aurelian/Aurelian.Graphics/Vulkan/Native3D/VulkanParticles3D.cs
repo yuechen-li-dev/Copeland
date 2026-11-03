@@ -28,12 +28,15 @@ public sealed unsafe class VulkanParticles3D : IDisposable
     private readonly AurelianVulkanPlant plant;
     private readonly RawVulkanMemoryAllocator allocator;
     private readonly List<AurelianVulkanBuffer> buffers = [];
-    private readonly AurelianVulkanBuffer emitters;
-    private readonly AurelianVulkanBuffer view;
+    private readonly AurelianVulkanBuffer[] emitterFrames = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
+    private readonly AurelianVulkanBuffer[] viewFrames = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
+    private readonly DescriptorSet[] descriptorSets = new DescriptorSet[VulkanFrameInFlightSet.Count];
+    private int frameSlot;
+    private AurelianVulkanBuffer emitters => emitterFrames[frameSlot];
+    private AurelianVulkanBuffer view => viewFrames[frameSlot];
     private readonly bool readback;
     private DescriptorSetLayout setLayout;
     private DescriptorPool descriptorPool;
-    private DescriptorSet descriptorSet;
     private PipelineLayout pipelineLayout;
     private Pipeline pipeline;
     private bool disposed;
@@ -78,12 +81,16 @@ public sealed unsafe class VulkanParticles3D : IDisposable
         allocator = new(plant);
         try
         {
-            emitters = Buffer((ulong)maximumEmitters * EmitterBytes, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
-            view = Buffer(32, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
+            for (int index = 0; index < VulkanFrameInFlightSet.Count; index++)
+            {
+                emitterFrames[index] = Buffer((ulong)maximumEmitters * EmitterBytes,
+                    VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
+                viewFrames[index] = Buffer(32, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
+            }
             Vertices = Buffer((ulong)maximumEmitters * (ulong)particlesPerEmitter * 6 * NativeParticleVertex3D.Stride,
                 VulkanBufferUsage.Storage | VulkanBufferUsage.Vertex,
                 readback ? VulkanMemoryUsage.GpuToCpu : VulkanMemoryUsage.GpuOnly);
-            CreatePipeline(spirv, [emitters, view, Vertices]);
+            CreatePipeline(spirv);
         }
         catch
         {
@@ -92,9 +99,10 @@ public sealed unsafe class VulkanParticles3D : IDisposable
         }
     }
 
-    internal void Configure(IReadOnlyList<ParticleEmitter3D> source, Matrix4x4 clip)
+    internal void Configure(IReadOnlyList<ParticleEmitter3D> source, Matrix4x4 clip, int slot = 0)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
+        frameSlot = slot;
         if (source.Count > MaximumEmitters || source.Select(item => item.Id).Distinct(StringComparer.Ordinal).Count() != source.Count)
         {
             throw new ArgumentException("AUR-VFX-003: Emitter identities must be unique and fit the pool; excess emitters are rejected.");
@@ -149,7 +157,7 @@ public sealed unsafe class VulkanParticles3D : IDisposable
             AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
             PipelineStageFlags.VertexInputBit | PipelineStageFlags.HostBit, PipelineStageFlags.ComputeShaderBit);
         plant.Vk.CmdBindPipeline(command.CommandBuffer, PipelineBindPoint.Compute, pipeline);
-        DescriptorSet set = descriptorSet;
+        DescriptorSet set = descriptorSets[frameSlot];
         plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Compute, pipelineLayout, 0, 1, &set, 0, null);
         plant.Vk.CmdDispatch(command.CommandBuffer, (VertexCount / 6 + 63) / 64, 1, 1);
         Barrier(command.CommandBuffer, AccessFlags.ShaderWriteBit, AccessFlags.VertexAttributeReadBit | AccessFlags.HostReadBit,
@@ -175,7 +183,7 @@ public sealed unsafe class VulkanParticles3D : IDisposable
         return MemoryMarshal.Cast<byte, NativeParticleVertex3D>(Vertices.ReadBytes(checked((int)VertexCount * NativeParticleVertex3D.Stride))).ToArray();
     }
 
-    private void CreatePipeline(byte[] spirv, AurelianVulkanBuffer[] resources)
+    private void CreatePipeline(byte[] spirv)
     {
         DescriptorSetLayoutBinding* bindings = stackalloc DescriptorSetLayoutBinding[3];
         for (uint index = 0; index < 3; index++)
@@ -187,11 +195,11 @@ public sealed unsafe class VulkanParticles3D : IDisposable
             PBindings = bindings
         };
         fixed (DescriptorSetLayout* value = &setLayout) Check(plant.Vk.CreateDescriptorSetLayout(plant.Device, &layout, null, value));
-        var size = new DescriptorPoolSize(DescriptorType.StorageBuffer, 3);
+        var size = new DescriptorPoolSize(DescriptorType.StorageBuffer, 3 * VulkanFrameInFlightSet.Count);
         var pool = new DescriptorPoolCreateInfo
         {
             SType = StructureType.DescriptorPoolCreateInfo,
-            MaxSets = 1,
+            MaxSets = VulkanFrameInFlightSet.Count,
             PoolSizeCount = 1,
             PPoolSizes = &size
         };
@@ -204,23 +212,30 @@ public sealed unsafe class VulkanParticles3D : IDisposable
             DescriptorSetCount = 1,
             PSetLayouts = &descriptorLayout
         };
-        fixed (DescriptorSet* value = &descriptorSet) Check(plant.Vk.AllocateDescriptorSets(plant.Device, &allocate, value));
         DescriptorBufferInfo* infos = stackalloc DescriptorBufferInfo[3];
         WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[3];
-        for (int index = 0; index < 3; index++)
+        for (int slot = 0; slot < VulkanFrameInFlightSet.Count; slot++)
         {
-            infos[index] = new(resources[index].NativeBuffer, 0, resources[index].SizeBytes);
-            writes[index] = new()
+            fixed (DescriptorSet* value = &descriptorSets[slot])
             {
-                SType = StructureType.WriteDescriptorSet,
-                DstSet = descriptorSet,
-                DstBinding = (uint)index,
-                DescriptorCount = 1,
-                DescriptorType = DescriptorType.StorageBuffer,
-                PBufferInfo = &infos[index]
-            };
+                Check(plant.Vk.AllocateDescriptorSets(plant.Device, &allocate, value));
+            }
+            AurelianVulkanBuffer[] resources = [emitterFrames[slot], viewFrames[slot], Vertices];
+            for (int index = 0; index < resources.Length; index++)
+            {
+                infos[index] = new(resources[index].NativeBuffer, 0, resources[index].SizeBytes);
+                writes[index] = new()
+                {
+                    SType = StructureType.WriteDescriptorSet,
+                    DstSet = descriptorSets[slot],
+                    DstBinding = (uint)index,
+                    DescriptorCount = 1,
+                    DescriptorType = DescriptorType.StorageBuffer,
+                    PBufferInfo = &infos[index],
+                };
+            }
+            plant.Vk.UpdateDescriptorSets(plant.Device, 3, writes, 0, null);
         }
-        plant.Vk.UpdateDescriptorSets(plant.Device, 3, writes, 0, null);
         var layoutInfo = new PipelineLayoutCreateInfo
         {
             SType = StructureType.PipelineLayoutCreateInfo,

@@ -39,6 +39,16 @@ public sealed class GameMenuNativePresenter : IDisposable
         }
     }
 
+    public bool EnableFramesInFlight
+    {
+        get => shapes.EnableFramesInFlight;
+        set
+        {
+            shapes.EnableFramesInFlight = value;
+            text.EnableFramesInFlight = value;
+        }
+    }
+
     public int GeometryRebuilds { get; private set; }
     public int FontUploads => fontCache.UploadCount;
 

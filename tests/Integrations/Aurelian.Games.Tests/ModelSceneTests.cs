@@ -11,6 +11,38 @@ namespace Aurelian.Games.Tests;
 public sealed class ModelSceneTests
 {
     [Fact]
+    public void RetainedProjectionSharesMeshesAcrossTransformsAndPreservesMaterialAdmission()
+    {
+        var material = new ModelMaterial("box") { Metallic = 0 };
+        SceneBox box = Scene.Box("box", Vector3.One, Vector4.One) with { Material = material };
+        using var firstScene = SceneCompiler.Compile(Scene.World("room", [box])).Mount();
+        using var movedScene = SceneCompiler.Compile(Scene.World("room", [box with
+        {
+            Transform = SceneTransform.At(Vector3.UnitX),
+        }])).Mount();
+        var cache = new SceneGeometry3DCache();
+        var first = SceneGeometry3D.BuildScene(firstScene.Project(), cache);
+        var moved = SceneGeometry3D.BuildScene(movedScene.Project(), cache);
+        Assert.Empty(first.Models);
+        Assert.Same(first.Instances[0].Mesh, moved.Instances[0].Mesh);
+        Assert.NotEqual(first.Instances[0].Transform, moved.Instances[0].Transform);
+        Assert.Equal(first.TemporalRevision, moved.TemporalRevision);
+        Assert.NotEqual(first.LightingRevision, moved.LightingRevision);
+
+        var normal = new ModelTextureBinding(new("normal", 1, 1,
+            ImmutableArray.Create<byte>(128, 128, 255, 255)), new());
+        SceneFrame projected = firstScene.Project();
+        SceneFrame changed = projected with
+        {
+            Boxes = projected.Boxes.SetItem(0, projected.Boxes[0] with
+            {
+                Material = material with { NormalTexture = normal },
+            }),
+        };
+        Assert.Throws<InvalidDataException>(() => SceneGeometry3D.BuildScene(changed, cache));
+    }
+
+    [Fact]
     public void WaterPatchHasUpwardIndexedGeometryAndProfileOwnedIdentity()
     {
         var profile = new WaterSurface3D();

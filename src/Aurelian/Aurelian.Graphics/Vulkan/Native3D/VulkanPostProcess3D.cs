@@ -22,17 +22,16 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
     private readonly AurelianVulkanPlant plant;
     private readonly Stack<IDisposable> owned = new();
     private readonly DescriptorSetLayout layout;
-    private readonly DescriptorPool pool;
-    private readonly DescriptorSet set;
+    private readonly Vulkan3DFrameBindings bindings;
     private readonly Sampler sampler;
     private readonly Sampler linearSampler;
-    private readonly AurelianVulkanBuffer uniform;
     private readonly AurelianVulkanGraphicsPipeline pipeline;
     private readonly int inputCount;
     private bool disposed;
 
     public VulkanPostProcess3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
-        CompiledGraphicsProgram program, AurelianVulkanTexture output, int inputCount, Filter filter = Filter.Linear, AurelianVulkanTexture? secondOutput = null)
+        CompiledGraphicsProgram program, AurelianVulkanTexture output, int inputCount, Filter filter = Filter.Linear,
+        AurelianVulkanTexture? secondOutput = null, VulkanFrameInFlightSet? frames = null)
     {
         this.plant = plant;
         this.inputCount = inputCount;
@@ -60,9 +59,8 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
             var created = VulkanGraphicsPipelineFactory.Create(plant, Pass, descriptor.Descriptor!, [layout]);
             Require(created.Success, string.Join("; ", created.Diagnostics.Select(item => item.Message)));
             pipeline = Own(created.Pipeline!);
-            uniform = Own(VulkanNativeForwardTexturedRenderer.CreateMappedBuffer(plant, allocator,
-                (ulong)program.Material!.Size, VulkanBufferUsage.Uniform, VulkanMemoryUsage.CpuToGpu, "post.uniform"));
-            (pool, set) = Vulkan3DPass.AllocateSet(plant, layout, uniform, (uint)inputCount);
+            bindings = Own(new Vulkan3DFrameBindings(plant, allocator, layout,
+                program.Material!.Size, (uint)inputCount, frames));
             sampler = Vulkan3DPass.CreateSampler(plant, filter);
             linearSampler = Vulkan3DPass.CreateSampler(plant, Filter.Linear);
         }
@@ -78,14 +76,14 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
 
     public void Configure(float[] values, params AurelianVulkanTexture[] inputs)
     {
-        if (inputs.Length != inputCount || values.Length * 4 != (int)uniform.SizeBytes)
+        if (inputs.Length != inputCount || values.Length * 4 != (int)bindings.Uniform.SizeBytes)
             throw new ArgumentException("Fullscreen resources and uniform must match the compiled shader ABI.");
-        Require(uniform.Write(MemoryMarshal.AsBytes(values.AsSpan())).Success, "Fullscreen uniform upload failed.");
+        Require(bindings.Uniform.Write(MemoryMarshal.AsBytes(values.AsSpan())).Success, "Fullscreen uniform upload failed.");
         for (int index = 0; index < inputs.Length; index++)
         {
             if (Framebuffer.Descriptor.ColorAttachments.Contains(inputs[index]))
                 throw new InvalidOperationException("A fullscreen pass cannot sample its own render target.");
-            Vulkan3DPass.WriteImage(plant, set, (uint)(1 + index * 2), inputs[index], sampler);
+            Vulkan3DPass.WriteImage(plant, bindings.Set, (uint)(1 + index * 2), inputs[index], sampler);
         }
     }
 
@@ -98,7 +96,7 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
                 .Select(_ => new VulkanColorClearValue(0, 0, 0, 0)).ToArray(),
         });
         Require(begin.Success, "Fullscreen pass begin failed.");
-        DescriptorSet descriptor = set;
+        DescriptorSet descriptor = bindings.Set;
         plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Graphics,
             pipeline.NativePipelineLayout, 0, 1, &descriptor, 0, null);
         var draw = new VulkanDrawCommandEncoder().DrawVertices(plant, command, begin.Scope!.Value,
@@ -113,7 +111,7 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
         {
             throw new ArgumentException("Linear fullscreen input must be an admitted input distinct from the output.");
         }
-        Vulkan3DPass.WriteImage(plant, set, (uint)(1 + index * 2), texture, linearSampler);
+        Vulkan3DPass.WriteImage(plant, bindings.Set, (uint)(1 + index * 2), texture, linearSampler);
     }
 
     private static void Validate(CompiledGraphicsProgram program, int count)
@@ -146,7 +144,6 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
     {
         if (disposed) return;
         disposed = true;
-        if (pool.Handle != 0) plant.Vk.DestroyDescriptorPool(plant.Device, pool, null);
         if (sampler.Handle != 0) plant.Vk.DestroySampler(plant.Device, sampler, null);
         if (linearSampler.Handle != 0) plant.Vk.DestroySampler(plant.Device, linearSampler, null);
         while (owned.TryPop(out var resource)) resource.Dispose();

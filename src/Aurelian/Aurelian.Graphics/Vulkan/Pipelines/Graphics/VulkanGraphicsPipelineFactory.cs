@@ -508,7 +508,7 @@ public static unsafe class VulkanGraphicsPipelineFactory
         {
             Binding = vertexBuffer.Binding,
             Stride = vertexBuffer.Stride,
-            InputRate = VertexInputRate.Vertex,
+            InputRate = vertexBuffer.PerInstance ? VertexInputRate.Instance : VertexInputRate.Vertex,
         }).ToArray();
 
     private static VertexInputAttributeDescription[] CreateAttributeDescriptions(IReadOnlyList<VulkanVertexAttributeDescriptor> vertexAttributes)

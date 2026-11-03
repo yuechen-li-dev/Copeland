@@ -1,0 +1,71 @@
+using System.Collections.Immutable;
+using System.Numerics;
+using Aurelian.Rendering.Contracts.Models;
+
+namespace Aurelian.Graphics.Vulkan.Native3D;
+
+/// <summary>Immutable local-space geometry. Identity and validation belong to the asset, not a frame.</summary>
+public sealed class NativeMesh3D
+{
+    public string Identity { get; }
+    public ImmutableArray<NativeModel3DVertex> Vertices { get; }
+    public ImmutableArray<uint> Indices { get; }
+
+    public NativeMesh3D(string identity, IEnumerable<NativeModel3DVertex> vertices, IEnumerable<uint> indices)
+    {
+        Identity = identity;
+        Vertices = vertices.ToImmutableArray();
+        Indices = indices.ToImmutableArray();
+        if (string.IsNullOrWhiteSpace(identity) || Vertices.IsEmpty || Indices.IsEmpty
+            || Indices.Length % 3 != 0 || Indices.Any(index => index >= Vertices.Length))
+        {
+            throw new InvalidDataException("AUR-MESH-001: Meshes require an identity and in-range complete indexed triangles.");
+        }
+        foreach (NativeModel3DVertex vertex in Vertices)
+        {
+            if (!Finite(vertex.Position) || !Finite(vertex.Normal) || !Finite(vertex.Color)
+                || !Finite(vertex.Tangent) || !float.IsFinite(vertex.Uv.X) || !float.IsFinite(vertex.Uv.Y))
+            {
+                throw new InvalidDataException("AUR-MESH-002: Mesh vertices must be finite.");
+            }
+        }
+    }
+
+    public static NativeMesh3D FromPrimitive(ModelPrimitive primitive) => new(primitive.Id,
+        primitive.Vertices.Select(vertex => new NativeModel3DVertex(vertex.Position, vertex.Normal,
+            vertex.Color, vertex.Uv, vertex.Tangent)), primitive.Indices.Select(index => (uint)index));
+
+    private static bool Finite(Vector3 value) => float.IsFinite(value.X) && float.IsFinite(value.Y) && float.IsFinite(value.Z);
+    private static bool Finite(Vector4 value) => float.IsFinite(value.X) && float.IsFinite(value.Y)
+        && float.IsFinite(value.Z) && float.IsFinite(value.W);
+}
+
+public sealed record SceneInstance3D(string Identity, NativeMesh3D Mesh, ModelMaterial Material, Matrix4x4 Transform)
+{
+    public Matrix4x4? PreviousTransform { get; init; }
+
+    /// <summary>Compatibility for forward-only materials and the existing planar reflection renderer.</summary>
+    public NativeModel3DBatch Expand()
+    {
+        if (!Matrix4x4.Invert(Transform, out var inverse))
+        {
+            throw new InvalidDataException("AUR-MESH-011: Instance transforms must be invertible.");
+        }
+        Matrix4x4 normals = Matrix4x4.Transpose(inverse);
+        var vertices = new NativeModel3DVertex[Mesh.Indices.Length];
+        for (int index = 0; index < vertices.Length; index++)
+        {
+            var vertex = Mesh.Vertices[(int)Mesh.Indices[index]];
+            Vector3 normal = Vector3.Normalize(Vector3.TransformNormal(vertex.Normal, normals));
+            Vector3 tangent = Vector3.TransformNormal(new(vertex.Tangent.X, vertex.Tangent.Y, vertex.Tangent.Z), Transform);
+            tangent = Vector3.Normalize(tangent - normal * Vector3.Dot(normal, tangent));
+            vertices[index] = vertex with
+            {
+                Position = Vector3.Transform(vertex.Position, Transform),
+                Normal = normal,
+                Tangent = new(tangent, vertex.Tangent.W),
+            };
+        }
+        return new(vertices, Material) { TemporalIdentity = Identity };
+    }
+}

@@ -22,16 +22,15 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
     private readonly AurelianVulkanPlant plant;
     private readonly Stack<IDisposable> owned = new();
     private readonly DescriptorSetLayout layout;
-    private readonly DescriptorPool pool;
-    private readonly DescriptorSet set;
+    private readonly Vulkan3DFrameBindings bindings;
     private readonly Sampler sampler;
-    private readonly AurelianVulkanBuffer uniform;
     private readonly AurelianVulkanGraphicsPipeline pipeline;
     private readonly AurelianVulkanGraphicsPipeline? modelPipeline;
     private bool disposed;
 
     public Vulkan3DPass(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator, CompiledGraphicsProgram program,
-        AurelianVulkanTexture color, uint width, uint height, bool shadow, AurelianVulkanTexture? sampled = null)
+        AurelianVulkanTexture color, uint width, uint height, bool shadow, AurelianVulkanTexture? sampled = null,
+        VulkanFrameInFlightSet? frames = null)
     {
         this.plant = plant;
         Validate(program, shadow, sampled is not null);
@@ -61,14 +60,16 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
                 modelPipeline = CreatePipeline(program, 64, true);
             }
             int bytes = program.Material?.Size ?? throw new ArgumentException("3D pass requires a material uniform.", nameof(program));
-            uniform = Own(VulkanNativeForwardTexturedRenderer.CreateMappedBuffer(plant, allocator, (ulong)bytes,
-                VulkanBufferUsage.Uniform, VulkanMemoryUsage.CpuToGpu, "3d.pass.uniform"));
-            (pool, set) = AllocateSet(plant, layout, uniform, sampled is null ? 0u : (uint)((program.Resources.Count - 1) / 2));
+            bindings = Own(new Vulkan3DFrameBindings(plant, allocator, layout, bytes,
+                sampled is null ? 0u : (uint)((program.Resources.Count - 1) / 2), frames));
             if (sampled is not null)
             {
                 sampler = CreateSampler(plant, Filter.Linear);
-                WriteImage(plant, set, 1, sampled, sampler);
-                if (program.Resources.Count == 5) WriteImage(plant, set, 3, sampled, sampler);
+                foreach (DescriptorSet set in bindings.Sets)
+                {
+                    WriteImage(plant, set, 1, sampled, sampler);
+                    if (program.Resources.Count == 5) WriteImage(plant, set, 3, sampled, sampler);
+                }
             }
         }
         catch
@@ -78,6 +79,8 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
         }
     }
 
+    internal DescriptorSet Descriptor => bindings.Set;
+    internal DescriptorSetLayout DescriptorLayout => layout;
     public AurelianVulkanRenderPass Pass { get; }
     public AurelianVulkanFramebuffer Framebuffer { get; }
 
@@ -111,19 +114,19 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
 
     public void SetOutputTextures(AurelianVulkanTexture source, AurelianVulkanTexture bloom)
     {
-        WriteImage(plant, set, 1, source, sampler);
-        WriteImage(plant, set, 3, bloom, sampler);
+        WriteImage(plant, bindings.Set, 1, source, sampler);
+        WriteImage(plant, bindings.Set, 3, bloom, sampler);
     }
 
     public void Upload(ReadOnlySpan<float> values)
     {
-        Require(uniform.Write(MemoryMarshal.AsBytes(values)).Success, "3D pass uniform upload failed.");
+        Require(bindings.Uniform.Write(MemoryMarshal.AsBytes(values)).Success, "3D pass uniform upload failed.");
     }
 
     public void Draw(VulkanCommandBufferLease command, VulkanRenderPassScope scope, AurelianVulkanBuffer vertices,
         uint count, bool model = false, uint first = 0)
     {
-        DescriptorSet descriptor = set;
+        DescriptorSet descriptor = bindings.Set;
         AurelianVulkanGraphicsPipeline selected = model ? modelPipeline! : pipeline;
         plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Graphics,
             selected.NativePipelineLayout, 0, 1, &descriptor, 0, null);
@@ -257,10 +260,6 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
             return;
         }
         disposed = true;
-        if (pool.Handle != 0)
-        {
-            plant.Vk.DestroyDescriptorPool(plant.Device, pool, null);
-        }
         if (sampler.Handle != 0)
         {
             plant.Vk.DestroySampler(plant.Device, sampler, null);
