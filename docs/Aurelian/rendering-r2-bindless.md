@@ -7,7 +7,8 @@ The existing GPU cluster culler consumes those same runs.
 
 This implements the material-table portion of R2. [Typed visibility targets, primitive identity and
 ID-driven material resolve](rendering-r2-visibility.md) are now implemented in the follow-up. Compute
-material scheduling and LOD remain subsequent experiments; [two-phase HZB](rendering-r2-hzb.md) is now implemented.
+material scheduling remains a subsequent experiment; [two-phase HZB](rendering-r2-hzb.md) and
+[offline asset LOD](rendering-r2-lod.md) are now implemented.
 
 ## Use it
 

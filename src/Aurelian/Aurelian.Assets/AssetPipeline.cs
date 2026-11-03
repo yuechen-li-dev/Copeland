@@ -124,7 +124,7 @@ public static class AssetManifestParser
             {
                 foreach (TomlTable item in modelTables.OfType<TomlTable>())
                 {
-                    foreach (string key in item.Keys.Where(key => key is not "id" and not "path" and not "scale"))
+                    foreach (string key in item.Keys.Where(key => key is not "id" and not "path" and not "scale" and not "lod" and not "lod_file"))
                         assetDiagnostics.Add(new("AA3201", "error", $"Unsupported model import setting '{key}'.", manifestPath));
                     float scale = 1;
                     if (item.TryGetValue("scale", out var authoredScale)
@@ -133,10 +133,19 @@ public static class AssetManifestParser
                     {
                         assetDiagnostics.Add(new("AA3202", "error", "Model scale must be a number.", manifestPath));
                     }
+                    bool generateLods = false;
+                    if (item.TryGetValue("lod", out var authoredLod))
+                    {
+                        if (authoredLod is bool enabled) generateLods = enabled;
+                        else assetDiagnostics.Add(new("AA3202", "error", "Model lod must be a boolean.", manifestPath));
+                    }
                     manifest.Models.Add(new(
                         item.TryGetValue("id", out var modelId) ? modelId?.ToString() ?? "" : "",
                         item.TryGetValue("path", out var modelPath) ? modelPath?.ToString() ?? "" : "",
-                        new(scale)));
+                        new(scale, generateLods))
+                    {
+                        LodPath = item.TryGetValue("lod_file", out var lodPath) ? lodPath?.ToString() : null,
+                    });
                 }
             }
         }

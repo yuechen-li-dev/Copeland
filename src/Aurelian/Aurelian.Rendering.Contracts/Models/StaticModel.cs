@@ -100,11 +100,35 @@ public sealed record ModelMaterial(string Slot)
 }
 
 public readonly record struct ModelVertex(Vector3 Position, Vector3 Normal, Vector2 Uv, Vector4 Tangent, Vector4 Color);
+/// <summary>Offline index-only simplification. Error is an object-space estimate, not a Hausdorff bound.</summary>
+public sealed record ModelLod(ImmutableArray<int> Indices, float Error)
+{
+    public static void ValidateChain(ImmutableArray<ModelLod> levels, int vertexCount, int baseIndexCount)
+    {
+        if (levels.IsDefault || levels.Length > 3)
+            throw new InvalidDataException("AUR-LOD-001: At most three additional prepared levels are supported.");
+        int count = baseIndexCount;
+        float error = 0;
+        foreach (var level in levels)
+        {
+            if (level.Indices.IsDefaultOrEmpty || level.Indices.Length % 3 != 0 || level.Indices.Length >= count
+                || level.Indices.Any(index => index < 0 || index >= vertexCount)
+                || !float.IsFinite(level.Error) || level.Error < error || level.Error <= 0)
+                throw new InvalidDataException("AUR-LOD-002: Prepared levels need decreasing complete triangles and positive monotonic errors.");
+            count = level.Indices.Length;
+            error = level.Error;
+        }
+    }
+}
+
 public sealed record ModelPrimitive(string Id, ImmutableArray<ModelVertex> Vertices,
     ImmutableArray<int> Indices, ModelMaterial Material)
 {
     public bool HasUv { get; init; } = true;
     public bool HasTangents { get; init; } = true;
+    public ImmutableArray<ModelLod> Lods { get; init; } = [];
+
+    public void ValidateLods() => ModelLod.ValidateChain(Lods, Vertices.Length, Indices.Length);
 
     public void ValidateMaterial(ModelMaterial material)
     {
@@ -130,6 +154,7 @@ public sealed class StaticModel
         foreach (ModelOccurrence occurrence in Occurrences)
         {
             ModelPrimitive primitive = occurrence.Primitive;
+            primitive.ValidateLods();
             primitive.ValidateMaterial(primitive.Material);
             if (primitive.Vertices.IsDefaultOrEmpty || primitive.Indices.IsDefaultOrEmpty || primitive.Indices.Length % 3 != 0
                 || primitive.Indices.Any(index => index < 0 || index >= primitive.Vertices.Length))

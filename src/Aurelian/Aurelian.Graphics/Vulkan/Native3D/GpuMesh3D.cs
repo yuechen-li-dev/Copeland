@@ -25,7 +25,7 @@ internal sealed class GpuMesh3D : IDisposable
         try
         {
             Vertices = Upload(MemoryMarshal.AsBytes(mesh.Vertices.AsSpan()).ToArray(), VulkanBufferUsage.Vertex);
-            Indices = Upload(MemoryMarshal.AsBytes(mesh.Indices.AsSpan()).ToArray(), VulkanBufferUsage.Index);
+            Indices = Upload(MemoryMarshal.AsBytes(mesh.PackedIndices.AsSpan()).ToArray(), VulkanBufferUsage.Index);
         }
         catch
         {

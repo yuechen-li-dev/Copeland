@@ -172,4 +172,5 @@ raw identity comparisons, oracle counts and per-pass timings are in the native e
 
 [Two-phase HZB](rendering-r2-hzb.md) now builds on this depth/identity path. It uses GPU depth-buffer
 copies and storage-buffer reductions, conservative current-frame rescue and a stable final raster.
-Compute material scheduling, LOD and the optional analytic comparison remain subsequent experiments.
+[Offline asset LOD](rendering-r2-lod.md) now adds prepared index ranges and GPU selection with hysteresis.
+Compute material scheduling and the optional analytic comparison remain subsequent experiments.

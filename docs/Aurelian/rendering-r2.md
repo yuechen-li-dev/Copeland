@@ -5,7 +5,8 @@ cluster bounds, culls on the GPU, compacts stable indirect commands, and renders
 material fragment shaders and R1 frame tape. [Resident bindless material tables](rendering-r2-bindless.md)
 now extend that path and remove per-material geometry descriptor binds. [Typed visibility buffers and
 ID-driven material resolve](rendering-r2-visibility.md) are also implemented. [Two-phase HZB](rendering-r2-hzb.md)
-is available as an opt-in follow-up. Compute material scheduling, LOD and hybrid analytic visibility
+is available as an opt-in follow-up. [Offline asset LOD and GPU selection](rendering-r2-lod.md) are also
+implemented. Compute material scheduling and hybrid analytic visibility
 remain open. The probes below document the original interface boundary; linked follow-ups describe
 the subsequent implementations and their qualification.
 
@@ -119,8 +120,9 @@ Future compute classification/resolve needs compute image access through those s
 The HZB follow-up adds current-frame depth production, GPU pyramids and conservative rescue across camera
 cuts. It redraws the accepted set in stable source order to preserve equal-depth semantics. The original
 opaque pass still discards its hardware depth after the pass; HZB uses the visibility raster's separate
-stored depth target. Offline LOD chains and hysteresis remain unimplemented; the measured Forest keeps the full
-source geometry and incurs no simplification error. Hybrid analytic/triangle visibility has not been timed
+stored depth target. [Offline LOD chains and hysteresis](rendering-r2-lod.md) are now implemented in a follow-up;
+the original measurements in this report keep full source geometry and incur no simplification error.
+Hybrid analytic/triangle visibility has not been timed
 or killed by an experiment. It depends on the typed shared visibility/depth interface first.
 
 ## Aetheris reuse and licensing
@@ -190,4 +192,4 @@ floating-point correctness claim for every possible scene.
 
 The qualification ledger labels its scope as the resident GPU-clustered grouped-material path and marks
 `FullR2Complete` false. Bindless tables and visibility/material resolve are now implemented in the linked
-follow-ups. Two-phase HZB is also implemented. Compute material scheduling, LOD and the analytic comparison remain open.
+follow-ups. Two-phase HZB and offline asset LOD are also implemented. Compute material scheduling and the analytic comparison remain open.

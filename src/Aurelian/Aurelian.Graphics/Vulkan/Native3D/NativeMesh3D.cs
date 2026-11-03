@@ -10,8 +10,11 @@ public sealed class NativeMesh3D
     public string Identity { get; }
     public ImmutableArray<NativeModel3DVertex> Vertices { get; }
     public ImmutableArray<uint> Indices { get; }
+    public ImmutableArray<uint> PackedIndices { get; }
+    public ImmutableArray<NativeLodRange3D> LodRanges { get; }
 
-    public NativeMesh3D(string identity, IEnumerable<NativeModel3DVertex> vertices, IEnumerable<uint> indices)
+    public NativeMesh3D(string identity, IEnumerable<NativeModel3DVertex> vertices, IEnumerable<uint> indices,
+        IEnumerable<ModelLod>? lods = null)
     {
         Identity = identity;
         Vertices = vertices.ToImmutableArray();
@@ -29,16 +32,30 @@ public sealed class NativeMesh3D
                 throw new InvalidDataException("AUR-MESH-002: Mesh vertices must be finite.");
             }
         }
+        ModelLod[] levels = lods?.ToArray() ?? [];
+        ModelLod.ValidateChain(levels.ToImmutableArray(), Vertices.Length, Indices.Length);
+        var packed = Indices.ToBuilder();
+        var ranges = ImmutableArray.CreateBuilder<NativeLodRange3D>();
+        ranges.Add(new(0, 0, (uint)Indices.Length));
+        foreach (var level in levels)
+        {
+            ranges.Add(new(level.Error, (uint)packed.Count, (uint)level.Indices.Length));
+            packed.AddRange(level.Indices.Select(index => (uint)index));
+        }
+        PackedIndices = packed.ToImmutable();
+        LodRanges = ranges.ToImmutable();
     }
 
     public static NativeMesh3D FromPrimitive(ModelPrimitive primitive) => new(primitive.Id,
         primitive.Vertices.Select(vertex => new NativeModel3DVertex(vertex.Position, vertex.Normal,
-            vertex.Color, vertex.Uv, vertex.Tangent)), primitive.Indices.Select(index => (uint)index));
+            vertex.Color, vertex.Uv, vertex.Tangent)), primitive.Indices.Select(index => (uint)index), primitive.Lods);
 
     private static bool Finite(Vector3 value) => float.IsFinite(value.X) && float.IsFinite(value.Y) && float.IsFinite(value.Z);
     private static bool Finite(Vector4 value) => float.IsFinite(value.X) && float.IsFinite(value.Y)
         && float.IsFinite(value.Z) && float.IsFinite(value.W);
 }
+
+public readonly record struct NativeLodRange3D(float Error, uint FirstIndex, uint IndexCount);
 
 public sealed record SceneInstance3D(string Identity, NativeMesh3D Mesh, ModelMaterial Material, Matrix4x4 Transform)
 {

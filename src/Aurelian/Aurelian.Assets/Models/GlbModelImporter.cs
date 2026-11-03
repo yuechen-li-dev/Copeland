@@ -10,7 +10,7 @@ using SkiaSharp;
 
 namespace Aurelian.Assets.Models;
 
-public sealed record ModelImportSettings(float Scale = 1);
+public sealed record ModelImportSettings(float Scale = 1, bool GenerateLods = false);
 public sealed record ModelImportResult(StaticModel? Model, IReadOnlyList<AssetDiagnostic> Diagnostics)
 {
     public bool Success => Model is not null && !Diagnostics.Any(item => item.Fatal);
@@ -22,7 +22,7 @@ public static class GlbModelImporter
     public const string Version = "aurelian.glb.static.v2/sharpgltf-1.0.7";
     private const int MaximumBytes = 128 * 1024 * 1024;
 
-    public static ModelImportResult Load(string id, string path, ModelImportSettings? settings = null)
+    public static ModelImportResult Load(string id, string path, ModelImportSettings? settings = null, string? compiledLodPath = null)
     {
         var diagnostics = new List<AssetDiagnostic>();
         try
@@ -61,6 +61,8 @@ public static class GlbModelImporter
                             ModelMaterial material = primitive.Material is null
                                 ? new ModelMaterial("$default") : materials[primitive.Material];
                             imported = ReadPrimitive(primitive, material);
+                            if (settings.GenerateLods && compiledLodPath is null)
+                                imported = ModelLodCompiler.Compile(imported);
                             primitives.Add(primitive, imported);
                         }
                         Matrix4x4 transform = node.WorldMatrix * Matrix4x4.CreateScale(settings.Scale);
@@ -92,7 +94,13 @@ public static class GlbModelImporter
             if (occurrences.Sum(item => (long)item.Primitive.Indices.Length) > 1_000_000)
                 throw new InvalidDataException("Static model exceeds one million triangle-list vertices.");
             string identity = ContentIdentity(bytes, settings);
-            return new(new StaticModel(id, identity, occurrences), diagnostics);
+            var model = new StaticModel(id, identity, occurrences);
+            if (compiledLodPath is not null)
+            {
+                if (!settings.GenerateLods) throw new InvalidDataException("AUR-LOD-009: Delivery LOD requires lod = true.");
+                model = ModelLodArtifact.Read(compiledLodPath, model);
+            }
+            return new(model, diagnostics);
         }
         catch (Exception error) when (error is not OutOfMemoryException && error is not StackOverflowException)
         {
@@ -104,6 +112,8 @@ public static class GlbModelImporter
     internal static string ContentIdentity(byte[] bytes, ModelImportSettings settings)
     {
         byte[] settingsBytes = System.Text.Encoding.UTF8.GetBytes(Version + ":" + settings.Scale.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+        if (settings.GenerateLods)
+            settingsBytes = [.. settingsBytes, .. System.Text.Encoding.UTF8.GetBytes(":" + ModelLodCompiler.Version)];
         return Convert.ToHexString(SHA256.HashData([.. bytes, .. settingsBytes])).ToLowerInvariant();
     }
 

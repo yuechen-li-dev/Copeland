@@ -457,8 +457,8 @@ public static unsafe partial class VulkanPlantInitializer
         if (!QueryVisibilityBuffer(vk, selected) || !QueryIndirectDrawing(vk, selected)) return false;
         vk.GetPhysicalDeviceProperties(selected.PhysicalDevice, out PhysicalDeviceProperties properties);
         vk.GetPhysicalDeviceFormatProperties(selected.PhysicalDevice, Format.D32Sfloat, out FormatProperties format);
-        return properties.Limits.MaxPerStageDescriptorStorageBuffers >= 7
-            && properties.Limits.MaxDescriptorSetStorageBuffers >= 7
+        return properties.Limits.MaxPerStageDescriptorStorageBuffers >= 8
+            && properties.Limits.MaxDescriptorSetStorageBuffers >= 8
             && (format.OptimalTilingFeatures & FormatFeatureFlags.TransferSrcBit) != 0;
     }
 

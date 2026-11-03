@@ -161,7 +161,7 @@ internal sealed unsafe class VulkanVisibilityBuffer3D : IDisposable
         {
             meshes.Add(mesh, ((uint)vertices.Count / 64, (uint)indices.Count));
             vertices.AddRange(MemoryMarshal.AsBytes(mesh.Vertices.AsSpan()).ToArray());
-            indices.AddRange(mesh.Indices);
+            indices.AddRange(mesh.PackedIndices);
             if ((ulong)vertices.Count + (ulong)indices.Count * 4 > 256UL * 1024 * 1024)
                 throw new InvalidDataException("AUR-VBUFFER-003: Visibility transport atlas exceeds 256 MiB.");
         }

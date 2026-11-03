@@ -1,5 +1,5 @@
 import { HzbView, HzbOccluded } from "./HzbTypes";
-import { VisibilityCandidate, VisibilityCamera, InsideFrustum } from "./VisibilityTypes";
+import { VisibilityCandidate, VisibilityCamera, InsideFrustum, SelectPreparedLod } from "./VisibilityTypes";
 
 // Stable workgroup prefix ranks; no global atomics, draw-order races or CPU compaction.
 @compute
@@ -13,11 +13,15 @@ function HzbCullMain(@builtin(dispatchThreadId) thread: uint3, @builtin(groupInd
     @binding(3) readonly View: StorageBuffer<VisibilityCamera>,
     @binding(4) readwrite Seed: StorageBuffer<u32>,
     @binding(5) readonly Pyramid: StorageBuffer<f32>,
-    @binding(6) readonly Hzb: StorageBuffer<HzbView>): void {
+    @binding(6) readonly Hzb: StorageBuffer<HzbView>,
+    @binding(7) readwrite LodState: StorageBuffer<u32>): void {
     let camera = View[0];
     var keep: u32 = 0;
+    var selected: u32 = 0;
     if (thread.x < camera.candidateCount) {
         let candidate = Candidates[thread.x];
+        selected = SelectPreparedLod(candidate, camera, LodState[thread.x]);
+        LodState[thread.x] = selected;
         var visible = true;
         if (camera.mode >= 1) {
             visible = InsideFrustum(camera, candidate.instanceSphere);
@@ -57,7 +61,7 @@ function HzbCullMain(@builtin(dispatchThreadId) thread: uint3, @builtin(groupInd
         Prefix[lane] = Prefix[lane] + previous;
         WorkgroupBarrier();
     }
-    Ranks[thread.x] = Prefix[lane] * keep;
+    Ranks[thread.x] = (Prefix[lane] + selected * 256) * keep;
     if (lane == 63) {
         Blocks[group.x] = Prefix[63];
     }

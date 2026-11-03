@@ -1,4 +1,4 @@
-import { VisibilityCandidate, VisibilityCamera, InsideFrustum } from "./VisibilityTypes";
+import { VisibilityCandidate, VisibilityCamera, InsideFrustum, SelectPreparedLod } from "./VisibilityTypes";
 
 // Stable workgroup prefix ranks; no global atomics, draw-order races or CPU compaction.
 @compute
@@ -9,11 +9,15 @@ function VisibilityCullMain(@builtin(dispatchThreadId) thread: uint3, @builtin(g
     @binding(0) readonly Candidates: StorageBuffer<VisibilityCandidate>,
     @binding(1) readwrite Ranks: StorageBuffer<u32>,
     @binding(2) readwrite Blocks: StorageBuffer<u32>,
-    @binding(3) readonly View: StorageBuffer<VisibilityCamera>): void {
+    @binding(3) readonly View: StorageBuffer<VisibilityCamera>,
+    @binding(7) readwrite LodState: StorageBuffer<u32>): void {
     let camera = View[0];
     var keep: u32 = 0;
+    var selected: u32 = 0;
     if (thread.x < camera.candidateCount) {
         let candidate = Candidates[thread.x];
+        selected = SelectPreparedLod(candidate, camera, LodState[thread.x]);
+        LodState[thread.x] = selected;
         var visible = true;
         if (camera.mode >= 1) {
             visible = InsideFrustum(camera, candidate.instanceSphere);
@@ -43,7 +47,7 @@ function VisibilityCullMain(@builtin(dispatchThreadId) thread: uint3, @builtin(g
         Prefix[lane] = Prefix[lane] + previous;
         WorkgroupBarrier();
     }
-    Ranks[thread.x] = Prefix[lane] * keep;
+    Ranks[thread.x] = (Prefix[lane] + selected * 256) * keep;
     if (lane == 63) {
         Blocks[group.x] = Prefix[63];
     }

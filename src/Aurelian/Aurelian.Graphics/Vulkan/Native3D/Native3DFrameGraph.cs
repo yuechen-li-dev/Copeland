@@ -72,10 +72,14 @@ internal static class Native3DFrameGraph
         }
         FrameResource? arguments = null;
         FramePassBuilder? visibilityPass = null;
+        FrameResource? lodHistory = null;
         if (features.Visibility)
         {
             arguments = graph.Resource("cluster-indirect-arguments", "buffer", 1, 1, dedicated: true);
+            lodHistory = graph.Resource("prepared-lod-history", "buffer", 1, 1, FrameLifetime.History, initialized: true);
+            graph.Export(lodHistory);
             visibilityPass = graph.Pass("cluster-visibility", (int)Native3DPass.Visibility).Read(inputs).Write(arguments, FrameAccess.ComputeWrite);
+            visibilityPass.Write(lodHistory, FrameAccess.HistoryReadWrite);
         }
         FrameResource? identity = null;
         FrameResource? hzbHistory = null;
@@ -93,7 +97,8 @@ internal static class Native3DFrameGraph
             graph.Pass("hzb-seed-pyramid", (int)Native3DPass.HzbSeedPyramid)
                 .Read(seedDepth, FrameAccess.TransferRead).Write(seedPyramid, FrameAccess.ComputeWrite);
             graph.Pass("hzb-final-cull", (int)Native3DPass.HzbFinalCull)
-                .Read(seedPyramid).Read(seedMask).Read(inputs).Write(arguments!, FrameAccess.ComputeWrite);
+                .Read(seedPyramid).Read(seedMask).Read(inputs).Write(arguments!, FrameAccess.ComputeWrite)
+                .Write(lodHistory!, FrameAccess.HistoryReadWrite);
             // Previous-frame history only selects an early set; remaining geometry gets a current-frame test.
             hzbFinalDepth = Texture("hzb-final-depth", "d32f");
         }

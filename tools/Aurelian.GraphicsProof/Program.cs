@@ -21,6 +21,12 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--rendering-lod", StringComparer.Ordinal))
+{
+    RenderingLodProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-lod"));
+    return;
+}
+
 if (args.Contains("--rendering-hzb", StringComparer.Ordinal))
 {
     RenderingHzbProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-hzb"));

@@ -5,7 +5,12 @@ using System.Text.Json.Serialization;
 namespace Aurelian.Assets.Models;
 
 public sealed record ModelBuildEvidence(string Id, string Importer, string ContentIdentity, float Scale,
-    int PrimitiveDefinitions, int Occurrences, string[] MaterialSlots, string[] TextureIdentities);
+    int PrimitiveDefinitions, int Occurrences, string[] MaterialSlots, string[] TextureIdentities)
+{
+    public string? LodCompiler { get; init; }
+    public ModelLodEvidence[] Lods { get; init; } = [];
+}
+public sealed record ModelLodEvidence(string Primitive, int[] TriangleCounts, float[] Errors);
 public sealed record ModelBuildResult(IReadOnlyList<AssetDiagnostic> Diagnostics, IReadOnlyList<ModelBuildEvidence> Built);
 
 public static class ModelAssetBuilder
@@ -17,11 +22,12 @@ public static class ModelAssetBuilder
         var built = new List<ModelBuildEvidence>();
         if (diagnostics.Any(item => item.Fatal)) return new(diagnostics, built);
         string directory = Path.GetDirectoryName(Path.GetFullPath(manifestPath))!;
-        var candidates = new List<(ModelAssetRecord Record, byte[] Bytes)>();
+        var candidates = new List<(ModelAssetRecord Record, byte[] Bytes, Aurelian.Rendering.Contracts.Models.StaticModel Model)>();
         foreach (ModelAssetRecord record in manifest.Models)
         {
             string path = Path.Combine(directory, record.Path);
-            var result = GlbModelImporter.Load(record.Id, path, record.Settings);
+            var result = GlbModelImporter.Load(record.Id, path, record.Settings,
+                record.LodPath is null ? null : Path.Combine(directory, record.LodPath));
             diagnostics.AddRange(result.Diagnostics);
             if (!result.Success) continue;
             var model = result.Model!;
@@ -29,14 +35,21 @@ public static class ModelAssetBuilder
             built.Add(new(record.Id, GlbModelImporter.Version, model.ContentIdentity, record.Settings.Scale,
                 model.Occurrences.Select(item => item.Primitive).Distinct().Count(), model.Occurrences.Length,
                 materials.Select(item => item.Slot).ToArray(), materials.SelectMany(item => item.Textures())
-                    .Where(item => item is not null).Select(item => item!.Texture.Identity).Distinct().ToArray()));
+                    .Where(item => item is not null).Select(item => item!.Texture.Identity).Distinct().ToArray())
+            {
+                LodCompiler = record.Settings.GenerateLods ? ModelLodCompiler.Version : null,
+                Lods = model.Occurrences.Select(item => item.Primitive).DistinctBy(item => item.Id)
+                    .Select(primitive => new ModelLodEvidence(primitive.Id,
+                        [primitive.Indices.Length / 3, .. primitive.Lods.Select(level => level.Indices.Length / 3)],
+                        [0, .. primitive.Lods.Select(level => level.Error)])).ToArray(),
+            });
             byte[] bytes = File.ReadAllBytes(path);
             if (GlbModelImporter.ContentIdentity(bytes, record.Settings) != model.ContentIdentity)
             {
                 diagnostics.Add(new("AA3206", "error", "Model source changed during the build; retry with a stable export.", path));
                 continue;
             }
-            candidates.Add((record, bytes));
+            candidates.Add((record, bytes, model));
         }
         if (diagnostics.Any(item => item.Fatal)) return new(diagnostics, []);
         Directory.CreateDirectory(Path.Combine(output, "models"));
@@ -52,6 +65,13 @@ public static class ModelAssetBuilder
             delivery.AppendLine($"id = \"{candidate.Record.Id}\"");
             delivery.AppendLine($"path = \"models/{filename}\"");
             delivery.AppendLine("scale = " + candidate.Record.Settings.Scale.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+            if (candidate.Record.Settings.GenerateLods)
+            {
+                string lodFilename = candidate.Record.Id + ".lod.bin";
+                ModelLodArtifact.Write(Path.Combine(output, "models", lodFilename), candidate.Model);
+                delivery.AppendLine("lod = true");
+                delivery.AppendLine($"lod_file = \"models/{lodFilename}\"");
+            }
             delivery.AppendLine();
         }
         if (candidates.Count > 0) File.WriteAllText(Path.Combine(output, "models.toml"), delivery.ToString());

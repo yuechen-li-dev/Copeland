@@ -30,6 +30,8 @@ public sealed unsafe partial class VulkanSolid3DRenderer
     public bool EnableBindlessMaterials { get; set; } = true;
     public bool EnableVisibilityBuffer { get; set; }
     public bool EnableHierarchicalZ { get; set; }
+    /// <summary>Prepared LOD error estimate in pixels. Zero forces LOD0. No runtime simplification.</summary>
+    public float LodPixelError { get; set; } = .25f;
     public HzbPyramidReadback ReadHzbForQualification() => retainedModels!.ReadHzbForQualification();
     public NativeVisibilityBufferReadback ReadIdentitiesForQualification()
         => retainedModels?.ReadIdentitiesForQualification() ?? throw new InvalidOperationException("Retained renderer was not configured.");
@@ -270,7 +272,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
             case Native3DPass.HistoryCopy: CopyPreviousGpu(command, state.GpuGeometry!); break;
             case Native3DPass.Visibility:
                 gpuTimings?.Mark(command, 28);
-                retainedModels!.RecordVisibility(command, state.WorldToClip, state.Eye, VisibilityMode);
+                retainedModels!.RecordVisibility(command, state.WorldToClip, state.Eye, VisibilityMode, LodPixelError);
                 gpuTimings?.Mark(command, 29);
                 break;
             default: throw new FramePlanException("AUR-PLAN-010", "Unknown native pass implementation.");
@@ -335,7 +337,8 @@ public sealed unsafe partial class VulkanSolid3DRenderer
         if ((access & FrameAccess.ComputeWrite) != 0) mask |= AccessFlags.ShaderWriteBit;
         if ((access & FrameAccess.TransferRead) != 0) mask |= AccessFlags.TransferReadBit;
         if ((access & FrameAccess.TransferWrite) != 0) mask |= AccessFlags.TransferWriteBit;
-        if ((access & FrameAccess.HistoryReadWrite) != 0) mask |= AccessFlags.ShaderReadBit | AccessFlags.ColorAttachmentWriteBit;
+        if ((access & FrameAccess.HistoryReadWrite) != 0)
+            mask |= AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit | AccessFlags.ColorAttachmentWriteBit;
         return mask;
     }
 

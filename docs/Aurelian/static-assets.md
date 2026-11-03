@@ -65,7 +65,9 @@ GameStarter.Run("my-game", GamePresets.FirstPersonShooter, args,
 
 `Scene.Model` composes inside groups, fragments and agent presentation bodies. Instances share a `ModelSlot` and retained indexed model definitions. Transforms and overrides belong to the instance. Override keys must exist, and textured/normal-mapped overrides require the corresponding UV/tangent attributes. Collision still uses separately authored scene geometry and `SceneSpatial3D`.
 
-The current native adapter expands indices and transforms draw vertices per frame; GPU hardware instancing and retained object-space vertex/index draws are not implemented. Textures, samplers, material buffers and pipeline resources persist between frames. Obsolete resources are reclaimed after completed draws when a material is replaced or disappears.
+The current native adapter retains indexed object-space meshes and supports hardware instancing. Immutable resident instance sets additionally avoid steady-frame CPU instance visits and transform uploads; see [R0 retained geometry](rendering-r0.md) and [R2 resident drawing](rendering-r2.md). Textures, samplers, material buffers and pipelines persist between frames. Obsolete GPU resources retire after the frames that use them complete.
+
+Set `lod = true` on a model to prepare discrete LODs at import/build time. `build-assets` emits a checked `.lod.bin` sidecar and a delivery `models.toml` that loads it without simplification. Ship the GLB, sidecar and generated manifest together. The resident GPU path selects prepared index ranges with a default quarter-pixel error estimate and hysteresis; ordinary direct/forward fallback draws and shadows use LOD0. See [offline asset LOD](rendering-r2-lod.md) for the import policy, delivery contract, quality evidence and limits.
 
 ## Replace explicitly
 

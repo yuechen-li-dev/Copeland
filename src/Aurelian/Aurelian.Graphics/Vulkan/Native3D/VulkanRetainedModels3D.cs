@@ -89,7 +89,7 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
         {
             return;
         }
-        ulong bytes = (ulong)mesh.Vertices.Length * 64 + (ulong)mesh.Indices.Length * 4;
+        ulong bytes = (ulong)mesh.Vertices.Length * 64 + (ulong)mesh.PackedIndices.Length * 4;
         if (bytes > MaximumMeshBytes - residentBytes)
         {
             throw new InvalidOperationException("AUR-MESH-006: Retained mesh residency exceeds the declared 256 MiB budget.");
@@ -208,11 +208,12 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
         if (resident is not null)
         {
             if (BindlessActive && bindlessTable is null) PrepareBindless(resident);
-            if (visibility.Count == 0 && programs.Visibility is not null && plant.Facts.IndirectDrawingEnabled)
+            if (visibility.Count == 0 && programs.Visibility is not null && CanCull())
             {
                 if (!BindlessActive && resident.Groups.Length > 128)
                     throw new InvalidDataException("AUR-VIS-003: Grouped GPU culling is limited to 128 groups; use bindless or direct resident drawing for larger material sets.");
-                long candidates = resident.Groups.Sum(group => (long)group.Length * ((group[0].Mesh.Indices.Length + 383) / 384));
+                long candidates = resident.Groups.Sum(group => (long)group.Length
+                    * (group[0].Mesh.LodRanges.Length > 1 ? 1 : (group[0].Mesh.Indices.Length + 383) / 384));
                 if (candidates > 1_048_576)
                 {
                     throw new InvalidDataException("AUR-VIS-003: Resident cluster candidates exceed the aggregate 1048576-command budget.");
@@ -242,13 +243,22 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
         }
     }
 
-    public void RecordVisibility(VulkanCommandBufferLease command, Matrix4x4 clip, Vector3 eye, ClusterVisibilityMode mode)
+    public void RecordVisibility(VulkanCommandBufferLease command, Matrix4x4 clip, Vector3 eye, ClusterVisibilityMode mode,
+        float lodPixelError)
     {
         foreach (var group in visibility)
         {
+            group.ConfigureLod(visibilityWidth, visibilityHeight, lodPixelError);
             if (HierarchicalZActive) group.RecordHzb(command, clip, eye, mode, seed: true);
             else group.Record(command, clip, eye, mode);
         }
+    }
+
+    private bool CanCull()
+    {
+        plant.Vk.GetPhysicalDeviceProperties(plant.PhysicalDevice, out PhysicalDeviceProperties properties);
+        return plant.Facts.IndirectDrawingEnabled && properties.Limits.MaxPerStageDescriptorStorageBuffers >= 8
+            && properties.Limits.MaxDescriptorSetStorageBuffers >= 8;
     }
 
     public IReadOnlyList<ClusterVisibilityReadback> ReadVisibilityForQualification()

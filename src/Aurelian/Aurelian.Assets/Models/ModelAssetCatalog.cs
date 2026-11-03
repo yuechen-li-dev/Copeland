@@ -2,7 +2,10 @@ using Aurelian.Rendering.Contracts.Models;
 
 namespace Aurelian.Assets.Models;
 
-public sealed record ModelAssetRecord(string Id, string Path, ModelImportSettings Settings);
+public sealed record ModelAssetRecord(string Id, string Path, ModelImportSettings Settings)
+{
+    public string? LodPath { get; init; }
+}
 
 /// <summary>Manifest-owned stable IDs. Loading and replacement are explicit; no file watchers or discovery.</summary>
 public sealed class ModelAssetCatalog
@@ -31,7 +34,7 @@ public sealed class ModelAssetCatalog
     {
         if (slots.TryGetValue(id, out ModelSlot? slot)) return slot;
         ModelAssetRecord record = records[id];
-        ModelImportResult result = GlbModelImporter.Load(id, Path.Combine(directory, record.Path), record.Settings);
+        ModelImportResult result = Import(record);
         if (!result.Success) throw new InvalidDataException(Describe(result.Diagnostics));
         slot = new(result.Model!);
         slots.Add(id, slot);
@@ -42,7 +45,7 @@ public sealed class ModelAssetCatalog
     {
         ModelSlot slot = Model(id);
         ModelAssetRecord record = records[id];
-        ModelImportResult candidate = GlbModelImporter.Load(id, Path.Combine(directory, record.Path), record.Settings);
+        ModelImportResult candidate = Import(record);
         if (!candidate.Success) return candidate;
         try
         {
@@ -63,6 +66,11 @@ public sealed class ModelAssetCatalog
             .ToHashSet(StringComparer.Ordinal);
         foreach (ModelAssetRecord model in manifest.Models)
         {
+            if (model.LodPath is { } lodPath && (!model.Settings.GenerateLods || string.IsNullOrWhiteSpace(lodPath)
+                || Path.IsPathRooted(lodPath) || lodPath.Contains('\\')
+                || AssetManifestValidator.ContainsParentTraversalSegment(lodPath)
+                || !lodPath.EndsWith(".lod.bin", StringComparison.OrdinalIgnoreCase)))
+                diagnostics.Add(new("AA3207", "error", "Delivery LOD needs lod = true and a relative .lod.bin path.", path));
             if (!System.Text.RegularExpressions.Regex.IsMatch(model.Id, "^[a-z0-9._-]+$") || !ids.Add(model.Id))
                 diagnostics.Add(new("AA3203", "error", $"Invalid or duplicate asset ID '{model.Id}'.", path));
             if (string.IsNullOrWhiteSpace(model.Path) || Path.IsPathRooted(model.Path)
@@ -76,4 +84,8 @@ public sealed class ModelAssetCatalog
 
     public static string Describe(IEnumerable<AssetDiagnostic> diagnostics) =>
         string.Join(Environment.NewLine, diagnostics.Select(item => $"{item.Code}: {item.SourcePath}: {item.Message}"));
+
+    private ModelImportResult Import(ModelAssetRecord record) => GlbModelImporter.Load(record.Id,
+        Path.Combine(directory, record.Path), record.Settings,
+        record.LodPath is null ? null : Path.Combine(directory, record.LodPath));
 }

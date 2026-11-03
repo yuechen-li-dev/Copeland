@@ -1,6 +1,11 @@
 # Aurelian rendering foundation: closing the gap
 
 Status: initial design for a first implementation pass. Written 2026-11-02 against `main` at `71b795de`.
+Implementation follow-ups: [R0](../Aurelian/rendering-r0.md), [R1](../Aurelian/rendering-r1.md),
+[R2 resident draws](../Aurelian/rendering-r2.md), [material tables](../Aurelian/rendering-r2-bindless.md),
+[visibility buffers](../Aurelian/rendering-r2-visibility.md), [two-phase HZB](../Aurelian/rendering-r2-hzb.md)
+and [offline asset LOD](../Aurelian/rendering-r2-lod.md). These reports describe current behavior and evidence;
+the proposals below retain their original research intent.
 Audience: the implementer (Codex) and Yuechen. Parts marked **Aurelian proposal** are unproven ideas with
 an experiment that can falsify them; parts marked **baseline** are established industry practice.
 

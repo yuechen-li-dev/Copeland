@@ -8,6 +8,18 @@ namespace Aurelian.Graphics.Tests;
 public sealed class NativeMesh3DTests
 {
     [Fact]
+    public void PreparedLevelsShareVerticesAndKeepLodZeroForCompatibility()
+    {
+        var mesh = new NativeMesh3D("prepared", Triangle(), [0, 1, 2, 2, 1, 0], [new([0, 1, 2], .01f)]);
+        Assert.Equal(new uint[] { 0, 1, 2, 2, 1, 0 }, mesh.Indices.ToArray());
+        Assert.Equal(new uint[] { 0, 1, 2, 2, 1, 0, 0, 1, 2 }, mesh.PackedIndices.ToArray());
+        Assert.Equal(new NativeLodRange3D(.01f, 6, 3), mesh.LodRanges[1]);
+        Assert.Equal(6, new SceneInstance3D("instance", mesh, new("material"), Matrix4x4.Identity).Expand().Vertices.Length);
+        Assert.Throws<InvalidDataException>(() => new NativeMesh3D("bad-level", Triangle(), [0, 1, 2, 2, 1, 0],
+            [new([0, 1, 99], .01f)]));
+    }
+
+    [Fact]
     public void MeshOwnsAnImmutableSnapshotOfValidatedGeometry()
     {
         NativeModel3DVertex[] vertices = Triangle();

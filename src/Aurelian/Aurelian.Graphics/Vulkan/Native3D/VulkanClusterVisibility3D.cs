@@ -17,6 +17,8 @@ public sealed record ClusterVisibilityPrograms(byte[] Cull, byte[] Scan, byte[] 
 public enum ClusterVisibilityMode { Unculled, InstanceFrustum, ClusterFrustum, ClusterAndCone }
 public sealed record ClusterVisibilityReadback(int Candidates, uint DrawCount, uint[] Ranks, bool[] CpuVisible)
 {
+    public uint[] SelectedLods { get; init; } = [];
+    public long SubmittedTriangles { get; init; }
     public uint[] SeedMask { get; init; } = [];
     public Vector4[] CandidateSpheres { get; init; } = [];
 }
@@ -25,8 +27,11 @@ public sealed record ClusterVisibilityReadback(int Candidates, uint DrawCount, u
 internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
 {
     [StructLayout(LayoutKind.Sequential)]
+    private readonly record struct LodRange(float Error, uint FirstIndex, uint IndexCount, uint Reserved);
+
+    [StructLayout(LayoutKind.Sequential)]
     private readonly record struct Candidate(Vector4 InstanceSphere, Vector4 Sphere, Vector4 Cone,
-        uint FirstIndex, uint IndexCount, uint FirstInstance, uint Reserved);
+        uint FirstIndex, uint IndexCount, uint FirstInstance, uint LodCount, LodRange Level1, LodRange Level2, LodRange Level3);
 
     private readonly AurelianVulkanPlant plant;
     private readonly RawVulkanMemoryAllocator allocator;
@@ -36,6 +41,8 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
     private readonly List<AurelianVulkanBuffer> buffers = [];
     private readonly Candidate[] candidates;
     private readonly AurelianVulkanBuffer input;
+    private readonly AurelianVulkanBuffer lodState;
+    private Vector4 lodSettings;
     private readonly AurelianVulkanBuffer[,] camera = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count, 2];
     private readonly AurelianVulkanBuffer[] seeds = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
     private readonly bool hzbEnabled;
@@ -71,6 +78,15 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
         hzbEnabled = hzbCull is not null;
         var mesh = instances[0].Mesh;
         var clusters = NativeMeshClusters3D.Build(mesh);
+        bool hasLods = mesh.LodRanges.Length > 1;
+        if (hasLods)
+        {
+            Vector3 low = mesh.Vertices.Select(vertex => vertex.Position).Aggregate(Vector3.Min);
+            Vector3 high = mesh.Vertices.Select(vertex => vertex.Position).Aggregate(Vector3.Max);
+            Vector3 midpoint = (low + high) * .5f;
+            float extent = mesh.Vertices.Max(vertex => Vector3.Distance(midpoint, vertex.Position)) + 1e-4f;
+            clusters = [new(0, (uint)mesh.Indices.Length, new(midpoint, extent), new(0, 0, 0, -2))];
+        }
         long total = (long)instances.Length * clusters.Length;
         plant.Vk.GetPhysicalDeviceProperties(plant.PhysicalDevice, out PhysicalDeviceProperties properties);
         if (total > 1_048_576 || total > properties.Limits.MaxDrawIndirectCount)
@@ -87,6 +103,13 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
         {
             var instance = instances[instanceIndex];
             Vector4 instanceSphere = NativeMeshClusters3D.TransformSphere(new(center, radius), instance.Transform);
+            float errorScale = NativeMeshClusters3D.TransformSphere(new(0, 0, 0, 1), instance.Transform).W;
+            LodRange Range(int level)
+            {
+                if (level >= mesh.LodRanges.Length) return default;
+                var range = mesh.LodRanges[level];
+                return new(range.Error * errorScale, range.FirstIndex, range.IndexCount, 0);
+            }
             foreach (var cluster in clusters)
             {
                 Vector4 cone = new(0, 0, 0, -2);
@@ -96,22 +119,26 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
                     cone = new(axis, cluster.Cone.W);
                 }
                 candidates[index++] = new(instanceSphere, NativeMeshClusters3D.TransformSphere(cluster.Sphere, instance.Transform),
-                    cone, cluster.FirstIndex, cluster.IndexCount, firstInstance + (uint)instanceIndex, 0);
+                    cone, cluster.FirstIndex, cluster.IndexCount, firstInstance + (uint)instanceIndex,
+                    (uint)mesh.LodRanges.Length - 1, Range(1), Range(2), Range(3));
             }
         }
         blockCount = ((uint)candidates.Length + 63) / 64;
         try
         {
-            input = Buffer((ulong)candidates.Length * 64, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferDestination);
+            input = Buffer((ulong)candidates.Length * 112, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferDestination);
+            lodState = Buffer((ulong)candidates.Length * 4, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferDestination);
             using var uploader = new VulkanBufferUploader(plant, allocator, commands, fences);
             var upload = uploader.Upload(new(input, MemoryMarshal.AsBytes(candidates.AsSpan()).ToArray(), DebugName: "visibility.candidates"));
             Require(upload.Success, "Candidate upload failed.");
+            Require(uploader.Upload(new(lodState, new byte[candidates.Length * 4], DebugName: "lod.history")).Success,
+                "LOD history initialization failed.");
             for (int slot = 0; slot < VulkanFrameInFlightSet.Count; slot++)
             {
-                camera[slot, 0] = Buffer(128, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
+                camera[slot, 0] = Buffer(192, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
                 if (hzbEnabled)
                 {
-                    camera[slot, 1] = Buffer(128, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
+                    camera[slot, 1] = Buffer(192, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
                     seeds[slot] = Buffer((ulong)candidates.Length * 4, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferSource);
                 }
                 ranks[slot] = Buffer(blockCount * 64UL * 4, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferSource);
@@ -132,6 +159,13 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
     public void Record(VulkanCommandBufferLease command, Matrix4x4 clip, Vector3 eye, ClusterVisibilityMode mode)
         => RecordPhase(command, clip, eye, mode, 0);
 
+    public void ConfigureLod(uint width, uint height, float pixelError)
+    {
+        if (!float.IsFinite(pixelError) || pixelError < 0 || pixelError > 16)
+            throw new ArgumentOutOfRangeException(nameof(pixelError), "AUR-LOD-010: Pixel error must be finite and in [0,16].");
+        lodSettings = new(width * .5f, height * .5f, pixelError, 0);
+    }
+
     public void RecordHzb(VulkanCommandBufferLease command, Matrix4x4 clip, Vector3 eye, ClusterVisibilityMode mode, bool seed)
         => RecordPhase(command, clip, eye, mode, seed ? 1u : 2u);
 
@@ -139,14 +173,15 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
     {
         if (!Enum.IsDefined(mode)) throw new ArgumentOutOfRangeException(nameof(mode));
         int variant = hzbPhase == 2 ? 1 : 0;
-        if (hzbEnabled)
-            Barrier(command, AccessFlags.MemoryReadBit | AccessFlags.MemoryWriteBit,
-                AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit, PipelineStageFlags.AllCommandsBit, PipelineStageFlags.ComputeShaderBit);
+        Barrier(command, AccessFlags.MemoryReadBit | AccessFlags.MemoryWriteBit,
+            AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit, PipelineStageFlags.AllCommandsBit, PipelineStageFlags.ComputeShaderBit);
         lastSlot = frames.Slot;
         lastClip = clip;
         lastEye = eye;
         lastMode = mode;
-        Vector4[] parameters = [.. Planes(clip), new(eye, 1), Vector4.Zero];
+        Vector4[] parameters = [.. Planes(clip), new(eye, 1), Vector4.Zero,
+            new(clip.M11, clip.M21, clip.M31, clip.M41), new(clip.M12, clip.M22, clip.M32, clip.M42),
+            new(clip.M14, clip.M24, clip.M34, clip.M44), lodSettings];
         Span<byte> parameterBytes = MemoryMarshal.AsBytes(parameters.AsSpan());
         Span<uint> metadata = MemoryMarshal.Cast<byte, uint>(parameterBytes[112..]);
         metadata[0] = (uint)candidates.Length;
@@ -177,7 +212,8 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
     public ClusterVisibilityReadback ReadForQualification()
     {
         frames.Drain();
-        using var staging = BufferForReadback((ulong)candidates.Length * (hzbEnabled ? 8UL : 4UL) + 4);
+        ulong commandOffset = (ulong)candidates.Length * (hzbEnabled ? 8UL : 4UL) + 4;
+        using var staging = BufferForReadback(commandOffset + arguments[lastSlot].SizeBytes);
         var command = commands.Rent(fences.CommandListFence.LastKnownCompletedValue);
         Require(command.Begin().Success, "Readback command begin failed.");
         Barrier(command, AccessFlags.ShaderWriteBit, AccessFlags.TransferReadBit,
@@ -191,6 +227,8 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
             BufferCopy seedCopy = new(0, rankCopy.Size + 4, rankCopy.Size);
             plant.Vk.CmdCopyBuffer(command.CommandBuffer, seeds[lastSlot].NativeBuffer, staging.NativeBuffer, 1, &seedCopy);
         }
+        BufferCopy commandsCopy = new(0, commandOffset, arguments[lastSlot].SizeBytes);
+        plant.Vk.CmdCopyBuffer(command.CommandBuffer, arguments[lastSlot].NativeBuffer, staging.NativeBuffer, 1, &commandsCopy);
         Barrier(command, AccessFlags.TransferWriteBit, AccessFlags.HostReadBit, PipelineStageFlags.TransferBit, PipelineStageFlags.HostBit);
         Require(command.End().Success, "Readback command end failed.");
         using var submitter = new VulkanCommandSubmitter(plant, commands, fences);
@@ -198,9 +236,34 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
         uint[] data = MemoryMarshal.Cast<byte, uint>(staging.ReadBytes((int)staging.SizeBytes)).ToArray();
         Vector4[] planes = Planes(lastClip);
         bool[] reference = candidates.Select(candidate => CpuVisible(candidate, planes, lastEye, lastMode)).ToArray();
+        int accepted = 0;
+        long submittedTriangles = 0;
+        int commandStart = checked((int)(commandOffset / 4));
+        for (int index = 0; index < candidates.Length; index++)
+        {
+            uint rank = data[index];
+            if ((rank & 255) == 0) continue;
+            var candidate = candidates[index];
+            var range = (rank >> 8) switch
+            {
+                1 => candidate.Level1,
+                2 => candidate.Level2,
+                3 => candidate.Level3,
+                _ => new LodRange(0, candidate.FirstIndex, candidate.IndexCount, 0),
+            };
+            int offset = commandStart + accepted * 5;
+            Require(data[offset] == range.IndexCount && data[offset + 1] == 1
+                && data[offset + 2] == range.FirstIndex && data[offset + 3] == 0
+                && data[offset + 4] == candidate.FirstInstance, "Compacted indirect command disagrees with stable selected geometry.");
+            submittedTriangles += data[offset] / 3;
+            accepted++;
+        }
+        Require(accepted == data[candidates.Length], "Indirect count disagrees with accepted candidates.");
         return new(candidates.Length, data[candidates.Length], data[..candidates.Length], reference)
         {
-            SeedMask = hzbEnabled ? data[(candidates.Length + 1)..] : [],
+            SelectedLods = data[..candidates.Length].Select(rank => rank >> 8).ToArray(),
+            SubmittedTriangles = submittedTriangles,
+            SeedMask = hzbEnabled ? data[(candidates.Length + 1)..(candidates.Length * 2 + 1)] : [],
             CandidateSpheres = hzbEnabled ? candidates.Select(candidate => candidate.Sphere).ToArray() : [],
         };
     }
@@ -287,7 +350,7 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
 
     private void CreatePipelines(ClusterVisibilityPrograms programs, byte[]? hzbCull)
     {
-        uint bindingCount = hzbEnabled ? 7u : 4u;
+        uint bindingCount = 8;
         DescriptorSetLayoutBinding* bindings = stackalloc DescriptorSetLayoutBinding[(int)bindingCount];
         for (uint index = 0; index < bindingCount; index++)
             bindings[index] = new(index, DescriptorType.StorageBuffer, 1, ShaderStageFlags.ComputeBit);
@@ -321,6 +384,7 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
                     Check(plant.Vk.AllocateDescriptorSets(plant.Device, &allocation, &set));
                     sets[slot, variant, phase] = set;
                     for (uint binding = 0; binding < 4; binding++) Write(set, binding, resources[phase][binding]);
+                    for (uint binding = 4; binding < 8; binding++) Write(set, binding, lodState);
                     if (hzbEnabled) Write(set, 4, seeds[slot]);
                 }
             }
