@@ -37,9 +37,9 @@ public sealed class NativeInstanceSet3D : IReadOnlyList<SceneInstance3D>
         HasSubsurface = Materials.Any(material => material.SubsurfaceStrength > 0);
         Groups = instances.GroupBy(instance => (instance.Mesh, instance.Material))
             .Select(group => group.ToImmutableArray()).ToImmutableArray();
-        if (Groups.Length > 128)
+        if (Groups.Length > 1024)
         {
-            throw new InvalidDataException("AUR-VIS-001: Resident sets support at most 128 mesh/material groups.");
+            throw new InvalidDataException("AUR-VIS-001: Resident sets support at most 1024 mesh/material groups.");
         }
     }
 

@@ -240,6 +240,7 @@ public static unsafe partial class VulkanPlantInitializer
                 Synchronization2Enabled = synchronization2,
                 CreatedQueueCount = createdQueueCount,
                 IndirectDrawingEnabled = QueryIndirectDrawing(vk, selected),
+                BindlessMaterialsEnabled = QueryBindlessMaterials(vk, selected),
             };
 
             diagnostics.Add(new VulkanInitDiagnostic(
@@ -389,6 +390,7 @@ public static unsafe partial class VulkanPlantInitializer
             BufferDeviceAddress = options.EnableRayQueries,
             ShaderFloat16 = cooperativeEnabled,
             VulkanMemoryModel = cooperativeEnabled,
+            ShaderSampledImageArrayNonUniformIndexing = supported12.ShaderSampledImageArrayNonUniformIndexing,
         };
         PhysicalDeviceSynchronization2Features syncFeatures = new()
         {
@@ -437,6 +439,21 @@ public static unsafe partial class VulkanPlantInitializer
         };
 
         return vk.CreateDevice(selected.PhysicalDevice, &createInfo, null, out device);
+    }
+
+    private static bool QueryBindlessMaterials(Vk vk, SelectedPhysicalDevice selected)
+    {
+        if (selected.ApiVersion < Vk.Version12) return false;
+        PhysicalDeviceVulkan12Features features12 = new() { SType = StructureType.PhysicalDeviceVulkan12Features };
+        PhysicalDeviceFeatures2 features = new() { SType = StructureType.PhysicalDeviceFeatures2, PNext = &features12 };
+        vk.GetPhysicalDeviceFeatures2(selected.PhysicalDevice, &features);
+        vk.GetPhysicalDeviceProperties(selected.PhysicalDevice, out PhysicalDeviceProperties properties);
+        return features12.ShaderSampledImageArrayNonUniformIndexing
+            && properties.Limits.MaxPerStageDescriptorSampledImages >= 4096
+            && properties.Limits.MaxDescriptorSetSampledImages >= 4096
+            && properties.Limits.MaxPerStageDescriptorSamplers >= 64
+            && properties.Limits.MaxDescriptorSetSamplers >= 64
+            && properties.Limits.MaxPerStageResources >= 4163;
     }
 
     private static bool QueryIndirectDrawing(Vk vk, SelectedPhysicalDevice selected)

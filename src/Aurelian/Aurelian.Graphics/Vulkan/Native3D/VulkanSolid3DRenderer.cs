@@ -666,9 +666,11 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         {
             if (modelRenderer is null) throw new InvalidOperationException("StaticModel3D shader was not configured.");
         }
+        bool useBindless = retainedModels?.CanUseBindless(sourceInstances, EnableBindlessMaterials) == true;
         modelRenderer?.Upload(models, worldToClip, eye, lighting, previousClip, resetHistory,
-            resident?.Materials ?? sourceInstances.Select(instance => instance.Material).ToArray());
-        retainedModels?.Upload(sourceInstances, resetHistory);
+            resident?.Materials ?? sourceInstances.Select(instance => instance.Material).ToArray(), bindlessRetained: useBindless);
+        retainedModels?.Upload(sourceInstances, resetHistory, useBindless);
+        retainedModels?.UpdateBindlessFrame(worldToClip, eye, lighting, previousClip);
         bool hasParticles = ParticleEmitters.Count > 0;
         if (hasParticles)
         {

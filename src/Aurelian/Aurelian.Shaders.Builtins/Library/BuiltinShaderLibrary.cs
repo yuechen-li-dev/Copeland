@@ -55,6 +55,8 @@ public static class BuiltinShaderLibrary
         new("SurfaceSolid3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Graphics),
         new("SurfaceModel3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Graphics),
         new("InstancedModel3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Graphics),
+        new("BindlessModel3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Graphics),
+        new("SurfaceMaterial3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Module),
         new("VisibilityTypes.v.ts", ShaderFamily.Queries, ShaderSourceKind.Module),
         new("VisibilityCull3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
         new("VisibilityScan3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),

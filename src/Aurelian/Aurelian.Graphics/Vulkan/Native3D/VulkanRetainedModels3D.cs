@@ -20,10 +20,11 @@ namespace Aurelian.Graphics.Vulkan.Native3D;
 public sealed record RetainedModel3DPrograms(CompiledGraphicsProgram Vertex, CompiledGraphicsProgram Shadow)
 {
     public ClusterVisibilityPrograms? Visibility { get; init; }
+    public CompiledGraphicsProgram? Bindless { get; init; }
 }
 
 /// <summary>Indexed instanced geometry with the existing material fragment stage and shadow semantics.</summary>
-internal sealed unsafe class VulkanRetainedModels3D : IDisposable
+internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
 {
     private const int InstanceBytes = 144;
     private const int MaximumInstances = 65_536;
@@ -67,6 +68,7 @@ internal sealed unsafe class VulkanRetainedModels3D : IDisposable
         this.frames = frames;
         this.materials = materials;
         this.programs = programs;
+        geometryPass = pass;
         if (modelProgram.PixelTargets.Count != 5 || modelProgram.Material?.Size != programs.Vertex.Material?.Size)
         {
             throw new ArgumentException("AUR-MESH-005: Retained models require the shared surface material ABI.");
@@ -95,22 +97,26 @@ internal sealed unsafe class VulkanRetainedModels3D : IDisposable
         uploadedBytes += (long)bytes;
     }
 
-    public void Upload(IReadOnlyList<SceneInstance3D> source, bool resetHistory)
+    public void Upload(IReadOnlyList<SceneInstance3D> source, bool resetHistory, bool useBindless = false)
     {
         if (source.Count > MaximumInstances)
         {
             throw new InvalidOperationException("AUR-MESH-007: Retained draws exceed the declared 65536-instance frame budget.");
         }
-        if (!ReferenceEquals(resident, source))
+        if (!ReferenceEquals(resident, source) || useBindless != BindlessActive)
         {
             foreach (var item in visibility) frames.Retire(item);
             visibility.Clear();
             resident = source as NativeInstanceSet3D;
             Array.Clear(residentSlots);
+            if (bindlessTable is not null) frames.Retire(bindlessTable);
+            bindlessTable = null;
+            bindlessRuns.Clear();
+            BindlessActive = useBindless;
         }
         if (resident is not null && residentSlots[frames.Slot])
         {
-            Statistics = new(source.Count, groups.Count, 0, 0, 0, residentBytes)
+            Statistics = new(source.Count, BindlessActive ? bindlessRuns.Count : groups.Count, 0, 0, 0, residentBytes)
             {
                 CpuVisitedInstances = 0,
                 IndirectGroups = visibility.Count,
@@ -191,8 +197,11 @@ internal sealed unsafe class VulkanRetainedModels3D : IDisposable
         uploadedBytes = 0;
         if (resident is not null)
         {
+            if (BindlessActive && bindlessTable is null) PrepareBindless(resident);
             if (visibility.Count == 0 && programs.Visibility is not null && plant.Facts.IndirectDrawingEnabled)
             {
+                if (!BindlessActive && resident.Groups.Length > 128)
+                    throw new InvalidDataException("AUR-VIS-003: Grouped GPU culling is limited to 128 groups; use bindless or direct resident drawing for larger material sets.");
                 long candidates = resident.Groups.Sum(group => (long)group.Length * ((group[0].Mesh.Indices.Length + 383) / 384));
                 if (candidates > 1_048_576)
                 {
@@ -202,7 +211,8 @@ internal sealed unsafe class VulkanRetainedModels3D : IDisposable
                 try
                 {
                     uint firstInstance = 0;
-                    foreach (var group in resident.Groups)
+                    var cullingGroups = BindlessActive ? bindlessRuns.Select(run => run.Source) : resident.Groups;
+                    foreach (var group in cullingGroups)
                     {
                         created.Add(new(plant, allocator, commands, fences, frames, programs.Visibility, group, firstInstance));
                         firstInstance += (uint)group.Length;
@@ -230,12 +240,18 @@ internal sealed unsafe class VulkanRetainedModels3D : IDisposable
 
     public void Draw(VulkanCommandBufferLease command, VulkanRenderPassScope scope, AurelianVulkanFramebuffer framebuffer)
     {
+        if (BindlessActive)
+        {
+            DrawBindless(command, scope, framebuffer);
+            return;
+        }
         for (int index = 0; index < groups.Count; index++)
         {
             DrawGroup group = groups[index];
             materials.BindMaterial(command, pipeline, group.Material);
             DrawGroupIndexed(command, scope, framebuffer, pipeline, group, HasVisibility ? visibility[index] : null);
         }
+        Statistics = Statistics with { MaterialDescriptorBinds = groups.Count };
     }
 
     public void DrawShadows(VulkanCommandBufferLease command, VulkanRenderPassScope scope, Vulkan3DPass pass)
@@ -332,6 +348,8 @@ internal sealed unsafe class VulkanRetainedModels3D : IDisposable
 
     public void Dispose()
     {
+        bindlessPipeline?.Dispose();
+        bindlessTable?.Dispose();
         foreach (var item in visibility) item.Dispose();
         foreach (var item in shadows.Values) item.Dispose();
         foreach (var item in instances) item?.Dispose();

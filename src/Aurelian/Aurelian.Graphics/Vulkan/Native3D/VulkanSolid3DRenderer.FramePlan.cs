@@ -27,6 +27,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
     public ulong TransientTextureBytes => surfaceLighting?.TransientTextureBytes ?? 0;
     public int TransientPhysicalImages => surfaceLighting?.TransientPhysicalImages ?? 0;
     public ClusterVisibilityMode VisibilityMode { get; set; } = ClusterVisibilityMode.ClusterAndCone;
+    public bool EnableBindlessMaterials { get; set; } = true;
     public IReadOnlyList<ClusterVisibilityReadback> ReadVisibilityForQualification()
         => retainedModels?.ReadVisibilityForQualification() ?? [];
 

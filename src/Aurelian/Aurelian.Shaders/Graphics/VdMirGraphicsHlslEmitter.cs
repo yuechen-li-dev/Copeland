@@ -4,7 +4,7 @@ using Aurelian.Shaders.Language.VdMir.Emission.Hlsl;
 
 namespace Aurelian.Shaders.Graphics;
 
-public static class VdMirGraphicsHlslEmitter
+public static partial class VdMirGraphicsHlslEmitter
 {
     public static string Emit(VdMirGraphicsModule module)
     {
@@ -45,6 +45,7 @@ public static class VdMirGraphicsHlslEmitter
         {
             builder.AppendLine();
         }
+        EmitGraphicsStorageLoads(builder, module);
 
         HashSet<string> entryNames = module.EntryPoints.Select(entry => entry.Name).ToHashSet(StringComparer.Ordinal);
         foreach (VdMirFunction function in module.Functions.Where(function => !entryNames.Contains(function.Name)))
@@ -212,6 +213,9 @@ public static class VdMirGraphicsHlslEmitter
             "call" => $"{expression.Value}({string.Join(", ", expression.Operands!.Where(operand => !IsResourceRoot(operand, module)).Select(operand => EmitExpression(operand, module)))})",
             "binary" => $"({EmitExpression(expression.Operands![0], module)} {expression.Value} {EmitExpression(expression.Operands[1], module)})",
             "unary" => $"({expression.Value}{EmitExpression(expression.Operands![0], module)})",
+            "descriptor-index" => $"{EmitExpression(expression.Operands![0], module)}[{EmitExpression(expression.Operands[1], module)}]",
+            "graphics-storage-load" => $"{GraphicsStorageLoadName(expression.Type, module)}({EmitExpression(expression.Operands![0], module)}, {EmitExpression(expression.Operands[1], module)})",
+            "intrinsic" when expression.Value == "NonUniformIndex" => $"NonUniformResourceIndex({EmitExpression(expression.Operands![0], module)})",
             "intrinsic" when expression.Value == "Sample2D" => $"{EmitExpression(expression.Operands![0], module)}.Sample({EmitExpression(expression.Operands[1], module)}, {EmitExpression(expression.Operands[2], module)})",
             "intrinsic" when expression.Value == "ConvertU32ToF32" => $"float({EmitExpression(expression.Operands![0], module)})",
             "intrinsic" when expression.Value is "Min" or "Max" or "Clamp" or "Abs" or "Sqrt" or "Floor" or "Pow" or "Sin" or "Cos" or "Acos" or "Atan2" or "Exp" or "Log" => $"{expression.Value!.ToLowerInvariant()}({string.Join(", ", expression.Operands!.Select(operand => EmitExpression(operand, module)))})",
@@ -280,6 +284,7 @@ public static class VdMirGraphicsHlslEmitter
         {
             return "SamplerState";
         }
+        if (type.StartsWith("storage-buffer<", StringComparison.Ordinal)) return "StructuredBuffer<uint>";
         VdMirSemanticSpace? space = module.SemanticSpaces.FirstOrDefault(candidate => module.Streams
             .SelectMany(stream => stream.Members)
             .Any(member => member.Type == type && member.SemanticSpace == candidate.Name));
@@ -322,8 +327,10 @@ public static class VdMirGraphicsHlslEmitter
             VdMirGraphicsResourceKind.Texture2D => $"Texture2D<{MapType(resource.ElementType!, module)}>",
             VdMirGraphicsResourceKind.Sampler => "SamplerState",
             VdMirGraphicsResourceKind.Material => $"ConstantBuffer<{resource.Type}>",
+            VdMirGraphicsResourceKind.StorageBuffer => "StructuredBuffer<uint>",
             _ => throw new InvalidOperationException($"Unsupported graphics resource '{resource.Kind}'."),
         };
-        builder.AppendLine($"[[vk::binding({resource.Binding}, {resource.Set})]] {declaration} {ResourceName(resource.Name, module)};");
+        string extent = resource.DescriptorCount is { } count ? $"[{count}]" : "";
+        builder.AppendLine($"[[vk::binding({resource.Binding}, {resource.Set})]] {declaration} {ResourceName(resource.Name, module)}{extent};");
     }
 }

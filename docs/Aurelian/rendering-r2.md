@@ -2,8 +2,9 @@
 
 R2's grouped-material native path now compiles immutable scene instances into resident transforms and
 cluster bounds, culls on the GPU, compacts stable indirect commands, and renders through the existing
-material fragment shaders and R1 frame tape. The full bindless/visibility-buffer proposal remains open:
-executable shader-profile probes identify the next interface work below. This is a qualified progression
+material fragment shaders and R1 frame tape. [Resident bindless material tables](rendering-r2-bindless.md)
+now extend that path and remove per-material geometry descriptor binds. The visibility-buffer proposal
+remains open. The probes below document the original interface boundary. This is a qualified progression
 of R2, not a claim that HZB, compute material resolve, LOD or hybrid analytic visibility already exist.
 
 ## Use the resident path
@@ -71,14 +72,17 @@ The R1 plan contains `cluster-visibility` followed by the geometry consumer. `Fr
 compute-write to indirect-read hazards explicit. Pack-internal scan barriers remain inside that stage.
 The public GPU timing schema adds `visibility-cull`; presentation qualification checks that named stage too.
 
-Limits are 65,536 resident instances, 128 mesh/material groups, 1,048,576 aggregate cluster candidates,
+Limits are 65,536 resident instances, 128 grouped culling groups, 1,048,576 aggregate cluster candidates,
 the physical device's per-group indirect-count limit, and the existing 256 MiB mesh residency limit.
-Admission failures retain diagnostics and publish no partial culling group set.
+Admission failures retain diagnostics and publish no partial culling group set. The later material-table
+step raises resident admission to 1,024 mesh/material groups and merges consecutive same-mesh groups for
+bindless culling/drawing; grouped GPU culling retains the 128-group limit.
 
 ## Materials and shadows
 
-This path preserves the current material ABI, texture/sampler bindings, alpha masking, normals, motion,
-subsurface output and shared surface lighting. Per-material descriptor binds remain. Blended/refractive
+The grouped control preserves the current material ABI, texture/sampler bindings, alpha masking, normals, motion,
+subsurface output and shared surface lighting. Its per-material descriptor binds remain; the later
+bindless path shares surface evaluation through resident tables. Blended/refractive
 materials continue through their existing forward batch adapter; resident admission rejects them explicitly.
 Shadow casters retain their original direct instanced draws. Camera culling never incorrectly removes an
 offscreen caster from a directional or local shadow map. GPU shadow-view culling is not claimed.
@@ -87,9 +91,9 @@ offscreen caster from a directional or local shadow map. GPU shadow-view culling
 
 The proposal's visibility buffer would replace fragment material evaluation with ID storage, triangle
 reconstruction and compute resolve. The [original visibility-buffer paper](https://jcgt.org/published/0002/02/04/)
-motivates that separation. It needs interfaces the current shader profile does not yet provide.
+motivates that separation. It needs additional interfaces beyond the material tables now implemented.
 
-`--rendering-r2` generates three modified `SurfaceModel3D` sources and runs the real graphics binder:
+The original `--rendering-r2` run generated three modified `SurfaceModel3D` sources and ran the real graphics binder:
 
 | Probe | Actual blocking diagnostic |
 | --- | --- |
@@ -99,11 +103,13 @@ motivates that separation. It needs interfaces the current shader profile does n
 
 Artifacts retain the complete compiler diagnostics and failing sources in `profile-capability-probes.json`
 and adjacent `.v.ts` files. This identifies a shader-language/compiled-interface boundary, not a GPU hardware
-limitation. The native texture-format enum also has no `R32G32_UINT` attachment, and the graphics resource
-contract has no storage-buffer or descriptor-array kind. Compute currently consumes storage buffers rather
-than sampled/storage images.
+limitation. The material-storage gap is now addressed by plain value records, graphics storage resources
+and descriptor arrays in `graphics.tables.m1`. The old probe substitutes a material-uniform declaration
+without changing its accesses, so it remains invalid and is not a current test of plain storage support.
+The native texture-format enum still has no `R32G32_UINT` attachment. Compute currently consumes storage
+buffers rather than sampled/storage images.
 
-The next coherent implementation is a typed visibility/material resource ABI through the existing binder,
+The next coherent implementation extends the typed visibility/material resource ABI through the existing binder,
 VD-MIR, compiled graphics contracts, HLSL/SPIR-V emission and Vulkan descriptors/formats. This should include
 integer targets/loads, primitive identity, nonuniform descriptor indexing, explicit texture gradients and
 compute image access. A renderer-only raw-HLSL path would evade those contracts; copying material evaluation
@@ -183,5 +189,5 @@ classification has zero false negatives and zero false positives on that path; t
 floating-point correctness claim for every possible scene.
 
 The qualification ledger labels its scope as the resident GPU-clustered grouped-material path and marks
-`FullR2Complete` false. Bindless tables, typed visibility-buffer/material resolve, two-phase HZB, LOD and
-the analytic comparison remain explicit follow-on work behind the identified interface boundary.
+`FullR2Complete` false. Bindless tables are now qualified in the linked follow-up. Typed visibility-buffer/material
+resolve, two-phase HZB, LOD and the analytic comparison remain explicit follow-on work.

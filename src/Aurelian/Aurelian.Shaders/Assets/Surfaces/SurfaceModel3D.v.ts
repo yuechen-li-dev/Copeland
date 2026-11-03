@@ -1,3 +1,4 @@
+import { SurfaceMaterial, SurfaceData, EvaluateSurfaceMaterial } from "./SurfaceMaterial3D";
 import { TemporalProjection } from "./TemporalGeometry";
 import { Unit, Sub3, ShadowVisibility, Dot3, Scale3, Mul3, DirectLight, HemisphereLight, Add3, Cross3, LimitRadiance } from "./Lighting3D";
 
@@ -100,38 +101,13 @@ function VertexMain(input: VertexInput, uniforms: MaterialResources): ModelVaryi
 
 @pixel
 function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources: ModelResources, builtins: PixelBuiltins): ModelOutput {
-    if (!builtins.frontFace && uniforms.material.flags.z < 0.5) {
-        Discard();
-    }
-    const base: float4 = Sample(resources.baseMap, resources.baseSampler, input.uv) * uniforms.material.baseColor * input.color;
-    if (uniforms.material.flags.y > 0.5 && base.w < uniforms.material.emissiveAlpha.w) {
-        Discard();
-    }
-    const emission: float4 = Sample(resources.emissiveMap, resources.emissiveSampler, input.uv);
-    const emitted: float3 = Mul3(float3(emission.x, emission.y, emission.z),
-        float3(uniforms.material.emissiveAlpha.x, uniforms.material.emissiveAlpha.y, uniforms.material.emissiveAlpha.z));
-    const nt: float4 = Sample(resources.normalMap, resources.normalSampler, input.uv);
-    const tangent: float3 = Unit(float3(input.tangent.x, input.tangent.y, input.tangent.z));
-    const geometric: float3 = Unit(input.normal);
-    const bitangent: float3 = Scale3(Cross3(geometric, tangent), input.tangent.w);
-    var normal: float3 = Unit(Add3(Add3(Scale3(tangent, (nt.x * 2.0 - 1.0) * uniforms.material.factors.z),
-        Scale3(bitangent, (nt.y * 2.0 - 1.0) * uniforms.material.factors.z)), Scale3(geometric, nt.z * 2.0 - 1.0)));
-    if (!builtins.frontFace) {
-        normal = Scale3(normal, -1.0);
-    }
-    const mr: float4 = Sample(resources.metalMap, resources.metalSampler, input.uv);
-    const metallic: f32 = Clamp(mr.z * uniforms.material.factors.x, 0.0, 1.0);
-    const roughness: f32 = Clamp(mr.y * uniforms.material.factors.y, 0.045, 1.0);
-    const ao: float4 = Sample(resources.occlusionMap, resources.occlusionSampler, input.uv);
-    var occlusion: f32 = 1.0 - uniforms.material.factors.w + ao.x * uniforms.material.factors.w;
-    if (uniforms.material.flags.x > 0.5) {
-        occlusion = -1.0;
-    }
-    return {
-        color: float4(base.x, base.y, base.z, roughness),
-        motion: TemporalProjection(input.currentClip, input.previousClip),
-        normal: float4(normal.x, normal.y, normal.z, metallic),
-        emission: float4(emitted.x, emitted.y, emitted.z, occlusion),
-        subsurface: uniforms.material.subsurfaceProfile,
-    };
+    let material: SurfaceMaterial = { baseColor: uniforms.material.baseColor, factors: uniforms.material.factors,
+        emissiveAlpha: uniforms.material.emissiveAlpha, flags: uniforms.material.flags,
+        subsurfaceProfile: uniforms.material.subsurfaceProfile };
+    let surface: SurfaceData = EvaluateSurfaceMaterial(input.normal, input.color, input.uv, input.tangent, builtins.frontFace, material,
+        resources.baseMap, resources.baseSampler, resources.metalMap, resources.metalSampler,
+        resources.normalMap, resources.normalSampler, resources.occlusionMap, resources.occlusionSampler,
+        resources.emissiveMap, resources.emissiveSampler);
+    return { color: surface.color, motion: TemporalProjection(input.currentClip, input.previousClip),
+        normal: surface.normal, emission: surface.emission, subsurface: surface.subsurface };
 }

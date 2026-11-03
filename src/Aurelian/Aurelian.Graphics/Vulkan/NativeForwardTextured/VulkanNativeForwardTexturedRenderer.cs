@@ -547,7 +547,7 @@ public static unsafe class VulkanNativeForwardTexturedRenderer
             {
                 Binding = (uint)resource.Binding,
                 DescriptorType = MapDescriptorType(resource.Kind),
-                DescriptorCount = 1,
+                DescriptorCount = (uint)(resource.DescriptorCount ?? 1),
                 StageFlags = MapStageFlags(resource.Visibility),
             })
             .ToArray();
@@ -754,6 +754,7 @@ public static unsafe class VulkanNativeForwardTexturedRenderer
             CompiledGraphicsResourceKind.Texture2D => DescriptorType.SampledImage,
             CompiledGraphicsResourceKind.Sampler => DescriptorType.Sampler,
             CompiledGraphicsResourceKind.UniformBuffer => DescriptorType.UniformBuffer,
+            CompiledGraphicsResourceKind.StorageBuffer => DescriptorType.StorageBuffer,
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
 

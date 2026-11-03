@@ -60,6 +60,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
     private readonly Sampler shadowSampler;
     private readonly Sampler? environmentSampler;
     private bool disposed;
+    private IReadOnlyList<ModelMaterial>? retainedTableMaterials;
     private static readonly ModelSampler DefaultSampler = new();
     private static readonly ModelTexture White = new("builtin-white", 1, 1, ImmutableArray.Create<byte>(255, 255, 255, 255));
     private static readonly ModelTexture FlatNormal = new("builtin-flat-normal", 1, 1, ImmutableArray.Create<byte>(128, 128, 255, 255));
@@ -132,10 +133,20 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
         }
     }
 
-    public void Upload(IReadOnlyList<NativeModel3DBatch> batches, Matrix4x4 clip, Vector3 eye, float[] lighting, Matrix4x4 previousClip, bool resetHistory, IReadOnlyList<ModelMaterial>? retainedMaterials = null)
+    public void Upload(IReadOnlyList<NativeModel3DBatch> batches, Matrix4x4 clip, Vector3 eye, float[] lighting, Matrix4x4 previousClip, bool resetHistory, IReadOnlyList<ModelMaterial>? retainedMaterials = null, bool bindlessRetained = false)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         retainedMaterials ??= [];
+        if (bindlessRetained && batches.Count == 0)
+        {
+            if (!ReferenceEquals(retainedTableMaterials, retainedMaterials))
+            {
+                TrimResources(retainedMaterials);
+                retainedTableMaterials = retainedMaterials;
+            }
+            return;
+        }
+        retainedTableMaterials = null;
         int count = batches.Sum(item => item.Vertices.Length);
         if (count == 0 && retainedMaterials.Count == 0)
         {
@@ -153,7 +164,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
                     throw new InvalidDataException("Model draw vertices must be finite.");
             }
         }
-        ModelMaterial[] materials = batches.Select(batch => batch.Material).Concat(retainedMaterials).Distinct().ToArray();
+        ModelMaterial[] materials = batches.Select(batch => batch.Material).Concat(bindlessRetained ? [] : retainedMaterials).Distinct().ToArray();
         foreach (ModelMaterial material in materials)
         {
             Surface surface = GetSurface(material);
@@ -192,7 +203,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
             if (data.Any(value => !float.IsFinite(value))) throw new InvalidDataException("Model camera and factors must be finite.");
             Require(surface.Uniform.Write(MemoryMarshal.AsBytes(data.AsSpan())).Success, "Model uniform upload failed.");
         }
-        TrimResources(materials);
+        TrimResources(materials.Concat(retainedMaterials));
         if (count == 0)
         {
             return;
@@ -278,6 +289,36 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
         material.Validate();
         if (!surfaceOnly && !transparent && !refractive && (material.AlphaBlend || material.SubsurfaceStrength > 0 || material.Transmission > 0))
             throw new NotSupportedException("Blend and subsurface materials require the shared surface renderer.");
+        var (images, filters) = GetChannels(material);
+        var bindings = new Vulkan3DFrameBindings(plant, allocator, layout, uniformBytes,
+            (uint)((resourceCount - 1) / 2), frames);
+        try
+        {
+            foreach (DescriptorSet set in bindings.Sets)
+            {
+                for (uint index = 0; index < images.Length; index++)
+                {
+                    Vulkan3DPass.WriteImage(plant, set, 1 + index * 2, images[index], filters[index]);
+                }
+                if (!surfaceOnly && !transparent)
+                {
+                    Vulkan3DPass.WriteImage(plant, set, 11, shadowMap, shadowSampler);
+                }
+            }
+            var surface = new Surface(bindings);
+            surfaces.Add(material, surface);
+            return surface;
+        }
+        catch
+        {
+            bindings.Dispose();
+            throw;
+        }
+    }
+
+    internal (AurelianVulkanTexture[] Images, Sampler[] Samplers) GetChannels(ModelMaterial material)
+    {
+        material.Validate();
         ModelTextureBinding?[] channels = material.Textures().ToArray();
         var images = new AurelianVulkanTexture[5];
         var filters = new Sampler[5];
@@ -312,30 +353,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
             images[index] = texture;
             filters[index] = GetSampler(binding?.Sampler ?? DefaultSampler);
         }
-        var bindings = new Vulkan3DFrameBindings(plant, allocator, layout, uniformBytes,
-            (uint)((resourceCount - 1) / 2), frames);
-        try
-        {
-            foreach (DescriptorSet set in bindings.Sets)
-            {
-                for (uint index = 0; index < images.Length; index++)
-                {
-                    Vulkan3DPass.WriteImage(plant, set, 1 + index * 2, images[index], filters[index]);
-                }
-                if (!surfaceOnly && !transparent)
-                {
-                    Vulkan3DPass.WriteImage(plant, set, 11, shadowMap, shadowSampler);
-                }
-            }
-            var surface = new Surface(bindings);
-            surfaces.Add(material, surface);
-            return surface;
-        }
-        catch
-        {
-            bindings.Dispose();
-            throw;
-        }
+        return (images, filters);
     }
 
     private Sampler GetSampler(ModelSampler definition)

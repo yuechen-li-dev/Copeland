@@ -62,7 +62,13 @@ public static class CompiledGraphicsProgramExporter
                 resource.Type,
                 resource.Set,
                 resource.Binding,
-                resource.Visibility.Select(MapStage).ToArray()))
+                resource.Visibility.Select(MapStage).ToArray())
+            {
+                DescriptorCount = resource.DescriptorCount,
+                StorageLayout = resource.Kind == VdMirGraphicsResourceKind.StorageBuffer
+                    && module.StorageLayouts?.SingleOrDefault(layout => layout.Type == resource.ElementType) is { } storage
+                    ? new(storage.Type, storage.Stride, storage.Fields.Select(field => new CompiledStorageField(field.Path, field.Type, field.Offset)).ToArray()) : null,
+            })
             .ToArray();
 
         CompiledMaterialLayout? material = graphics.Material is null
@@ -113,6 +119,7 @@ public static class CompiledGraphicsProgramExporter
             VdMirGraphicsResourceKind.Texture2D => CompiledGraphicsResourceKind.Texture2D,
             VdMirGraphicsResourceKind.Sampler => CompiledGraphicsResourceKind.Sampler,
             VdMirGraphicsResourceKind.Material => CompiledGraphicsResourceKind.UniformBuffer,
+            VdMirGraphicsResourceKind.StorageBuffer => CompiledGraphicsResourceKind.StorageBuffer,
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
 

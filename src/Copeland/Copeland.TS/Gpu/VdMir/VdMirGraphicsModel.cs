@@ -19,6 +19,7 @@ public enum VdMirGraphicsResourceKind
     Texture2D,
     Sampler,
     Material,
+    StorageBuffer,
 }
 
 public sealed record VdMirSemanticSpace(
@@ -81,7 +82,11 @@ public sealed record VdMirGraphicsResource(
     IReadOnlyList<VdMirGraphicsStage> Visibility,
     string? MaterialId,
     VdMirSourceSpan Source,
-    VdMirSourceSpan BindingSource);
+    VdMirSourceSpan BindingSource)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? DescriptorCount { get; init; }
+}
 
 public sealed record VdMirMaterialField(
     int Order,
@@ -131,6 +136,7 @@ public sealed record VdMirGraphicsModule(
     public const string GraphicsM2FeatureLevel = "graphics.m2";
     public const string GraphicsM3FeatureLevel = "graphics.m3";
     public const string GraphicsM4FeatureLevel = "graphics.m4";
+    public const string GraphicsTablesM1FeatureLevel = "graphics.tables.m1";
 
     public bool Success => GraphicsProgram is not null && Diagnostics.Count == 0;
 
@@ -142,6 +148,8 @@ public sealed record VdMirGraphicsModule(
 
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<VdMirValueType>? ValueTypes { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<VdMirStorageLayout>? StorageLayouts { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<VdMirGenericSpecialization>? GenericSpecializations { get; init; }

@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Collections.Immutable;
 using Aurelian.Graphics.FramePlans;
 using Aurelian.Graphics.Vulkan.Native3D;
 using Aurelian.Rendering.Contracts.Models;
@@ -90,6 +91,27 @@ public sealed class ClusterVisibilityTests
         Assert.Equal(new Vector4(0, 0, 0, 1), planes[0]);
         Assert.All(planes, plane => Assert.True(float.IsFinite(plane.X) && float.IsFinite(plane.Y)
             && float.IsFinite(plane.Z) && float.IsFinite(plane.W)));
+    }
+
+    [Fact]
+    public void BindlessDescriptorCapacityIsRejectedBeforeGpuAdmission()
+    {
+        var mesh = Triangle();
+        var pixels = ImmutableArray.Create<byte>(255, 255, 255, 255);
+        var sampler = new ModelSampler();
+        var instances = Enumerable.Range(0, 820).Select(index =>
+        {
+            ModelTextureBinding Channel(int channel) => new(new($"texture-{index}-{channel}", 1, 1, pixels), sampler);
+            var material = new ModelMaterial("material-" + index)
+            {
+                BaseColorTexture = Channel(0), MetallicRoughnessTexture = Channel(1), NormalTexture = Channel(2),
+                OcclusionTexture = Channel(3), EmissiveTexture = Channel(4),
+            };
+            return new SceneInstance3D("instance-" + index, mesh, material, Matrix4x4.Identity);
+        });
+        var resident = new NativeInstanceSet3D(instances);
+        Assert.Contains("AUR-BINDLESS-002", Assert.Throws<InvalidDataException>(() =>
+            VulkanBindlessMaterials3D.ValidateCapacity(resident)).Message);
     }
 
     private static NativeMesh3D Triangle() => new("triangle", [

@@ -384,6 +384,7 @@ public sealed class NativeGameGraphics : IDisposable
                 {
                     Visibility = new(assets.ComputeShader("VisibilityCull3D.v.ts"), assets.ComputeShader("VisibilityScan3D.v.ts"),
                         assets.ComputeShader("VisibilityScatter3D.v.ts")),
+                    Bindless = assets.Shader("BindlessModel3D.v.ts"),
                 })
             {
                 FrameMode = enableFramesInFlight ? Native3DFrameMode.Interactive : Native3DFrameMode.Capture,

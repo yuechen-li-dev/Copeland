@@ -104,51 +104,15 @@ public static partial class GpuComputeBinder
 
         private void AdmitStorage(string type, VdMirSourceSpan source)
         {
-            if (storageLayouts.ContainsKey(type))
+            if (storageLayouts.ContainsKey(type)) return;
+            var layout = GpuStorageTransport.Describe(type, _values);
+            if (layout is not null)
             {
+                storageLayouts.Add(type, layout);
                 return;
             }
-            var fields = new List<VdMirStorageField>();
-            Flatten(type, "");
-            if (fields.Count > 0)
-            {
-                storageLayouts.Add(type, new(type, fields.Count * 4, fields));
-            }
-            else
-            {
-                AddDiagnostic("COPE-GPU-STORAGE-0001", "SDSL-V4114", "storage",
-                    "Storage values must contain at least one transport word.", source);
-            }
-
-            void Flatten(string fieldType, string path)
-            {
-                if (fieldType is "f32" or "u32")
-                {
-                    fields.Add(new(path, fieldType, fields.Count * 4));
-                    return;
-                }
-                int width = VectorWidth(fieldType);
-                if (width > 0)
-                {
-                    foreach (char lane in "xyzw"[..width])
-                    {
-                        Flatten("f32", Join(path, lane.ToString()));
-                    }
-                    return;
-                }
-                if (_values.Find(fieldType) is { } aggregate)
-                {
-                    foreach (var field in aggregate.Fields)
-                    {
-                        Flatten(field.Type, Join(path, field.Name));
-                    }
-                    return;
-                }
-                AddDiagnostic("COPE-GPU-STORAGE-0001", "SDSL-V4114", "storage",
-                    "Storage requires finite f32/u32/vector/record/array values; bool, enums and resources need explicit transport encoding.", source);
-            }
-
-            static string Join(string path, string field) => path.Length == 0 ? field : path + "." + field;
+            AddDiagnostic("COPE-GPU-STORAGE-0001", "SDSL-V4114", "storage",
+                "Storage requires nonempty finite f32/u32/vector/record/array transport; bool, enums and resources need explicit encoding.", source);
         }
 
         private VdMirExpression? BindNativeCall(string path, CallExpressionSyntax call, Dictionary<string, ValueBinding> scope)

@@ -41,4 +41,7 @@ public sealed record Native3DRetainedStatistics(int Instances, int DrawGroups, i
 {
     public int CpuVisitedInstances { get; init; }
     public int IndirectGroups { get; init; }
+    public int MaterialDescriptorBinds { get; init; }
+    public bool BindlessMaterials { get; init; }
+    public int ResidentTextures { get; init; }
 }

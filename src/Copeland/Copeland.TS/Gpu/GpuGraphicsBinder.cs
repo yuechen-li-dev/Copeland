@@ -5,7 +5,7 @@ using Copeland.TS.Semantics;
 namespace Copeland.TS.Gpu;
 
 /// <summary>Binds the bounded M3 vertex/pixel profile through ordinary Copeland syntax.</summary>
-public static class GpuGraphicsBinder
+public static partial class GpuGraphicsBinder
 {
     public static VdMirGraphicsModule Compile(GpuCompilationRequest request)
     {
@@ -13,7 +13,7 @@ public static class GpuGraphicsBinder
         return new Binder(request).Bind();
     }
 
-    private sealed class Binder
+    private sealed partial class Binder
     {
         private static readonly HashSet<string> StreamAnnotations = new(StringComparer.Ordinal)
         {
@@ -356,7 +356,7 @@ public static class GpuGraphicsBinder
                         Add("COPE-GPU-RESOURCE-0001", "SDSL-V4115", "resource", $"Resource '{field.Identifier.Text}' must be Texture2D<float4>, Sampler, or the canonical material.", Span(source.Path, field.Type));
                         continue;
                     }
-                    string? elementType = kind == VdMirGraphicsResourceKind.Texture2D ? "float4" : null;
+                    string? elementType = ResourceElement(type, kind.Value);
                     string? materialId = kind == VdMirGraphicsResourceKind.Material ? _materials[type].Id : null;
                     VdMirGraphicsStage[] visibility = _entries
                         .Where(entry => entry.ResourceStreams?.Contains(stream.Name, StringComparer.Ordinal) == true)
@@ -367,7 +367,10 @@ public static class GpuGraphicsBinder
                     var resource = new VdMirGraphicsResource(
                         order++, stream.Name, field.Identifier.Text, kind.Value, type, elementType, VdMirResourceAccess.Readonly,
                         0, binding.Value, visibility, materialId,
-                        Span(source.Path, field), Span(source.Path, bindingAnnotation!));
+                        Span(source.Path, field), Span(source.Path, bindingAnnotation!))
+                    {
+                        DescriptorCount = DescriptorCount(type),
+                    };
                     if (claimedBindings.TryGetValue(binding.Value, out VdMirGraphicsResource? prior))
                     {
                         Add("COPE-GPU-BINDING-0002", "SDSL-V4112", "resource-binding", $"Resource binding {binding.Value} collides in set 0.", resource.BindingSource, [new VdMirRelatedSpan("First binding is here.", prior.BindingSource)]);
@@ -892,7 +895,7 @@ public static class GpuGraphicsBinder
                 case ObjectLiteralExpressionSyntax literal when expected is not null && _streams.TryGetValue(expected, out VdMirStream? stream):
                     return BindObject(path, literal, scope, stream);
                 case IndexExpressionSyntax index:
-                    return _values.Read(BindExpression(path, index.Target, scope), [BindExpression(path, index.Index, scope)], AddEnumFunction, Span(path, index)) ?? ValueOperationError(path, index);
+                    return BindResourceIndex(path, index, scope);
                 case WithExpressionSyntax updated:
                     return _values.UpdateRecord(BindExpression(path, updated.Source, scope), updated,
                         (expression, type) => BindExpression(path, expression, scope, type), AddEnumFunction, Span(path, updated));
@@ -1079,6 +1082,10 @@ public static class GpuGraphicsBinder
                 return Error(path, call);
             }
             string target = name.IdentifierToken.Text;
+            if (target == "NonUniform")
+            {
+                return BindNonUniform(path, call, scope);
+            }
             FunctionSource? context = _functionSources.GetValueOrDefault(_modules.Resolve(path, target));
             VdMirExpression[] arguments = call.Arguments.Select((argument, index) => BindExpression(path, argument, scope,
                 context is not null && index < context.Syntax.Parameters.Count
@@ -1287,6 +1294,7 @@ public static class GpuGraphicsBinder
                 ValueTypes = _values is null || _values.Definitions.Count == 0 ? null : _values.Definitions,
                 GenericSpecializations = _generics is null || _generics.Traces.Count == 0 ? null : _generics.Traces,
                 Warnings = _modules is null || _modules.Warnings.Count == 0 ? null : _modules.Warnings,
+                StorageLayouts = graphicsStorageLayouts.Count == 0 ? null : graphicsStorageLayouts.Values.ToArray(),
             };
         }
 
@@ -1301,6 +1309,10 @@ public static class GpuGraphicsBinder
 
         private string GraphicsFeatureLevel()
         {
+            if (graphicsStorageLayouts.Count > 0 || _resources.Any(resource => resource.DescriptorCount.HasValue))
+            {
+                return VdMirGraphicsModule.GraphicsTablesM1FeatureLevel;
+            }
             if (UsesGraphicsM4())
             {
                 return VdMirGraphicsModule.GraphicsM4FeatureLevel;
@@ -1319,6 +1331,10 @@ public static class GpuGraphicsBinder
 
         private string BindType(string path, TypeSyntax? syntax)
         {
+            if (syntax is GenericTypeSyntax resourceSyntax && resourceSyntax.Identifier.Text is "StorageBuffer" or "DescriptorArray")
+            {
+                return BindTableType(path, resourceSyntax);
+            }
             string? value = _values?.BindType(path, syntax, (sourcePath, field) => BindType(sourcePath, field));
             if (value is not null)
             {
@@ -1408,6 +1424,11 @@ public static class GpuGraphicsBinder
 
         private VdMirGraphicsResourceKind? ResourceKind(string type)
         {
+            if (type.StartsWith("storage-buffer<", StringComparison.Ordinal)) return VdMirGraphicsResourceKind.StorageBuffer;
+            if (type.StartsWith("descriptor-array<", StringComparison.Ordinal))
+            {
+                return ArrayElement(type) == "Sampler" ? VdMirGraphicsResourceKind.Sampler : VdMirGraphicsResourceKind.Texture2D;
+            }
             if (type == "Texture2D<float4>")
             {
                 return VdMirGraphicsResourceKind.Texture2D;

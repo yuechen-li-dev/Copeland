@@ -11,6 +11,7 @@ public enum CompiledGraphicsResourceKind
     Texture2D,
     Sampler,
     UniformBuffer,
+    StorageBuffer,
 }
 
 public sealed record CompiledVertexInput(
@@ -34,7 +35,16 @@ public sealed record CompiledGraphicsResource(
     string Type,
     int Set,
     int Binding,
-    IReadOnlyList<CompiledGraphicsStage> Visibility);
+    IReadOnlyList<CompiledGraphicsStage> Visibility)
+{
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public int? DescriptorCount { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public CompiledStorageLayout? StorageLayout { get; init; }
+}
+
+public sealed record CompiledStorageField(string Path, string Type, int Offset);
+public sealed record CompiledStorageLayout(string Type, int Stride, IReadOnlyList<CompiledStorageField> Fields);
 
 public sealed record CompiledMaterialField(
     int Order,

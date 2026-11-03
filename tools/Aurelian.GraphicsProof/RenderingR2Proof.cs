@@ -261,7 +261,7 @@ internal static class RenderingR2Proof
             JsonSerializer.Serialize(records, new JsonSerializerOptions { WriteIndented = true }));
     }
 
-    private static NativeMesh3D Tree()
+    internal static NativeMesh3D Tree()
     {
         var vertices = new List<NativeModel3DVertex>();
         var indices = new List<uint>();
