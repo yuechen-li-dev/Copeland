@@ -1,0 +1,187 @@
+# R2: resident scenes and GPU-driven clustered draws
+
+R2's grouped-material native path now compiles immutable scene instances into resident transforms and
+cluster bounds, culls on the GPU, compacts stable indirect commands, and renders through the existing
+material fragment shaders and R1 frame tape. The full bindless/visibility-buffer proposal remains open:
+executable shader-profile probes identify the next interface work below. This is a qualified progression
+of R2, not a claim that HZB, compute material resolve, LOD or hybrid analytic visibility already exist.
+
+## Use the resident path
+
+```csharp
+// Admission/upload happens when the scene revision is created, not while its camera moves.
+var instances = new NativeInstanceSet3D(authoredInstances);
+var scene = new Native3DScene([], []) { Instances = instances };
+renderer.Render(scene, camera, eye, clear);
+```
+
+`NativeGameGraphics` supplies the three visibility compute programs through `GameAssets`. Direct renderer
+construction can supply them in `RetainedModel3DPrograms.Visibility`. If the device lacks the required
+indirect features, the resident set still uses cached transforms and existing direct instanced draws.
+Ordinary mutable `Instances` lists retain their previous validation/upload behavior.
+
+The immutable admission boundary snapshots instance records, validates identities/transforms/materials,
+and caches mesh/material grouping, material features and temporal identity. Once both frame slots are
+initialized, the renderer skips per-instance comparison, validation, grouping and transform uploads.
+Camera and material uniforms still update. CPU work scales with mesh/material groups, not instance count
+within those groups. This does not optimize application-side scene projection or dynamic transform streams.
+
+Replacing the set creates a static scene revision and resets temporal correspondence. GPU buffers and
+descriptors retire after their last graphics timeline use. Current and previous transforms are identical
+within a static revision; stale previous poses cannot persist in alternating frame slots.
+
+## Clusters, culling and compaction
+
+`NativeMeshClusters3D` is an owned implementation. It splits the original index stream into contiguous
+runs of at most 128 triangles, preserving every index and triangle order. Clusters carry enclosing spheres
+and conservative normal cones. These indexed clusters can reference up to 384 vertices; they do not claim
+the vertex-count constraints of a hardware mesh-shader meshlet.
+
+We considered [meshoptimizer's clusterizer](https://meshoptimizer.org/#clusterization). R2 chooses the
+small owned partitioner to preserve exact triangle order, avoid a native packaging dependency, and obtain
+a measurable control first. It does not claim meshoptimizer-quality locality or optimal cluster bounds.
+No meshoptimizer or Aetheris source was copied.
+
+World spheres use a spectral-norm upper bound, `sqrt(||A||1 * ||A||infinity)`, so positive affine transforms,
+including shear and nonuniform scale, remain conservative. Cone culling is admitted only for single-sided
+materials under similarity transforms. Double-sided materials, shear and nonuniform scale keep their cones
+disabled. Vulkan's zero-to-one clip-depth interval is used when extracting frustum planes.
+
+Four modes provide controls: unculled, instance frustum, cluster frustum, and cluster plus cone. All commands
+preserve source instance/triangle order. The compute sequence is:
+
+1. Test instance sphere, then cluster sphere, then the admitted normal cone. A 64-lane workgroup scan writes
+   local stable ranks and a block count. Tail lanes participate in all barriers and write zero visibility.
+2. Scan block counts to global offsets and total draw count. The typed uniform parameter uses the existing
+   bounded-loop profile: at most 512 iterations processing 32 blocks each. No global atomic extension is needed.
+3. Scatter visible clusters into 20-byte `VkDrawIndexedIndirectCommand` records. GPU count and arguments feed
+   `vkCmdDrawIndexedIndirectCount`, with one recorded draw command per material/mesh group.
+
+The Vulkan plant queries/enables `multiDrawIndirect`, `drawIndirectFirstInstance`, and Vulkan 1.2
+`drawIndirectCount`. Promoted timeline, device-address, float16 and memory-model features share the Vulkan 1.2
+feature structure, preserving optional ray/cooperative feature chains. See the
+[Khronos indirect-count guide](https://docs.vulkan.org/guide/latest/extensions/VK_KHR_draw_indirect_count.html).
+
+Inputs and outputs stay in device-local buffers. Per-slot camera parameters, ranks, counts and arguments
+preserve R0's two-frame ownership. Normal frames perform no visibility readback. The explicit qualification
+method drains outstanding frames and copies ranks/counts to staging for comparison with a double-precision
+CPU half-space/cone evaluator.
+
+The R1 plan contains `cluster-visibility` followed by the geometry consumer. `FrameAccess.Indirect` makes
+compute-write to indirect-read hazards explicit. Pack-internal scan barriers remain inside that stage.
+The public GPU timing schema adds `visibility-cull`; presentation qualification checks that named stage too.
+
+Limits are 65,536 resident instances, 128 mesh/material groups, 1,048,576 aggregate cluster candidates,
+the physical device's per-group indirect-count limit, and the existing 256 MiB mesh residency limit.
+Admission failures retain diagnostics and publish no partial culling group set.
+
+## Materials and shadows
+
+This path preserves the current material ABI, texture/sampler bindings, alpha masking, normals, motion,
+subsurface output and shared surface lighting. Per-material descriptor binds remain. Blended/refractive
+materials continue through their existing forward batch adapter; resident admission rejects them explicitly.
+Shadow casters retain their original direct instanced draws. Camera culling never incorrectly removes an
+offscreen caster from a directional or local shadow map. GPU shadow-view culling is not claimed.
+
+## Research boundary: the visibility/material ABI
+
+The proposal's visibility buffer would replace fragment material evaluation with ID storage, triangle
+reconstruction and compute resolve. The [original visibility-buffer paper](https://jcgt.org/published/0002/02/04/)
+motivates that separation. It needs interfaces the current shader profile does not yet provide.
+
+`--rendering-r2` generates three modified `SurfaceModel3D` sources and runs the real graphics binder:
+
+| Probe | Actual blocking diagnostic |
+| --- | --- |
+| Integer visibility target | `COPE-GPU-TARGET-0003`: pixel targets require `float4` |
+| Fragment primitive ID | `COPE-GPU-BUILTIN-0003`: `primitive_id` is not admitted for pixels |
+| Material storage buffer | `COPE-GPU-RESOURCE-0001`: graphics resources are textures, samplers and canonical material uniforms |
+
+Artifacts retain the complete compiler diagnostics and failing sources in `profile-capability-probes.json`
+and adjacent `.v.ts` files. This identifies a shader-language/compiled-interface boundary, not a GPU hardware
+limitation. The native texture-format enum also has no `R32G32_UINT` attachment, and the graphics resource
+contract has no storage-buffer or descriptor-array kind. Compute currently consumes storage buffers rather
+than sampled/storage images.
+
+The next coherent implementation is a typed visibility/material resource ABI through the existing binder,
+VD-MIR, compiled graphics contracts, HLSL/SPIR-V emission and Vulkan descriptors/formats. This should include
+integer targets/loads, primitive identity, nonuniform descriptor indexing, explicit texture gradients and
+compute image access. A renderer-only raw-HLSL path would evade those contracts; copying material evaluation
+into a second resolver would create the duplicated pack implementation the proposal explicitly rejects.
+The qualified grouped-material path remains useful while that interface is extended.
+
+Two-phase HZB needs current-frame depth production, a GPU pyramid, a late rescue draw with attachment loads,
+and conservative tests across camera cuts. Those stages are not implemented here. The existing opaque pass
+discards its hardware depth attachment after the pass, so treating it as a reusable HZB history would be
+incorrect. Offline LOD chains and hysteresis also remain unimplemented; the measured Forest keeps the full
+source geometry and incurs no simplification error. Hybrid analytic/triangle visibility has not been timed
+or killed by an experiment. It depends on the typed shared visibility/depth interface first.
+
+## Aetheris reuse and licensing
+
+R2 adds no Aetheris reference, source port, or relicensing grant. Its partitioner, bounds, scan and culling
+are independently authored. Larger analytic modules remain candidates for an optional bridge. Any future
+small AGPL-derived port needs file/revision provenance and an explicit author decision before being treated
+as GPL-3.0. Existing notices and grants retain their scope. See [the boundary policy](aetheris-boundary.md).
+
+## Qualification
+
+```powershell
+pwsh -File tools/aurelian-rendering-r2/Qualify.ps1 `
+    -Baseline artifacts/local/rendering-r2/before `
+    -Output artifacts/local/rendering-r2/final
+```
+
+Before editing, binaries from `b11b32d1` were saved outside the repository and all nine existing proof modes
+were captured. Qualification builds/tests `Aurelian.slnx`, runs the new native proof with synchronization
+validation and tiered compilation disabled, reruns those nine modes, compares all baseline PNGs, and records
+source/binary hashes. The baseline is never regenerated by the qualification command.
+
+The Forest has 20,000 procedural tree instances and 23,040,000 source triangles, including 21,440,000
+nondegenerate triangles; the proof separately gates that nondegenerate count above 20 million. Eight frozen cameras compare
+the original direct instanced path with all four GPU culling controls, then compare GPU ranks against the
+CPU evaluator. Near-zero counts, non-multiple-of-64 tails, multiple materials/nonzero first-instance offsets,
+back faces, double-sided surfaces, shear/nonuniform transforms, static revisions and temporal AA have
+separate native boundary cases. Pixel equality checks complement the shared-bound CPU reference.
+
+Performance samples use 12 warmup frames and 36 retained samples at 1,250, 5,000 and 20,000 instances, with
+the same mesh/material groups. CPU preparation/recording, submit, and GPU frame intervals are recorded
+separately. The path is the production `VulkanSolid3DRenderer` through the full surface/output pipeline,
+rendering to a native target. It excludes swapchain presentation, application scene projection, initial
+scene admission/upload and qualification readback. Shadows, AO, bloom and temporal AA are disabled for
+the scaling measurement; boundary cases and existing captures exercise their compatibility separately.
+Timings remain machine/workload-specific. Zero CPU instance visits/uploads and fixed indirect group count
+provide structural evidence alongside the measurements.
+
+## Local results, 2026-11-03
+
+Authoritative evidence is `artifacts/local/rendering-r2/final-3/`; earlier attempt directories retain
+compiler failures and preceding qualification runs. The final full build has zero warnings/errors and
+all 1,553 tests pass with no skips. All 225 existing PNG captures are byte-identical across the nine proof
+modes. The native R2 proof passes synchronization validation, verifies the resident direct-draw fallback
+without compute programs, and exercises the transform/material/temporal boundary cases described above.
+That fallback tests the program-availability branch on this RTX 3070;
+the feature-unavailable branch has not been run on a second physical device.
+
+| Instances | Direct mutable prepare/record | Resident GPU prepare/record | Direct GPU interval | Resident GPU interval |
+| ---: | ---: | ---: | ---: | ---: |
+| 1,250 | 0.884 ms | 0.247 ms | 0.989 ms | 0.431 ms |
+| 5,000 | 2.747 ms | 0.251 ms | 3.107 ms | 0.314 ms |
+| 20,000 | 11.377 ms | 0.249 ms | 4.918 ms | 0.559 ms |
+
+The CPU improvement comes from resident admission/caching as well as fixed indirect submission; it is not
+attributed solely to GPU culling. GPU intervals include the full configured native frame. Fixed profile
+ordering and unlocked GPU clocks mean these short runs are diagnostic, not universal performance ratios.
+Three successive native runs showed the same large-case improvement direction and approximately 0.25 ms
+resident preparation cost across the tested instance counts.
+
+For frozen pose zero, 180,000 cluster candidates produce 11,493 commands after instance-frustum culling,
+10,825 after cluster-frustum culling, and the same 10,825 with cones enabled. Cones provide no additional
+reduction for this tree/camera, while the single-sided back-plane specimen verifies a real zero-command
+cone result. All 32 Forest culling/camera captures match the original direct-instanced render. CPU/GPU
+classification has zero false negatives and zero false positives on that path; this is not an exhaustive
+floating-point correctness claim for every possible scene.
+
+The qualification ledger labels its scope as the resident GPU-clustered grouped-material path and marks
+`FullR2Complete` false. Bindless tables, typed visibility-buffer/material resolve, two-phase HZB, LOD and
+the analytic comparison remain explicit follow-on work behind the identified interface boundary.

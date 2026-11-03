@@ -9,6 +9,7 @@ public enum FrameAccess
 {
     None = 0, Sample = 1, Vertex = 2, TransferRead = 4, ColorWrite = 8, DepthWrite = 16,
     ComputeWrite = 32, TransferWrite = 64, HistoryReadWrite = 128,
+    Indirect = 256,
 }
 public enum FrameTapeOp { Barrier, Pass }
 

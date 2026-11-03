@@ -17,4 +17,7 @@ public sealed record VulkanDrawVerticesRequest(
     public AurelianVulkanBuffer? InstanceBuffer { get; init; }
     public uint InstanceCount { get; init; } = 1;
     public uint FirstInstance { get; init; }
+    public AurelianVulkanBuffer? IndirectArguments { get; init; }
+    public AurelianVulkanBuffer? IndirectCount { get; init; }
+    public uint MaximumIndirectDraws { get; init; }
 }

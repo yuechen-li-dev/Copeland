@@ -380,7 +380,11 @@ public sealed class NativeGameGraphics : IDisposable
                     TransparentModel = assets.Shader("TransparentModel3D.v.ts"),
                     TransparencyResolve = assets.Shader("TransparencyResolve3D.v.ts"),
                     ParticleBillboards = assets.Shader("ParticleBillboard3D.v.ts"),
-                }, retainedPrograms: new(assets.Shader("InstancedModel3D.v.ts"), assets.Shader("InstancedShadow3D.v.ts")))
+                }, retainedPrograms: new(assets.Shader("InstancedModel3D.v.ts"), assets.Shader("InstancedShadow3D.v.ts"))
+                {
+                    Visibility = new(assets.ComputeShader("VisibilityCull3D.v.ts"), assets.ComputeShader("VisibilityScan3D.v.ts"),
+                        assets.ComputeShader("VisibilityScatter3D.v.ts")),
+                })
             {
                 FrameMode = enableFramesInFlight ? Native3DFrameMode.Interactive : Native3DFrameMode.Capture,
             });

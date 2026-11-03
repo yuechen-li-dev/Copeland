@@ -37,4 +37,8 @@ public sealed record Native3DFrameCpuTimings(long Sequence, int Slot, double Slo
     double PrepareRecordMilliseconds, double SubmitMilliseconds);
 
 public sealed record Native3DRetainedStatistics(int Instances, int DrawGroups, int UploadedMeshes,
-    long GeometryUploadBytes, long InstanceUploadBytes, ulong ResidentGeometryBytes);
+    long GeometryUploadBytes, long InstanceUploadBytes, ulong ResidentGeometryBytes)
+{
+    public int CpuVisitedInstances { get; init; }
+    public int IndirectGroups { get; init; }
+}

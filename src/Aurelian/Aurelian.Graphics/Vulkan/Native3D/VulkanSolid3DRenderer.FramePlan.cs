@@ -26,6 +26,9 @@ public sealed unsafe partial class VulkanSolid3DRenderer
     public FramePlan? CurrentFramePlan { get; private set; }
     public ulong TransientTextureBytes => surfaceLighting?.TransientTextureBytes ?? 0;
     public int TransientPhysicalImages => surfaceLighting?.TransientPhysicalImages ?? 0;
+    public ClusterVisibilityMode VisibilityMode { get; set; } = ClusterVisibilityMode.ClusterAndCone;
+    public IReadOnlyList<ClusterVisibilityReadback> ReadVisibilityForQualification()
+        => retainedModels?.ReadVisibilityForQualification() ?? [];
 
     /// <summary>Installs a verified artifact for a matching native feature profile.</summary>
     public void InstallFramePlan(string json)
@@ -50,7 +53,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
             shaded && state.Settings.Fog.Density > 0, state.Settings.Volumetrics.Enabled,
             shaded && state.HasRefraction, shaded && state.HasTransparency, shaded && state.HasParticles,
             planOptions.AsyncParticleUpdates && plant.ComputeQueue.HasValue, state.UseTemporal && state.GpuGeometry is not null,
-            surfaceLighting?.ShadowCount ?? 0, planOptions.AliasTransientTextures);
+            surfaceLighting?.ShadowCount ?? 0, planOptions.AliasTransientTextures, retainedModels?.HasVisibility == true);
         if (!framePlanCache.TryGetValue(features, out var plan))
         {
             plan = Native3DFrameGraph.Compile(features, (int)target.Width, (int)target.Height);
@@ -134,7 +137,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
             if (batch.Id == lastGraphics)
             {
                 // Keep the timing schema complete without writing a query twice.
-                int timingCount = surfaceOnly ? 14 : outputPass is null ? 0 : 5;
+                int timingCount = surfaceOnly ? 15 : outputPass is null ? 0 : 5;
                 for (int index = 0; index < timingCount; index++)
                 {
                     if ((writtenTimings & (1u << index)) == 0)
@@ -233,6 +236,11 @@ public sealed unsafe partial class VulkanSolid3DRenderer
             case Native3DPass.Bloom: RecordBloom(command, state); break;
             case Native3DPass.Output: RecordOutput(command, state); break;
             case Native3DPass.HistoryCopy: CopyPreviousGpu(command, state.GpuGeometry!); break;
+            case Native3DPass.Visibility:
+                gpuTimings?.Mark(command, 28);
+                retainedModels!.RecordVisibility(command, state.WorldToClip, state.Eye, VisibilityMode);
+                gpuTimings?.Mark(command, 29);
+                break;
             default: throw new FramePlanException("AUR-PLAN-010", "Unknown native pass implementation.");
         }
     }
@@ -258,7 +266,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
         Native3DPass.Bloom => 3, Native3DPass.Output => 4, Native3DPass.AmbientOcclusion => 5,
         Native3DPass.LightTiles => 6, Native3DPass.SurfaceResolve => 7, Native3DPass.LocalShadows => 8,
         Native3DPass.Subsurface => 9, Native3DPass.Atmosphere => 10, Native3DPass.Transparency => 11,
-        Native3DPass.Refraction => 12, Native3DPass.Particles => 13, _ => -1,
+        Native3DPass.Refraction => 12, Native3DPass.Particles => 13, Native3DPass.Visibility => 14, _ => -1,
     };
 
     private void RecordMemoryBarrier(VulkanCommandBufferLease command, AccessFlags before, AccessFlags after)
@@ -287,6 +295,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
         AccessFlags mask = 0;
         if ((access & FrameAccess.Sample) != 0) mask |= AccessFlags.ShaderReadBit;
         if ((access & FrameAccess.Vertex) != 0) mask |= AccessFlags.VertexAttributeReadBit;
+        if ((access & FrameAccess.Indirect) != 0) mask |= AccessFlags.IndirectCommandReadBit;
         if ((access & FrameAccess.ColorWrite) != 0) mask |= AccessFlags.ColorAttachmentWriteBit;
         if ((access & FrameAccess.DepthWrite) != 0) mask |= AccessFlags.DepthStencilAttachmentWriteBit;
         if ((access & FrameAccess.ComputeWrite) != 0) mask |= AccessFlags.ShaderWriteBit;

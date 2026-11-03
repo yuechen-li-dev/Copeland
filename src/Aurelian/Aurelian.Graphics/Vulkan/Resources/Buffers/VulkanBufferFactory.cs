@@ -178,6 +178,7 @@ public static unsafe class VulkanBufferFactory
     private static BufferUsageFlags MapUsage(VulkanBufferUsage usage)
     {
         BufferUsageFlags flags = 0;
+        if ((usage & VulkanBufferUsage.Indirect) != 0) flags |= BufferUsageFlags.IndirectBufferBit;
         if ((usage & VulkanBufferUsage.ShaderDeviceAddress) != 0) flags |= BufferUsageFlags.ShaderDeviceAddressBit;
         if ((usage & VulkanBufferUsage.AccelerationStructureStorage) != 0) flags |= BufferUsageFlags.AccelerationStructureStorageBitKhr;
         if ((usage & VulkanBufferUsage.AccelerationStructureInput) != 0) flags |= BufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr;

@@ -6,12 +6,13 @@ internal enum Native3DPass
 {
     Uploads, Particles, DirectionalShadows, LocalShadows, Geometry, AmbientOcclusion, LightTiles,
     SurfaceResolve, Subsurface, Atmosphere, Refraction, Transparency, Temporal, Bloom, Output, HistoryCopy,
+    Visibility,
 }
 
 internal readonly record struct Native3DFeatures(bool Surface, bool Modern, bool Motion, bool Shadows,
     bool Ambient, bool Tiles, bool Temporal, bool Bloom, bool Subsurface, bool Fog, bool Volume,
     bool Refraction, bool Transparency, bool Particles, bool AsyncParticles, bool GpuHistory,
-    int LocalShadows, bool Alias);
+    int LocalShadows, bool Alias, bool Visibility = false);
 
 /// <summary>Declarative authoring for the production renderer. The compiler publishes only resolved data.</summary>
 internal static class Native3DFrameGraph
@@ -69,7 +70,14 @@ internal static class Native3DFrameGraph
             var pass = graph.Pass("local-shadows", (int)Native3DPass.LocalShadows).Read(inputs, FrameAccess.Vertex).Write(spot1);
             if (features.LocalShadows > 1) pass.Write(spot2);
         }
+        FrameResource? arguments = null;
+        if (features.Visibility)
+        {
+            arguments = graph.Resource("cluster-indirect-arguments", "buffer", 1, 1, dedicated: true);
+            graph.Pass("cluster-visibility", (int)Native3DPass.Visibility).Read(inputs).Write(arguments, FrameAccess.ComputeWrite);
+        }
         var geometry = graph.Pass("geometry", (int)Native3DPass.Geometry).Read(inputs, FrameAccess.Vertex).Write(scene);
+        if (arguments is not null) geometry.Read(arguments, FrameAccess.Indirect);
         if (!features.Surface) geometry.Read(shadow);
         if (features.Motion) geometry.Write(motion);
         if (features.Surface) geometry.Write(normal).Write(emission).Write(profile);

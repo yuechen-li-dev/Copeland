@@ -68,6 +68,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
     private readonly VulkanModel3DBatches? modelRenderer;
     private readonly VulkanRetainedModels3D? retainedModels;
     private (string Identity, NativeMesh3D Mesh, ModelMaterial Material)[] previousInstances = [];
+    private NativeInstanceSet3D? previousResidentSet;
     private readonly AurelianVulkanTexture? hdr;
     private readonly AurelianVulkanTexture? motion;
     private readonly VulkanTemporal3D? temporal;
@@ -162,7 +163,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             {
                 ValidateModernFormats();
                 gpuTimings = new(plant, ["directional-shadow", "linear-lighting", "temporal-resolve", "bloom", "tone-map-output",
-                    .. surfaceOnly ? new[] { "ambient-occlusion", "local-light-culling", "surface-lighting", "local-shadows", "subsurface-diffusion", "atmosphere", "transparency", "refraction", "particles-update" } : []], frames);
+                    .. surfaceOnly ? new[] { "ambient-occlusion", "local-light-culling", "surface-lighting", "local-shadows", "subsurface-diffusion", "atmosphere", "transparency", "refraction", "particles-update", "visibility-cull" } : []], frames);
                 hdr = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, target.Width, target.Height,
                     VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferSource,
                     VulkanMemoryUsage.GpuOnly, "solid3d.hdr", VulkanTextureFormat.Rgba16Float);
@@ -321,7 +322,8 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         {
             throw new InvalidOperationException("AUR-MESH-012: Retained instance shaders were not configured.");
         }
-        if (scene.Instances.Any(instance => instance.Material.AlphaBlend || instance.Material.Transmission > 0))
+        if (scene.Instances is not NativeInstanceSet3D
+            && scene.Instances.Any(instance => instance.Material.AlphaBlend || instance.Material.Transmission > 0))
         {
             throw new NotSupportedException("AUR-MESH-013: Blended and refractive instances use the existing material batch adapter.");
         }
@@ -445,6 +447,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         }
         previousModels = modelKeys;
         previousInstances = instanceKeys;
+        previousResidentSet = state.Instances as NativeInstanceSet3D;
         previousClip = worldToClip;
         previousWaterTime = waterFrame.Time;
         previousWaterReflection = useWaterReflection;
@@ -540,8 +543,11 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             throw new InvalidOperationException("Temporal GPU geometry requires TransferSource usage to retain previous positions without readback.");
         if (settings.BloomIntensity > 0 && bloom is null) throw new InvalidOperationException("Bloom requires Bloom3D at renderer creation.");
         var modelKeys = models.Select(model => (model.TemporalIdentity, model.Vertices.Length, model.Material)).ToArray();
-        var instanceKeys = sourceInstances.Select(instance => (instance.Identity, instance.Mesh, instance.Material)).ToArray();
-        bool correspondenceChanged = !instanceKeys.SequenceEqual(previousInstances) || !modelKeys.SequenceEqual(previousModels) || previousGeometry.Length != geometry.Length || previousRevision != temporalRevision
+        var resident = sourceInstances as NativeInstanceSet3D;
+        var instanceKeys = resident?.Keys ?? sourceInstances.Select(instance => (instance.Identity, instance.Mesh, instance.Material)).ToArray();
+        bool correspondenceChanged = !(ReferenceEquals(instanceKeys, previousInstances) || instanceKeys.SequenceEqual(previousInstances))
+            || !ReferenceEquals(resident, previousResidentSet)
+            || !modelKeys.SequenceEqual(previousModels) || previousGeometry.Length != geometry.Length || previousRevision != temporalRevision
             || previousSettings != settings || previousStaticEmissionIntensity != StaticEmissionIntensity
             || lastGpuSource != gpuGeometry?.Buffer;
         if (settings.Volumetrics.Enabled && previousLightingRevision != lightingRevision)
@@ -661,7 +667,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             if (modelRenderer is null) throw new InvalidOperationException("StaticModel3D shader was not configured.");
         }
         modelRenderer?.Upload(models, worldToClip, eye, lighting, previousClip, resetHistory,
-            sourceInstances.Select(instance => instance.Material).ToArray());
+            resident?.Materials ?? sourceInstances.Select(instance => instance.Material).ToArray());
         retainedModels?.Upload(sourceInstances, resetHistory);
         bool hasParticles = ParticleEmitters.Count > 0;
         if (hasParticles)
@@ -681,7 +687,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         if (hasRefraction)
             EnsureRefraction();
         bool hasSubsurface = models.Any(batch => batch.Material.SubsurfaceStrength > 0)
-            || sourceInstances.Any(instance => instance.Material.SubsurfaceStrength > 0);
+            || (resident?.HasSubsurface ?? sourceInstances.Any(instance => instance.Material.SubsurfaceStrength > 0));
         if (surfaceLighting is null && (settings.Fog.Density > 0 || settings.Volumetrics.Enabled))
             throw new NotSupportedException("Atmosphere rendering requires the shared surface renderer.");
         surfaceLighting?.ValidatePresentation(settings, hasSubsurface);

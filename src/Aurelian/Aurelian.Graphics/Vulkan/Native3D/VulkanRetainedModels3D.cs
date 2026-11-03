@@ -17,7 +17,10 @@ using Silk.NET.Vulkan;
 
 namespace Aurelian.Graphics.Vulkan.Native3D;
 
-public sealed record RetainedModel3DPrograms(CompiledGraphicsProgram Vertex, CompiledGraphicsProgram Shadow);
+public sealed record RetainedModel3DPrograms(CompiledGraphicsProgram Vertex, CompiledGraphicsProgram Shadow)
+{
+    public ClusterVisibilityPrograms? Visibility { get; init; }
+}
 
 /// <summary>Indexed instanced geometry with the existing material fragment stage and shadow semantics.</summary>
 internal sealed unsafe class VulkanRetainedModels3D : IDisposable
@@ -42,6 +45,10 @@ internal sealed unsafe class VulkanRetainedModels3D : IDisposable
     private ulong residentBytes;
     private int uploadedMeshes;
     private long uploadedBytes;
+    private NativeInstanceSet3D? resident;
+    private readonly bool[] residentSlots = new bool[VulkanFrameInFlightSet.Count];
+    private readonly List<VulkanClusterVisibility3D> visibility = [];
+    public bool HasVisibility => visibility.Count > 0;
 
     private sealed record DrawGroup(GpuMesh3D Mesh, ModelMaterial Material, uint First, uint Count);
 
@@ -94,6 +101,24 @@ internal sealed unsafe class VulkanRetainedModels3D : IDisposable
         {
             throw new InvalidOperationException("AUR-MESH-007: Retained draws exceed the declared 65536-instance frame budget.");
         }
+        if (!ReferenceEquals(resident, source))
+        {
+            foreach (var item in visibility) frames.Retire(item);
+            visibility.Clear();
+            resident = source as NativeInstanceSet3D;
+            Array.Clear(residentSlots);
+        }
+        if (resident is not null && residentSlots[frames.Slot])
+        {
+            Statistics = new(source.Count, groups.Count, 0, 0, 0, residentBytes)
+            {
+                CpuVisitedInstances = 0,
+                IndirectGroups = visibility.Count,
+            };
+            return;
+        }
+        // A replacement resident set is a static scene revision, not a continuing transform stream.
+        if (resident is not null) resetHistory = true;
         groups.Clear();
         TriangleCount = 0;
         var activeMeshes = source.Select(instance => instance.Mesh).ToHashSet();
@@ -161,17 +186,55 @@ internal sealed unsafe class VulkanRetainedModels3D : IDisposable
         }
         previous = next;
         Statistics = new(source.Count, groups.Count, uploadedMeshes, uploadedBytes,
-            (long)source.Count * InstanceBytes, residentBytes);
+            (long)source.Count * InstanceBytes, residentBytes) { CpuVisitedInstances = source.Count };
         uploadedMeshes = 0;
         uploadedBytes = 0;
+        if (resident is not null)
+        {
+            if (visibility.Count == 0 && programs.Visibility is not null && plant.Facts.IndirectDrawingEnabled)
+            {
+                long candidates = resident.Groups.Sum(group => (long)group.Length * ((group[0].Mesh.Indices.Length + 383) / 384));
+                if (candidates > 1_048_576)
+                {
+                    throw new InvalidDataException("AUR-VIS-003: Resident cluster candidates exceed the aggregate 1048576-command budget.");
+                }
+                var created = new List<VulkanClusterVisibility3D>();
+                try
+                {
+                    uint firstInstance = 0;
+                    foreach (var group in resident.Groups)
+                    {
+                        created.Add(new(plant, allocator, commands, fences, frames, programs.Visibility, group, firstInstance));
+                        firstInstance += (uint)group.Length;
+                    }
+                    visibility.AddRange(created);
+                }
+                catch
+                {
+                    foreach (var group in created) group.Dispose();
+                    throw;
+                }
+            }
+            residentSlots[frames.Slot] = true;
+            Statistics = Statistics with { IndirectGroups = visibility.Count };
+        }
     }
+
+    public void RecordVisibility(VulkanCommandBufferLease command, Matrix4x4 clip, Vector3 eye, ClusterVisibilityMode mode)
+    {
+        foreach (var group in visibility) group.Record(command, clip, eye, mode);
+    }
+
+    public IReadOnlyList<ClusterVisibilityReadback> ReadVisibilityForQualification()
+        => visibility.Select(group => group.ReadForQualification()).ToArray();
 
     public void Draw(VulkanCommandBufferLease command, VulkanRenderPassScope scope, AurelianVulkanFramebuffer framebuffer)
     {
-        foreach (DrawGroup group in groups)
+        for (int index = 0; index < groups.Count; index++)
         {
+            DrawGroup group = groups[index];
             materials.BindMaterial(command, pipeline, group.Material);
-            DrawGroupIndexed(command, scope, framebuffer, pipeline, group);
+            DrawGroupIndexed(command, scope, framebuffer, pipeline, group, HasVisibility ? visibility[index] : null);
         }
     }
 
@@ -199,7 +262,8 @@ internal sealed unsafe class VulkanRetainedModels3D : IDisposable
     }
 
     private void DrawGroupIndexed(VulkanCommandBufferLease command, VulkanRenderPassScope scope,
-        AurelianVulkanFramebuffer framebuffer, AurelianVulkanGraphicsPipeline selected, DrawGroup group)
+        AurelianVulkanFramebuffer framebuffer, AurelianVulkanGraphicsPipeline selected, DrawGroup group,
+        VulkanClusterVisibility3D? indirect = null)
     {
         var result = new VulkanDrawCommandEncoder().DrawVertices(plant, command, scope,
             new(selected, group.Mesh.Vertices, group.Mesh.VertexCount, 0, VulkanViewportScissor.FromFramebuffer(framebuffer))
@@ -209,6 +273,9 @@ internal sealed unsafe class VulkanRetainedModels3D : IDisposable
                 InstanceBuffer = instances[frames.Slot],
                 InstanceCount = group.Count,
                 FirstInstance = group.First,
+                IndirectArguments = indirect?.Arguments,
+                IndirectCount = indirect?.Count,
+                MaximumIndirectDraws = indirect?.MaximumDrawCount ?? 0,
             });
         if (!result.Success)
         {
@@ -252,7 +319,7 @@ internal sealed unsafe class VulkanRetainedModels3D : IDisposable
         words[offset + 2] = new(matrix.M13, matrix.M23, matrix.M33, matrix.M43);
     }
 
-    private static void ValidateTransform(Matrix4x4 matrix)
+    internal static void ValidateTransform(Matrix4x4 matrix)
     {
         float[] values = Lighting3DUniforms.Rows(matrix);
         if (values.Any(value => !float.IsFinite(value)) || matrix.M14 != 0 || matrix.M24 != 0
@@ -265,6 +332,7 @@ internal sealed unsafe class VulkanRetainedModels3D : IDisposable
 
     public void Dispose()
     {
+        foreach (var item in visibility) item.Dispose();
         foreach (var item in shadows.Values) item.Dispose();
         foreach (var item in instances) item?.Dispose();
         foreach (var item in meshes.Values) item.Dispose();

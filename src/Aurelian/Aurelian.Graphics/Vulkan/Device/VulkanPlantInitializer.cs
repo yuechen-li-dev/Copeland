@@ -239,6 +239,7 @@ public static unsafe partial class VulkanPlantInitializer
                 CooperativeMatrixDiagnostic = cooperativeDiagnostic,
                 Synchronization2Enabled = synchronization2,
                 CreatedQueueCount = createdQueueCount,
+                IndirectDrawingEnabled = QueryIndirectDrawing(vk, selected),
             };
 
             diagnostics.Add(new VulkanInitDiagnostic(
@@ -366,33 +367,29 @@ public static unsafe partial class VulkanPlantInitializer
             AccelerationStructure = true,
             PNext = &rayFeatures,
         };
-        PhysicalDeviceBufferDeviceAddressFeatures addressFeatures = new()
-        {
-            SType = StructureType.PhysicalDeviceBufferDeviceAddressFeatures,
-            BufferDeviceAddress = true,
-            PNext = &accelerationFeatures,
-        };
         PhysicalDeviceCooperativeMatrixFeaturesKHR cooperativeFeatures = new()
         {
             SType = StructureType.PhysicalDeviceCooperativeMatrixFeaturesKhr,
             CooperativeMatrix = cooperativeEnabled,
         };
-        PhysicalDeviceShaderFloat16Int8Features float16Features = new()
-        {
-            SType = StructureType.PhysicalDeviceShaderFloat16Int8Features,
-            ShaderFloat16 = cooperativeEnabled, PNext = &cooperativeFeatures,
-        };
-        PhysicalDeviceVulkanMemoryModelFeatures memoryModelFeatures = new()
-        {
-            SType = StructureType.PhysicalDeviceVulkanMemoryModelFeatures,
-            VulkanMemoryModel = cooperativeEnabled, PNext = &float16Features,
-        };
         PhysicalDeviceSubgroupSizeControlFeatures subgroupFeatures = new()
         {
             SType = StructureType.PhysicalDeviceSubgroupSizeControlFeatures,
-            ComputeFullSubgroups = cooperativeEnabled, PNext = &memoryModelFeatures,
+            ComputeFullSubgroups = cooperativeEnabled,
         };
-        void* featureChain = options.EnableRayQueries ? &addressFeatures : null;
+        void* featureChain = options.EnableRayQueries ? &accelerationFeatures : null;
+        PhysicalDeviceVulkan12Features supported12 = new() { SType = StructureType.PhysicalDeviceVulkan12Features };
+        PhysicalDeviceFeatures2 supported2 = new() { SType = StructureType.PhysicalDeviceFeatures2, PNext = &supported12 };
+        if (selected.ApiVersion >= Vk.Version12) vk.GetPhysicalDeviceFeatures2(selected.PhysicalDevice, &supported2);
+        PhysicalDeviceVulkan12Features features12 = new()
+        {
+            SType = StructureType.PhysicalDeviceVulkan12Features,
+            DrawIndirectCount = supported12.DrawIndirectCount,
+            TimelineSemaphore = options.RequireTimelineSemaphores && selected.TimelineSemaphores,
+            BufferDeviceAddress = options.EnableRayQueries,
+            ShaderFloat16 = cooperativeEnabled,
+            VulkanMemoryModel = cooperativeEnabled,
+        };
         PhysicalDeviceSynchronization2Features syncFeatures = new()
         {
             SType = StructureType.PhysicalDeviceSynchronization2Features,
@@ -406,9 +403,15 @@ public static unsafe partial class VulkanPlantInitializer
         if (cooperativeEnabled)
         {
             cooperativeFeatures.PNext = featureChain;
+            subgroupFeatures.PNext = &cooperativeFeatures;
             featureChain = &subgroupFeatures;
         }
-        if (options.RequireTimelineSemaphores)
+        if (selected.ApiVersion >= Vk.Version12)
+        {
+            features12.PNext = featureChain;
+            featureChain = &features12;
+        }
+        else if (options.RequireTimelineSemaphores)
         {
             timelineFeatures.PNext = featureChain;
             featureChain = &timelineFeatures;
@@ -416,7 +419,12 @@ public static unsafe partial class VulkanPlantInitializer
 
         using var extensionNames = SilkMarshal.StringArrayToMemory(enabledDeviceExtensions, NativeStringEncoding.UTF8);
         vk.GetPhysicalDeviceFeatures(selected.PhysicalDevice, out PhysicalDeviceFeatures supportedFeatures);
-        PhysicalDeviceFeatures enabledFeatures = new() { SamplerAnisotropy = supportedFeatures.SamplerAnisotropy };
+        PhysicalDeviceFeatures enabledFeatures = new()
+        {
+            SamplerAnisotropy = supportedFeatures.SamplerAnisotropy,
+            MultiDrawIndirect = supportedFeatures.MultiDrawIndirect,
+            DrawIndirectFirstInstance = supportedFeatures.DrawIndirectFirstInstance,
+        };
         DeviceCreateInfo createInfo = new()
         {
             SType = StructureType.DeviceCreateInfo,
@@ -429,6 +437,15 @@ public static unsafe partial class VulkanPlantInitializer
         };
 
         return vk.CreateDevice(selected.PhysicalDevice, &createInfo, null, out device);
+    }
+
+    private static bool QueryIndirectDrawing(Vk vk, SelectedPhysicalDevice selected)
+    {
+        if (selected.ApiVersion < Vk.Version12) return false;
+        PhysicalDeviceVulkan12Features features12 = new() { SType = StructureType.PhysicalDeviceVulkan12Features };
+        PhysicalDeviceFeatures2 features = new() { SType = StructureType.PhysicalDeviceFeatures2, PNext = &features12 };
+        vk.GetPhysicalDeviceFeatures2(selected.PhysicalDevice, &features);
+        return features12.DrawIndirectCount && features.Features.MultiDrawIndirect && features.Features.DrawIndirectFirstInstance;
     }
 
     private static uint QueueCount(Vk vk, SelectedPhysicalDevice selected)

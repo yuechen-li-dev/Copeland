@@ -60,8 +60,16 @@ public sealed unsafe class VulkanDrawCommandEncoder
             if (request.IndexBuffer is { } indices)
             {
                 plant.Vk.CmdBindIndexBuffer(commandBuffer.CommandBuffer, indices.NativeBuffer, 0, IndexType.Uint32);
-                plant.Vk.CmdDrawIndexed(commandBuffer.CommandBuffer, request.IndexCount,
-                    request.InstanceCount, 0, (int)request.FirstVertex, request.FirstInstance);
+                if (request.IndirectArguments is { } arguments)
+                {
+                    plant.Vk.CmdDrawIndexedIndirectCount(commandBuffer.CommandBuffer, arguments.NativeBuffer, 0,
+                        request.IndirectCount!.NativeBuffer, 0, request.MaximumIndirectDraws, 20);
+                }
+                else
+                {
+                    plant.Vk.CmdDrawIndexed(commandBuffer.CommandBuffer, request.IndexCount,
+                        request.InstanceCount, 0, (int)request.FirstVertex, request.FirstInstance);
+                }
             }
             else
             {
@@ -244,6 +252,20 @@ public sealed unsafe class VulkanDrawCommandEncoder
                 VulkanDrawCommandDiagnosticCodes.InvalidVertexCount,
                 "Draw vertices requires VertexCount greater than zero.",
                 plantId));
+        }
+
+        if (request.IndirectArguments is not null || request.IndirectCount is not null)
+        {
+            bool ValidIndirect(AurelianVulkanBuffer? buffer, ulong bytes) => buffer is not null
+                && buffer.PlantId == plantId && !buffer.IsDisposed && (buffer.Usage & VulkanBufferUsage.Indirect) != 0
+                && buffer.SizeBytes >= bytes;
+            if (!plant.Facts.IndirectDrawingEnabled || request.IndexBuffer is null || request.MaximumIndirectDraws == 0
+                || !ValidIndirect(request.IndirectArguments, (ulong)request.MaximumIndirectDraws * 20)
+                || !ValidIndirect(request.IndirectCount, 4))
+            {
+                diagnostics.Add(Diagnostic(VulkanDrawCommandDiagnosticCodes.InvalidVertexCount,
+                    "Indirect-count draws require enabled device features and live, sufficiently sized argument/count buffers.", plantId));
+            }
         }
 
         if (!request.ViewportScissor.IsValid)

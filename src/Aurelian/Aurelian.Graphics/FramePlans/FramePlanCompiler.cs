@@ -103,7 +103,7 @@ public static class FramePlanCompiler
             {
                 throw new FramePlanException("AUR-PLAN-001", "Invalid pass: " + pass.Name);
             }
-            if (pass.Queue != FrameQueue.Graphics && pass.Uses.Any(use => use.Access is FrameAccess.ColorWrite or FrameAccess.DepthWrite or FrameAccess.Vertex)
+            if (pass.Queue != FrameQueue.Graphics && pass.Uses.Any(use => use.Access is FrameAccess.ColorWrite or FrameAccess.DepthWrite or FrameAccess.Vertex or FrameAccess.Indirect)
                 || pass.Queue == FrameQueue.Transfer && pass.Uses.Any(use => use.Access is not (FrameAccess.TransferRead or FrameAccess.TransferWrite)))
             {
                 throw new FramePlanException("AUR-PLAN-005", "Queue cannot execute " + pass.Name);

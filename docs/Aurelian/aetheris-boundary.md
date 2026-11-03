@@ -31,6 +31,16 @@ better written in Aurelian; `TriangleSurface3D.ClosestPoint` replaced Spatial3D'
 Building needs the sibling checkout at `../Aetheris` (for example `C:\Users\<you>\source\repos\Aetheris` next to
 `Copeland`). Projects that do not reach a bridge build without it.
 
-Licensing: Aetheris is published under AGPL-3.0. Its author relicenses that code to GPL-3.0 for use in Copeland
-projects, so a Copeland build that includes a bridge is GPL-3.0. The field-lighting adapter keeps its historical
-provenance markers; see its `NOTICE.md`.
+Licensing: Aetheris is published under AGPL-3.0. Existing adapters retain their recorded provenance and
+author grants; see the field-lighting adapter's `NOTICE.md`. Those historical grants are not blanket
+permission to relicense additional Aetheris modules.
+
+For new reuse, prefer small, explicitly identified ports when useful. Record the source files/revision,
+adaptations and applicable notices, and obtain the author's specific GPL-3.0 relicensing decision before
+treating an AGPL-derived port as GPL-3.0. Independently implemented general algorithms need no Aetheris
+dependency. Larger Aetheris modules stay behind an optional bridge with small engine-facing contracts;
+preserve their applicable license unless a separate grant explicitly covers them. Do not add Aetheris
+references or copied modules to core projects to bypass this boundary.
+
+R2's cluster partitioning, bounds and GPU frustum/cone culling are independently implemented in Copeland.
+They copy no Aetheris source and introduce no Aetheris dependency or new relicensing grant.

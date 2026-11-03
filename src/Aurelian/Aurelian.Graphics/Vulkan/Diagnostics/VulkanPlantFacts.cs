@@ -19,5 +19,6 @@ public sealed record VulkanPlantFacts(
     public bool CooperativeMatrixEnabled { get; init; }
     public bool Synchronization2Enabled { get; init; }
     public uint CreatedQueueCount { get; init; } = 1;
+    public bool IndirectDrawingEnabled { get; init; }
     public string CooperativeMatrixDiagnostic { get; init; } = "NotRequested";
 }

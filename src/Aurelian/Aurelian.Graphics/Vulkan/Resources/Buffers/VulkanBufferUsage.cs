@@ -13,4 +13,5 @@ public enum VulkanBufferUsage
     ShaderDeviceAddress = 1 << 6,
     AccelerationStructureStorage = 1 << 7,
     AccelerationStructureInput = 1 << 8,
+    Indirect = 1 << 9,
 }
