@@ -43,5 +43,11 @@ public sealed record Native3DRetainedStatistics(int Instances, int DrawGroups, i
     public int IndirectGroups { get; init; }
     public int MaterialDescriptorBinds { get; init; }
     public bool BindlessMaterials { get; init; }
+    public bool VisibilityBuffer { get; init; }
+    public bool HierarchicalZ { get; init; }
+    public ulong HzbPyramidBytes { get; init; }
+    public ulong VisibilityTargetBytes { get; init; }
+    public ulong VisibilityAtlasBytes { get; init; }
+    public ulong VisibilityCommandCopyBytes { get; init; }
     public int ResidentTextures { get; init; }
 }

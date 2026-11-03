@@ -319,6 +319,8 @@ public static unsafe class VulkanRenderPassFactory
             VulkanTextureFormat.Rgba16Float => Format.R16G16B16A16Sfloat,
             VulkanTextureFormat.Rgba32Float => Format.R32G32B32A32Sfloat,
             VulkanTextureFormat.R32Float => Format.R32Sfloat,
+            VulkanTextureFormat.Rg32UInt => Format.R32G32Uint,
+            VulkanTextureFormat.R32UInt => Format.R32Uint,
             _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported Vulkan texture format."),
         };
 }

@@ -23,10 +23,13 @@ internal sealed unsafe partial class VulkanRetainedModels3D
 
     private void PrepareBindless(NativeInstanceSet3D source)
     {
-        var table = new VulkanBindlessMaterials3D(plant, allocator, commands, fences, frames, materials, programs.Bindless!, source);
+        var tableProgram = VisibilityBufferActive ? programs.VisibilityBuffer!.Resolve : programs.Bindless!;
+        var table = new VulkanBindlessMaterials3D(plant, allocator, commands, fences, frames, materials,
+            tableProgram, source, visibility: VisibilityBufferActive);
         try
         {
-            bindlessPipeline ??= CreatePipeline(geometryPass, programs.Bindless!.Shaders, table.Layout, shadow: false);
+            if (!VisibilityBufferActive)
+                bindlessPipeline ??= CreatePipeline(geometryPass, programs.Bindless!.Shaders, table.Layout, shadow: false);
             // Merge consecutive groups of one mesh only, preserving global opaque tie order.
             int index = 0;
             while (index < groups.Count)
@@ -55,12 +58,19 @@ internal sealed unsafe partial class VulkanRetainedModels3D
     public void UpdateBindlessFrame(Matrix4x4 clip, Vector3 eye, float[] lighting, Matrix4x4 previousClip)
     {
         if (!BindlessActive) return;
-        bindlessTable!.UpdateFrame(clip, eye, lighting, previousClip);
+        bindlessTable!.UpdateFrame(clip, eye, lighting, previousClip, new(visibilityWidth, visibilityHeight));
+        visibilityBuffer?.UpdateHzbFrame(clip);
         Statistics = Statistics with
         {
             DrawGroups = bindlessRuns.Count,
             BindlessMaterials = true,
             ResidentTextures = bindlessTable.TextureCount,
+            VisibilityBuffer = VisibilityBufferActive,
+            VisibilityTargetBytes = visibilityBuffer?.IdentityBytes ?? 0,
+            VisibilityAtlasBytes = visibilityBuffer?.AtlasBytes ?? 0,
+            VisibilityCommandCopyBytes = visibilityBuffer?.CommandCopyBytes ?? 0,
+            HierarchicalZ = HierarchicalZActive,
+            HzbPyramidBytes = visibilityBuffer?.HzbBytes ?? 0,
         };
     }
 

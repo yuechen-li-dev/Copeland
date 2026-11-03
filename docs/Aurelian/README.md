@@ -24,6 +24,8 @@ The docs above describe current code paths and contracts. For exact signatures a
 - [R1 compiled frame plans](rendering-r1.md): declarative C# authoring, verified flat tapes, transient reuse, queue experiments and native qualification.
 - [R2 GPU-driven clustered path](rendering-r2.md): resident instance admission, GPU culling/compaction, Forest measurements and the remaining visibility/material ABI boundary.
 - [R2 resident material tables](rendering-r2-bindless.md): shared material evaluation, nonuniform texture/sampler indexing, many-material Forest controls and native qualification.
+- [R2 visibility buffers](rendering-r2-visibility.md): typed IDs, primitive remapping, shared material resolve, precision controls and measured rendering tradeoffs.
+- [R2 two-phase HZB](rendering-r2-hzb.md): temporal depth selection, conservative current-frame rescue, stable draw ordering and native occlusion measurements.
 - [Diffuse comparison](diffuse-comparison.md): controlled Lambert, Burley, Frostbite, EON and Aurelian PathDiffuse experiments, live `IGame` lab, paper references and native numerical qualification.
 - [Image guided look pilot](image-guided-look-pilot.md): generated appearance targets, a frozen Cloudstep policy sweep, native VTS selection, transfer results and methodology limits.
 - [Image guided look refinement](image-guided-look-refinement.md): material-balanced CPU search, palette/lighting calibration, soft gamut compression, richer native captures and a rejected AI reference registration.

@@ -5,8 +5,9 @@ geometry pass. Material values, per-instance material IDs, textures and samplers
 tables. Consecutive groups sharing a mesh become one draw run, preserving instance and triangle order.
 The existing GPU cluster culler consumes those same runs.
 
-This implements the material-table portion of R2. Integer visibility targets, primitive identity,
-compute material resolve, two-phase HZB and LOD remain subsequent experiments.
+This implements the material-table portion of R2. [Typed visibility targets, primitive identity and
+ID-driven material resolve](rendering-r2-visibility.md) are now implemented in the follow-up. Compute
+material scheduling and LOD remain subsequent experiments; [two-phase HZB](rendering-r2-hzb.md) is now implemented.
 
 ## Use it
 
@@ -133,6 +134,6 @@ All twelve Forest captures and mixed-mesh/revision captures match exactly. See
 and `artifacts/local/rendering-r2-bindless/final-2/qualification.json` for qualification of the final source.
 Earlier logs preserve initial compiler errors and successive native experiments.
 
-The next visibility experiment can build on real resident tables and shared material evaluation. It
-still needs typed integer attachment formats, primitive identity, explicit gradients and compute image
-access to implement visibility storage and compute resolve through the owned shader path.
+The visibility follow-up builds on these tables with integer attachments, primitive identity and explicit
+gradients. It resolves materials through the existing graphics backend. Compute image access and material
+classification remain candidates for later scheduling experiments.

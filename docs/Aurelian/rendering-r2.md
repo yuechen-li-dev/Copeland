@@ -3,9 +3,11 @@
 R2's grouped-material native path now compiles immutable scene instances into resident transforms and
 cluster bounds, culls on the GPU, compacts stable indirect commands, and renders through the existing
 material fragment shaders and R1 frame tape. [Resident bindless material tables](rendering-r2-bindless.md)
-now extend that path and remove per-material geometry descriptor binds. The visibility-buffer proposal
-remains open. The probes below document the original interface boundary. This is a qualified progression
-of R2, not a claim that HZB, compute material resolve, LOD or hybrid analytic visibility already exist.
+now extend that path and remove per-material geometry descriptor binds. [Typed visibility buffers and
+ID-driven material resolve](rendering-r2-visibility.md) are also implemented. [Two-phase HZB](rendering-r2-hzb.md)
+is available as an opt-in follow-up. Compute material scheduling, LOD and hybrid analytic visibility
+remain open. The probes below document the original interface boundary; linked follow-ups describe
+the subsequent implementations and their qualification.
 
 ## Use the resident path
 
@@ -87,11 +89,12 @@ materials continue through their existing forward batch adapter; resident admiss
 Shadow casters retain their original direct instanced draws. Camera culling never incorrectly removes an
 offscreen caster from a directional or local shadow map. GPU shadow-view culling is not claimed.
 
-## Research boundary: the visibility/material ABI
+## Historical probes and the remaining compute image ABI
 
 The proposal's visibility buffer would replace fragment material evaluation with ID storage, triangle
 reconstruction and compute resolve. The [original visibility-buffer paper](https://jcgt.org/published/0002/02/04/)
-motivates that separation. It needs additional interfaces beyond the material tables now implemented.
+motivates that separation. The linked follow-up implements identity rasterization and fullscreen material
+resolve through the owned graphics backend. Compute material classification remains a later scheduling experiment.
 
 The original `--rendering-r2` run generated three modified `SurfaceModel3D` sources and ran the real graphics binder:
 
@@ -106,20 +109,17 @@ and adjacent `.v.ts` files. This identifies a shader-language/compiled-interface
 limitation. The material-storage gap is now addressed by plain value records, graphics storage resources
 and descriptor arrays in `graphics.tables.m1`. The old probe substitutes a material-uniform declaration
 without changing its accesses, so it remains invalid and is not a current test of plain storage support.
-The native texture-format enum still has no `R32G32_UINT` attachment. Compute currently consumes storage
-buffers rather than sampled/storage images.
+The visibility follow-up adds `R32G32_UINT` attachments, primitive/draw builtins and integer image loads in
+`graphics.visibility.m1`. Compute still consumes storage buffers rather than sampled/storage images.
 
-The next coherent implementation extends the typed visibility/material resource ABI through the existing binder,
-VD-MIR, compiled graphics contracts, HLSL/SPIR-V emission and Vulkan descriptors/formats. This should include
-integer targets/loads, primitive identity, nonuniform descriptor indexing, explicit texture gradients and
-compute image access. A renderer-only raw-HLSL path would evade those contracts; copying material evaluation
-into a second resolver would create the duplicated pack implementation the proposal explicitly rejects.
-The qualified grouped-material path remains useful while that interface is extended.
+The visibility implementation extends the existing binder, VD-MIR, compiled contracts, HLSL/SPIR-V
+emission and Vulkan formats. Material evaluation is shared by its ID-driven and material-raster paths.
+Future compute classification/resolve needs compute image access through those same owned interfaces.
 
-Two-phase HZB needs current-frame depth production, a GPU pyramid, a late rescue draw with attachment loads,
-and conservative tests across camera cuts. Those stages are not implemented here. The existing opaque pass
-discards its hardware depth attachment after the pass, so treating it as a reusable HZB history would be
-incorrect. Offline LOD chains and hysteresis also remain unimplemented; the measured Forest keeps the full
+The HZB follow-up adds current-frame depth production, GPU pyramids and conservative rescue across camera
+cuts. It redraws the accepted set in stable source order to preserve equal-depth semantics. The original
+opaque pass still discards its hardware depth after the pass; HZB uses the visibility raster's separate
+stored depth target. Offline LOD chains and hysteresis remain unimplemented; the measured Forest keeps the full
 source geometry and incurs no simplification error. Hybrid analytic/triangle visibility has not been timed
 or killed by an experiment. It depends on the typed shared visibility/depth interface first.
 
@@ -189,5 +189,5 @@ classification has zero false negatives and zero false positives on that path; t
 floating-point correctness claim for every possible scene.
 
 The qualification ledger labels its scope as the resident GPU-clustered grouped-material path and marks
-`FullR2Complete` false. Bindless tables are now qualified in the linked follow-up. Typed visibility-buffer/material
-resolve, two-phase HZB, LOD and the analytic comparison remain explicit follow-on work.
+`FullR2Complete` false. Bindless tables and visibility/material resolve are now implemented in the linked
+follow-ups. Two-phase HZB is also implemented. Compute material scheduling, LOD and the analytic comparison remain open.

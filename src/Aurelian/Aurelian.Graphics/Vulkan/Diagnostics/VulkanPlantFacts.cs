@@ -21,5 +21,7 @@ public sealed record VulkanPlantFacts(
     public uint CreatedQueueCount { get; init; } = 1;
     public bool IndirectDrawingEnabled { get; init; }
     public bool BindlessMaterialsEnabled { get; init; }
+    public bool VisibilityBufferEnabled { get; init; }
+    public bool HierarchicalZEnabled { get; init; }
     public string CooperativeMatrixDiagnostic { get; init; } = "NotRequested";
 }

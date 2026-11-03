@@ -15,7 +15,11 @@ namespace Aurelian.Graphics.Vulkan.Native3D;
 
 public sealed record ClusterVisibilityPrograms(byte[] Cull, byte[] Scan, byte[] Scatter);
 public enum ClusterVisibilityMode { Unculled, InstanceFrustum, ClusterFrustum, ClusterAndCone }
-public sealed record ClusterVisibilityReadback(int Candidates, uint DrawCount, uint[] Ranks, bool[] CpuVisible);
+public sealed record ClusterVisibilityReadback(int Candidates, uint DrawCount, uint[] Ranks, bool[] CpuVisible)
+{
+    public uint[] SeedMask { get; init; } = [];
+    public Vector4[] CandidateSpheres { get; init; } = [];
+}
 
 /// <summary>Resident cluster inputs and stable GPU compaction, consumed by the existing material pipeline.</summary>
 internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
@@ -32,13 +36,15 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
     private readonly List<AurelianVulkanBuffer> buffers = [];
     private readonly Candidate[] candidates;
     private readonly AurelianVulkanBuffer input;
-    private readonly AurelianVulkanBuffer[] camera = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
+    private readonly AurelianVulkanBuffer[,] camera = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count, 2];
+    private readonly AurelianVulkanBuffer[] seeds = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
+    private readonly bool hzbEnabled;
     private readonly AurelianVulkanBuffer[] ranks = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
     private readonly AurelianVulkanBuffer[] blocks = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
     private readonly AurelianVulkanBuffer[] offsets = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
     private readonly AurelianVulkanBuffer[] arguments = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
     private readonly AurelianVulkanBuffer[] counts = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
-    private readonly DescriptorSet[,] sets = new DescriptorSet[VulkanFrameInFlightSet.Count, 3];
+    private readonly DescriptorSet[,,] sets = new DescriptorSet[VulkanFrameInFlightSet.Count, 2, 3];
     private readonly Pipeline[] pipelines = new Pipeline[3];
     private DescriptorSetLayout setLayout;
     private DescriptorPool pool;
@@ -55,13 +61,14 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
 
     public VulkanClusterVisibility3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
         VulkanCommandBufferPool commands, VulkanFenceBundle fences, VulkanFrameInFlightSet frames,
-        ClusterVisibilityPrograms programs, ImmutableArray<SceneInstance3D> instances, uint firstInstance)
+        ClusterVisibilityPrograms programs, ImmutableArray<SceneInstance3D> instances, uint firstInstance, byte[]? hzbCull = null)
     {
         this.plant = plant;
         this.allocator = allocator;
         this.commands = commands;
         this.fences = fences;
         this.frames = frames;
+        hzbEnabled = hzbCull is not null;
         var mesh = instances[0].Mesh;
         var clusters = NativeMeshClusters3D.Build(mesh);
         long total = (long)instances.Length * clusters.Length;
@@ -101,14 +108,19 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
             Require(upload.Success, "Candidate upload failed.");
             for (int slot = 0; slot < VulkanFrameInFlightSet.Count; slot++)
             {
-                camera[slot] = Buffer(128, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
+                camera[slot, 0] = Buffer(128, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
+                if (hzbEnabled)
+                {
+                    camera[slot, 1] = Buffer(128, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
+                    seeds[slot] = Buffer((ulong)candidates.Length * 4, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferSource);
+                }
                 ranks[slot] = Buffer(blockCount * 64UL * 4, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferSource);
                 blocks[slot] = Buffer(blockCount * 4UL, VulkanBufferUsage.Storage);
                 offsets[slot] = Buffer(blockCount * 4UL, VulkanBufferUsage.Storage);
-                arguments[slot] = Buffer((ulong)candidates.Length * 20, VulkanBufferUsage.Storage | VulkanBufferUsage.Indirect);
+                arguments[slot] = Buffer((ulong)candidates.Length * 20, VulkanBufferUsage.Storage | VulkanBufferUsage.Indirect | VulkanBufferUsage.TransferSource);
                 counts[slot] = Buffer(4, VulkanBufferUsage.Storage | VulkanBufferUsage.Indirect | VulkanBufferUsage.TransferSource);
             }
-            CreatePipelines(programs);
+            CreatePipelines(programs, hzbCull);
         }
         catch
         {
@@ -118,8 +130,18 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
     }
 
     public void Record(VulkanCommandBufferLease command, Matrix4x4 clip, Vector3 eye, ClusterVisibilityMode mode)
+        => RecordPhase(command, clip, eye, mode, 0);
+
+    public void RecordHzb(VulkanCommandBufferLease command, Matrix4x4 clip, Vector3 eye, ClusterVisibilityMode mode, bool seed)
+        => RecordPhase(command, clip, eye, mode, seed ? 1u : 2u);
+
+    private void RecordPhase(VulkanCommandBufferLease command, Matrix4x4 clip, Vector3 eye, ClusterVisibilityMode mode, uint hzbPhase)
     {
         if (!Enum.IsDefined(mode)) throw new ArgumentOutOfRangeException(nameof(mode));
+        int variant = hzbPhase == 2 ? 1 : 0;
+        if (hzbEnabled)
+            Barrier(command, AccessFlags.MemoryReadBit | AccessFlags.MemoryWriteBit,
+                AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit, PipelineStageFlags.AllCommandsBit, PipelineStageFlags.ComputeShaderBit);
         lastSlot = frames.Slot;
         lastClip = clip;
         lastEye = eye;
@@ -130,7 +152,8 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
         metadata[0] = (uint)candidates.Length;
         metadata[1] = blockCount;
         metadata[2] = (uint)mode;
-        Require(camera[frames.Slot].Write(parameterBytes).Success, "Camera upload failed.");
+        metadata[3] = hzbPhase;
+        Require(camera[frames.Slot, variant].Write(parameterBytes).Success, "Camera upload failed.");
         plant.Vk.CmdBindPipeline(command.CommandBuffer, PipelineBindPoint.Compute, pipelines[0]);
         Dispatch(0, blockCount);
         Barrier(command, AccessFlags.ShaderWriteBit, AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
@@ -144,7 +167,7 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
 
         void Dispatch(int phase, uint groups)
         {
-            DescriptorSet set = sets[frames.Slot, phase];
+            DescriptorSet set = sets[frames.Slot, variant, phase];
             plant.Vk.CmdBindPipeline(command.CommandBuffer, PipelineBindPoint.Compute, pipelines[phase]);
             plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Compute, layout, 0, 1, &set, 0, null);
             plant.Vk.CmdDispatch(command.CommandBuffer, groups, 1, 1);
@@ -154,7 +177,7 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
     public ClusterVisibilityReadback ReadForQualification()
     {
         frames.Drain();
-        using var staging = BufferForReadback((ulong)candidates.Length * 4 + 4);
+        using var staging = BufferForReadback((ulong)candidates.Length * (hzbEnabled ? 8UL : 4UL) + 4);
         var command = commands.Rent(fences.CommandListFence.LastKnownCompletedValue);
         Require(command.Begin().Success, "Readback command begin failed.");
         Barrier(command, AccessFlags.ShaderWriteBit, AccessFlags.TransferReadBit,
@@ -163,6 +186,11 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
         plant.Vk.CmdCopyBuffer(command.CommandBuffer, ranks[lastSlot].NativeBuffer, staging.NativeBuffer, 1, &rankCopy);
         BufferCopy countCopy = new(0, rankCopy.Size, 4);
         plant.Vk.CmdCopyBuffer(command.CommandBuffer, counts[lastSlot].NativeBuffer, staging.NativeBuffer, 1, &countCopy);
+        if (hzbEnabled)
+        {
+            BufferCopy seedCopy = new(0, rankCopy.Size + 4, rankCopy.Size);
+            plant.Vk.CmdCopyBuffer(command.CommandBuffer, seeds[lastSlot].NativeBuffer, staging.NativeBuffer, 1, &seedCopy);
+        }
         Barrier(command, AccessFlags.TransferWriteBit, AccessFlags.HostReadBit, PipelineStageFlags.TransferBit, PipelineStageFlags.HostBit);
         Require(command.End().Success, "Readback command end failed.");
         using var submitter = new VulkanCommandSubmitter(plant, commands, fences);
@@ -170,7 +198,11 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
         uint[] data = MemoryMarshal.Cast<byte, uint>(staging.ReadBytes((int)staging.SizeBytes)).ToArray();
         Vector4[] planes = Planes(lastClip);
         bool[] reference = candidates.Select(candidate => CpuVisible(candidate, planes, lastEye, lastMode)).ToArray();
-        return new(candidates.Length, data[^1], data[..^1], reference);
+        return new(candidates.Length, data[candidates.Length], data[..candidates.Length], reference)
+        {
+            SeedMask = hzbEnabled ? data[(candidates.Length + 1)..] : [],
+            CandidateSpheres = hzbEnabled ? candidates.Select(candidate => candidate.Sphere).ToArray() : [],
+        };
     }
 
     private static bool CpuVisible(Candidate candidate, Vector4[] planes, Vector3 eye, ClusterVisibilityMode mode)
@@ -229,47 +261,72 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
             && Math.Abs(Vector3.Dot(x, y)) < tolerance && Math.Abs(Vector3.Dot(x, z)) < tolerance && Math.Abs(Vector3.Dot(y, z)) < tolerance;
     }
 
-    private void CreatePipelines(ClusterVisibilityPrograms programs)
+    public void ConfigureHzb(VulkanHzbPyramid3D pyramid)
     {
-        DescriptorSetLayoutBinding* bindings = stackalloc DescriptorSetLayoutBinding[4];
-        for (uint index = 0; index < 4; index++)
-        {
-            bindings[index] = new(index, DescriptorType.StorageBuffer, 1, ShaderStageFlags.ComputeBit);
-        }
-        DescriptorSetLayoutCreateInfo setInfo = new() { SType = StructureType.DescriptorSetLayoutCreateInfo, BindingCount = 4, PBindings = bindings };
-        Check(plant.Vk.CreateDescriptorSetLayout(plant.Device, &setInfo, null, out setLayout));
-        DescriptorPoolSize size = new(DescriptorType.StorageBuffer, 24);
-        DescriptorPoolCreateInfo poolInfo = new() { SType = StructureType.DescriptorPoolCreateInfo, MaxSets = 6, PoolSizeCount = 1, PPoolSizes = &size };
-        Check(plant.Vk.CreateDescriptorPool(plant.Device, &poolInfo, null, out pool));
-        DescriptorSetLayout nativeSetLayout = setLayout;
-        PipelineLayoutCreateInfo layoutInfo = new() { SType = StructureType.PipelineLayoutCreateInfo, SetLayoutCount = 1, PSetLayouts = &nativeSetLayout };
-        Check(plant.Vk.CreatePipelineLayout(plant.Device, &layoutInfo, null, out layout));
+        if (!hzbEnabled) throw new InvalidOperationException("AUR-HZB-003: Culler has no HZB program.");
         for (int slot = 0; slot < VulkanFrameInFlightSet.Count; slot++)
         {
-            AurelianVulkanBuffer[][] resources = [
-                [input, ranks[slot], blocks[slot], camera[slot]],
-                [blocks[slot], offsets[slot], counts[slot], camera[slot]],
-                [input, ranks[slot], offsets[slot], arguments[slot]],
-            ];
-            for (int phase = 0; phase < 3; phase++)
+            for (int variant = 0; variant < 2; variant++)
             {
-                DescriptorSetAllocateInfo allocation = new() { SType = StructureType.DescriptorSetAllocateInfo,
-                    DescriptorPool = pool, DescriptorSetCount = 1, PSetLayouts = &nativeSetLayout };
-                DescriptorSet set;
-                Check(plant.Vk.AllocateDescriptorSets(plant.Device, &allocation, &set));
-                sets[slot, phase] = set;
-                for (uint binding = 0; binding < 4; binding++)
+                for (int phase = 0; phase < 3; phase++)
                 {
-                    var buffer = resources[phase][binding];
-                    DescriptorBufferInfo bufferInfo = new(buffer.NativeBuffer, 0, buffer.SizeBytes);
-                    WriteDescriptorSet write = new() { SType = StructureType.WriteDescriptorSet, DstSet = set,
-                        DstBinding = binding, DescriptorCount = 1, DescriptorType = DescriptorType.StorageBuffer, PBufferInfo = &bufferInfo };
-                    plant.Vk.UpdateDescriptorSets(plant.Device, 1, &write, 0, null);
+                    Write(sets[slot, variant, phase], 5, variant == 0 ? pyramid.History : pyramid.Seed);
+                    Write(sets[slot, variant, phase], 6, pyramid.View(slot, seedPhase: variant == 0));
                 }
             }
         }
-        byte[][] sources = [programs.Cull, programs.Scan, programs.Scatter];
-        string[] entries = ["VisibilityCullMain", "VisibilityScanMain", "VisibilityScatterMain"];
+    }
+
+    private void Write(DescriptorSet set, uint binding, AurelianVulkanBuffer buffer)
+    {
+        DescriptorBufferInfo info = new(buffer.NativeBuffer, 0, buffer.SizeBytes);
+        WriteDescriptorSet write = new() { SType = StructureType.WriteDescriptorSet, DstSet = set, DstBinding = binding,
+            DescriptorCount = 1, DescriptorType = DescriptorType.StorageBuffer, PBufferInfo = &info };
+        plant.Vk.UpdateDescriptorSets(plant.Device, 1, &write, 0, null);
+    }
+
+    private void CreatePipelines(ClusterVisibilityPrograms programs, byte[]? hzbCull)
+    {
+        uint bindingCount = hzbEnabled ? 7u : 4u;
+        DescriptorSetLayoutBinding* bindings = stackalloc DescriptorSetLayoutBinding[(int)bindingCount];
+        for (uint index = 0; index < bindingCount; index++)
+            bindings[index] = new(index, DescriptorType.StorageBuffer, 1, ShaderStageFlags.ComputeBit);
+        DescriptorSetLayoutCreateInfo setInfo = new() { SType = StructureType.DescriptorSetLayoutCreateInfo,
+            BindingCount = bindingCount, PBindings = bindings };
+        Check(plant.Vk.CreateDescriptorSetLayout(plant.Device, &setInfo, null, out setLayout));
+        int variants = hzbEnabled ? 2 : 1;
+        uint setCount = (uint)(VulkanFrameInFlightSet.Count * variants * 3);
+        DescriptorPoolSize size = new(DescriptorType.StorageBuffer, setCount * bindingCount);
+        DescriptorPoolCreateInfo poolInfo = new() { SType = StructureType.DescriptorPoolCreateInfo,
+            MaxSets = setCount, PoolSizeCount = 1, PPoolSizes = &size };
+        Check(plant.Vk.CreateDescriptorPool(plant.Device, &poolInfo, null, out pool));
+        DescriptorSetLayout nativeSetLayout = setLayout;
+        PipelineLayoutCreateInfo layoutInfo = new() { SType = StructureType.PipelineLayoutCreateInfo,
+            SetLayoutCount = 1, PSetLayouts = &nativeSetLayout };
+        Check(plant.Vk.CreatePipelineLayout(plant.Device, &layoutInfo, null, out layout));
+        for (int slot = 0; slot < VulkanFrameInFlightSet.Count; slot++)
+        {
+            for (int variant = 0; variant < variants; variant++)
+            {
+                AurelianVulkanBuffer[][] resources = [
+                    [input, ranks[slot], blocks[slot], camera[slot, variant]],
+                    [blocks[slot], offsets[slot], counts[slot], camera[slot, variant]],
+                    [input, ranks[slot], offsets[slot], arguments[slot]],
+                ];
+                for (int phase = 0; phase < 3; phase++)
+                {
+                    DescriptorSetAllocateInfo allocation = new() { SType = StructureType.DescriptorSetAllocateInfo,
+                        DescriptorPool = pool, DescriptorSetCount = 1, PSetLayouts = &nativeSetLayout };
+                    DescriptorSet set;
+                    Check(plant.Vk.AllocateDescriptorSets(plant.Device, &allocation, &set));
+                    sets[slot, variant, phase] = set;
+                    for (uint binding = 0; binding < 4; binding++) Write(set, binding, resources[phase][binding]);
+                    if (hzbEnabled) Write(set, 4, seeds[slot]);
+                }
+            }
+        }
+        byte[][] sources = [hzbCull ?? programs.Cull, programs.Scan, programs.Scatter];
+        string[] entries = [hzbEnabled ? "HzbCullMain" : "VisibilityCullMain", "VisibilityScanMain", "VisibilityScatterMain"];
         for (int phase = 0; phase < 3; phase++)
         {
             ShaderModule module;

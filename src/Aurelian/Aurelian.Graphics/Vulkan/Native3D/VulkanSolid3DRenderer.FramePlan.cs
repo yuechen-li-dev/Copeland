@@ -28,6 +28,11 @@ public sealed unsafe partial class VulkanSolid3DRenderer
     public int TransientPhysicalImages => surfaceLighting?.TransientPhysicalImages ?? 0;
     public ClusterVisibilityMode VisibilityMode { get; set; } = ClusterVisibilityMode.ClusterAndCone;
     public bool EnableBindlessMaterials { get; set; } = true;
+    public bool EnableVisibilityBuffer { get; set; }
+    public bool EnableHierarchicalZ { get; set; }
+    public HzbPyramidReadback ReadHzbForQualification() => retainedModels!.ReadHzbForQualification();
+    public NativeVisibilityBufferReadback ReadIdentitiesForQualification()
+        => retainedModels?.ReadIdentitiesForQualification() ?? throw new InvalidOperationException("Retained renderer was not configured.");
     public IReadOnlyList<ClusterVisibilityReadback> ReadVisibilityForQualification()
         => retainedModels?.ReadVisibilityForQualification() ?? [];
 
@@ -54,7 +59,8 @@ public sealed unsafe partial class VulkanSolid3DRenderer
             shaded && state.Settings.Fog.Density > 0, state.Settings.Volumetrics.Enabled,
             shaded && state.HasRefraction, shaded && state.HasTransparency, shaded && state.HasParticles,
             planOptions.AsyncParticleUpdates && plant.ComputeQueue.HasValue, state.UseTemporal && state.GpuGeometry is not null,
-            surfaceLighting?.ShadowCount ?? 0, planOptions.AliasTransientTextures, retainedModels?.HasVisibility == true);
+            surfaceLighting?.ShadowCount ?? 0, planOptions.AliasTransientTextures, retainedModels?.HasVisibility == true,
+            retainedModels?.VisibilityBufferActive == true, retainedModels?.HierarchicalZActive == true);
         if (!framePlanCache.TryGetValue(features, out var plan))
         {
             plan = Native3DFrameGraph.Compile(features, (int)target.Width, (int)target.Height);
@@ -138,7 +144,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
             if (batch.Id == lastGraphics)
             {
                 // Keep the timing schema complete without writing a query twice.
-                int timingCount = surfaceOnly ? 15 : outputPass is null ? 0 : 5;
+                int timingCount = gpuTimings?.PassCount ?? 0;
                 for (int index = 0; index < timingCount; index++)
                 {
                     if ((writtenTimings & (1u << index)) == 0)
@@ -226,6 +232,31 @@ public sealed unsafe partial class VulkanSolid3DRenderer
             case Native3DPass.DirectionalShadows: RecordDirectionalShadows(command, state); break;
             case Native3DPass.LocalShadows: RecordLocalShadows(command, state); break;
             case Native3DPass.Geometry: RecordGeometry(command, state); break;
+            case Native3DPass.IdentityRaster:
+                gpuTimings?.Mark(command, 30);
+                retainedModels!.RecordIdentityRaster(command);
+                gpuTimings?.Mark(command, 31);
+                break;
+            case Native3DPass.HzbSeedRaster:
+                gpuTimings?.Mark(command, 32);
+                retainedModels!.RecordIdentityRaster(command);
+                gpuTimings?.Mark(command, 33);
+                break;
+            case Native3DPass.HzbSeedPyramid:
+                gpuTimings?.Mark(command, 34);
+                retainedModels!.RecordHzbPyramid(command, history: false);
+                gpuTimings?.Mark(command, 35);
+                break;
+            case Native3DPass.HzbFinalCull:
+                gpuTimings?.Mark(command, 36);
+                retainedModels!.RecordHzbFinalCull(command, state.WorldToClip, state.Eye, VisibilityMode);
+                gpuTimings?.Mark(command, 37);
+                break;
+            case Native3DPass.HzbHistoryPyramid:
+                gpuTimings?.Mark(command, 38);
+                retainedModels!.RecordHzbPyramid(command, history: true);
+                gpuTimings?.Mark(command, 39);
+                break;
             case Native3DPass.AmbientOcclusion: RecordSurfaceStage(command, state, pass, 10); break;
             case Native3DPass.LightTiles: RecordSurfaceStage(command, state, pass, 12); break;
             case Native3DPass.SurfaceResolve: RecordSurfaceStage(command, state, pass, 14); break;
@@ -267,7 +298,9 @@ public sealed unsafe partial class VulkanSolid3DRenderer
         Native3DPass.Bloom => 3, Native3DPass.Output => 4, Native3DPass.AmbientOcclusion => 5,
         Native3DPass.LightTiles => 6, Native3DPass.SurfaceResolve => 7, Native3DPass.LocalShadows => 8,
         Native3DPass.Subsurface => 9, Native3DPass.Atmosphere => 10, Native3DPass.Transparency => 11,
-        Native3DPass.Refraction => 12, Native3DPass.Particles => 13, Native3DPass.Visibility => 14, _ => -1,
+        Native3DPass.Refraction => 12, Native3DPass.Particles => 13, Native3DPass.Visibility => 14,
+        Native3DPass.IdentityRaster => 15, Native3DPass.HzbSeedRaster => 16, Native3DPass.HzbSeedPyramid => 17,
+        Native3DPass.HzbFinalCull => 18, Native3DPass.HzbHistoryPyramid => 19, _ => -1,
     };
 
     private void RecordMemoryBarrier(VulkanCommandBufferLease command, AccessFlags before, AccessFlags after)

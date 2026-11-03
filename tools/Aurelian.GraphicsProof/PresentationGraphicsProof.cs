@@ -225,7 +225,8 @@ internal static class PresentationGraphicsProof
         Save("combined", result.Pixels!);
         string[] expectedPasses = ["directional-shadow", "linear-lighting", "temporal-resolve", "bloom", "tone-map-output",
             "ambient-occlusion", "local-light-culling", "surface-lighting", "local-shadows", "subsurface-diffusion",
-            "atmosphere", "transparency", "refraction", "particles-update", "visibility-cull"];
+            "atmosphere", "transparency", "refraction", "particles-update", "visibility-cull", "visibility-raster",
+            "hzb-seed-depth", "hzb-seed-pyramid", "hzb-final-cull", "hzb-history-pyramid"];
         Require(result.GpuPassTimes.Count == expectedPasses.Length
             && result.GpuPassTimes.Select(time => time.Pass).ToHashSet().SetEquals(expectedPasses)
             && result.GpuPassTimes.All(time => double.IsFinite(time.Milliseconds) && time.Milliseconds >= 0),

@@ -94,7 +94,8 @@ public static partial class GpuGraphicsBinder
         private static string? ResourceElement(string type, VdMirGraphicsResourceKind kind)
         {
             if (kind == VdMirGraphicsResourceKind.StorageBuffer) return type[15..^1];
-            return kind == VdMirGraphicsResourceKind.Texture2D ? "float4" : null;
+            if (kind != VdMirGraphicsResourceKind.Texture2D) return null;
+            return type.StartsWith("descriptor-array<", StringComparison.Ordinal) ? "float4" : type[10..^1];
         }
     }
 }

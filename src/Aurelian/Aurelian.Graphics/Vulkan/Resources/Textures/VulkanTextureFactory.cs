@@ -244,12 +244,12 @@ public static unsafe class VulkanTextureFactory
 
         bool depthFormat = plan.Format == VulkanTextureFormat.D32Float;
         bool depthUsage = (plan.Usage & VulkanTextureUsage.DepthAttachment) != 0;
-        if (depthFormat != depthUsage || (depthFormat && plan.Usage != VulkanTextureUsage.DepthAttachment))
+        if (depthFormat != depthUsage || (depthFormat && (plan.Usage & ~(VulkanTextureUsage.DepthAttachment | VulkanTextureUsage.TransferSource)) != 0))
         {
             diagnostics.Add(Diagnostic(
                 VulkanTextureDiagnosticCodes.UnsupportedFormat,
                 VulkanTextureDiagnosticSeverity.Error,
-                "D32Float requires exclusive DepthAttachment usage; color formats cannot use DepthAttachment.",
+                "D32Float requires DepthAttachment with optional TransferSource; color formats cannot use DepthAttachment.",
                 plan));
         }
 
@@ -292,6 +292,8 @@ public static unsafe class VulkanTextureFactory
             VulkanTextureFormat.Rgba16Float => Format.R16G16B16A16Sfloat,
             VulkanTextureFormat.R32Float => Format.R32Sfloat,
             VulkanTextureFormat.Rgba32Float => Format.R32G32B32A32Sfloat,
+            VulkanTextureFormat.Rg32UInt => Format.R32G32Uint,
+            VulkanTextureFormat.R32UInt => Format.R32Uint,
             _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported Vulkan texture format."),
         };
 

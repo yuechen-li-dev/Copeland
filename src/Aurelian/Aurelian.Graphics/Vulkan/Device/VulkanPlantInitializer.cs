@@ -241,6 +241,8 @@ public static unsafe partial class VulkanPlantInitializer
                 CreatedQueueCount = createdQueueCount,
                 IndirectDrawingEnabled = QueryIndirectDrawing(vk, selected),
                 BindlessMaterialsEnabled = QueryBindlessMaterials(vk, selected),
+                VisibilityBufferEnabled = QueryVisibilityBuffer(vk, selected),
+                HierarchicalZEnabled = QueryHierarchicalZ(vk, selected),
             };
 
             diagnostics.Add(new VulkanInitDiagnostic(
@@ -380,7 +382,8 @@ public static unsafe partial class VulkanPlantInitializer
         };
         void* featureChain = options.EnableRayQueries ? &accelerationFeatures : null;
         PhysicalDeviceVulkan12Features supported12 = new() { SType = StructureType.PhysicalDeviceVulkan12Features };
-        PhysicalDeviceFeatures2 supported2 = new() { SType = StructureType.PhysicalDeviceFeatures2, PNext = &supported12 };
+        PhysicalDeviceVulkan11Features supported11 = new() { SType = StructureType.PhysicalDeviceVulkan11Features, PNext = &supported12 };
+        PhysicalDeviceFeatures2 supported2 = new() { SType = StructureType.PhysicalDeviceFeatures2, PNext = &supported11 };
         if (selected.ApiVersion >= Vk.Version12) vk.GetPhysicalDeviceFeatures2(selected.PhysicalDevice, &supported2);
         PhysicalDeviceVulkan12Features features12 = new()
         {
@@ -418,6 +421,13 @@ public static unsafe partial class VulkanPlantInitializer
             timelineFeatures.PNext = featureChain;
             featureChain = &timelineFeatures;
         }
+        PhysicalDeviceVulkan11Features features11 = new()
+        {
+            SType = StructureType.PhysicalDeviceVulkan11Features,
+            ShaderDrawParameters = supported11.ShaderDrawParameters,
+            PNext = featureChain,
+        };
+        if (selected.ApiVersion >= Vk.Version12) featureChain = &features11;
 
         using var extensionNames = SilkMarshal.StringArrayToMemory(enabledDeviceExtensions, NativeStringEncoding.UTF8);
         vk.GetPhysicalDeviceFeatures(selected.PhysicalDevice, out PhysicalDeviceFeatures supportedFeatures);
@@ -426,6 +436,7 @@ public static unsafe partial class VulkanPlantInitializer
             SamplerAnisotropy = supportedFeatures.SamplerAnisotropy,
             MultiDrawIndirect = supportedFeatures.MultiDrawIndirect,
             DrawIndirectFirstInstance = supportedFeatures.DrawIndirectFirstInstance,
+            GeometryShader = supportedFeatures.GeometryShader,
         };
         DeviceCreateInfo createInfo = new()
         {
@@ -439,6 +450,34 @@ public static unsafe partial class VulkanPlantInitializer
         };
 
         return vk.CreateDevice(selected.PhysicalDevice, &createInfo, null, out device);
+    }
+
+    private static bool QueryHierarchicalZ(Vk vk, SelectedPhysicalDevice selected)
+    {
+        if (!QueryVisibilityBuffer(vk, selected) || !QueryIndirectDrawing(vk, selected)) return false;
+        vk.GetPhysicalDeviceProperties(selected.PhysicalDevice, out PhysicalDeviceProperties properties);
+        vk.GetPhysicalDeviceFormatProperties(selected.PhysicalDevice, Format.D32Sfloat, out FormatProperties format);
+        return properties.Limits.MaxPerStageDescriptorStorageBuffers >= 7
+            && properties.Limits.MaxDescriptorSetStorageBuffers >= 7
+            && (format.OptimalTilingFeatures & FormatFeatureFlags.TransferSrcBit) != 0;
+    }
+
+    private static bool QueryVisibilityBuffer(Vk vk, SelectedPhysicalDevice selected)
+    {
+        if (!QueryBindlessMaterials(vk, selected)) return false;
+        PhysicalDeviceVulkan11Features features11 = new() { SType = StructureType.PhysicalDeviceVulkan11Features };
+        PhysicalDeviceFeatures2 features = new() { SType = StructureType.PhysicalDeviceFeatures2, PNext = &features11 };
+        vk.GetPhysicalDeviceFeatures2(selected.PhysicalDevice, &features);
+        vk.GetPhysicalDeviceProperties(selected.PhysicalDevice, out PhysicalDeviceProperties properties);
+        vk.GetPhysicalDeviceFormatProperties(selected.PhysicalDevice, Format.R32G32Uint, out FormatProperties format);
+        const FormatFeatureFlags required = FormatFeatureFlags.ColorAttachmentBit | FormatFeatureFlags.SampledImageBit;
+        return features11.ShaderDrawParameters && features.Features.GeometryShader
+            && properties.Limits.MaxPerStageDescriptorSampledImages >= 4097
+            && properties.Limits.MaxDescriptorSetSampledImages >= 4097
+            && properties.Limits.MaxPerStageDescriptorStorageBuffers >= 6
+            && properties.Limits.MaxDescriptorSetStorageBuffers >= 6
+            && properties.Limits.MaxPerStageResources >= 4168
+            && (format.OptimalTilingFeatures & required) == required;
     }
 
     private static bool QueryBindlessMaterials(Vk vk, SelectedPhysicalDevice selected)

@@ -6,13 +6,13 @@ internal enum Native3DPass
 {
     Uploads, Particles, DirectionalShadows, LocalShadows, Geometry, AmbientOcclusion, LightTiles,
     SurfaceResolve, Subsurface, Atmosphere, Refraction, Transparency, Temporal, Bloom, Output, HistoryCopy,
-    Visibility,
+    Visibility, IdentityRaster, HzbSeedRaster, HzbSeedPyramid, HzbFinalCull, HzbHistoryPyramid,
 }
 
 internal readonly record struct Native3DFeatures(bool Surface, bool Modern, bool Motion, bool Shadows,
     bool Ambient, bool Tiles, bool Temporal, bool Bloom, bool Subsurface, bool Fog, bool Volume,
     bool Refraction, bool Transparency, bool Particles, bool AsyncParticles, bool GpuHistory,
-    int LocalShadows, bool Alias, bool Visibility = false);
+    int LocalShadows, bool Alias, bool Visibility = false, bool VisibilityBuffer = false, bool HierarchicalZ = false);
 
 /// <summary>Declarative authoring for the production renderer. The compiler publishes only resolved data.</summary>
 internal static class Native3DFrameGraph
@@ -71,13 +71,47 @@ internal static class Native3DFrameGraph
             if (features.LocalShadows > 1) pass.Write(spot2);
         }
         FrameResource? arguments = null;
+        FramePassBuilder? visibilityPass = null;
         if (features.Visibility)
         {
             arguments = graph.Resource("cluster-indirect-arguments", "buffer", 1, 1, dedicated: true);
-            graph.Pass("cluster-visibility", (int)Native3DPass.Visibility).Read(inputs).Write(arguments, FrameAccess.ComputeWrite);
+            visibilityPass = graph.Pass("cluster-visibility", (int)Native3DPass.Visibility).Read(inputs).Write(arguments, FrameAccess.ComputeWrite);
         }
-        var geometry = graph.Pass("geometry", (int)Native3DPass.Geometry).Read(inputs, FrameAccess.Vertex).Write(scene);
-        if (arguments is not null) geometry.Read(arguments, FrameAccess.Indirect);
+        FrameResource? identity = null;
+        FrameResource? hzbHistory = null;
+        FrameResource? hzbFinalDepth = null;
+        if (features.HierarchicalZ)
+        {
+            hzbHistory = graph.Resource("hzb-history", "buffer", 1, 1, FrameLifetime.History, initialized: true);
+            graph.Export(hzbHistory);
+            var seedMask = graph.Resource("hzb-seed-mask", "buffer", 1, 1, dedicated: true);
+            visibilityPass!.Read(hzbHistory).Write(seedMask, FrameAccess.ComputeWrite);
+            var seedDepth = Texture("hzb-seed-depth", "d32f");
+            var seedPyramid = graph.Resource("hzb-seed-pyramid", "buffer", 1, 1, dedicated: true);
+            graph.Pass("hzb-seed-depth", (int)Native3DPass.HzbSeedRaster)
+                .Read(arguments!, FrameAccess.Indirect).Read(inputs, FrameAccess.Vertex).Write(seedDepth, FrameAccess.DepthWrite);
+            graph.Pass("hzb-seed-pyramid", (int)Native3DPass.HzbSeedPyramid)
+                .Read(seedDepth, FrameAccess.TransferRead).Write(seedPyramid, FrameAccess.ComputeWrite);
+            graph.Pass("hzb-final-cull", (int)Native3DPass.HzbFinalCull)
+                .Read(seedPyramid).Read(seedMask).Read(inputs).Write(arguments!, FrameAccess.ComputeWrite);
+            // Previous-frame history only selects an early set; remaining geometry gets a current-frame test.
+            hzbFinalDepth = Texture("hzb-final-depth", "d32f");
+        }
+        if (features.VisibilityBuffer)
+        {
+            identity = Texture("visibility-identity", "rg32ui");
+            var raster = graph.Pass("visibility-raster", (int)Native3DPass.IdentityRaster)
+                .Read(inputs, FrameAccess.Vertex).Write(identity);
+            if (arguments is not null) raster.Read(arguments, FrameAccess.Indirect);
+            if (hzbFinalDepth is not null) raster.Write(hzbFinalDepth, FrameAccess.DepthWrite);
+        }
+        if (features.HierarchicalZ)
+            graph.Pass("hzb-history-pyramid", (int)Native3DPass.HzbHistoryPyramid, sideEffect: true)
+                .Read(hzbFinalDepth!, FrameAccess.TransferRead).Write(hzbHistory!, FrameAccess.ComputeWrite);
+        var geometry = graph.Pass(features.VisibilityBuffer ? "visibility-material-resolve" : "geometry", (int)Native3DPass.Geometry)
+            .Read(inputs, FrameAccess.Vertex).Write(scene);
+        if (identity is not null) geometry.Read(identity);
+        else if (arguments is not null) geometry.Read(arguments, FrameAccess.Indirect);
         if (!features.Surface) geometry.Read(shadow);
         if (features.Motion) geometry.Write(motion);
         if (features.Surface) geometry.Write(normal).Write(emission).Write(profile);

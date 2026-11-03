@@ -90,6 +90,8 @@ public static partial class VdMirGraphicsHlslEmitter
                 "position" => "SV_Position",
                 "vertex_id" => "SV_VertexID",
                 "instance_id" => "SV_InstanceID",
+                "draw_id" => "DRAW_INDEX",
+                "primitive_id" => "SV_PrimitiveID",
                 "front_face" => "SV_IsFrontFace",
                 "frag_depth" => "SV_Depth",
                 not null => throw new InvalidOperationException($"Unsupported graphics builtin '{member.Builtin}'."),
@@ -98,6 +100,7 @@ public static partial class VdMirGraphicsHlslEmitter
                 _ => throw new InvalidOperationException($"Stream member '{stream.Name}.{member.Name}' has no backend interface identity."),
             };
             string location = member.Location is { } explicitLocation ? $"[[vk::location({explicitLocation})]] " : string.Empty;
+            if (member.Builtin == "draw_id") location = "[[vk::builtin(\"DrawIndex\")]] ";
             builder.AppendLine($"    {location}{modifier}{MapType(member.Type, module)} {member.Name} : {semantic};");
         }
         builder.AppendLine("};");
@@ -217,7 +220,10 @@ public static partial class VdMirGraphicsHlslEmitter
             "graphics-storage-load" => $"{GraphicsStorageLoadName(expression.Type, module)}({EmitExpression(expression.Operands![0], module)}, {EmitExpression(expression.Operands[1], module)})",
             "intrinsic" when expression.Value == "NonUniformIndex" => $"NonUniformResourceIndex({EmitExpression(expression.Operands![0], module)})",
             "intrinsic" when expression.Value == "Sample2D" => $"{EmitExpression(expression.Operands![0], module)}.Sample({EmitExpression(expression.Operands[1], module)}, {EmitExpression(expression.Operands[2], module)})",
+            "intrinsic" when expression.Value == "Load2D" => $"{EmitExpression(expression.Operands![0], module)}.Load(int3({EmitExpression(expression.Operands[1], module)}, 0))",
+            "intrinsic" when expression.Value == "SampleGrad2D" => $"{EmitExpression(expression.Operands![0], module)}.SampleGrad({string.Join(", ", expression.Operands.Skip(1).Select(operand => EmitExpression(operand, module)))})",
             "intrinsic" when expression.Value == "ConvertU32ToF32" => $"float({EmitExpression(expression.Operands![0], module)})",
+            "intrinsic" when expression.Value == "ConvertF32ToU32" => $"uint({EmitExpression(expression.Operands![0], module)})",
             "intrinsic" when expression.Value is "Min" or "Max" or "Clamp" or "Abs" or "Sqrt" or "Floor" or "Pow" or "Sin" or "Cos" or "Acos" or "Atan2" or "Exp" or "Log" => $"{expression.Value!.ToLowerInvariant()}({string.Join(", ", expression.Operands!.Select(operand => EmitExpression(operand, module)))})",
             "intrinsic" when expression.Value == "Fwidth" => $"fwidth({EmitExpression(expression.Operands![0], module)})",
             "object" => throw new InvalidOperationException("Object values must be lowered into generated stream assignments."),
@@ -283,6 +289,10 @@ public static partial class VdMirGraphicsHlslEmitter
         if (type == "Sampler")
         {
             return "SamplerState";
+        }
+        if (type.StartsWith("Texture2D<", StringComparison.Ordinal))
+        {
+            return "Texture2D<" + MapType(type[10..^1], module) + ">";
         }
         if (type.StartsWith("storage-buffer<", StringComparison.Ordinal)) return "StructuredBuffer<uint>";
         VdMirSemanticSpace? space = module.SemanticSpaces.FirstOrDefault(candidate => module.Streams

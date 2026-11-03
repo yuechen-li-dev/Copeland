@@ -2,6 +2,7 @@ using Aurelian.Graphics.Plants;
 using Aurelian.Graphics.Vulkan.Device;
 using Aurelian.Graphics.Vulkan.Pipelines.Framebuffers;
 using Aurelian.Graphics.Vulkan.Pipelines.RenderPasses;
+using Aurelian.Graphics.Vulkan.Resources.Textures;
 using Silk.NET.Vulkan;
 
 namespace Aurelian.Graphics.Vulkan.Commanding.RenderPasses;
@@ -190,6 +191,16 @@ public sealed unsafe class VulkanRenderPassCommandEncoder
                 "Framebuffer was not created for the render pass supplied to begin.",
                 plantId));
         }
+        for (int index = 0; index < request.RenderPass.Descriptor.ColorAttachments.Count; index++)
+        {
+            VulkanColorClearValue color = index == 0 || index > request.AdditionalClearColors.Count
+                ? request.ClearColor : request.AdditionalClearColors[index - 1];
+            bool integer = request.RenderPass.Descriptor.ColorAttachments[index].Format is VulkanTextureFormat.Rg32UInt or VulkanTextureFormat.R32UInt;
+            if (color.Unsigned.HasValue != integer)
+            {
+                diagnostics.Add(Diagnostic("AUR-RPASS-CLEAR-001", "Color clear scalar type must match its attachment format.", plantId));
+            }
+        }
     }
 
     private static void ValidateEnd(
@@ -251,7 +262,18 @@ public sealed unsafe class VulkanRenderPassCommandEncoder
     }
 
     private static ClearValue ToNative(VulkanColorClearValue clearColor)
-        => new()
+    {
+        if (clearColor.Unsigned is { } integers)
+        {
+            return new ClearValue { Color = new ClearColorValue
+            {
+                Uint32_0 = integers.R,
+                Uint32_1 = integers.G,
+                Uint32_2 = integers.B,
+                Uint32_3 = integers.A,
+            } };
+        }
+        return new()
         {
             Color = new ClearColorValue
             {
@@ -261,6 +283,7 @@ public sealed unsafe class VulkanRenderPassCommandEncoder
                 Float32_3 = clearColor.A,
             },
         };
+    }
 
     private static VulkanRenderPassCommandDiagnostic Diagnostic(string code, string message, PlantId plantId)
         => new(code, VulkanRenderPassCommandDiagnosticSeverity.Error, message, plantId);

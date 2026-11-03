@@ -487,8 +487,9 @@ public static partial class GpuGraphicsBinder
             {
                 bool valid = stage switch
                 {
-                    VdMirGraphicsStage.Vertex => member.Builtin is "vertex_id" or "instance_id" && member.Type == "u32",
-                    VdMirGraphicsStage.Pixel => member.Builtin == "front_face" && member.Type == "bool",
+                    VdMirGraphicsStage.Vertex => member.Builtin is "vertex_id" or "instance_id" or "draw_id" && member.Type == "u32",
+                    VdMirGraphicsStage.Pixel => member.Builtin == "front_face" && member.Type == "bool"
+                        || member.Builtin == "primitive_id" && member.Type == "u32",
                     _ => false,
                 };
                 if (!valid)
@@ -528,9 +529,9 @@ public static partial class GpuGraphicsBinder
                     {
                         continue;
                     }
-                    if (member.Target is null || member.Type != "float4")
+                    if (member.Target is null || member.Type is not ("float4" or "uint2" or "u32"))
                     {
-                        Add("COPE-GPU-TARGET-0003", "SDSL-V4108", "graphics-interface", "Pixel output members require a target and float4 type.", member.Source);
+                        Add("COPE-GPU-TARGET-0003", "SDSL-V4108", "graphics-interface", "Pixel targets require float4, uint2 or u32 storage.", member.Source);
                     }
                 }
                 foreach (VdMirStreamMember member in input.Members.Where(member => member.Builtin is not null && !(member.Builtin == "position" && PhysicalType(member.Type) == "float4" && SemanticSpace(member.Type) == "clip.position")))
@@ -867,6 +868,11 @@ public static partial class GpuGraphicsBinder
                     {
                         return tensor;
                     }
+                    if (left.Type == "u32" && right.Type == "u32" && operation is "-" or "*" or "/" or "%")
+                    {
+                        usesVisibilityImages = true;
+                        return new("binary", "u32", Span(path, binary), operation, [left, right]);
+                    }
                     if (left.Type == right.Type && ((left.Type is "f32" or "u32" && operation is "<" or "<=" or ">" or ">=" or "==" or "!=")
                         || (left.Type == "bool" && operation is "&&" or "||" or "==" or "!=")))
                     {
@@ -1091,6 +1097,10 @@ public static partial class GpuGraphicsBinder
                 context is not null && index < context.Syntax.Parameters.Count
                     ? BindType(context.Path, context.Syntax.Parameters[index].Type)
                     : null)).ToArray();
+            if (target is "Load" or "SampleGrad")
+            {
+                return BindVisibilityImageOperation(path, call, target, arguments);
+            }
             if (target == "Sample")
             {
                 if (arguments.Length != 3)
@@ -1161,7 +1171,7 @@ public static partial class GpuGraphicsBinder
                 }
                 return new VdMirExpression("intrinsic", "f32", Span(path, call), "Fwidth", arguments);
             }
-            if (target is "float2" or "float3" or "float4")
+            if (target is "float2" or "float3" or "float4" or "uint2")
             {
                 if (!ValidConstructor(target, arguments.Select(argument => PhysicalType(argument.Type)).ToArray()))
                 {
@@ -1225,7 +1235,14 @@ public static partial class GpuGraphicsBinder
             {
                 return new VdMirExpression("intrinsic", "f32", Span(path, call), "ConvertU32ToF32", arguments);
             }
-            Add("COPE-GPU-CONVERT-0001", "SDSL-V1503", "type", "The bounded graphics profile supports only Convert<f32>(u32).", Span(path, call));
+            if (call.Target is NameExpressionSyntax { IdentifierToken.Text: "Convert" }
+                && call.TypeArguments.Count == 1 && BindType(path, call.TypeArguments[0]) == "u32"
+                && arguments.Length == 1 && arguments[0].Type == "f32")
+            {
+                usesVisibilityImages = true;
+                return new("intrinsic", "u32", Span(path, call), "ConvertF32ToU32", arguments);
+            }
+            Add("COPE-GPU-CONVERT-0001", "SDSL-V1503", "type", "Graphics Convert admits f32/u32 scalar conversions.", Span(path, call));
             return Error(path, call);
         }
 
@@ -1309,6 +1326,13 @@ public static partial class GpuGraphicsBinder
 
         private string GraphicsFeatureLevel()
         {
+            if (_streams.Values.SelectMany(stream => stream.Members).Any(member =>
+                member.Builtin is "primitive_id" or "draw_id" || member.Target.HasValue && member.Type is "uint2" or "u32")
+                || _resources.Any(resource => resource.Type is "Texture2D<uint2>" or "Texture2D<u32>")
+                || usesVisibilityImages)
+            {
+                return VdMirGraphicsModule.GraphicsVisibilityM1FeatureLevel;
+            }
             if (graphicsStorageLayouts.Count > 0 || _resources.Any(resource => resource.DescriptorCount.HasValue))
             {
                 return VdMirGraphicsModule.GraphicsTablesM1FeatureLevel;
@@ -1342,13 +1366,14 @@ public static partial class GpuGraphicsBinder
             }
             string? type = syntax switch
             {
-                IdentifierTypeSyntax identifier when identifier.Identifier.Text is "f32" or "u32" or "bool" or "float2" or "float3" or "float4" => identifier.Identifier.Text,
+                IdentifierTypeSyntax identifier when identifier.Identifier.Text is "f32" or "u32" or "bool" or "float2" or "float3" or "float4" or "uint2" => identifier.Identifier.Text,
                 IdentifierTypeSyntax identifier when _enums is not null && _enums.Contains(_modules.Resolve(path, identifier.Identifier.Text)) => _modules.Resolve(path, identifier.Identifier.Text),
                 IdentifierTypeSyntax identifier when identifier.Identifier.Text == "Sampler" => "Sampler",
                 IdentifierTypeSyntax identifier when _streamSources.ContainsKey(_modules.Resolve(path, identifier.Identifier.Text)) => _modules.Resolve(path, identifier.Identifier.Text),
                 IdentifierTypeSyntax identifier when _semanticSpaces.ContainsKey(_modules.Resolve(path, identifier.Identifier.Text)) => _modules.Resolve(path, identifier.Identifier.Text),
                 IdentifierTypeSyntax identifier when _materials.ContainsKey(_modules.Resolve(path, identifier.Identifier.Text)) => _modules.Resolve(path, identifier.Identifier.Text),
-                GenericTypeSyntax generic when generic.Identifier.Text == "Texture2D" && generic.TypeArguments.Count == 1 && BindType(path, generic.TypeArguments[0]) == "float4" => "Texture2D<float4>",
+                GenericTypeSyntax generic when generic.Identifier.Text == "Texture2D" && generic.TypeArguments.Count == 1
+                    && BindType(path, generic.TypeArguments[0]) is var imageElement && imageElement is "float4" or "uint2" or "u32" => "Texture2D<" + imageElement + ">",
                 _ => null,
             };
             if (type is null)
@@ -1380,6 +1405,7 @@ public static partial class GpuGraphicsBinder
             return target switch
             {
                 "float2" => arguments.SequenceEqual(["f32", "f32"]),
+                "uint2" => arguments.SequenceEqual(["u32", "u32"]),
                 "float3" => arguments.SequenceEqual(["f32", "f32", "f32"]),
                 "float4" => arguments.SequenceEqual(["f32", "f32", "f32", "f32"]) || arguments.SequenceEqual(["float2", "f32", "f32"]) || arguments.SequenceEqual(["float3", "f32"]),
                 _ => false,
@@ -1389,6 +1415,10 @@ public static partial class GpuGraphicsBinder
         private string? VectorMemberType(string type, string member)
         {
             type = PhysicalType(type);
+            if (type == "uint2")
+            {
+                return member is "x" or "y" ? "u32" : null;
+            }
             int width = type switch { "float2" => 2, "float3" => 3, "float4" => 4, _ => 0 };
             if (width == 0 || member.Any(character => "xyzw".IndexOf(character) < 0 || "xyzw".IndexOf(character) >= width))
             {
@@ -1429,7 +1459,7 @@ public static partial class GpuGraphicsBinder
             {
                 return ArrayElement(type) == "Sampler" ? VdMirGraphicsResourceKind.Sampler : VdMirGraphicsResourceKind.Texture2D;
             }
-            if (type == "Texture2D<float4>")
+            if (type is "Texture2D<float4>" or "Texture2D<uint2>" or "Texture2D<u32>")
             {
                 return VdMirGraphicsResourceKind.Texture2D;
             }

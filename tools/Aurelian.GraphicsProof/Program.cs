@@ -21,6 +21,18 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--rendering-hzb", StringComparer.Ordinal))
+{
+    RenderingHzbProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-hzb"));
+    return;
+}
+
+if (args.Contains("--rendering-visibility", StringComparer.Ordinal))
+{
+    RenderingVisibilityProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-visibility"));
+    return;
+}
+
 if (args.Contains("--rendering-bindless", StringComparer.Ordinal))
 {
     RenderingBindlessProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-bindless"));

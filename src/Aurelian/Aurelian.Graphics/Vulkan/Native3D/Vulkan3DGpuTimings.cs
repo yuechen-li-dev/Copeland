@@ -17,6 +17,7 @@ internal sealed unsafe class Vulkan3DGpuTimings : IDisposable
     private readonly float period;
     private readonly uint validBits;
     private readonly string[] names;
+    public int PassCount => names.Length;
     private readonly long?[] sequences;
     private bool disposed;
 
@@ -27,9 +28,9 @@ internal sealed unsafe class Vulkan3DGpuTimings : IDisposable
         pools = new QueryPool[frames is null ? 1 : VulkanFrameInFlightSet.Count];
         sequences = new long?[pools.Length];
         names = passNames?.ToArray() ?? ["directional-shadow", "linear-lighting", "tone-map-output"];
-        if (names.Length is < 1 or > 16 || names.Any(string.IsNullOrWhiteSpace))
+        if (names.Length is < 1 or > 32 || names.Any(string.IsNullOrWhiteSpace))
         {
-            throw new ArgumentException("GPU timing requires between one and sixteen named passes.", nameof(passNames));
+            throw new ArgumentException("GPU timing requires between one and thirty-two named passes.", nameof(passNames));
         }
         plant.Vk.GetPhysicalDeviceProperties(plant.PhysicalDevice, out PhysicalDeviceProperties properties);
         period = properties.Limits.TimestampPeriod;

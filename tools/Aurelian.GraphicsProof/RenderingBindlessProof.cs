@@ -109,8 +109,8 @@ internal static class RenderingBindlessProof
         Console.WriteLine("AURELIAN_BINDLESS_PASSED " + output);
     }
 
-    private static VulkanSolid3DRenderer CreateRenderer(AurelianVulkanPlant plant, GameAssets assets, VulkanNativeFrameTarget target,
-        bool enableCulling = false)
+    internal static VulkanSolid3DRenderer CreateRenderer(AurelianVulkanPlant plant, GameAssets assets, VulkanNativeFrameTarget target,
+        bool enableCulling = false, VisibilityBufferPrograms? visibilityPrograms = null)
         => new(plant, assets.Shader("SurfaceSolid3D.v.ts"), target,
             modelProgram: assets.Shader("SurfaceModel3D.v.ts"), shadowProgram: assets.Shader("Shadow3D.v.ts"),
             outputProgram: assets.Shader("ToneMap3D.v.ts"), temporalProgram: assets.Shader("TemporalResolve3D.v.ts"),
@@ -123,6 +123,8 @@ internal static class RenderingBindlessProof
             }, retainedPrograms: new(assets.Shader("InstancedModel3D.v.ts"), assets.Shader("InstancedShadow3D.v.ts"))
             {
                 Bindless = assets.Shader("BindlessModel3D.v.ts"),
+                VisibilityBuffer = visibilityPrograms ?? new(assets.Shader("VisibilityRaster3D.v.ts"), assets.Shader("VisibilityResolve3D.v.ts")),
+                HierarchicalZ = new(assets.ComputeShader("HzbCull3D.v.ts"), assets.ComputeShader("HzbReduce3D.v.ts")),
                 Visibility = enableCulling ? new(assets.ComputeShader("VisibilityCull3D.v.ts"),
                     assets.ComputeShader("VisibilityScan3D.v.ts"), assets.ComputeShader("VisibilityScatter3D.v.ts")) : null,
             });
@@ -184,7 +186,7 @@ internal static class RenderingBindlessProof
         return cases;
     }
 
-    private static ModelMaterial[] Materials(int count)
+    internal static ModelMaterial[] Materials(int count)
     {
         ModelTexture normal = Texture("normal", 7, normal: true);
         ModelTexture metal = Texture("metal", 23);
@@ -220,7 +222,7 @@ internal static class RenderingBindlessProof
         return new(name, 16, 16, bytes.ToImmutableArray());
     }
 
-    private static Matrix4x4 Camera(Vector3 eye, Vector3 target)
+    internal static Matrix4x4 Camera(Vector3 eye, Vector3 target)
     {
         var projection = Matrix4x4.CreatePerspectiveFieldOfView(.85f, (float)Width / Height, .1f, 95);
         projection.M22 *= -1;

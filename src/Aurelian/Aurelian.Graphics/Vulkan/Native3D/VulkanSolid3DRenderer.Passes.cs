@@ -118,7 +118,10 @@ public sealed unsafe partial class VulkanSolid3DRenderer
             Require(draw.Success, string.Join("; ", draw.Diagnostics.Select(item => item.Message)));
         }
         if (models.Count > 0) modelRenderer!.Draw(command, begin.Scope!.Value, framebuffer, models);
-        retainedModels?.Draw(command, begin.Scope!.Value, framebuffer);
+        if (retainedModels?.VisibilityBufferActive == true)
+            retainedModels.DrawMaterialResolve(command, begin.Scope!.Value, framebuffer, outputVertices!);
+        else
+            retainedModels?.Draw(command, begin.Scope!.Value, framebuffer);
         if (gpuGeometry is not null)
         {
             DescriptorSet cameraSet = descriptorSet;

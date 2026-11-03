@@ -163,7 +163,8 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             {
                 ValidateModernFormats();
                 gpuTimings = new(plant, ["directional-shadow", "linear-lighting", "temporal-resolve", "bloom", "tone-map-output",
-                    .. surfaceOnly ? new[] { "ambient-occlusion", "local-light-culling", "surface-lighting", "local-shadows", "subsurface-diffusion", "atmosphere", "transparency", "refraction", "particles-update", "visibility-cull" } : []], frames);
+                    .. surfaceOnly ? new[] { "ambient-occlusion", "local-light-culling", "surface-lighting", "local-shadows", "subsurface-diffusion", "atmosphere", "transparency", "refraction", "particles-update", "visibility-cull", "visibility-raster",
+                        "hzb-seed-depth", "hzb-seed-pyramid", "hzb-final-cull", "hzb-history-pyramid" } : []], frames);
                 hdr = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, target.Width, target.Height,
                     VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferSource,
                     VulkanMemoryUsage.GpuOnly, "solid3d.hdr", VulkanTextureFormat.Rgba16Float);
@@ -274,7 +275,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
                     throw new ArgumentException("Retained geometry requires the model material program.");
                 }
                 retainedModels = new(plant, allocator, commandPool, fences, frames,
-                    modelRenderer, renderPass, modelProgram, retainedPrograms);
+                    modelRenderer, renderPass, modelProgram, retainedPrograms, target.Width, target.Height);
             }
             if (surfacePrograms?.TransparentModel is not null && surfacePrograms.TransparencyResolve is not null)
                 transparency = new(plant, allocator, commandPool, fences, surfacePrograms,
@@ -667,9 +668,14 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             if (modelRenderer is null) throw new InvalidOperationException("StaticModel3D shader was not configured.");
         }
         bool useBindless = retainedModels?.CanUseBindless(sourceInstances, EnableBindlessMaterials) == true;
+        if (EnableHierarchicalZ && (!EnableVisibilityBuffer || retainedModels?.CanUseHierarchicalZ != true))
+            throw new NotSupportedException("AUR-HZB-004: Two-phase HZB requires visibility-buffer mode, culling/reduction programs and an admitted device.");
+        if (EnableVisibilityBuffer && (!useBindless || retainedModels?.CanUseVisibilityBuffer != true
+            || !geometry.IsEmpty || models.Count != 0 || gpuGeometry is not null || !surfaceOnly))
+            throw new NotSupportedException("AUR-VBUFFER-006: Visibility-buffer mode requires an admitted device, programs and a resident-only opaque/MASK surface scene.");
         modelRenderer?.Upload(models, worldToClip, eye, lighting, previousClip, resetHistory,
             resident?.Materials ?? sourceInstances.Select(instance => instance.Material).ToArray(), bindlessRetained: useBindless);
-        retainedModels?.Upload(sourceInstances, resetHistory, useBindless);
+        retainedModels?.Upload(sourceInstances, resetHistory, useBindless, EnableVisibilityBuffer, EnableHierarchicalZ);
         retainedModels?.UpdateBindlessFrame(worldToClip, eye, lighting, previousClip);
         bool hasParticles = ParticleEmitters.Count > 0;
         if (hasParticles)

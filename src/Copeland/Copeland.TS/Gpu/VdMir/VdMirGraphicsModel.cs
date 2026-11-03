@@ -137,6 +137,7 @@ public sealed record VdMirGraphicsModule(
     public const string GraphicsM3FeatureLevel = "graphics.m3";
     public const string GraphicsM4FeatureLevel = "graphics.m4";
     public const string GraphicsTablesM1FeatureLevel = "graphics.tables.m1";
+    public const string GraphicsVisibilityM1FeatureLevel = "graphics.visibility.m1";
 
     public bool Success => GraphicsProgram is not null && Diagnostics.Count == 0;
 

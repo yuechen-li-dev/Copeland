@@ -1,3 +1,4 @@
+import { BindlessMaterialRecord } from "./ResidentMaterial3D";
 import { TemporalProjection } from "./TemporalGeometry";
 import { SurfaceMaterial, SurfaceData, EvaluateSurfaceMaterial } from "./SurfaceMaterial3D";
 import { Unit, Dot3, Scale3, Sub3 } from "./Lighting3D";
@@ -49,12 +50,6 @@ stream VertexInput {
     @location(11) normalX: float4;
     @location(12) normalY: float4;
     @location(13) normalZ: float4;
-}
-record BindlessMaterialRecord {
-    surface: SurfaceMaterial;
-    baseTexture: u32; metalTexture: u32; normalTexture: u32; occlusionTexture: u32; emissiveTexture: u32;
-    baseSampler: u32; metalSampler: u32; normalSampler: u32; occlusionSampler: u32; emissiveSampler: u32;
-    reserved0: u32; reserved1: u32;
 }
 stream MaterialResources { @binding(0) material: StaticModelMaterial; }
 stream TableResources {

@@ -32,15 +32,22 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
 
     public VulkanBindlessMaterials3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
         VulkanCommandBufferPool commands, VulkanFenceBundle fences, VulkanFrameInFlightSet frames,
-        VulkanModel3DBatches owner, CompiledGraphicsProgram program, NativeInstanceSet3D source)
+        VulkanModel3DBatches owner, CompiledGraphicsProgram program, NativeInstanceSet3D source, bool visibility = false)
     {
         this.plant = plant;
         this.frames = frames;
-        Validate(program);
+        Validate(program, visibility);
         ValidateCapacity(source);
         try
         {
-            Layout = VulkanNativeForwardTexturedRenderer.CreateDescriptorSetLayout(plant, program);
+            var layoutProgram = visibility ? program with
+            {
+                Resources = program.Resources.Select(resource => resource with
+                {
+                    Visibility = [CompiledGraphicsStage.Vertex, CompiledGraphicsStage.Fragment],
+                }).ToArray(),
+            } : program;
+            Layout = VulkanNativeForwardTexturedRenderer.CreateDescriptorSetLayout(plant, layoutProgram);
             var textures = new List<AurelianVulkanTexture>();
             var samplers = new List<Sampler>();
             var textureIndices = new Dictionary<AurelianVulkanTexture, uint>();
@@ -87,8 +94,8 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
             var instanceBuffer = Upload(MemoryMarshal.AsBytes(instanceMaterials.AsSpan()).ToArray());
             DescriptorPoolSize* sizes = stackalloc DescriptorPoolSize[4]
             {
-                new(DescriptorType.UniformBuffer, 2), new(DescriptorType.StorageBuffer, 4),
-                new(DescriptorType.SampledImage, TextureCapacity * 2), new(DescriptorType.Sampler, SamplerCapacity * 2),
+                new(DescriptorType.UniformBuffer, 2), new(DescriptorType.StorageBuffer, visibility ? 12u : 4u),
+                new(DescriptorType.SampledImage, (uint)(TextureCapacity + (visibility ? 1 : 0)) * 2), new(DescriptorType.Sampler, SamplerCapacity * 2),
             };
             DescriptorPoolCreateInfo poolInfo = new() { SType = StructureType.DescriptorPoolCreateInfo, MaxSets = 2,
                 PoolSizeCount = 4, PPoolSizes = sizes };
@@ -143,10 +150,12 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
         }
     }
 
-    public void UpdateFrame(Matrix4x4 clip, Vector3 eye, float[] lighting, Matrix4x4 previousClip)
+    public void UpdateFrame(Matrix4x4 clip, Vector3 eye, float[] lighting, Matrix4x4 previousClip, Vector2 viewport = default)
     {
         float[] values = [.. Lighting3DUniforms.Rows(clip), eye.X, eye.Y, eye.Z, 1,
             .. new float[16], .. lighting, .. Lighting3DUniforms.Rows(previousClip)];
+        values[20] = viewport.X;
+        values[21] = viewport.Y;
         if (values.Length != 88 || !uniforms[frames.Slot].Write(MemoryMarshal.AsBytes(values.AsSpan())).Success)
             throw new InvalidOperationException("AUR-BINDLESS-003: Frame uniform upload failed.");
     }
@@ -159,14 +168,38 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
         plant.Vk.UpdateDescriptorSets(plant.Device, 1, &write, 0, null);
     }
 
-    private static void Validate(CompiledGraphicsProgram program)
+    internal void BindVisibilityStorage(uint binding, AurelianVulkanBuffer buffer, int slot)
+    {
+        if (binding is < 5 or > 8) throw new ArgumentOutOfRangeException(nameof(binding));
+        WriteBuffer(sets[slot], binding, buffer, DescriptorType.StorageBuffer);
+    }
+
+    internal void BindVisibilityImage(AurelianVulkanTexture image)
+    {
+        DescriptorImageInfo info = new(default, image.NativeImageView!.Value, ImageLayout.ShaderReadOnlyOptimal);
+        foreach (DescriptorSet set in sets)
+        {
+            WriteDescriptorSet write = new() { SType = StructureType.WriteDescriptorSet, DstSet = set, DstBinding = 9,
+                DescriptorType = DescriptorType.SampledImage, DescriptorCount = 1, PImageInfo = &info };
+            plant.Vk.UpdateDescriptorSets(plant.Device, 1, &write, 0, null);
+        }
+    }
+
+    private static void Validate(CompiledGraphicsProgram program, bool visibility)
     {
         var resources = program.Resources.OrderBy(resource => resource.Binding).ToArray();
-        if (program.Material?.Size != 352 || resources.Length != 5 || program.PixelTargets.Count != 5
-            || !resources.Select(resource => resource.Binding).SequenceEqual(Enumerable.Range(0, 5))
+        int resourceCount = visibility ? 10 : 5;
+        if (program.Material?.Size != 352 || resources.Length != resourceCount || program.PixelTargets.Count != 5
+            || !resources.Select(resource => resource.Binding).SequenceEqual(Enumerable.Range(0, resourceCount))
             || resources[1].StorageLayout is not { Stride: 128 } || resources[2].StorageLayout is not { Stride: 4 }
             || resources[3].DescriptorCount != TextureCapacity || resources[4].DescriptorCount != SamplerCapacity)
             throw new ArgumentException("AUR-BINDLESS-001: Program does not implement the admitted frame/material/table ABI.");
+        if (visibility && (resources.Skip(5).Take(4).Any(resource => resource.Kind != CompiledGraphicsResourceKind.StorageBuffer)
+            || resources[5].StorageLayout?.Stride != 64 || resources[6].StorageLayout?.Stride != 4
+            || resources[7].StorageLayout?.Stride != 160 || resources[8].StorageLayout?.Stride != 4
+            || resources[9].Type != "Texture2D<uint2>" || resources[9].Kind != CompiledGraphicsResourceKind.Texture2D))
+            throw new ArgumentException("AUR-VBUFFER-001: Geometry, instance, command or identity resource ABI is invalid.");
+        if (visibility) VulkanVisibilityBuffer3D.ValidateStorageLayouts(program);
         var expected = new List<CompiledStorageField>();
         foreach (string name in new[] { "baseColor", "factors", "emissiveAlpha", "flags", "subsurfaceProfile" })
         {

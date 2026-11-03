@@ -21,6 +21,8 @@ public sealed record RetainedModel3DPrograms(CompiledGraphicsProgram Vertex, Com
 {
     public ClusterVisibilityPrograms? Visibility { get; init; }
     public CompiledGraphicsProgram? Bindless { get; init; }
+    public VisibilityBufferPrograms? VisibilityBuffer { get; init; }
+    public HierarchicalZPrograms? HierarchicalZ { get; init; }
 }
 
 /// <summary>Indexed instanced geometry with the existing material fragment stage and shadow semantics.</summary>
@@ -59,7 +61,7 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
     public VulkanRetainedModels3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
         VulkanCommandBufferPool commands, VulkanFenceBundle fences, VulkanFrameInFlightSet frames,
         VulkanModel3DBatches materials, AurelianVulkanRenderPass pass,
-        CompiledGraphicsProgram modelProgram, RetainedModel3DPrograms programs)
+        CompiledGraphicsProgram modelProgram, RetainedModel3DPrograms programs, uint width, uint height)
     {
         this.plant = plant;
         this.allocator = allocator;
@@ -69,6 +71,8 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
         this.materials = materials;
         this.programs = programs;
         geometryPass = pass;
+        visibilityWidth = width;
+        visibilityHeight = height;
         if (modelProgram.PixelTargets.Count != 5 || modelProgram.Material?.Size != programs.Vertex.Material?.Size)
         {
             throw new ArgumentException("AUR-MESH-005: Retained models require the shared surface material ABI.");
@@ -97,22 +101,28 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
         uploadedBytes += (long)bytes;
     }
 
-    public void Upload(IReadOnlyList<SceneInstance3D> source, bool resetHistory, bool useBindless = false)
+    public void Upload(IReadOnlyList<SceneInstance3D> source, bool resetHistory, bool useBindless = false,
+        bool useVisibilityBuffer = false, bool useHierarchicalZ = false)
     {
         if (source.Count > MaximumInstances)
         {
             throw new InvalidOperationException("AUR-MESH-007: Retained draws exceed the declared 65536-instance frame budget.");
         }
-        if (!ReferenceEquals(resident, source) || useBindless != BindlessActive)
+        if (!ReferenceEquals(resident, source) || useBindless != BindlessActive || useVisibilityBuffer != VisibilityBufferActive
+            || useHierarchicalZ != HierarchicalZActive)
         {
             foreach (var item in visibility) frames.Retire(item);
             visibility.Clear();
+            if (visibilityBuffer is not null) frames.Retire(visibilityBuffer);
+            visibilityBuffer = null;
             resident = source as NativeInstanceSet3D;
             Array.Clear(residentSlots);
             if (bindlessTable is not null) frames.Retire(bindlessTable);
             bindlessTable = null;
             bindlessRuns.Clear();
             BindlessActive = useBindless;
+            VisibilityBufferActive = useVisibilityBuffer;
+            HierarchicalZActive = useHierarchicalZ;
         }
         if (resident is not null && residentSlots[frames.Slot])
         {
@@ -214,7 +224,8 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
                     var cullingGroups = BindlessActive ? bindlessRuns.Select(run => run.Source) : resident.Groups;
                     foreach (var group in cullingGroups)
                     {
-                        created.Add(new(plant, allocator, commands, fences, frames, programs.Visibility, group, firstInstance));
+                        created.Add(new(plant, allocator, commands, fences, frames, programs.Visibility, group, firstInstance,
+                            HierarchicalZActive ? programs.HierarchicalZ!.Cull : null));
                         firstInstance += (uint)group.Length;
                     }
                     visibility.AddRange(created);
@@ -225,6 +236,7 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
                     throw;
                 }
             }
+            if (VisibilityBufferActive && visibilityBuffer is null) PrepareVisibilityBuffer();
             residentSlots[frames.Slot] = true;
             Statistics = Statistics with { IndirectGroups = visibility.Count };
         }
@@ -232,7 +244,11 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
 
     public void RecordVisibility(VulkanCommandBufferLease command, Matrix4x4 clip, Vector3 eye, ClusterVisibilityMode mode)
     {
-        foreach (var group in visibility) group.Record(command, clip, eye, mode);
+        foreach (var group in visibility)
+        {
+            if (HierarchicalZActive) group.RecordHzb(command, clip, eye, mode, seed: true);
+            else group.Record(command, clip, eye, mode);
+        }
     }
 
     public IReadOnlyList<ClusterVisibilityReadback> ReadVisibilityForQualification()
@@ -348,6 +364,7 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
 
     public void Dispose()
     {
+        visibilityBuffer?.Dispose();
         bindlessPipeline?.Dispose();
         bindlessTable?.Dispose();
         foreach (var item in visibility) item.Dispose();

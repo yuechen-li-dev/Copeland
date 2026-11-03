@@ -11,6 +11,8 @@ public sealed class BindlessGraphicsTests
     [Theory]
     [InlineData("SurfaceModel3D.v.ts")]
     [InlineData("BindlessModel3D.v.ts")]
+    [InlineData("VisibilityRaster3D.v.ts")]
+    [InlineData("VisibilityResolve3D.v.ts")]
     public void SharedSurfacePathsCompileThroughTheCanonicalBackend(string name)
     {
         var module = GpuGraphicsBinder.Compile(new(BuiltinShaderLibrary.LoadSources(name)));
@@ -36,7 +38,7 @@ public sealed class BindlessGraphicsTests
     public void InvalidTableContractsFailBeforeNativeExecution(string original, string replacement, string code)
     {
         var sources = BuiltinShaderLibrary.LoadSources("BindlessModel3D.v.ts").Select(source =>
-            source.Path == "BindlessModel3D.v.ts" ? source with { Source = source.Source.Replace(original, replacement, StringComparison.Ordinal) } : source).ToArray();
+            source with { Source = source.Source.Replace(original, replacement, StringComparison.Ordinal) }).ToArray();
         var module = GpuGraphicsBinder.Compile(new(sources));
         Assert.False(module.Success);
         Assert.Contains(module.Diagnostics, diagnostic => diagnostic.Code == code);

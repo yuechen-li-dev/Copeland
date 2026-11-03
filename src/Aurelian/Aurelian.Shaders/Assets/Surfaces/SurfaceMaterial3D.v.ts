@@ -13,24 +13,16 @@ export record SurfaceData {
     emission: float4;
     subsurface: float4;
 }
-export function EvaluateSurfaceMaterial(surfaceNormal: float3, vertexColor: float4, uv: float2,
-    surfaceTangent: float4, frontFace: bool, material: SurfaceMaterial,
-    baseMap: Texture2D<float4>, baseSampler: Sampler,
-    metalMap: Texture2D<float4>, metalSampler: Sampler,
-    normalMap: Texture2D<float4>, normalSampler: Sampler,
-    occlusionMap: Texture2D<float4>, occlusionSampler: Sampler,
-    emissiveMap: Texture2D<float4>, emissiveSampler: Sampler): SurfaceData {
-    if (!frontFace && material.flags.z < 0.5) {
-        Discard();
-    }
-    const base: float4 = Sample(baseMap, baseSampler, uv) * material.baseColor * vertexColor;
-    if (material.flags.y > 0.5 && base.w < material.emissiveAlpha.w) {
-        Discard();
-    }
-    const emission: float4 = Sample(emissiveMap, emissiveSampler, uv);
+export function TestSurfaceCoverage(frontFace: bool, material: SurfaceMaterial, sample: float4, vertexColor: float4): float4 {
+    if (!frontFace && material.flags.z < 0.5) { Discard(); }
+    const base: float4 = sample * material.baseColor * vertexColor;
+    if (material.flags.y > 0.5 && base.w < material.emissiveAlpha.w) { Discard(); }
+    return base;
+}
+function EvaluateSurfaceSamples(surfaceNormal: float3, surfaceTangent: float4, frontFace: bool, material: SurfaceMaterial,
+    base: float4, emission: float4, nt: float4, mr: float4, ao: float4): SurfaceData {
     const emitted: float3 = Mul3(float3(emission.x, emission.y, emission.z),
         float3(material.emissiveAlpha.x, material.emissiveAlpha.y, material.emissiveAlpha.z));
-    const nt: float4 = Sample(normalMap, normalSampler, uv);
     const tangent: float3 = Unit(float3(surfaceTangent.x, surfaceTangent.y, surfaceTangent.z));
     const geometric: float3 = Unit(surfaceNormal);
     const bitangent: float3 = Scale3(Cross3(geometric, tangent), surfaceTangent.w);
@@ -39,10 +31,8 @@ export function EvaluateSurfaceMaterial(surfaceNormal: float3, vertexColor: floa
     if (!frontFace) {
         normal = Scale3(normal, -1.0);
     }
-    const mr: float4 = Sample(metalMap, metalSampler, uv);
     const metallic: f32 = Clamp(mr.z * material.factors.x, 0.0, 1.0);
     const roughness: f32 = Clamp(mr.y * material.factors.y, 0.045, 1.0);
-    const ao: float4 = Sample(occlusionMap, occlusionSampler, uv);
     var occlusion: f32 = 1.0 - material.factors.w + ao.x * material.factors.w;
     if (material.flags.x > 0.5) {
         occlusion = -1.0;
@@ -53,4 +43,29 @@ export function EvaluateSurfaceMaterial(surfaceNormal: float3, vertexColor: floa
         emission: float4(emitted.x, emitted.y, emitted.z, occlusion),
         subsurface: material.subsurfaceProfile,
     };
+}
+export function EvaluateSurfaceMaterial(surfaceNormal: float3, vertexColor: float4, uv: float2,
+    surfaceTangent: float4, frontFace: bool, material: SurfaceMaterial,
+    baseMap: Texture2D<float4>, baseSampler: Sampler,
+    metalMap: Texture2D<float4>, metalSampler: Sampler,
+    normalMap: Texture2D<float4>, normalSampler: Sampler,
+    occlusionMap: Texture2D<float4>, occlusionSampler: Sampler,
+    emissiveMap: Texture2D<float4>, emissiveSampler: Sampler): SurfaceData {
+    const base: float4 = TestSurfaceCoverage(frontFace, material, Sample(baseMap, baseSampler, uv), vertexColor);
+    return EvaluateSurfaceSamples(surfaceNormal, surfaceTangent, frontFace, material, base,
+        Sample(emissiveMap, emissiveSampler, uv), Sample(normalMap, normalSampler, uv),
+        Sample(metalMap, metalSampler, uv), Sample(occlusionMap, occlusionSampler, uv));
+}
+export function EvaluateSurfaceMaterialGrad(surfaceNormal: float3, vertexColor: float4, uv: float2, uvx: float2, uvy: float2,
+    surfaceTangent: float4, frontFace: bool, material: SurfaceMaterial,
+    baseMap: Texture2D<float4>, baseSampler: Sampler,
+    metalMap: Texture2D<float4>, metalSampler: Sampler,
+    normalMap: Texture2D<float4>, normalSampler: Sampler,
+    occlusionMap: Texture2D<float4>, occlusionSampler: Sampler,
+    emissiveMap: Texture2D<float4>, emissiveSampler: Sampler): SurfaceData {
+    // Rasterization already tested coverage using its interpolated UV and implicit derivatives.
+    const base: float4 = SampleGrad(baseMap, baseSampler, uv, uvx, uvy) * material.baseColor * vertexColor;
+    return EvaluateSurfaceSamples(surfaceNormal, surfaceTangent, frontFace, material, base,
+        SampleGrad(emissiveMap, emissiveSampler, uv, uvx, uvy), SampleGrad(normalMap, normalSampler, uv, uvx, uvy),
+        SampleGrad(metalMap, metalSampler, uv, uvx, uvy), SampleGrad(occlusionMap, occlusionSampler, uv, uvx, uvy));
 }
