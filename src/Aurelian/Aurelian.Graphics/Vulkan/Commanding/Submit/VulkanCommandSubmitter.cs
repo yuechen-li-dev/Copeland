@@ -12,12 +12,14 @@ public sealed unsafe class VulkanCommandSubmitter : IDisposable
     private readonly AurelianVulkanPlant plant;
     private readonly VulkanCommandBufferPool commandBufferPool;
     private readonly VulkanFenceBundle fences;
+    private readonly Queue queue;
     private bool disposed;
 
     public VulkanCommandSubmitter(
         AurelianVulkanPlant plant,
         VulkanCommandBufferPool commandBufferPool,
-        VulkanFenceBundle fences)
+        VulkanFenceBundle fences,
+        Queue? queue = null)
     {
         ArgumentNullException.ThrowIfNull(plant);
         ArgumentNullException.ThrowIfNull(commandBufferPool);
@@ -32,6 +34,7 @@ public sealed unsafe class VulkanCommandSubmitter : IDisposable
         this.plant = plant;
         this.commandBufferPool = commandBufferPool;
         this.fences = fences;
+        this.queue = queue ?? plant.GraphicsQueue;
         PlantId = plantId;
     }
 
@@ -81,7 +84,8 @@ public sealed unsafe class VulkanCommandSubmitter : IDisposable
             validRequest.CommandBuffer.CommandBuffer,
             fences.CommandListFence.Semaphore,
             signalValue,
-            validRequest.SignalBinarySemaphore);
+            validRequest.SignalBinarySemaphore,
+            validRequest.TimelineWaits);
         long queued = measure ? Stopwatch.GetTimestamp() : 0;
         if (submitResult != Result.Success)
         {
@@ -185,6 +189,11 @@ public sealed unsafe class VulkanCommandSubmitter : IDisposable
                 "Retained replay requires reusable recording and synchronous completion.",
                 request.DebugName));
         }
+        if (request.TimelineWaits.Any(wait => wait.Fence.PlantId != PlantId || wait.Value == 0))
+        {
+            diagnostics.Add(Diagnostic(VulkanCommandSubmitDiagnosticCodes.PlantMismatch,
+                "Timeline waits must have a positive value and belong to the submitting plant.", request.DebugName));
+        }
     }
 
 
@@ -210,8 +219,17 @@ public sealed unsafe class VulkanCommandSubmitter : IDisposable
     }
 
     private Result SubmitAndSignal(CommandBuffer commandBuffer, VulkanSemaphore signalSemaphore, ulong signalValue,
-        VulkanSemaphore? binarySemaphore)
+        VulkanSemaphore? binarySemaphore, IReadOnlyList<VulkanTimelineWait> waits)
     {
+        VulkanSemaphore* waitSemaphores = stackalloc VulkanSemaphore[waits.Count];
+        ulong* waitValues = stackalloc ulong[waits.Count];
+        PipelineStageFlags* waitStages = stackalloc PipelineStageFlags[waits.Count];
+        for (int index = 0; index < waits.Count; index++)
+        {
+            waitSemaphores[index] = waits[index].Fence.Semaphore;
+            waitValues[index] = waits[index].Value;
+            waitStages[index] = PipelineStageFlags.AllCommandsBit;
+        }
         VulkanSemaphore* signals = stackalloc VulkanSemaphore[2] { signalSemaphore, binarySemaphore ?? default };
         ulong* values = stackalloc ulong[2] { signalValue, 0 };
         uint count = binarySemaphore.HasValue ? 2u : 1u;
@@ -220,6 +238,8 @@ public sealed unsafe class VulkanCommandSubmitter : IDisposable
             SType = StructureType.TimelineSemaphoreSubmitInfo,
             SignalSemaphoreValueCount = count,
             PSignalSemaphoreValues = values,
+            WaitSemaphoreValueCount = (uint)waits.Count,
+            PWaitSemaphoreValues = waitValues,
         };
 
         SubmitInfo submitInfo = new()
@@ -230,9 +250,12 @@ public sealed unsafe class VulkanCommandSubmitter : IDisposable
             PCommandBuffers = &commandBuffer,
             SignalSemaphoreCount = count,
             PSignalSemaphores = signals,
+            WaitSemaphoreCount = (uint)waits.Count,
+            PWaitSemaphores = waitSemaphores,
+            PWaitDstStageMask = waitStages,
         };
 
-        return plant.Vk.QueueSubmit(plant.GraphicsQueue, 1, &submitInfo, default);
+        return plant.Vk.QueueSubmit(queue, 1, &submitInfo, default);
     }
 
     private VulkanCommandSubmitDiagnostic Diagnostic(string code, string message, string? debugName)

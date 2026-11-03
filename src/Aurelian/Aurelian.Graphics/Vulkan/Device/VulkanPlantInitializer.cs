@@ -197,7 +197,10 @@ public static unsafe partial class VulkanPlantInitializer
                 enabledDeviceExtensions.Add(KhrSwapchain.ExtensionName);
             }
 
-            Result deviceResult = CreateLogicalDevice(vk, selected, options, enabledDeviceExtensions, cooperativeEnabled, out device);
+            uint createdQueueCount = Math.Min(2u, QueueCount(vk, selected));
+            bool synchronization2 = QuerySynchronization2(vk, selected);
+            Result deviceResult = CreateLogicalDevice(vk, selected, options, enabledDeviceExtensions, cooperativeEnabled,
+                createdQueueCount, synchronization2, out device);
             if (deviceResult != Result.Success)
             {
                 vk.DestroyInstance(instance, (AllocationCallbacks*)null);
@@ -234,6 +237,8 @@ public static unsafe partial class VulkanPlantInitializer
             {
                 CooperativeMatrixEnabled = cooperativeEnabled,
                 CooperativeMatrixDiagnostic = cooperativeDiagnostic,
+                Synchronization2Enabled = synchronization2,
+                CreatedQueueCount = createdQueueCount,
             };
 
             diagnostics.Add(new VulkanInitDiagnostic(
@@ -242,7 +247,10 @@ public static unsafe partial class VulkanPlantInitializer
                 $"Selected Vulkan physical device '{selected.DeviceName}' with queue family {selected.QueueFamilyIndex}.",
                 plantId));
 
-            var plant = new AurelianVulkanPlant(vk, instance, selected.PhysicalDevice, device, queue, selected.QueueFamilyIndex, context, facts);
+            var plant = new AurelianVulkanPlant(vk, instance, selected.PhysicalDevice, device, queue, selected.QueueFamilyIndex, context, facts)
+            {
+                ComputeQueue = createdQueueCount > 1 ? vk.GetDeviceQueue(device, selected.QueueFamilyIndex, 1) : null,
+            };
             return new VulkanInitResult(VulkanInitStatus.Created, plant, facts, diagnostics);
         }
         catch (Exception ex) when (IsLoaderUnavailableException(ex))
@@ -329,15 +337,17 @@ public static unsafe partial class VulkanPlantInitializer
         VulkanPlantOptions options,
         IReadOnlyList<string> enabledDeviceExtensions,
         bool cooperativeEnabled,
+        uint queueCount,
+        bool synchronization2,
         out Silk.NET.Vulkan.Device device)
     {
-        float priority = 1.0f;
+        float* priorities = stackalloc float[2] { 1, 1 };
         DeviceQueueCreateInfo queueCreateInfo = new()
         {
             SType = StructureType.DeviceQueueCreateInfo,
             QueueFamilyIndex = selected.QueueFamilyIndex,
-            QueueCount = 1,
-            PQueuePriorities = &priority,
+            QueueCount = queueCount,
+            PQueuePriorities = priorities,
         };
 
         PhysicalDeviceTimelineSemaphoreFeatures timelineFeatures = new()
@@ -383,6 +393,16 @@ public static unsafe partial class VulkanPlantInitializer
             ComputeFullSubgroups = cooperativeEnabled, PNext = &memoryModelFeatures,
         };
         void* featureChain = options.EnableRayQueries ? &addressFeatures : null;
+        PhysicalDeviceSynchronization2Features syncFeatures = new()
+        {
+            SType = StructureType.PhysicalDeviceSynchronization2Features,
+            Synchronization2 = synchronization2,
+        };
+        if (synchronization2)
+        {
+            syncFeatures.PNext = featureChain;
+            featureChain = &syncFeatures;
+        }
         if (cooperativeEnabled)
         {
             cooperativeFeatures.PNext = featureChain;
@@ -409,6 +429,27 @@ public static unsafe partial class VulkanPlantInitializer
         };
 
         return vk.CreateDevice(selected.PhysicalDevice, &createInfo, null, out device);
+    }
+
+    private static uint QueueCount(Vk vk, SelectedPhysicalDevice selected)
+    {
+        uint count = 0;
+        vk.GetPhysicalDeviceQueueFamilyProperties(selected.PhysicalDevice, &count, null);
+        var families = new QueueFamilyProperties[count];
+        fixed (QueueFamilyProperties* pointer = families)
+        {
+            vk.GetPhysicalDeviceQueueFamilyProperties(selected.PhysicalDevice, &count, pointer);
+        }
+        return families[selected.QueueFamilyIndex].QueueCount;
+    }
+
+    private static bool QuerySynchronization2(Vk vk, SelectedPhysicalDevice selected)
+    {
+        if (selected.ApiVersion < Vk.Version13) return false;
+        PhysicalDeviceSynchronization2Features sync = new() { SType = StructureType.PhysicalDeviceSynchronization2Features };
+        PhysicalDeviceFeatures2 features = new() { SType = StructureType.PhysicalDeviceFeatures2, PNext = &sync };
+        vk.GetPhysicalDeviceFeatures2(selected.PhysicalDevice, &features);
+        return sync.Synchronization2;
     }
 
     private static bool QueryRayQueries(Vk vk, PhysicalDevice physicalDevice)

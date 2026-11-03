@@ -150,6 +150,11 @@ public sealed class GamePlaytestTarget : IPlaytestTarget<SortedDictionary<string
     public void Command(string command)
     {
         string[] words = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length == 2 && words[0] == "inspect" && words[1] == "rendering")
+        {
+            Console.WriteLine(surface?.DescribeRendering() ?? "No native rendering surface.");
+            return;
+        }
         if (words.Length == 1 && words[0] == "inspect")
         {
             return;
@@ -261,4 +266,5 @@ public interface IGamePlaytestSurface
     int LogicalHeight { get; }
     void Present(string? capturePath);
     void Resize(int width, int height);
+    string DescribeRendering() => "No compiled frame plan.";
 }

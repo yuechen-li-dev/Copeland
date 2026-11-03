@@ -28,6 +28,17 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
     private readonly AurelianVulkanTexture rawAo;
     private readonly AurelianVulkanTexture filteredAo;
     private readonly AurelianVulkanTexture fallback;
+    private readonly AurelianVulkanTexture neutralAo;
+    private readonly VulkanFrameTransientTextures transientTextures;
+    private SurfaceFrame current = null!;
+    public AurelianVulkanTexture Resolved { get; private set; } = null!;
+    public ulong TransientTextureBytes => transientTextures.AllocatedBytes;
+    public int TransientPhysicalImages => transientTextures.PhysicalImages;
+
+    private sealed record SurfaceFrame(AurelianVulkanTexture surface, AurelianVulkanTexture motion,
+        AurelianVulkanTexture shadow, AurelianVulkanTexture? diffuse, Matrix4x4 clip, Matrix4x4 inverse,
+        Vector3 eye, Graphics3DSettings settings, float[] lighting, bool useDiffuse,
+        DirectionalShadowCascades3D cascades, bool subsurface, bool ambient, bool lightTiles);
     private readonly VulkanPostProcess3D tilePass;
     private readonly VulkanPostProcess3D aoPass;
     private readonly VulkanPostProcess3D denoisePass;
@@ -59,11 +70,12 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
 
     public VulkanSurfaceLighting3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
         VulkanCommandBufferPool commands, VulkanFenceBundle fences, SurfaceLightingPrograms programs,
-        CompiledGraphicsProgram shadowProgram, uint width, uint height, VulkanFrameInFlightSet? frames = null)
+        CompiledGraphicsProgram shadowProgram, uint width, uint height, VulkanFrameInFlightSet? frames = null, bool aliasTransients = false)
     {
         this.plant = plant;
         this.frames = frames;
         this.allocator = allocator;
+        transientTextures = Own(new VulkanFrameTransientTextures(plant, allocator, width, height, aliasTransients));
         uploader = Own(new VulkanTextureUploader(plant, allocator, commands, fences));
         lightUploads = new AurelianVulkanBuffer[frames is null ? 1 : VulkanFrameInFlightSet.Count];
         try
@@ -78,6 +90,8 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
             tiles = Image((width + 15) / 16, (height + 15) / 16, "surface.light-tiles", VulkanTextureFormat.Rgba32Float);
             lightData = Data(4, 32, "surface.lights");
             fallback = Data(1, 1, "surface.no-data");
+            neutralAo = Own(Data(1, 1, "surface.neutral-ao"));
+            Upload(neutralAo, [1, 1, 0, 1]);
             Upload(lightData, packedLights);
             for (int index = 0; index < lightUploads.Length; index++)
             {
@@ -323,14 +337,24 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
         Vulkan3DPass.SampleAfterRendering(plant, command, spotMaps[index]);
     }
 
-    public AurelianVulkanTexture Record(VulkanCommandBufferLease command, AurelianVulkanBuffer triangle,
-        AurelianVulkanTexture surface, AurelianVulkanTexture motion, AurelianVulkanTexture shadow,
-        AurelianVulkanTexture? diffuse, Matrix4x4 clip, Matrix4x4 inverse, Vector3 eye,
-        Graphics3DSettings settings, float[] lighting, bool useDiffuse, Vulkan3DGpuTimings? timings,
-        DirectionalShadowCascades3D cascades, bool subsurface)
+    public void BeginFrame(AurelianVulkanTexture surface, AurelianVulkanTexture motion,
+        AurelianVulkanTexture shadow, AurelianVulkanTexture? diffuse, Matrix4x4 clip, Matrix4x4 inverse,
+        Vector3 eye, Graphics3DSettings settings, float[] lighting, bool useDiffuse,
+        DirectionalShadowCascades3D cascades, bool subsurface, bool ambient, bool lightTiles)
     {
+        current = new(surface, motion, shadow, diffuse, clip, inverse, eye, settings, lighting,
+            useDiffuse, cascades, subsurface, ambient, lightTiles);
+        Resolved = Output;
+        UnfoggedOutput = Output;
+    }
+
+    public void RecordAmbientOcclusion(VulkanCommandBufferLease command, AurelianVulkanBuffer triangle)
+    {
+        var surface = current.surface;
+        var motion = current.motion;
+        var inverse = current.inverse;
+        var settings = current.settings;
         float[] inverseRows = Lighting3DUniforms.Rows(inverse);
-        timings?.Mark(command, 10);
         aoPass.Configure([.. inverseRows, 1f / surface.Width, 1f / surface.Height,
             settings.AmbientOcclusionRadius, settings.AmbientOcclusionStrength], motion, Normal);
         aoPass.Record(command, triangle);
@@ -338,12 +362,30 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
             settings.AmbientOcclusionRadius, settings.AmbientOcclusionStrength,
             1f / surface.Width, 1f / surface.Height, 0, 0], rawAo, Normal);
         denoisePass.Record(command, triangle);
-        timings?.Mark(command, 11);
-        timings?.Mark(command, 12);
+    }
+
+    public void RecordLightTiles(VulkanCommandBufferLease command, AurelianVulkanBuffer triangle)
+    {
+        var clip = current.clip;
         tilePass.Configure([.. Lighting3DUniforms.Rows(clip), priorLights.Length, 1f / tiles.Width, 1f / tiles.Height, 0], lightData);
         tilePass.Record(command, triangle);
-        timings?.Mark(command, 13);
-        timings?.Mark(command, 14);
+    }
+
+    public void RecordSurfaceResolve(VulkanCommandBufferLease command, AurelianVulkanBuffer triangle)
+    {
+        var surface = current.surface;
+        var motion = current.motion;
+        var shadow = current.shadow;
+        var diffuse = current.diffuse;
+        var inverse = current.inverse;
+        var eye = current.eye;
+        var settings = current.settings;
+        var lighting = current.lighting;
+        var useDiffuse = current.useDiffuse;
+        var cascades = current.cascades;
+        var ambient = current.ambient;
+        var lightTiles = current.lightTiles;
+        float[] inverseRows = Lighting3DUniforms.Rows(inverse);
         resolvePass.Configure([.. inverseRows, eye.X, eye.Y, eye.Z, 1, .. lighting,
             priorLights.Length, environment is null ? 0 : 1, settings.EnvironmentIntensity, useDiffuse ? 1 : 0,
             clear.X, clear.Y, clear.Z, clear.W,
@@ -353,13 +395,24 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
             probe?.Position.X ?? 0, probe?.Position.Y ?? 0, probe?.Position.Z ?? 0, 0,
             probe?.HalfSize.X ?? 1, probe?.HalfSize.Y ?? 1, probe?.HalfSize.Z ?? 1, probe is null ? 0 : 1,
             .. Lighting3DUniforms.Rows(spotCameras[0]), .. Lighting3DUniforms.Rows(spotCameras[1]), .. CascadeUniforms(cascades)],
-            surface, motion, Normal, Emission, environment ?? fallback, lightData, tiles, shadow, diffuse ?? fallback, filteredAo,
+            surface, motion, Normal, Emission, environment ?? fallback, lightData, lightTiles ? tiles : fallback, shadow, diffuse ?? fallback, ambient ? filteredAo : neutralAo,
             spotMaps[0], spotMaps[1], cascadeMaps[0], cascadeMaps[1], Subsurface);
         resolvePass.SetLinearInput(4, environment ?? fallback);
         resolvePass.Record(command, triangle);
-        timings?.Mark(command, 15);
-        AurelianVulkanTexture resolved = Output;
-        timings?.Mark(command, 18);
+        Resolved = Output;
+        UnfoggedOutput = Output;
+    }
+
+    public void RecordSubsurface(VulkanCommandBufferLease command, AurelianVulkanBuffer triangle)
+    {
+        var surface = current.surface;
+        var motion = current.motion;
+        var diffuse = current.diffuse;
+        var inverse = current.inverse;
+        var settings = current.settings;
+        var subsurface = current.subsurface;
+        float[] inverseRows = Lighting3DUniforms.Rows(inverse);
+        AurelianVulkanTexture resolved = Resolved;
         if (settings.SurfaceDebugView == SurfaceDebugView3D.Shaded && subsurface)
         {
             if (diffusionMerge is null)
@@ -373,9 +426,22 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
             diffusionMerge.Record(command, triangle);
             resolved = subsurfaceOutput!;
         }
-        timings?.Mark(command, 19);
+        Resolved = resolved;
         UnfoggedOutput = resolved;
-        timings?.Mark(command, 20);
+    }
+
+    public void RecordAtmosphere(VulkanCommandBufferLease command, AurelianVulkanBuffer triangle)
+    {
+        var surface = current.surface;
+        var motion = current.motion;
+        var shadow = current.shadow;
+        var inverse = current.inverse;
+        var eye = current.eye;
+        var settings = current.settings;
+        var lighting = current.lighting;
+        var cascades = current.cascades;
+        float[] inverseRows = Lighting3DUniforms.Rows(inverse);
+        AurelianVulkanTexture resolved = Resolved;
         if (settings.SurfaceDebugView == SurfaceDebugView3D.Shaded && settings.Fog.Density > 0)
         {
             if (settings.Volumetrics.Enabled)
@@ -390,8 +456,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
             }
             resolved = fogOutput!;
         }
-        timings?.Mark(command, 21);
-        return resolved;
+        Resolved = resolved;
     }
 
     private Vector4 clear;
@@ -402,6 +467,10 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
 
     private AurelianVulkanTexture Image(uint width, uint height, string name, VulkanTextureFormat format)
     {
+        if (name is "surface.diffuse" or "surface.fog")
+        {
+            return transientTextures.Get(name);
+        }
         return Own(VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, width, height,
             VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource, VulkanMemoryUsage.GpuOnly, name, format));
     }

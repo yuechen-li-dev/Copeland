@@ -21,6 +21,11 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--rendering-r1", StringComparer.Ordinal))
+{
+    RenderingR1Proof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r1"));
+    return;
+}
 if (args.Contains("--rendering-r0", StringComparer.Ordinal))
 {
     RenderingR0Proof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r0"));

@@ -78,6 +78,9 @@ internal sealed unsafe class Vulkan3DGpuTimings : IDisposable
     public void EndFrame(VulkanCommandBufferLease command) => Mark(command, (uint)names.Length * 2 + 1);
 
     public Native3DCompletedGpuFrame? ReadCompletedFrame()
+        => ReadInterval((uint)names.Length);
+
+    public Native3DCompletedGpuFrame? ReadInterval(uint pass)
     {
         long? sequence = sequences[frames?.Slot ?? 0];
         if (pool.Handle == 0 || sequence is null)
@@ -85,7 +88,7 @@ internal sealed unsafe class Vulkan3DGpuTimings : IDisposable
             return null;
         }
         ulong* values = stackalloc ulong[2];
-        Result result = plant.Vk.GetQueryPoolResults(plant.Device, pool, (uint)names.Length * 2,
+        Result result = plant.Vk.GetQueryPoolResults(plant.Device, pool, pass * 2,
             2, 16, values, 8, QueryResultFlags.Result64Bit);
         if (result != Result.Success)
         {

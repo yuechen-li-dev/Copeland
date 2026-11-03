@@ -1,3 +1,4 @@
+using Aurelian.Graphics.FramePlans;
 using System.Diagnostics;
 using System.Numerics;
 using System.Collections.Immutable;
@@ -28,7 +29,7 @@ namespace Aurelian.Graphics.Vulkan.Native3D;
 /// Bounded triangle renderer with opaque depth, shared surface lighting and optional presentation passes.
 /// Uses the shared native color target, draw encoder, allocator, and submission path.
 /// </summary>
-public sealed unsafe class VulkanSolid3DRenderer : IDisposable
+public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
 {
     private const int VertexStride = 40;
     private readonly int cameraBytes;
@@ -119,7 +120,7 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         CompiledGraphicsProgram? outputProgram = null,
         CompiledGraphicsProgram? temporalProgram = null,
         CompiledGraphicsProgram? bloomProgram = null,
-        SurfaceLightingPrograms? surfacePrograms = null, RetainedModel3DPrograms? retainedPrograms = null)
+        SurfaceLightingPrograms? surfacePrograms = null, RetainedModel3DPrograms? retainedPrograms = null, FramePlanOptions? framePlans = null)
     {
         ArgumentNullException.ThrowIfNull(plant);
         ArgumentNullException.ThrowIfNull(program);
@@ -149,6 +150,7 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         }
         this.plant = plant;
         this.target = target;
+        planOptions = framePlans ?? new();
         allocator = new RawVulkanMemoryAllocator(plant);
         fences = VulkanFenceBundle.Create(plant);
         commandPool = VulkanCommandBufferPool.Create(plant);
@@ -204,7 +206,7 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             }
             if (surfacePrograms is not null)
             {
-                surfaceLighting = new(plant, allocator, commandPool, fences, surfacePrograms, shadowProgram!, target.Width, target.Height, frames);
+                surfaceLighting = new(plant, allocator, commandPool, fences, surfacePrograms, shadowProgram!, target.Width, target.Height, frames, planOptions.AliasTransientTextures);
             }
             shadowSampler = Vulkan3DPass.CreateSampler(plant, Filter.Nearest);
             depth = VulkanNativeForwardTexturedRenderer.CreateTexture(
@@ -352,7 +354,7 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
                 Instances = [],
             }, worldToClip, eye, clearColor, Settings, Environment, ReflectionProbe, LocalLights);
         }
-        return RenderCore(scene.Geometry, worldToClip, clearColor, capture, scene.Models, eye, gpuGeometry,
+        return RenderFrame(scene.Geometry, worldToClip, clearColor, capture, scene.Models, eye, gpuGeometry,
             temporalRevision: scene.TemporalRevision, lightingRevision: scene.LightingRevision,
             waterFrame: scene.WaterFrame, useWaterReflection: scene.WaterReflection is not null, sourceInstances: scene.Instances);
     }
@@ -387,11 +389,11 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         Vector3 eye = default, NativeGpuGeometry3D? gpuGeometry = null, Vector3? lightDirection = null,
         string? temporalRevision = null, string? lightingRevision = null, WaterFrame3D? waterFrame = null)
     {
-        return RenderCore(geometry, worldToClip, clearColor, capture, models, eye, gpuGeometry,
+        return RenderFrame(geometry, worldToClip, clearColor, capture, models, eye, gpuGeometry,
             lightDirection, temporalRevision, lightingRevision, waterFrame);
     }
 
-    private Native3DFrameResult RenderCore(
+    private Native3DFrameResult RenderFrame(
         ReadOnlySpan<Native3DVertex> geometry,
         Matrix4x4 worldToClip,
         NativeFrameClearColor clearColor,
@@ -413,6 +415,89 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         frames.Begin();
         long frameReady = Stopwatch.GetTimestamp();
         Native3DCompletedGpuFrame? completedGpuFrame = gpuTimings?.ReadCompletedFrame();
+        ReadQueueEvidence();
+        FrameState state = PrepareFrame(geometry, worldToClip, clearColor, capture, models, eye, gpuGeometry,
+            lightDirection, temporalRevision, lightingRevision, waterFrame, useWaterReflection, sourceInstances);
+        FramePlan plan = GetFramePlan(state);
+        var execution = ExecutePlan(plan, state, capture);
+        long recordedAt = execution.RecordedAt;
+        long submittedAt = execution.SubmittedAt;
+        var cpuTimings = new Native3DFrameCpuTimings(frameSequence++, frameSlot,
+            Stopwatch.GetElapsedTime(frameStarted, frameReady).TotalMilliseconds,
+            Stopwatch.GetElapsedTime(frameReady, recordedAt).TotalMilliseconds,
+            Stopwatch.GetElapsedTime(recordedAt, submittedAt).TotalMilliseconds);
+        if (capture || FrameMode == Native3DFrameMode.Capture)
+        {
+            completedGpuFrame = gpuTimings?.ReadCompletedFrame();
+            ReadQueueEvidence();
+        }
+        models = state.Models;
+        worldToClip = state.WorldToClip;
+        waterFrame = state.WaterFrame;
+        var modelKeys = state.ModelKeys;
+        var instanceKeys = state.InstanceKeys;
+        var settings = state.Settings;
+        bool hasParticles = state.HasParticles;
+        if (motionOutput)
+        {
+            if (previousGeometry.Length != geometry.Length) previousGeometry = new Native3DVertex[geometry.Length];
+            geometry.CopyTo(previousGeometry);
+        }
+        previousModels = modelKeys;
+        previousInstances = instanceKeys;
+        previousClip = worldToClip;
+        previousWaterTime = waterFrame.Time;
+        previousWaterReflection = useWaterReflection;
+        previousWaterImpulses = waterFrame.Impulses;
+        previousSettings = settings;
+        previousStaticEmissionIntensity = StaticEmissionIntensity;
+        previousRevision = temporalRevision;
+        previousLightingRevision = lightingRevision;
+        lastGpuSource = gpuGeometry?.Buffer;
+        resetHistory = false;
+        IReadOnlyList<Native3DGpuPassTime> times = capture || FrameMode == Native3DFrameMode.Capture
+            ? gpuTimings?.Read() ?? [] : [];
+        if (computeRecorded[frames.Slot] && times.Count > 0)
+        {
+            times = times.Select(time => time.Pass == "particles-update"
+                ? computeTimings!.Read()[0] : time).ToArray();
+        }
+        frames.Submitted(execution.Fence);
+        if (useWaterReflection)
+        {
+            times = [.. times, new("water-reflection", waterReflection!.GpuMilliseconds)];
+        }
+        int triangleCount = (geometry.Length + models.Sum(item => item.Vertices.Length) + (int)(gpuGeometry?.VertexCount ?? 0)) / 3;
+        triangleCount = checked(triangleCount + (retainedModels?.TriangleCount ?? 0));
+        if (hasParticles)
+        {
+            triangleCount += (int)ParticleSystem!.VertexCount / 3;
+        }
+        if (capture)
+        {
+            var readback = target.Capture();
+            return new Native3DFrameResult(triangleCount, readback.Pixels, readback.Hash) { GpuPassTimes = times, Retained = retainedModels?.Statistics,
+                CpuTimings = cpuTimings, CompletedGpuFrame = completedGpuFrame };
+        }
+        return new Native3DFrameResult(triangleCount, null, null) { GpuPassTimes = times, Retained = retainedModels?.Statistics,
+                CpuTimings = cpuTimings, CompletedGpuFrame = completedGpuFrame };
+    }
+
+    private FrameState PrepareFrame(
+        ReadOnlySpan<Native3DVertex> geometry,
+        Matrix4x4 worldToClip,
+        NativeFrameClearColor clearColor,
+        bool capture = false,
+        IReadOnlyList<NativeModel3DBatch>? models = null,
+        Vector3 eye = default,
+        NativeGpuGeometry3D? gpuGeometry = null,
+        Vector3? lightDirection = null,
+        string? temporalRevision = null,
+        string? lightingRevision = null,
+        WaterFrame3D? waterFrame = null,
+        bool useWaterReflection = false,
+        IReadOnlyList<SceneInstance3D>? sourceInstances = null)
+    {
         models ??= [];
         sourceInstances ??= [];
         waterFrame ??= new();
@@ -610,127 +695,6 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             transparency.PrepareParticles(hasParticles ? ParticleSystem : null, worldToClip, eye, settings,
                 motion!, surfaceLighting.VolumeTexture, surfaceLighting.VolumeParameters(settings));
         }
-        VulkanCommandBufferLease command = commandPool.Rent(fences.CommandListFence.LastKnownCompletedValue);
-        Require(command.Begin().Success, "3D command begin failed.");
-        // Images and GPU-generated history remain shared on one ordered graphics queue.
-        // Finish all earlier frame reads/writes before reusing those attachments.
-        MemoryBarrier frameBarrier = new()
-        {
-            SType = StructureType.MemoryBarrier,
-            SrcAccessMask = AccessFlags.MemoryReadBit | AccessFlags.MemoryWriteBit,
-            DstAccessMask = AccessFlags.MemoryReadBit | AccessFlags.MemoryWriteBit,
-        };
-        plant.Vk.CmdPipelineBarrier(command.CommandBuffer, PipelineStageFlags.AllCommandsBit,
-            PipelineStageFlags.AllCommandsBit, 0, 1, &frameBarrier, 0, null, 0, null);
-        gpuTimings?.Reset(command);
-        gpuTimings?.BeginFrame(command, frameSequence);
-        surfaceLighting?.RecordUploads(command);
-        if (surfaceOnly)
-        {
-            gpuTimings?.Mark(command, 26);
-            if (hasParticles) { ParticleSystem!.Record(command); }
-            gpuTimings?.Mark(command, 27);
-        }
-        gpuTimings?.Mark(command, 0);
-        var encoder = new VulkanRenderPassCommandEncoder();
-        if (shadowPass is not null)
-        {
-            shadowPass.Upload(Lighting3DUniforms.Rows(shadowCamera));
-            var shadowBegin = encoder.Begin(plant, command, new(shadowPass.Pass, shadowPass.Framebuffer, new(1, 1, 1, 1)));
-            Require(shadowBegin.Success, "Shadow pass begin failed.");
-            if (settings.Shadows)
-            {
-                if (!geometry.IsEmpty)
-                {
-                    shadowPass.Draw(command, shadowBegin.Scope!.Value, vertices, (uint)geometry.Length);
-                }
-                if (gpuGeometry is not null)
-                {
-                    shadowPass.Draw(command, shadowBegin.Scope!.Value, gpuGeometry.Buffer, gpuGeometry.VertexCount);
-                }
-                modelRenderer?.DrawShadows(command, shadowBegin.Scope!.Value, shadowPass, models);
-                retainedModels?.DrawShadows(command, shadowBegin.Scope!.Value, shadowPass);
-            }
-            Require(encoder.End(plant, command, shadowBegin.Scope!.Value).Success, "Shadow pass end failed.");
-            Vulkan3DPass.SampleAfterRendering(plant, command, shadowMap);
-        }
-        if (surfaceLighting is not null)
-        {
-            for (int index = 0; index < 2; index++)
-            {
-                var pass = surfaceLighting.CascadePass(index);
-                pass.Upload(Lighting3DUniforms.Rows(cascades!.Cameras[index + 1]));
-                var cascadeBegin = encoder.Begin(plant, command, new(pass.Pass, pass.Framebuffer, new(1, 1, 1, 1)));
-                Require(cascadeBegin.Success, "Directional cascade begin failed.");
-                if (settings.Shadows)
-                {
-                    if (!geometry.IsEmpty) pass.Draw(command, cascadeBegin.Scope!.Value, vertices, (uint)geometry.Length);
-                    if (gpuGeometry is not null) pass.Draw(command, cascadeBegin.Scope!.Value, gpuGeometry.Buffer, gpuGeometry.VertexCount);
-                    modelRenderer?.DrawShadows(command, cascadeBegin.Scope!.Value, pass, models);
-                    retainedModels?.DrawShadows(command, cascadeBegin.Scope!.Value, pass);
-                }
-                Require(encoder.End(plant, command, cascadeBegin.Scope!.Value).Success, "Directional cascade end failed.");
-                surfaceLighting.FinishCascade(command, index);
-            }
-        }
-        gpuTimings?.Mark(command, 1);
-        if (surfaceLighting is not null)
-        {
-            gpuTimings?.Mark(command, 16);
-            for (int index = 0; index < surfaceLighting.ShadowCount; index++)
-            {
-                var pass = surfaceLighting.ShadowPass(index);
-                pass.Upload(Lighting3DUniforms.Rows(surfaceLighting.ShadowCamera(index)));
-                var spotBegin = encoder.Begin(plant, command, new(pass.Pass, pass.Framebuffer, new(1, 1, 1, 1)));
-                Require(spotBegin.Success, "Local shadow pass begin failed.");
-                if (!geometry.IsEmpty) pass.Draw(command, spotBegin.Scope!.Value, vertices, (uint)geometry.Length);
-                if (gpuGeometry is not null) pass.Draw(command, spotBegin.Scope!.Value, gpuGeometry.Buffer, gpuGeometry.VertexCount);
-                if (models.Count > 0) modelRenderer!.DrawShadows(command, spotBegin.Scope!.Value, pass, models);
-                retainedModels?.DrawShadows(command, spotBegin.Scope!.Value, pass);
-                Require(encoder.End(plant, command, spotBegin.Scope!.Value).Success, "Local shadow pass end failed.");
-                surfaceLighting.FinishShadow(command, index);
-            }
-            gpuTimings?.Mark(command, 17);
-        }
-        gpuTimings?.Mark(command, 2);
-        var begin = encoder.Begin(plant, command, new VulkanRenderPassBeginRequest(
-            renderPass, framebuffer, hdr is null ? target.PrepareClearColor(clearColor)
-                : new VulkanColorClearValue(NativeSrgbTransfer.Decode(clearColor.Red), NativeSrgbTransfer.Decode(clearColor.Green),
-                    NativeSrgbTransfer.Decode(clearColor.Blue), clearColor.Alpha))
-        {
-            AdditionalClearColors = motionOutput ? [new VulkanColorClearValue(0, 0, 1, 1),
-            .. surfaceOnly ? new[] { new VulkanColorClearValue(0, 1, 0, 0), new VulkanColorClearValue(0, 0, 0, 1), new VulkanColorClearValue(0, 0, 0, 0) } : []] : []
-        });
-        Require(begin.Success, "3D render pass begin failed.");
-        DescriptorSet set = descriptorSet;
-        plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Graphics,
-            pipeline.NativePipelineLayout, 0, 1, &set, 0, null);
-        if (!geometry.IsEmpty)
-        {
-            var draw = new VulkanDrawCommandEncoder().DrawVertices(plant, command, begin.Scope!.Value,
-                new VulkanDrawVerticesRequest(pipeline, vertices, (uint)geometry.Length, 0,
-                    VulkanViewportScissor.FromFramebuffer(framebuffer))
-                { PreviousVertexBuffer = previousVertices });
-            Require(draw.Success, string.Join("; ", draw.Diagnostics.Select(item => item.Message)));
-        }
-        if (models.Count > 0) modelRenderer!.Draw(command, begin.Scope!.Value, framebuffer, models);
-        retainedModels?.Draw(command, begin.Scope!.Value, framebuffer);
-        if (gpuGeometry is not null)
-        {
-            DescriptorSet cameraSet = descriptorSet;
-            plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Graphics,
-                pipeline.NativePipelineLayout, 0, 1, &cameraSet, 0, null);
-            AurelianVulkanBuffer? priorGpu = null;
-            if (motionOutput) priorGpu = useTemporal && !resetHistory ? previousGpu : gpuGeometry.Buffer;
-            var draw = new VulkanDrawCommandEncoder().DrawVertices(plant, command, begin.Scope!.Value,
-                new VulkanDrawVerticesRequest(pipeline, gpuGeometry.Buffer, gpuGeometry.VertexCount, 0,
-                    VulkanViewportScissor.FromFramebuffer(framebuffer))
-                { PreviousVertexBuffer = priorGpu });
-            Require(draw.Success, string.Join("; ", draw.Diagnostics.Select(item => item.Message)));
-        }
-        Require(encoder.End(plant, command, begin.Scope!.Value).Success, "3D render pass end failed.");
-        gpuTimings?.Mark(command, 3);
-        AurelianVulkanTexture? resolved = hdr;
         if (surfaceLighting is not null)
         {
             Matrix4x4.Invert(worldToClip, out var inverse);
@@ -738,109 +702,37 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             surfaceUniforms[11] = StaticEmissionIntensity;
             surfaceLighting.SetClear(new(NativeSrgbTransfer.Decode(clearColor.Red), NativeSrgbTransfer.Decode(clearColor.Green),
                 NativeSrgbTransfer.Decode(clearColor.Blue), clearColor.Alpha));
-            resolved = surfaceLighting.Record(command, outputVertices!, hdr!, motion!, shadowMap, diffuseData,
-                worldToClip, inverse, eye, settings, surfaceUniforms, useDiffuse, gpuTimings, cascades!, hasSubsurface);
+            surfaceLighting.BeginFrame(hdr!, motion!, shadowMap, diffuseData, worldToClip, inverse, eye, settings,
+                surfaceUniforms, useDiffuse, cascades!, hasSubsurface,
+                !planOptions.OptimizeInactivePasses || settings.AmbientOcclusionStrength > 0,
+                !planOptions.OptimizeInactivePasses || settings.LocalLightCulling && LocalLights.Count > 0);
         }
-        if (surfaceOnly) gpuTimings?.Mark(command, 24);
-        if (hasRefraction && settings.SurfaceDebugView == SurfaceDebugView3D.Shaded)
+        return new FrameState
         {
-            resolved = refraction!.Record(command, outputVertices!, models, worldToClip, eye, lighting,
-                surfaceLighting!.TransparentUniforms(cascades!, settings, target.Width, target.Height),
-                surfaceLighting.TransparentInputs(shadowMap, motion!), surfaceLighting.UnfoggedOutput!, resolved!,
-                waterFrame, resetHistory ? waterFrame.Time : previousWaterTime, previousClip, logicalCamera,
-                resetHistory, useTemporal, settings.TemporalHistoryWeight,
-                useWaterReflection ? waterReflection!.Color : null, waterReflection?.Clip ?? Matrix4x4.Identity);
-        }
-        if (surfaceOnly) gpuTimings?.Mark(command, 25);
-        if (surfaceOnly) gpuTimings?.Mark(command, 22);
-        if (hasTransparency && settings.SurfaceDebugView == SurfaceDebugView3D.Shaded)
-        {
-
-            resolved = transparency!.Record(command, outputVertices!, resolved!);
-
-        }
-        if (surfaceOnly) gpuTimings?.Mark(command, 23);
-        gpuTimings?.Mark(command, 4);
-        if (useTemporal)
-            resolved = temporal!.Resolve(command, outputVertices!, resolved!, motion!, settings.TemporalHistoryWeight);
-        gpuTimings?.Mark(command, 5);
-        gpuTimings?.Mark(command, 6);
-        AurelianVulkanTexture? glow = resolved;
-        if (settings.BloomIntensity > 0)
-            glow = bloom!.Record(command, outputVertices!, resolved!, settings);
-        gpuTimings?.Mark(command, 7);
-        gpuTimings?.Mark(command, 8);
-        if (outputPass is not null)
-        {
-            Vulkan3DPass.SampleAfterRendering(plant, command, resolved!);
-            if (outputHasBloom) outputPass.SetOutputTextures(resolved!, glow!);
-            bool encodeSrgb = target.TextureFormat is not (VulkanTextureFormat.Rgba8Srgb or VulkanTextureFormat.Bgra8Srgb);
-            float toneControl = settings.ToneMapping
-                ? 1 + settings.ToneMapColorRetention + (settings.ToneMapGamutCompression ? 2 : 0)
-                : 0;
-            outputPass.Upload([settings.Exposure, toneControl,
-                encodeSrgb ? 1 : 0, settings.BloomIntensity]);
-            var outputBegin = encoder.Begin(plant, command, new(outputPass.Pass, outputPass.Framebuffer, new(0, 0, 0, 1)));
-            Require(outputBegin.Success, "Tone mapping pass begin failed.");
-            outputPass.Draw(command, outputBegin.Scope!.Value, outputVertices!, 3);
-            Require(encoder.End(plant, command, outputBegin.Scope!.Value).Success, "Tone mapping pass end failed.");
-        }
-        gpuTimings?.Mark(command, 9);
-        if (useTemporal && gpuGeometry is not null) CopyPreviousGpu(command, gpuGeometry);
-        gpuTimings?.EndFrame(command);
-        Require(command.End().Success, "3D command end failed.");
-        long recordedAt = Stopwatch.GetTimestamp();
-        var submit = submitter.Submit(new VulkanCommandSubmitRequest(command,
-            WaitForCompletion: capture || FrameMode == Native3DFrameMode.Capture,
-            TimeoutNanoseconds: 5_000_000_000, DebugName: "solid3d.draw"));
-        Require(submit.Success, string.Join("; ", submit.Diagnostics.Select(item => item.Message)));
-        long submittedAt = Stopwatch.GetTimestamp();
-        var cpuTimings = new Native3DFrameCpuTimings(frameSequence++, frameSlot,
-            Stopwatch.GetElapsedTime(frameStarted, frameReady).TotalMilliseconds,
-            Stopwatch.GetElapsedTime(frameReady, recordedAt).TotalMilliseconds,
-            Stopwatch.GetElapsedTime(recordedAt, submittedAt).TotalMilliseconds);
-        if (capture || FrameMode == Native3DFrameMode.Capture)
-        {
-            completedGpuFrame = gpuTimings?.ReadCompletedFrame();
-        }
-        if (motionOutput)
-        {
-            if (previousGeometry.Length != geometry.Length) previousGeometry = new Native3DVertex[geometry.Length];
-            geometry.CopyTo(previousGeometry);
-        }
-        previousModels = modelKeys;
-        previousInstances = instanceKeys;
-        previousClip = worldToClip;
-        previousWaterTime = waterFrame.Time;
-        previousWaterReflection = useWaterReflection;
-        previousWaterImpulses = waterFrame.Impulses;
-        previousSettings = settings;
-        previousStaticEmissionIntensity = StaticEmissionIntensity;
-        previousRevision = temporalRevision;
-        previousLightingRevision = lightingRevision;
-        lastGpuSource = gpuGeometry?.Buffer;
-        resetHistory = false;
-        IReadOnlyList<Native3DGpuPassTime> times = capture || FrameMode == Native3DFrameMode.Capture
-            ? gpuTimings?.Read() ?? [] : [];
-        frames.Submitted(submit.SignalFenceValue!.Value);
-        if (useWaterReflection)
-        {
-            times = [.. times, new("water-reflection", waterReflection!.GpuMilliseconds)];
-        }
-        int triangleCount = (geometry.Length + models.Sum(item => item.Vertices.Length) + (int)(gpuGeometry?.VertexCount ?? 0)) / 3;
-        triangleCount = checked(triangleCount + (retainedModels?.TriangleCount ?? 0));
-        if (hasParticles)
-        {
-            triangleCount += (int)ParticleSystem!.VertexCount / 3;
-        }
-        if (capture)
-        {
-            var readback = target.Capture();
-            return new Native3DFrameResult(triangleCount, readback.Pixels, readback.Hash) { GpuPassTimes = times, Retained = retainedModels?.Statistics,
-                CpuTimings = cpuTimings, CompletedGpuFrame = completedGpuFrame };
-        }
-        return new Native3DFrameResult(triangleCount, null, null) { GpuPassTimes = times, Retained = retainedModels?.Statistics,
-                CpuTimings = cpuTimings, CompletedGpuFrame = completedGpuFrame };
+            VertexCount = geometry.Length,
+            Models = models,
+            Instances = sourceInstances,
+            WorldToClip = worldToClip,
+            LogicalCamera = logicalCamera,
+            ShadowCamera = shadowCamera,
+            Eye = eye,
+            Clear = clearColor,
+            Settings = settings,
+            GpuGeometry = gpuGeometry,
+            Cascades = cascades,
+            Lighting = lighting,
+            UseTemporal = useTemporal,
+            UseDiffuse = useDiffuse,
+            HasParticles = hasParticles,
+            HasTransparency = hasTransparency,
+            HasRefraction = hasRefraction,
+            HasSubsurface = hasSubsurface,
+            WaterFrame = waterFrame,
+            UseWaterReflection = useWaterReflection,
+            ModelKeys = modelKeys,
+            InstanceKeys = instanceKeys,
+            Resolved = hdr,
+        };
     }
 
     /// <summary>Call for camera cuts, teleports, or replacement of raw vertex correspondence.</summary>
@@ -1055,6 +947,10 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         {
             plant.Vk.DestroySampler(plant.Device, shadowSampler, null);
         }
+        computeTimings?.Dispose();
+        computeSubmitter?.Dispose();
+        computeCommands?.Dispose();
+        computeFences?.Dispose();
         submitter.Dispose();
         commandPool.Dispose();
         fences.Dispose();

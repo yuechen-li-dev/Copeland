@@ -265,6 +265,29 @@ public sealed class GameShellTests
         Assert.Contains("Known facts", Assert.Throws<ArgumentException>(() => target.Command("assert nonsense 1")).Message);
     }
 
+    [Fact]
+    public void RenderingInspectionUsesTheNativeSurfacePlan()
+    {
+        using var session = Create(out _);
+        var surface = new RenderingInspectionSurface();
+        new GamePlaytestTarget(session, surface: surface).Command("inspect rendering");
+        Assert.True(surface.Inspected);
+    }
+
+    private sealed class RenderingInspectionSurface : IGamePlaytestSurface
+    {
+        public int LogicalWidth => 960;
+        public int LogicalHeight => 600;
+        public bool Inspected { get; private set; }
+        public void Present(string? capturePath) { }
+        public void Resize(int width, int height) { }
+        public string DescribeRendering()
+        {
+            Inspected = true;
+            return "{\"Format\":\"aurelian.frame-plan/1\"}";
+        }
+    }
+
     private static GameSession Create(out DotGame game, string? directory = null)
     {
         game = new DotGame();

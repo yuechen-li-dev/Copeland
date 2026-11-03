@@ -37,6 +37,7 @@ public sealed class AurelianVulkanPlant : IDisposable
     public Silk.NET.Vulkan.Device Device { get; private set; }
 
     public Queue GraphicsQueue { get; }
+    public Queue? ComputeQueue { get; internal init; }
 
     public uint QueueFamilyIndex { get; }
 

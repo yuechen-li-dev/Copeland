@@ -12,4 +12,7 @@ public sealed record VulkanCommandSubmitRequest(
     public bool MeasureCpuTime { get; init; }
     /// <summary>Optional binary signal consumed by presentation, alongside the retirement timeline.</summary>
     public Silk.NET.Vulkan.Semaphore? SignalBinarySemaphore { get; init; }
+    public IReadOnlyList<VulkanTimelineWait> TimelineWaits { get; init; } = [];
 }
+
+public sealed record VulkanTimelineWait(Aurelian.Graphics.Vulkan.Sync.VulkanTimelineFence Fence, ulong Value);

@@ -315,6 +315,7 @@ public static class GameApp
     /// <summary>Connects the session to the native host, Vulkan graphics and pointer input.</summary>
     private sealed class NativeGameSession : IAurelianGameApplication, IAurelianHostCompositor, IAurelianHostInput, IGamePlaytestSurface
     {
+        public string DescribeRendering() => graphics.Renderer.CurrentFramePlan?.Describe() ?? "No 3D frame has rendered.";
         private const double ReferenceWidth = 960;
         private const double ReferenceHeight = 600;
         private readonly GameSession session;
