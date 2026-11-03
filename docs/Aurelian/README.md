@@ -18,6 +18,7 @@ The docs above describe current code paths and contracts. For exact signatures a
 
 ## Graphics
 
+- [Rendering foundation design](../design/aurelian-rendering-foundation-design.md): the plan to close the gap with production engines (pipelined frames, compiled frame plan, GPU-driven visibility, ray-traced lighting, reference-gated research) and the effects Aurelian will not implement.
 - [3D graphics starter](graphics-starter.md): `Graphics3DSettings`, authored lighting, shadows, HDR, and gallery/proof entry points.
 - [Diffuse comparison](diffuse-comparison.md): controlled Lambert, Burley, Frostbite, EON and Aurelian PathDiffuse experiments, live `IGame` lab, paper references and native numerical qualification.
 - [Image guided look pilot](image-guided-look-pilot.md): generated appearance targets, a frozen Cloudstep policy sweep, native VTS selection, transfer results and methodology limits.
