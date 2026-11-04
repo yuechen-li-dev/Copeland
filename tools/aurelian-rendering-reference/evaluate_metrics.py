@@ -101,6 +101,11 @@ def evaluate(manifest_path):
                                 ("gi-emissive", "direct-emissive")]:
             if means[result] >= means[control]:
                 raise ValueError(f"Dynamic diffuse did not improve native FLIP: {result}")
+    elif manifest.get("Qualification") == "secondary-materials":
+        for scene in ["albedo", "emissive", "smooth", "normal-map", "all-channels", "negative-tangent",
+                      "analytic-sphere", "analytic-box-reflected", "imported-glb"]:
+            if means[scene + "-full"] >= means[scene + "-factor-only"]:
+                raise ValueError(f"Secondary material evaluation did not improve native FLIP: {scene}")
     elif manifest.get("Qualification") == "restir":
         for scene in ["static", "camera-pan", "moving-receiver"]:
             if means[scene + "-SpatiotemporalReservoir"] >= means[scene + "-Reservoir"]:

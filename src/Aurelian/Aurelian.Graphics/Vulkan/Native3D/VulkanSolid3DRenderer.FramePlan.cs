@@ -38,6 +38,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
     public DynamicDiffuseLighting3D DynamicDiffuse { get; set; } = new();
     public CompiledDiffuseProbeField3D CaptureCompiledDiffuseProbes() => surfaceLighting!.CaptureCompiledDiffuseProbes();
     public void SetCompiledDiffuseProbes(CompiledDiffuseProbeField3D field) => surfaceLighting!.SetCompiledDiffuseProbes(field);
+    public float[] ReadSecondaryWitnessForQualification() => surfaceLighting!.ReadSecondaryWitness();
     public float[] ReadDiffuseCacheForQualification() => surfaceLighting!.ReadDiffuseCache();
     public float[] ReadDiffuseOutputForQualification() => surfaceLighting!.ReadDiffuseOutput();
     public bool EnableRayShadows { get; set; }

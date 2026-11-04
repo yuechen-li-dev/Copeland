@@ -29,6 +29,10 @@ public static partial class VdMirComputeHlslEmitter
             {
                 resourceType = "RaytracingAccelerationStructure";
             }
+            else if (resource.ElementType is "Texture2D<float4>" or "Sampler")
+            {
+                resourceType = resource.ElementType == "Sampler" ? "SamplerState" : "Texture2D<float4>";
+            }
             else if (resource.Access == VdMirResourceAccess.Readonly)
             {
                 resourceType = ResourceType(resource.ElementType, VdMirResourceAccess.Readonly);
@@ -37,7 +41,8 @@ public static partial class VdMirComputeHlslEmitter
             {
                 resourceType = ResourceType(resource.ElementType, VdMirResourceAccess.Readwrite);
             }
-            builder.AppendLine($"[[vk::binding({resource.Binding}, {resource.Set})]] {resourceType} {resource.Name};");
+            string suffix = resource.DescriptorCount is { } count ? $"[{count}]" : "";
+            builder.AppendLine($"[[vk::binding({resource.Binding}, {resource.Set})]] {resourceType} {resource.Name}{suffix};");
         }
         if (module.Resources.Count > 0)
         {
@@ -58,7 +63,7 @@ public static partial class VdMirComputeHlslEmitter
                 ParameterType(parameter, module) + " " + LocalName(parameter.Name)));
             builder.AppendLine($"{MapType(function.ReturnType, module)} {function.Name}({parameters});");
         }
-        if (module.FeatureLevel is "compute.rayquery.m2" or "compute.rayquery.m3" or "compute.rayquery.m4")
+        if (module.FeatureLevel is "compute.rayquery.m2" or "compute.rayquery.m3" or "compute.rayquery.m4" or "compute.rayquery.m5")
         {
             EmitQueryHelpers(builder, module);
         }
@@ -221,6 +226,9 @@ public static partial class VdMirComputeHlslEmitter
             "name" => LocalName(expression.Value!),
             "literal" => expression.Value!,
             "field" => $"{EmitExpression(expression.Operands![0])}.{expression.Value}",
+            "descriptor-index" => $"{EmitExpression(expression.Operands![0])}[{EmitExpression(expression.Operands[1])}]",
+            "intrinsic" when expression.Value == "NonUniformIndex" => $"NonUniformResourceIndex({EmitExpression(expression.Operands![0])})",
+            "intrinsic" when expression.Value == "SampleLevel2D" => $"{EmitExpression(expression.Operands![0])}.SampleLevel({string.Join(", ", expression.Operands.Skip(1).Select(EmitExpression))})",
             "index" => $"{EmitExpression(expression.Operands![0])}[{EmitExpression(expression.Operands[1])}]",
             "storage-load" => $"__vts_load_{(expression.Value == "word" ? "word_" : "")}{expression.Type}({EmitExpression(expression.Operands![0])}, {EmitExpression(expression.Operands[1])})",
             "binary" => $"({EmitExpression(expression.Operands![0])} {expression.Value} {EmitExpression(expression.Operands[1])})",
@@ -272,7 +280,8 @@ public static partial class VdMirComputeHlslEmitter
         "u32" => "uint",
         "f32" => "float",
         "uint3" => "uint3",
-        "float2" or "float3" or "float4" => type,
+        "float2" or "float3" or "float4" or "Texture2D<float4>" => type,
+        "Sampler" => "SamplerState",
         _ when (module.ValueTypes ?? []).Any(value => value.Name == type) => type,
         _ when (module.Enums ?? []).Any(enumeration => enumeration.Name == type || enumeration.Cases.Any(variant => variant.PayloadType == type)) => type,
         _ => throw new InvalidOperationException($"Unsupported compute type '{type}'."),

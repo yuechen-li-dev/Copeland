@@ -36,7 +36,7 @@ public sealed class RayQueryShaderTests
         Assert.True(module.Success, string.Join("; ", module.Diagnostics.Select(item => item.Message)));
         var compiled = VdMirComputeBackend.Compile(module);
         Assert.True(compiled.SpirvValidated, compiled.DxcOutput + compiled.SpirvValidationOutput);
-        Assert.Equal("compute.rayquery.m4", module.FeatureLevel);
+        Assert.Equal(name == "DynamicDiffuse3D.v.ts" ? "compute.rayquery.m5" : "compute.rayquery.m4", module.FeatureLevel);
     }
 
     [Fact]

@@ -12,7 +12,7 @@ internal sealed unsafe partial class VulkanSceneAcceleration3D
     private readonly List<AurelianVulkanBuffer> shadingOwned = [];
     private readonly AurelianVulkanBuffer[] shadingSlots = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
     private readonly Dictionary<NativeMesh3D, int> triangleOffsets = [];
-    private readonly HashSet<NativeMesh3D> validatedMeshes = [];
+    private readonly Dictionary<NativeMesh3D, bool> validatedMeshes = [];
     private NativeInstanceSet3D? shaded;
     private readonly NativeInstanceSet3D?[] shadedSlots = new NativeInstanceSet3D?[VulkanFrameInFlightSet.Count];
     private float[] triangleAtlas = [];
@@ -29,7 +29,11 @@ internal sealed unsafe partial class VulkanSceneAcceleration3D
                 buffer.Dispose();
             }
             shadingOwned.Clear();
-            validatedMeshes.IntersectWith(source.PackedInstances.Select(instance => instance.Mesh));
+            var activeMeshes = source.PackedInstances.Select(instance => instance.Mesh).ToHashSet();
+            foreach (var mesh in validatedMeshes.Keys.Where(mesh => !activeMeshes.Contains(mesh)).ToArray())
+            {
+                validatedMeshes.Remove(mesh);
+            }
             triangleOffsets.Clear();
             var words = new List<float>();
             foreach (var mesh in source.PackedInstances.Select(instance => instance.Mesh).Distinct())
@@ -74,6 +78,7 @@ internal sealed unsafe partial class VulkanSceneAcceleration3D
                 words[offset + 22] = material.Emissive.Z;
                 words[offset + 23] = material.Metallic;
                 words[offset + 24] = Bits((uint)triangleOffsets[instance.Mesh]);
+                words[offset + 25] = validatedMeshes[instance.Mesh] || material.Textures().Any(texture => texture is not null) ? 1 : 0;
             }
             for (int index = 0; index < shadingSlots.Length; index++)
             {
@@ -92,17 +97,16 @@ internal sealed unsafe partial class VulkanSceneAcceleration3D
     {
         foreach (var material in source.Materials)
         {
-            if (material.Textures().Any(texture => texture is not null) || material.Unlit || material.SubsurfaceStrength > 0)
-                throw new NotSupportedException("AUR-GI-001: Retained diffuse hits currently require opaque constant BRDF parameters without textures, unlit or subsurface shading.");
+            if (material.Unlit || material.SubsurfaceStrength > 0)
+                throw new NotSupportedException("AUR-GI-001: Retained diffuse hits require opaque materials without unlit or subsurface shading.");
         }
         foreach (var mesh in source.PackedInstances.Select(instance => instance.Mesh).Distinct())
         {
-            if (validatedMeshes.Contains(mesh)) continue;
-            if (mesh.Vertices.Any(vertex => vertex.Color != Vector4.One))
-                throw new NotSupportedException("AUR-GI-001: Retained diffuse hits currently require constant material albedo and white vertex colors.");
+            if (validatedMeshes.ContainsKey(mesh)) continue;
+            bool needsAttributes = mesh.Vertices.Any(vertex => vertex.Color != Vector4.One);
             if (mesh.PrimitiveKind != AnalyticPrimitiveKind3D.Triangles)
             {
-                validatedMeshes.Add(mesh);
+                validatedMeshes.Add(mesh, needsAttributes);
                 continue;
             }
             for (int triangle = 0; triangle < mesh.Indices.Length; triangle += 3)
@@ -114,10 +118,15 @@ internal sealed unsafe partial class VulkanSceneAcceleration3D
                 if (cross.LengthSquared() < 1e-16f)
                     throw new NotSupportedException("AUR-GI-001: Retained diffuse triangles must be nondegenerate.");
                 Vector3 normal = Vector3.Normalize(cross);
-                if (Vector3.Dot(normal, a.Normal) < .999f || Vector3.Dot(normal, b.Normal) < .999f || Vector3.Dot(normal, c.Normal) < .999f)
-                    throw new NotSupportedException("AUR-GI-001: Smooth triangle normals need a barycentric shading payload; this first diffuse profile admits flat normals and analytic surfaces.");
+                if (a.Normal.LengthSquared() < 1e-12f || b.Normal.LengthSquared() < 1e-12f || c.Normal.LengthSquared() < 1e-12f
+                    || Vector3.DistanceSquared(normal, Vector3.Normalize(a.Normal)) > 1e-8f
+                    || Vector3.DistanceSquared(normal, Vector3.Normalize(b.Normal)) > 1e-8f
+                    || Vector3.DistanceSquared(normal, Vector3.Normalize(c.Normal)) > 1e-8f)
+                {
+                    needsAttributes = true;
+                }
             }
-            validatedMeshes.Add(mesh);
+            validatedMeshes.Add(mesh, needsAttributes);
         }
     }
 }

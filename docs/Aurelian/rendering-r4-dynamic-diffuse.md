@@ -6,13 +6,14 @@ one indirect bounce from local lights and emissive surfaces. A compiled field
 can supply the initial directional radiance; current signed updates subtract
 occluded light and add relighting without another bake.
 
-This is the first qualified R4 slice. Full R4 remains open. The qualified profile
-is opaque constant materials, flat triangle normals and analytic surfaces, local
-and emissive sources, a bounded prepared grid, and diffuse receivers. Imported
-textured/smooth-normal scenes currently stop at `AUR-GI-001`; their secondary-hit
-material payload is the next concrete integration requirement. Sun/environment
+This documents the first qualified R4 slice. Its original profile used opaque
+constant materials, flat triangle normals and analytic surfaces. The subsequent
+[textured and smooth-normal secondary-hit pass](rendering-r4-secondary-materials.md)
+extends that profile through shared resident geometry/material tables, including
+an imported GLB witness. Local and emissive sources, a bounded prepared grid and
+diffuse receivers remain the qualified transport scope. Sun/environment
 transport, recursive bounces, sparse allocation, region policy and whole-Beacon
-qualification are not implemented here. Dynamic diffuse lighting defaults off.
+qualification remain open. Dynamic diffuse lighting defaults off.
 The GI-specific transport specimens cover point lights and emissive geometry;
 spot/area GI qualification remains outstanding.
 
@@ -192,5 +193,7 @@ of [control variates](https://www.pbr-book.org/4ed/Monte_Carlo_Integration/Impro
 but this implementation's directional cache converges to the same finite basis
 as the warmed runtime control. Its useful result is subtraction of stale light,
 immediate compiled startup, and shared-scene integration. A per-region
-freshness/error controller and broader secondary material payload are the next
-seams before choosing GI defaults or claiming whole-scene R4 completion.
+freshness/error controller remains a next seam before choosing GI defaults or
+claiming whole-scene R4 completion. The subsequent
+[secondary-material pass](rendering-r4-secondary-materials.md) now supplies the
+textured and smooth-normal payload through the existing material owner.

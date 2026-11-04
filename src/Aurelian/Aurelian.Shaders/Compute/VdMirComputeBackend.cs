@@ -34,7 +34,7 @@ public static class VdMirComputeBackend
                 module.FeatureLevel switch
                 {
                     "compute.cooperative.m1" => "cs_6_9",
-                    "compute.rayquery.m2" or "compute.rayquery.m3" or "compute.rayquery.m4" => "cs_6_5",
+                    "compute.rayquery.m2" or "compute.rayquery.m3" or "compute.rayquery.m4" or "compute.rayquery.m5" => "cs_6_5",
                     _ => "cs_6_0",
                 },
                 Path.GetFileNameWithoutExtension(module.EntryPoint.Source.File) + ".hlsl",

@@ -18,6 +18,9 @@ public sealed class DynamicDiffuseLightingTests
         Assert.Throws<ArgumentException>((settings with { RaysPerProbePerFrame = 17 }).Validate);
         Assert.Throws<ArgumentException>((settings with { Grid = Grid with { SurfaceResolution = 4 } }).Validate);
         Assert.Throws<ArgumentOutOfRangeException>((settings with { Intensity = float.NaN }).Validate);
+        Assert.Throws<ArgumentOutOfRangeException>((settings with { SecondaryTextureLod = float.NaN }).Validate);
+        Assert.Throws<ArgumentOutOfRangeException>((settings with { SecondaryTextureLod = -1 }).Validate);
+        Assert.Throws<ArgumentOutOfRangeException>((settings with { SecondaryTextureLod = 14 }).Validate);
     }
 
     [Fact]

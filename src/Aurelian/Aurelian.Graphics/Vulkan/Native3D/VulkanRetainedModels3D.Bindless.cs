@@ -15,6 +15,7 @@ internal sealed unsafe partial class VulkanRetainedModels3D
     private AurelianVulkanGraphicsPipeline? bindlessPipeline;
     private readonly List<BindlessRun> bindlessRuns = [];
     private readonly AurelianVulkanRenderPass geometryPass;
+    internal VulkanBindlessMaterials3D? SecondaryMaterialTable => VisibilityBufferActive ? bindlessTable : null;
     public bool BindlessActive { get; private set; }
     private sealed record BindlessRun(DrawGroup Draw, ImmutableArray<SceneInstance3D> Source);
 

@@ -19,7 +19,7 @@ export function TestSurfaceCoverage(frontFace: bool, material: SurfaceMaterial, 
     if (material.flags.y > 0.5 && base.w < material.emissiveAlpha.w) { Discard(); }
     return base;
 }
-function EvaluateSurfaceSamples(surfaceNormal: float3, surfaceTangent: float4, frontFace: bool, material: SurfaceMaterial,
+export function EvaluateSurfaceSamples(surfaceNormal: float3, surfaceTangent: float4, frontFace: bool, material: SurfaceMaterial,
     base: float4, emission: float4, nt: float4, mr: float4, ao: float4): SurfaceData {
     let emitted: float3 = Mul3(float3(emission.x, emission.y, emission.z),
         float3(material.emissiveAlpha.x, material.emissiveAlpha.y, material.emissiveAlpha.z));

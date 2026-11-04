@@ -38,6 +38,7 @@ The docs above describe current code paths and contracts. For exact signatures a
 - [R3 retained TLAS updates](rendering-r3-tlas-updates.md): frame-ordered rigid-motion refits, retained scratch and input slots, rebuild controls, queued-frame correctness and moving-frame cost comparisons.
 - [R3 raster motion admission](rendering-r3-raster-motion.md): retained material/visibility resources, frame-slot transform and bounds streams, and moving-frame cost comparisons.
 - [R3 area lights and tail reconstruction](rendering-r3-area-tail.md): spherical solid-angle sampling, preserved exact punctual heads, tail-only temporal/spatial reconstruction and native reference/FLIP controls.
+- [R4 textured and smooth-normal secondary hits](rendering-r4-secondary-materials.md): shared GPU materials, typed compute sampling, imported GLB and moving-instance material-oracle qualification.
 - [R4 retained dynamic diffuse lighting](rendering-r4-dynamic-diffuse.md): world-space directional caches, compiled warm starts, signed occlusion/relighting updates, current probe connectivity and native reference/FLIP qualification.
 - [Shader authoring refactor](shader-authoring-refactor.md): enforced compile-time `const`, immutable runtime `let`, explicit mutable `var`, typed GI phase matching and native capture equivalence.
 - [Diffuse comparison](diffuse-comparison.md): controlled Lambert, Burley, Frostbite, EON and Aurelian PathDiffuse experiments, live `IGame` lab, paper references and native numerical qualification.

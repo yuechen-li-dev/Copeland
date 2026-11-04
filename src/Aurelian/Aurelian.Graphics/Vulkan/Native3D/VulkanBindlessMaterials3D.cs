@@ -27,6 +27,14 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
     private DescriptorPool pool;
     public DescriptorSetLayout Layout { get; private set; }
     public DescriptorSet Set => sets[frames.Slot];
+    internal AurelianVulkanBuffer MaterialRecords { get; private set; } = null!;
+    internal AurelianVulkanBuffer InstanceMaterials { get; private set; } = null!;
+    internal DescriptorImageInfo[] TextureDescriptors { get; private set; } = [];
+    internal DescriptorImageInfo[] SamplerDescriptors { get; private set; } = [];
+    private readonly Dictionary<(uint Binding, int Slot), AurelianVulkanBuffer> visibilityStorage = [];
+    internal AurelianVulkanBuffer ResidentVertices => visibilityStorage[(5, frames.Slot)];
+    internal AurelianVulkanBuffer ResidentIndices => visibilityStorage[(6, frames.Slot)];
+    internal AurelianVulkanBuffer ResidentInstances => visibilityStorage[(7, frames.Slot)];
     public int TextureCount { get; private set; }
     public int SamplerCount { get; private set; }
 
@@ -91,7 +99,9 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
                 throw new InvalidDataException("AUR-BINDLESS-002: Resident texture or sampler table exceeds its declared capacity.");
             uint[] instanceMaterials = source.PackedInstances.Select(instance => materialIndices[instance.Material]).ToArray();
             var materialBuffer = Upload(records);
+            MaterialRecords = materialBuffer;
             var instanceBuffer = Upload(MemoryMarshal.AsBytes(instanceMaterials.AsSpan()).ToArray());
+            InstanceMaterials = instanceBuffer;
             DescriptorPoolSize* sizes = stackalloc DescriptorPoolSize[4]
             {
                 new(DescriptorType.UniformBuffer, 2), new(DescriptorType.StorageBuffer, visibility ? 12u : 4u),
@@ -104,6 +114,8 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
                 new DescriptorImageInfo(default, textures[index < textures.Count ? index : 0].NativeImageView!.Value, ImageLayout.ShaderReadOnlyOptimal)).ToArray();
             DescriptorImageInfo[] samplerInfos = Enumerable.Range(0, SamplerCapacity).Select(index =>
                 new DescriptorImageInfo(samplers[index < samplers.Count ? index : 0], default, ImageLayout.Undefined)).ToArray();
+            TextureDescriptors = imageInfos;
+            SamplerDescriptors = samplerInfos;
             WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[2];
             for (int slot = 0; slot < VulkanFrameInFlightSet.Count; slot++)
             {
@@ -171,6 +183,7 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
     internal void BindVisibilityStorage(uint binding, AurelianVulkanBuffer buffer, int slot)
     {
         if (binding is < 5 or > 8) throw new ArgumentOutOfRangeException(nameof(binding));
+        visibilityStorage[(binding, slot)] = buffer;
         WriteBuffer(sets[slot], binding, buffer, DescriptorType.StorageBuffer);
     }
 

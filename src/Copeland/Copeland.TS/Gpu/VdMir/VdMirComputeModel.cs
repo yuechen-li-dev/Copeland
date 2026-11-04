@@ -48,7 +48,11 @@ public sealed record VdMirResource(
     int Set,
     int Binding,
     VdMirSourceSpan Source,
-    VdMirSourceSpan BindingSource);
+    VdMirSourceSpan BindingSource)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? DescriptorCount { get; init; }
+}
 
 public sealed record VdMirParameter(
     string Name,

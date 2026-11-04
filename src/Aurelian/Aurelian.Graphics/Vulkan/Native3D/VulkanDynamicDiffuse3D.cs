@@ -28,7 +28,9 @@ internal sealed unsafe class VulkanDynamicDiffuse3D : IDisposable
     private readonly List<AurelianVulkanBuffer> cacheBuffers = [];
     private readonly AurelianVulkanBuffer[,] parameters = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count, 3];
     private readonly DescriptorSet[,] sets = new DescriptorSet[VulkanFrameInFlightSet.Count, 3];
+    private readonly VulkanBindlessMaterials3D?[] sampledTables = new VulkanBindlessMaterials3D?[VulkanFrameInFlightSet.Count];
     private readonly AurelianVulkanBuffer rays, hits, occlusion, output;
+    private AurelianVulkanBuffer witness = null!;
     private AurelianVulkanBuffer historyA = null!, historyB = null!, baseline = null!;
     private DynamicDiffuseLighting3D options = new();
     private CompiledDiffuseProbeField3D? compiled;
@@ -90,14 +92,14 @@ internal sealed unsafe class VulkanDynamicDiffuse3D : IDisposable
 
     public void Prepare(VulkanSceneAcceleration3D scene, NativeInstanceSet3D instances, Matrix4x4 inverse,
         ReadOnlySpan<float> lights, int count, DynamicDiffuseLighting3D settings, float responseModel, float emissionIntensity,
-        AurelianVulkanBuffer motion, AurelianVulkanBuffer normals)
+        AurelianVulkanBuffer motion, AurelianVulkanBuffer normals, VulkanBindlessMaterials3D materialTable)
     {
         settings.Validate();
         var grid = settings.Grid!;
         if (settings.Mode is DynamicDiffuseMode3D.CompiledResidual or DynamicDiffuseMode3D.CompiledOnly
             && (compiled is null || compiled.Grid != grid))
             throw new InvalidOperationException("AUR-GI-003: Compiled modes require a matching fully captured probe field.");
-        if (options.Grid != grid)
+        if (options.Grid != grid || options.CaptureSecondaryWitness != settings.CaptureSecondaryWitness)
         {
             frames.Drain();
             foreach (var buffer in cacheBuffers) buffer.Dispose();
@@ -106,11 +108,13 @@ internal sealed unsafe class VulkanDynamicDiffuse3D : IDisposable
             historyA = Cache(bytes, VulkanMemoryUsage.GpuOnly);
             historyB = Cache(bytes, VulkanMemoryUsage.GpuOnly);
             baseline = Cache(bytes, VulkanMemoryUsage.CpuToGpu);
+            witness = Cache(settings.CaptureSecondaryWitness ? (ulong)grid.Count * (ulong)grid.RaysPerProbe * 24 * 4 : 16, VulkanMemoryUsage.GpuOnly);
             Write(baseline, compiled?.Grid == grid ? compiled.Data : new float[bytes / 4]);
             sequence = 0;
             stationaryFrames = 0;
         }
-        if (options.Mode != settings.Mode || options.RaysPerProbePerFrame != settings.RaysPerProbePerFrame)
+        if (options.Mode != settings.Mode || options.RaysPerProbePerFrame != settings.RaysPerProbePerFrame
+            || options.SecondaryMaterials != settings.SecondaryMaterials || options.SecondaryTextureLod != settings.SecondaryTextureLod)
         {
             sequence = 0;
             stationaryFrames = 0;
@@ -151,28 +155,54 @@ internal sealed unsafe class VulkanDynamicDiffuse3D : IDisposable
         words[43] = DirectionStride(grid.RaysPerProbe);
         words[44] = responseModel;
         words[45] = emissionIntensity;
+        words[46] = settings.SecondaryTextureLod;
+        words[47] = settings.SecondaryMaterials ? 1 : 0;
+        words[48] = settings.CaptureSecondaryWitness ? 1 : 0;
         lights.CopyTo(words.AsSpan(64));
         AccelerationStructureKHR top = scene.TopLevel;
         var structure = new WriteDescriptorSetAccelerationStructureKHR { SType = StructureType.WriteDescriptorSetAccelerationStructureKhr,
             AccelerationStructureCount = 1, PAccelerationStructures = &top };
-        DescriptorBufferInfo* info = stackalloc DescriptorBufferInfo[13];
-        WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[14];
+        DescriptorBufferInfo* info = stackalloc DescriptorBufferInfo[19];
+        WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[22];
+        bool bindSampled = !ReferenceEquals(sampledTables[frames.Slot], materialTable);
         for (int phase = 0; phase < 3; phase++)
         {
             words[39] = phase;
             Write(parameters[frames.Slot, phase], words);
             AurelianVulkanBuffer[] resources = [scene.Procedurals, rays, hits, scene.Instances, parameters[frames.Slot, phase],
-                motion, output, normals, sequence % 2 == 0 ? historyA : historyB, sequence % 2 == 0 ? historyB : historyA, baseline, scene.Shading, occlusion];
+                motion, output, normals, sequence % 2 == 0 ? historyA : historyB, sequence % 2 == 0 ? historyB : historyA, baseline, scene.Shading, occlusion,
+                materialTable.MaterialRecords, materialTable.InstanceMaterials, materialTable.ResidentVertices,
+                materialTable.ResidentIndices, materialTable.ResidentInstances, witness];
             writes[0] = new() { SType = StructureType.WriteDescriptorSet, PNext = &structure,
                 DstSet = sets[frames.Slot, phase], DstBinding = 0, DescriptorCount = 1, DescriptorType = DescriptorType.AccelerationStructureKhr };
             for (int index = 0; index < resources.Length; index++)
             {
                 info[index] = new(resources[index].NativeBuffer, 0, resources[index].SizeBytes);
                 writes[index + 1] = new() { SType = StructureType.WriteDescriptorSet, DstSet = sets[frames.Slot, phase],
-                    DstBinding = (uint)index + 1, DescriptorCount = 1, DescriptorType = DescriptorType.StorageBuffer, PBufferInfo = &info[index] };
+                    DstBinding = index == 18 ? 21u : (uint)index + 1, DescriptorCount = 1, DescriptorType = DescriptorType.StorageBuffer, PBufferInfo = &info[index] };
             }
-            plant.Vk.UpdateDescriptorSets(plant.Device, 14, writes, 0, null);
+            // Material images and samplers are immutable for this owner's lifetime.
+            // A continuing transform snapshot only changes the storage tables.
+            if (bindSampled)
+            {
+                fixed (DescriptorImageInfo* textures = materialTable.TextureDescriptors)
+                fixed (DescriptorImageInfo* samplers = materialTable.SamplerDescriptors)
+                {
+                    writes[20] = new() { SType = StructureType.WriteDescriptorSet, DstSet = sets[frames.Slot, phase],
+                        DstBinding = 19, DescriptorCount = VulkanBindlessMaterials3D.TextureCapacity,
+                        DescriptorType = DescriptorType.SampledImage, PImageInfo = textures };
+                    writes[21] = new() { SType = StructureType.WriteDescriptorSet, DstSet = sets[frames.Slot, phase],
+                        DstBinding = 20, DescriptorCount = VulkanBindlessMaterials3D.SamplerCapacity,
+                        DescriptorType = DescriptorType.Sampler, PImageInfo = samplers };
+                    plant.Vk.UpdateDescriptorSets(plant.Device, 22, writes, 0, null);
+                }
+            }
+            else
+            {
+                plant.Vk.UpdateDescriptorSets(plant.Device, 20, writes, 0, null);
+            }
         }
+        sampledTables[frames.Slot] = materialTable;
     }
 
     public void Record(VulkanCommandBufferLease command)
@@ -210,6 +240,12 @@ internal sealed unsafe class VulkanDynamicDiffuse3D : IDisposable
     }
 
     public float[] ReadCache() => Vulkan3DQualificationReadback.ReadBuffer(plant, frames, sequence % 2 == 0 ? historyA : historyB);
+    public float[] ReadSecondaryWitness()
+    {
+        if (!options.CaptureSecondaryWitness) throw new InvalidOperationException("AUR-GI-006: Enable secondary witness capture before rendering.");
+        return Vulkan3DQualificationReadback.ReadBuffer(plant, frames, witness);
+    }
+
     public float[] ReadOutput() => Vulkan3DQualificationReadback.ReadBuffer(plant, frames, output);
 
     private void Transition(VulkanCommandBufferLease command, VulkanResourceLayout layout)
@@ -269,16 +305,33 @@ internal sealed unsafe class VulkanDynamicDiffuse3D : IDisposable
 
     private void CreatePipeline(byte[] spirv)
     {
-        DescriptorSetLayoutBinding* bindings = stackalloc DescriptorSetLayoutBinding[14];
-        for (uint index = 0; index < 14; index++) bindings[index] = new(index,
-            index == 0 ? DescriptorType.AccelerationStructureKhr : DescriptorType.StorageBuffer, 1, ShaderStageFlags.ComputeBit);
-        var layout = new DescriptorSetLayoutCreateInfo { SType = StructureType.DescriptorSetLayoutCreateInfo, BindingCount = 14, PBindings = bindings };
+        DescriptorSetLayoutBinding* bindings = stackalloc DescriptorSetLayoutBinding[22];
+        for (uint index = 0; index < 22; index++)
+        {
+            DescriptorType type = index switch
+            {
+                0 => DescriptorType.AccelerationStructureKhr,
+                19 => DescriptorType.SampledImage,
+                20 => DescriptorType.Sampler,
+                _ => DescriptorType.StorageBuffer,
+            };
+            uint count = index switch
+            {
+                19 => VulkanBindlessMaterials3D.TextureCapacity,
+                20 => VulkanBindlessMaterials3D.SamplerCapacity,
+                _ => 1,
+            };
+            bindings[index] = new(index, type, count, ShaderStageFlags.ComputeBit);
+        }
+        var layout = new DescriptorSetLayoutCreateInfo { SType = StructureType.DescriptorSetLayoutCreateInfo, BindingCount = 22, PBindings = bindings };
         fixed (DescriptorSetLayout* value = &setLayout) Check(plant.Vk.CreateDescriptorSetLayout(plant.Device, &layout, null, value));
-        DescriptorPoolSize* sizes = stackalloc DescriptorPoolSize[2];
+        DescriptorPoolSize* sizes = stackalloc DescriptorPoolSize[4];
         sizes[0] = new(DescriptorType.AccelerationStructureKhr, VulkanFrameInFlightSet.Count * 3);
-        sizes[1] = new(DescriptorType.StorageBuffer, 13 * VulkanFrameInFlightSet.Count * 3);
+        sizes[1] = new(DescriptorType.StorageBuffer, 19 * VulkanFrameInFlightSet.Count * 3);
+        sizes[2] = new(DescriptorType.SampledImage, VulkanBindlessMaterials3D.TextureCapacity * VulkanFrameInFlightSet.Count * 3);
+        sizes[3] = new(DescriptorType.Sampler, VulkanBindlessMaterials3D.SamplerCapacity * VulkanFrameInFlightSet.Count * 3);
         var pool = new DescriptorPoolCreateInfo { SType = StructureType.DescriptorPoolCreateInfo,
-            MaxSets = VulkanFrameInFlightSet.Count * 3, PoolSizeCount = 2, PPoolSizes = sizes };
+            MaxSets = VulkanFrameInFlightSet.Count * 3, PoolSizeCount = 4, PPoolSizes = sizes };
         fixed (DescriptorPool* value = &descriptorPool) Check(plant.Vk.CreateDescriptorPool(plant.Device, &pool, null, value));
         DescriptorSetLayout descriptorLayout = setLayout;
         for (int slot = 0; slot < VulkanFrameInFlightSet.Count; slot++)

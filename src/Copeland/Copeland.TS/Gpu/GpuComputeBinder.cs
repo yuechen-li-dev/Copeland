@@ -215,7 +215,7 @@ public static partial class GpuComputeBinder
                     continue;
                 }
 
-                if ((IsBuffer(type) || type == "acceleration_structure") && binding is not null)
+                if ((IsBuffer(type) || IsSampledResource(type) || type == "acceleration_structure") && binding is not null)
                 {
                     int? bindingIndex = SingleIntegerArgument(binding);
                     VdMirResourceAccess? access = parameter.AccessToken?.Text switch
@@ -225,7 +225,7 @@ public static partial class GpuComputeBinder
                         _ => null,
                     };
                     if (bindingIndex is null || bindingIndex < 0 || access is null
-                        || (type == "acceleration_structure" && access != VdMirResourceAccess.Readonly))
+                        || ((type == "acceleration_structure" || IsSampledResource(type)) && access != VdMirResourceAccess.Readonly))
                     {
                         AddDiagnostic(
                             "COPE-GPU-RESOURCE-0001",
@@ -236,14 +236,23 @@ public static partial class GpuComputeBinder
                         continue;
                     }
 
+                    string elementType = type;
+                    if (IsSampledResource(type))
+                    {
+                        elementType = SampledElement(type);
+                    }
+                    else if (IsBuffer(type))
+                    {
+                        elementType = BufferElement(type);
+                    }
                     var resource = new VdMirResource(
                         parameter.Identifier.Text,
-                        type == "acceleration_structure" ? "acceleration_structure" : BufferElement(type),
+                        elementType,
                         access.Value,
                         0,
                         bindingIndex.Value,
                         Span(entry.Path, parameter),
-                        Span(entry.Path, binding.NameToken));
+                        Span(entry.Path, binding.NameToken)) { DescriptorCount = SampledCount(type) };
                     if (bindings.TryGetValue((0, bindingIndex.Value), out VdMirResource? conflict))
                     {
                         AddDiagnostic(
@@ -277,6 +286,12 @@ public static partial class GpuComputeBinder
                 && !dimensions.SequenceEqual([32, 1, 1]))
             {
                 AddWorkgroupDiagnostic(entry.Path, entry.Syntax, "CooperativeMatMul requires exactly one 32-lane subgroup: @numthreads(32, 1, 1).");
+            }
+            if (statements.Any(statement => statement.Kind == "cooperative-matmul")
+                && _resources.Any(resource => IsSampledResource(resource.ElementType)))
+            {
+                AddDiagnostic("COPE-GPU-SAMPLE-0002", "SDSL-V4119", "texture-sampling",
+                    "Sampled descriptors and cooperative matrix commands are separate compute profiles.", Span(entry.Path, entry.Syntax));
             }
             _entryPoint = new VdMirComputeEntryPoint(
                 _modules.Declare(entry.Path, entry.Syntax.Identifier.Text),
@@ -349,7 +364,7 @@ public static partial class GpuComputeBinder
                         string? explicitType = local.Type is null ? null : BindType(path, local.Type, local.Identifier);
                         VdMirExpression initializer = BindExpression(path, local.Initializer, scope, explicitType);
                         string declaredType = explicitType ?? initializer.Type;
-                        if (IsBuffer(declaredType) || IsWorkgroupArray(declaredType) || declaredType == "void")
+                        if (IsBuffer(declaredType) || IsSampledResource(declaredType) || IsWorkgroupArray(declaredType) || declaredType == "void")
                         {
                             AddDiagnostic("COPE-GPU-STORAGE-0002", "SDSL-V3703", "storage",
                                 "Opaque resources and commands cannot be stored as local values.", Span(path, local));
@@ -752,6 +767,7 @@ public static partial class GpuComputeBinder
                 {
                     VdMirExpression target = BindExpression(path, index.Target, scope);
                     VdMirExpression subscript = BindExpression(path, index.Index, scope);
+                    if (SampledCount(target.Type) is not null) return BindSampledIndex(path, index, target, subscript);
                     if (IsWorkgroupArray(target.Type) && subscript.Type == "u32")
                     {
                         if (subscript.Kind == "literal" && uint.TryParse(subscript.Value?.TrimEnd('u'), out uint coordinate)
@@ -844,6 +860,8 @@ public static partial class GpuComputeBinder
 
         private VdMirExpression BindCall(string path, CallExpressionSyntax call, Dictionary<string, ValueBinding> scope)
         {
+            VdMirExpression? sampled = BindSampledCall(path, call, scope);
+            if (sampled is not null) return sampled;
             VdMirExpression? native = BindNativeCall(path, call, scope);
             if (native is not null)
             {
@@ -914,7 +932,7 @@ public static partial class GpuComputeBinder
                 return BindType(function.Path, type, token);
             }
             string returnType = HelperType(function.Syntax.ReturnType, function.Syntax.Identifier);
-            if (IsBuffer(returnType))
+            if (IsBuffer(returnType) || IsSampledResource(returnType))
             {
                 AddDiagnostic("COPE-GPU-STORAGE-0002", "SDSL-V3703", "storage",
                     "Resources cannot be returned or stored as values.", Span(path, call));
@@ -945,6 +963,11 @@ public static partial class GpuComputeBinder
                 ParameterSyntax parameter = function.Syntax.Parameters[index];
                 string parameterType = HelperType(parameter.Type, parameter.Identifier);
                 VdMirResource? helperResource = null;
+                if (SampledCount(parameterType) is not null)
+                {
+                    AddDiagnostic("COPE-GPU-TABLE-0001", "SDSL-V4600", "descriptor-array",
+                        "Descriptor arrays belong to the entry; pass a selected texture or sampler to helpers.", Span(function.Path, parameter));
+                }
                 if (!IsBuffer(parameterType) && parameter.AccessToken is not null)
                 {
                     AddDiagnostic("COPE-GPU-STORAGE-0002", "SDSL-V3703", "storage",
@@ -1128,9 +1151,11 @@ public static partial class GpuComputeBinder
             {
                 IdentifierTypeSyntax identifier when _enums is not null && _enums.Contains(_modules.Resolve(path, identifier.Identifier.Text)) => _modules.Resolve(path, identifier.Identifier.Text),
                 IdentifierTypeSyntax identifier when identifier.Identifier.Text is "f32" or "u32" or "bool" or "uint3"
-                    or "float2" or "float3" or "float4" or "acceleration_structure" => identifier.Identifier.Text,
+                    or "float2" or "float3" or "float4" or "acceleration_structure" or "Sampler" => identifier.Identifier.Text,
                 PredefinedTypeSyntax predefined when predefined.Keyword.Kind == SyntaxKind.VoidKeyword => "void",
                 IdentifierTypeSyntax identifier when identifier.Identifier.Text == "void" => "void",
+                GenericTypeSyntax generic when generic.Identifier.Text is "Texture2D" or "DescriptorArray"
+                    => BindSampledType(path, generic),
                 GenericTypeSyntax generic when generic.Identifier.Text == "StorageBuffer" && generic.TypeArguments.Count == 1
                     => BindStorageType(path, generic),
                 GenericTypeSyntax generic when generic.Identifier.Text == "WorkgroupArray"
@@ -1181,6 +1206,11 @@ public static partial class GpuComputeBinder
                 if (_usesRayOcclusion) featureLevel = "compute.rayquery.m4";
                 else if (_usesProceduralIntersector) featureLevel = "compute.rayquery.m3";
                 else featureLevel = "compute.rayquery.m2";
+            }
+            if (_resources.Any(resource => IsSampledResource(resource.ElementType)))
+            {
+                featureLevel = _resources.Any(resource => resource.ElementType == "acceleration_structure")
+                    ? "compute.rayquery.m5" : "compute.sampled.m1";
             }
             if (_boundFunctions.Any(function => function.Statements.Any(statement => statement.Kind == "cooperative-matmul")))
             {

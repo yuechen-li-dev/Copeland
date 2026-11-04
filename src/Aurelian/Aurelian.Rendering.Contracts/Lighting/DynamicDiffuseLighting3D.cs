@@ -15,11 +15,15 @@ public sealed record DynamicDiffuseLighting3D
     public DiffuseProbeGrid? Grid { get; init; }
     public int RaysPerProbePerFrame { get; init; } = 16;
     public bool ConnectivityVisibility { get; init; } = true;
+    public bool SecondaryMaterials { get; init; } = true;
+    public float SecondaryTextureLod { get; init; }
+    public bool CaptureSecondaryWitness { get; init; }
     public float Intensity { get; init; } = 1;
 
     public void Validate()
     {
-        if (!Enum.IsDefined(Mode) || RaysPerProbePerFrame is < 1 or > 128
+        if (!float.IsFinite(SecondaryTextureLod) || SecondaryTextureLod < 0 || SecondaryTextureLod > 13
+            || !Enum.IsDefined(Mode) || RaysPerProbePerFrame is < 1 or > 128
             || !float.IsFinite(Intensity) || Intensity < 0 || Intensity > 10)
             throw new ArgumentOutOfRangeException(nameof(DynamicDiffuseLighting3D));
         if (Mode == DynamicDiffuseMode3D.Off) return;

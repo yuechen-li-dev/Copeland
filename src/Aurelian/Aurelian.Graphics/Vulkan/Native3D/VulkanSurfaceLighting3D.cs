@@ -393,7 +393,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
     }
 
     public void PrepareRayShadows(NativeInstanceSet3D instances, Matrix4x4 inverse, LocalLightSampling3D options,
-        Aurelian.Graphics.Vulkan.RayQueries.SceneAccelerationUpdateMode3D updateMode, float responseModel, float emissionIntensity)
+        Aurelian.Graphics.Vulkan.RayQueries.SceneAccelerationUpdateMode3D updateMode, float responseModel, float emissionIntensity, VulkanBindlessMaterials3D? materialTable)
     {
         if (!RayShadowsActive) return;
         rayShadows ??= Own(new VulkanLocalRayShadows3D(plant, allocator, frames!, rayShadowProgram!, Output.Width, Output.Height, sampledProgram, spatialProgram));
@@ -401,6 +401,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
         rayShadows.Prepare(instances, inverse, packedLights, priorLights.Length, options, updateMode);
         if (diffuseSettings.Mode != DynamicDiffuseMode3D.Off)
         {
+            if (materialTable is null) throw new NotSupportedException("AUR-GI-005: Secondary materials require the shared resident visibility/material tables. Enable visibility buffers and bindless materials.");
             if (localPrograms.DynamicDiffuse is null) throw new NotSupportedException("AUR-GI-002: DynamicDiffuse3D program is required.");
             if (dynamicDiffuse is null)
             {
@@ -408,7 +409,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
                 if (compiledProbes is not null) dynamicDiffuse.SetCompiled(compiledProbes);
             }
             dynamicDiffuse.Prepare(rayShadows.Scene, instances, inverse, packedLights, priorLights.Length, diffuseSettings,
-                responseModel, emissionIntensity, rayShadows.Motion, rayShadows.Normals);
+                responseModel, emissionIntensity, rayShadows.Motion, rayShadows.Normals, materialTable);
         }
         if (options.ReconstructTail)
         {
@@ -425,6 +426,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
 
     public CompiledDiffuseProbeField3D CaptureCompiledDiffuseProbes() => dynamicDiffuse!.CaptureCompiled();
     public float[] ReadDiffuseCache() => dynamicDiffuse!.ReadCache();
+    public float[] ReadSecondaryWitness() => dynamicDiffuse!.ReadSecondaryWitness();
     public float[] ReadDiffuseOutput() => dynamicDiffuse!.ReadOutput();
     public void SetCompiledDiffuseProbes(CompiledDiffuseProbeField3D field)
     {

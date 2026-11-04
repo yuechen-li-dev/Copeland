@@ -694,7 +694,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         if (surfaceLighting?.RayShadowsActive == true)
         {
             Matrix4x4.Invert(worldToClip, out Matrix4x4 rayInverse);
-            surfaceLighting.PrepareRayShadows(resident!, rayInverse, LocalLightSampling, RaySceneUpdateMode, (float)settings.DirectDiffuseModel, StaticEmissionIntensity);
+            surfaceLighting.PrepareRayShadows(resident!, rayInverse, LocalLightSampling, RaySceneUpdateMode, (float)settings.DirectDiffuseModel, StaticEmissionIntensity, retainedModels?.SecondaryMaterialTable);
         }
         bool hasParticles = ParticleEmitters.Count > 0;
         if (hasParticles)

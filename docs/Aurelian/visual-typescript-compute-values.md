@@ -210,3 +210,13 @@ No tool was downloaded. `git diff --check` passed.
 Evidence and exact logs are under `artifacts/local/vts-compute-values` and
 `artifacts/local/cloth-research-checks/values-*`. The baseline sources and evidence
 are local qualification inputs/artifacts; they are not required to run games.
+
+## Explicit texture sampling
+
+[R4 secondary material authoring](rendering-r4-secondary-materials.md) adds
+readonly `Texture2D<float4>`, `Sampler` and literal-capacity `DescriptorArray`
+compute resources. Use `SampleLevel(texture, sampler, uv, lod)` and explicitly
+mark dynamic descriptor indices with `NonUniform(u32)`. Implicit derivatives,
+resource locals/returns and descriptor-array helper parameters are rejected.
+Selected textures and samplers may be passed to ordinary helpers. The sampled
+profile is `compute.sampled.m1`; sampled ray queries use `compute.rayquery.m5`.

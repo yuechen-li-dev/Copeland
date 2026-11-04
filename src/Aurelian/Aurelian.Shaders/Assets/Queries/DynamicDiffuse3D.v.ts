@@ -1,3 +1,7 @@
+import { SecondaryAttributes } from "./SecondarySurface3D";
+import { ResidentVertex, ResidentInstance, ResidentAttributes } from "./ResidentGeometry3D";
+import { BindlessMaterialRecord } from "./ResidentMaterial3D";
+import { SurfaceData, EvaluateSurfaceSamples } from "./SurfaceMaterial3D";
 import { AffineAnalyticIntersection } from "./AffineAnalyticQuery3D";
 import { WorldAt, DecodeOcta, EncodeOcta } from "./SurfaceLighting";
 import { Dot3, DirectLightModel } from "./Lighting3D";
@@ -149,7 +153,15 @@ function DynamicDiffuseMain(@builtin(dispatchThreadId) thread: uint3,
     @binding(10) readwrite Next: StorageBuffer<f32>,
     @binding(11) readonly Baseline: StorageBuffer<f32>,
     @binding(12) readonly Shading: StorageBuffer<f32>,
-    @binding(13) readwrite Occlusion: StorageBuffer<f32>): void {
+    @binding(13) readwrite Occlusion: StorageBuffer<f32>,
+    @binding(14) readonly Materials: StorageBuffer<BindlessMaterialRecord>,
+    @binding(15) readonly InstanceMaterials: StorageBuffer<u32>,
+    @binding(16) readonly Vertices: StorageBuffer<ResidentVertex>,
+    @binding(17) readonly Indices: StorageBuffer<u32>,
+    @binding(18) readonly Geometry: StorageBuffer<ResidentInstance>,
+    @binding(19) readonly Textures: DescriptorArray<Texture2D<float4>, 4096>,
+    @binding(20) readonly Samplers: DescriptorArray<Sampler, 64>,
+    @binding(21) readwrite Witness: StorageBuffer<f32>): void {
     let index: u32 = thread.x;
     let count: u32 = U32(Parameters[27]);
     let directions: u32 = U32(Parameters[28]);
@@ -184,16 +196,72 @@ function DynamicDiffuseMain(@builtin(dispatchThreadId) thread: uint3,
                 let hit: u32 = index * 16;
                 value = float3(0.0, 0.0, 0.0);
                 backface = 0.0;
+                if (Parameters[48] > 0.5) { Witness[index * 24 + 19] = 0.0; }
                 if (Hits[hit + 2] > 0.5) {
                     if (Hits[hit + 15] < 0.0) {
                         backface = 1.0;
                     }
                     let material: u32 = U32(Hits[hit + 3]) * 32;
                     let position: float3 = float3(Hits[hit + 8], Hits[hit + 9], Hits[hit + 10]);
-                    let normal: float3 = float3(Hits[hit + 12], Hits[hit + 13], Hits[hit + 14]);
-                    let base: float3 = float3(Shading[material + 16], Shading[material + 17], Shading[material + 18]);
+                    let geometric: float3 = float3(Hits[hit + 12], Hits[hit + 13], Hits[hit + 14]);
+                    var normal: float3 = geometric;
+                    var base: float3 = float3(Shading[material + 16], Shading[material + 17], Shading[material + 18]);
+                    var roughness: f32 = Shading[material + 19];
+                    var metallic: f32 = Shading[material + 23];
+                    var surfaceEmission: float3 = float3(Shading[material + 20], Shading[material + 21], Shading[material + 22]);
+                    var surfaceUv: float2 = float2(0.0, 0.0);
+                    var surfaceOcclusion: f32 = 1.0;
+                    let instanceId: u32 = U32(Hits[hit + 3]);
+                    if (Shading[material + 25] > 0.5 && Parameters[47] > 0.5) {
+                        let attributes: ResidentAttributes = SecondaryAttributes(Hits, Procedurals, index, Geometry[instanceId], Vertices, Indices);
+                        let entry: BindlessMaterialRecord = Materials[InstanceMaterials[instanceId]];
+                        let uv: float2 = attributes.uv;
+                        let lod: f32 = Parameters[46];
+                        let baseSample: float4 = SampleLevel(Textures[NonUniform(entry.baseTexture)], Samplers[NonUniform(entry.baseSampler)], uv, lod);
+                        let emissiveSample: float4 = SampleLevel(Textures[NonUniform(entry.emissiveTexture)], Samplers[NonUniform(entry.emissiveSampler)], uv, lod);
+                        let normalSample: float4 = SampleLevel(Textures[NonUniform(entry.normalTexture)], Samplers[NonUniform(entry.normalSampler)], uv, lod);
+                        let metalSample: float4 = SampleLevel(Textures[NonUniform(entry.metalTexture)], Samplers[NonUniform(entry.metalSampler)], uv, lod);
+                        let occlusionSample: float4 = SampleLevel(Textures[NonUniform(entry.occlusionTexture)], Samplers[NonUniform(entry.occlusionSampler)], uv, lod);
+                        let surface: SurfaceData = EvaluateSurfaceSamples(attributes.normal, attributes.tangent, Hits[hit + 15] > 0.0,
+                            entry.surface, baseSample * entry.surface.baseColor * attributes.color, emissiveSample, normalSample, metalSample, occlusionSample);
+                        base = float3(surface.color.x, surface.color.y, surface.color.z);
+                        normal = float3(surface.normal.x, surface.normal.y, surface.normal.z);
+                        if (Dot3(normal, geometric) <= 0.0) { normal = geometric; }
+                        roughness = surface.color.w;
+                        metallic = surface.normal.w;
+                        surfaceEmission = float3(surface.emission.x, surface.emission.y, surface.emission.z);
+                        surfaceOcclusion = surface.emission.w;
+                        surfaceUv = uv;
+                    }
+                    if (Parameters[48] > 0.5) {
+                        let target: u32 = index * 24;
+                        Witness[target] = surfaceUv.x;
+                        Witness[target + 1] = surfaceUv.y;
+                        Witness[target + 2] = Hits[hit + 15];
+                        Witness[target + 3] = Convert<f32>(instanceId);
+                        Witness[target + 4] = base.x;
+                        Witness[target + 5] = base.y;
+                        Witness[target + 6] = base.z;
+                        Witness[target + 7] = roughness;
+                        Witness[target + 8] = normal.x;
+                        Witness[target + 9] = normal.y;
+                        Witness[target + 10] = normal.z;
+                        Witness[target + 11] = metallic;
+                        Witness[target + 12] = surfaceEmission.x;
+                        Witness[target + 13] = surfaceEmission.y;
+                        Witness[target + 14] = surfaceEmission.z;
+                        Witness[target + 15] = surfaceOcclusion;
+                        Witness[target + 16] = geometric.x;
+                        Witness[target + 17] = geometric.y;
+                        Witness[target + 18] = geometric.z;
+                        Witness[target + 19] = Hits[hit + 2];
+                        Witness[target + 20] = position.x;
+                        Witness[target + 21] = position.y;
+                        Witness[target + 22] = position.z;
+                        Witness[target + 23] = Hits[hit + 4];
+                    }
                     if (backface < 0.5) {
-                        value = float3(Shading[material + 20], Shading[material + 21], Shading[material + 22]) * Parameters[45];
+                        value = surfaceEmission * Parameters[45];
                     }
                     let lights: u32 = U32(Parameters[18]);
                     if (lights > 0 && backface < 0.5) {
@@ -206,13 +274,13 @@ function DynamicDiffuseMain(@builtin(dispatchThreadId) thread: uint3,
                         let distance: f32 = Sqrt(Dot3(delta, delta));
                         var visible: bool = true;
                         if (config.z > 0.5 && sample.attenuation > 0.0 && Dot3(normal, sample.direction) > 0.0) {
-                            SetRay(Rays, index, position + normal * 0.0005, sample.direction, Max(distance - 0.001, 0.0002));
+                            SetRay(Rays, index, position + geometric * 0.0005, sample.direction, Max(distance - 0.001, 0.0002));
                             RayQueryTraceOccluded(Scene, Procedurals, Rays, Occlusion, Instances, index, AffineAnalyticIntersection);
                             visible = Occlusion[index] < 0.5;
                         }
-                        if (visible) {
+                        if (visible && Dot3(geometric, sample.direction) > 0.0) {
                             value = value + DirectLightModel(base, normal, direction * -1.0, sample.direction,
-                                Shading[material + 23], Shading[material + 19], Parameters[44])
+                                metallic, roughness, Parameters[44])
                                 * float3(emission.x, emission.y, emission.z) * (emission.w * sample.attenuation * Convert<f32>(lights));
                         }
                     }

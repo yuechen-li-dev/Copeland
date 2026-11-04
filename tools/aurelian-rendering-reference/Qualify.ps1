@@ -8,10 +8,12 @@ param(
     [switch]$IncludeRasterMotion,
     [switch]$IncludeArea,
     [switch]$IncludeGi,
+    [switch]$IncludeSecondary,
     [string[]]$AdditionalSources = @()
 )
 
 $ErrorActionPreference = 'Stop'
+if ($IncludeSecondary) { $IncludeGi = $true }
 if ($IncludeGi) { $IncludeArea = $true }
 if ($IncludeArea) { $IncludeRasterMotion = $true }
 if ($IncludeRasterMotion) { $IncludeTlas = $true }
@@ -166,6 +168,24 @@ try {
             'tools/aurelian-rendering-gi/Qualify.ps1'
         )
     }
+    if ($IncludeSecondary) {
+        $sourcePaths += @(
+            'src/Copeland/Copeland.TS/Gpu/GpuComputeBinder.Textures.cs',
+            'src/Copeland/Copeland.TS/Gpu/VdMir/VdMirComputeModel.cs',
+            'src/Aurelian/Aurelian.Shaders/Assets/Queries/SecondarySurface3D.v.ts',
+            'src/Aurelian/Aurelian.Shaders/Assets/Surfaces/SurfaceMaterial3D.v.ts',
+            'src/Aurelian/Aurelian.Shaders/Assets/Surfaces/ResidentGeometry3D.v.ts',
+            'src/Aurelian/Aurelian.Shaders/Assets/Surfaces/ResidentMaterial3D.v.ts',
+            'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/VulkanRetainedModels3D.Bindless.cs',
+            'tests/Aurelian/Aurelian.Shaders.Tests/ComputeTextureTests.cs',
+            'tools/Aurelian.GraphicsProof/RenderingR3Proof.Secondary.cs',
+            'tools/Aurelian.GraphicsProof/RenderingR3Proof.SecondaryOracle.cs',
+            'tools/Aurelian.GraphicsProof/RenderingR3Proof.SecondaryMotion.cs',
+            'Games/Starter/Aurelian.Starter/Assets/Models/crate-channels.glb',
+            'src/Aurelian/Aurelian.Assets/Models/GlbModelImporter.cs',
+            'tools/aurelian-rendering-secondary/Qualify.ps1'
+        )
+    }
     $sourcePaths += $AdditionalSources
     $sourcePaths = @($sourcePaths | Select-Object -Unique)
     $initialHashes = @($sourcePaths | ForEach-Object { (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash })
@@ -281,6 +301,16 @@ try {
         $giFlip = Get-Content -LiteralPath (Join-Path $outputPath 'gi/flip-evidence.json') -Raw | ConvertFrom-Json
         if (-not $gi.Accepted -or -not $giFlip.Accepted) { throw 'Dynamic diffuse native and FLIP qualification did not accept.' }
     }
+    $secondary = $null
+    $secondaryFlip = $null
+    if ($IncludeSecondary) {
+        Invoke-QualificationCommand 'secondary' @($proof, '--rendering-secondary', '--output', (Join-Path $outputPath 'secondary'))
+        Invoke-QualificationCommand 'secondary-flip' @((Join-Path $repository 'tools/aurelian-rendering-reference/evaluate_metrics.py'),
+            (Join-Path $outputPath 'secondary/metrics-manifest.json')) $metricsPython
+        $secondary = Get-Content -LiteralPath (Join-Path $outputPath 'secondary/evidence.json') -Raw | ConvertFrom-Json
+        $secondaryFlip = Get-Content -LiteralPath (Join-Path $outputPath 'secondary/flip-evidence.json') -Raw | ConvertFrom-Json
+        if (-not $secondary.Accepted -or -not $secondaryFlip.Accepted) { throw 'Secondary material native and FLIP qualification did not accept.' }
+    }
     $hashes = @($sourcePaths | ForEach-Object {
         @{ Path = $_; Sha256 = (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash }
     })
@@ -300,7 +330,7 @@ try {
         ProofSha256 = (Get-FileHash -LiteralPath $proof -Algorithm SHA256).Hash;
         GraphicsSha256 = (Get-FileHash -LiteralPath (Join-Path (Split-Path $proof) 'Aurelian.Graphics.dll') -Algorithm SHA256).Hash;
         LightingFixture = $fixturePath; Reference = $reference; Affine = $affine;
-        LightingTemporal = $lighting; Flip = $flip; R3 = $r3; R3Flip = $r3Flip; Sampling = $sampling; SamplingFlip = $samplingFlip; Restir = $restir; RestirFlip = $restirFlip; Tlas = $tlas; RasterMotion = $rasterMotion; Area = $area; AreaFlip = $areaFlip; Gi = $gi; GiFlip = $giFlip; FullR4Complete = $false; FullR3Complete = $false } | ConvertTo-Json -Depth 30 |
+        LightingTemporal = $lighting; Flip = $flip; R3 = $r3; R3Flip = $r3Flip; Sampling = $sampling; SamplingFlip = $samplingFlip; Restir = $restir; RestirFlip = $restirFlip; Tlas = $tlas; RasterMotion = $rasterMotion; Area = $area; AreaFlip = $areaFlip; Gi = $gi; GiFlip = $giFlip; Secondary = $secondary; SecondaryFlip = $secondaryFlip; FullR4Complete = $false; FullR3Complete = $false } | ConvertTo-Json -Depth 30 |
         Set-Content -LiteralPath $evidencePath
     Write-Output "AURELIAN_REFERENCE_QUALIFIED: $evidencePath"
 }
