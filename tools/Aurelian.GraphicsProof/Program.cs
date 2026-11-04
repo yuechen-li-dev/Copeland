@@ -20,6 +20,16 @@ using Silk.NET.Maths;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
 
+if (args.Contains("--rendering-area", StringComparer.Ordinal))
+{
+    RenderingR3Proof.RunArea(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-area"));
+    return;
+}
+if (args.Contains("--rendering-raster-motion", StringComparer.Ordinal))
+{
+    RenderingR3Proof.RunRasterMotion(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-raster-motion"));
+    return;
+}
 if (args.Contains("--rendering-tlas", StringComparer.Ordinal))
 {
     RenderingR3Proof.RunTlas(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-tlas"));

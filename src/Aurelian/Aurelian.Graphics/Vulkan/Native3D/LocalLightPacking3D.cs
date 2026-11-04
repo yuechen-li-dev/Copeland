@@ -21,8 +21,8 @@ internal static class LocalLightPacking3D
         words[10] = direction.Z;
         words[11] = MathF.Cos(light.OuterAngle);
         words[12] = MathF.Cos(light.InnerAngle);
-        words[13] = light.Kind == LocalLightKind.Spot ? 1 : 0;
+        words[13] = (float)light.Kind;
         words[14] = light.CastShadows ? 1 : 0;
-        words[15] = 0;
+        words[15] = light.Kind == LocalLightKind.Sphere ? light.EmitterRadius : 0;
     }
 }

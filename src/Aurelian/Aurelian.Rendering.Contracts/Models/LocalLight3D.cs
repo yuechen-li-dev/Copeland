@@ -6,6 +6,7 @@ public enum LocalLightKind
 {
     Point,
     Spot,
+    Sphere,
 }
 
 /// <summary>Linear radiance with a finite influence radius in scene metres.</summary>
@@ -16,10 +17,14 @@ public sealed record LocalLight3D(Vector3 Position, Vector3 Color, float Intensi
     public float InnerAngle { get; init; } = .35f;
     public float OuterAngle { get; init; } = .6f;
     public bool CastShadows { get; init; }
+    /// <summary>Sphere emitter radius. Sphere intensity is emitted radiance per steradian.</summary>
+    public float EmitterRadius { get; init; } = .25f;
 
     public void Validate()
     {
         if (!Enum.IsDefined(Kind) || !Finite(Position) || !Finite(Color)
+            || !float.IsFinite(EmitterRadius) || EmitterRadius < .001f || EmitterRadius > 100
+            || Kind == LocalLightKind.Sphere && EmitterRadius * 2 >= Range
             || Color.X < 0 || Color.Y < 0 || Color.Z < 0
             || !float.IsFinite(Intensity) || Intensity < 0 || Intensity > 100_000
             || !float.IsFinite(Range) || Range < .01f || Range > 1000

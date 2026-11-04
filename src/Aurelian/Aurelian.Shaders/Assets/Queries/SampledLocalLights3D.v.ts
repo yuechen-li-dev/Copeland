@@ -1,3 +1,4 @@
+import { EmitterSample3D, SampleLocalEmitter } from "./LocalEmitter3D";
 import { RawTarget, Target } from "./LocalLightProposal3D";
 import { AffineAnalyticIntersection } from "./AffineAnalyticQuery3D";
 import { WorldAt, LocalAttenuation } from "./SurfaceLighting";
@@ -126,6 +127,8 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
         NextHistory[currentBase + 22] = normal.z;
         if (depth < 1.0) { NextHistory[currentBase + 23] = 1.0; }
     }
+    const emitterKey: u32 = (pixel * 0x9e3779b9 + frame * 0x85ebca6b + seed) & 0xffffff;
+    var headEligible: u32 = 0;
     var raysUsed: u32 = 0;
     var reused: u32 = 0;
     var exactCount: u32 = 0;
@@ -137,6 +140,8 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
             if (light < count) {
                 const target: f32 = Proposal(Parameters, point, normal, light, mode);
                 total = total + target;
+                if (Parameters[64 + light * 16 + 13] < 1.5) {
+                    headEligible = headEligible + 1;
                 if (target > topWeights.x) {
                     top = float3(Convert<f32>(light), top.x, top.y);
                     topWeights = float3(target, topWeights.x, topWeights.y);
@@ -151,10 +156,11 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
                         }
                     }
                 }
+                }
             }
         }
         if (mode == 3) {
-            exactCount = MinIndex(U32(Parameters[25]), MinIndex(quota - 1, count));
+            exactCount = MinIndex(U32(Parameters[25]), MinIndex(quota - 1, headEligible));
             // Sum the tail directly to avoid catastrophic cancellation around a dominant key light.
             total = 0.0;
             for (let light of BoundedIndices<256>(256)) {
@@ -241,10 +247,12 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
             }
             const offset: u32 = 64 + selected * 16;
             const sphere: float4 = Read4(Parameters, offset);
-            const delta: float3 = float3(sphere.x, sphere.y, sphere.z) - origin;
+            const emitter: EmitterSample3D = SampleLocalEmitter(point, sphere, Read4(Parameters, offset + 8), Read4(Parameters, offset + 12), emitterKey + sample * 137);
+            const delta: float3 = emitter.endpoint - origin;
             const distance: f32 = Sqrt(Dot3(delta, delta));
             if (mode != 8 && mode != 9 && Parameters[offset + 14] > 0.5 && distance > Parameters[19] * 2.0
-                && distance < sphere.w && Dot3(normal, delta) > 0.0) {
+                && distance < sphere.w && Dot3(normal, delta) > 0.0
+                && (Parameters[offset + 13] < 1.5 || emitter.attenuation > 0.0)) {
                 const direction: float3 = delta / distance;
                 Rays[packet + 4] = direction.x;
                 Rays[packet + 5] = direction.y;
@@ -258,6 +266,8 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
             Visibility[pixel * 16 + sample * 2 + 1] = weight;
         }
     }
+    Visibility[pixel * 16 + 14] = Convert<f32>(emitterKey);
+    Visibility[pixel * 16 + 15] = Convert<f32>(exactCount);
     Visibility[pixel * 16 + 8] = Convert<f32>(raysUsed);
     Visibility[pixel * 16 + 9] = Convert<f32>(quota);
     Visibility[pixel * 16 + 10] = Convert<f32>(reused);

@@ -33,8 +33,10 @@ public sealed unsafe partial class VulkanSolid3DRenderer
     public void ResetLightSamplingHistory() => surfaceLighting?.ResetLightSampling();
     public float[] ReadLightMotionForQualification() => surfaceLighting!.ReadMotionForQualification();
     public float[] ReadLightSamplesForQualification() => surfaceLighting!.ReadSamplesForQualification();
+    public ReferenceImage3D ReadLocalHeadForQualification() => surfaceLighting!.ReadHeadForQualification();
     public ReferenceImage3D ReadLightingForQualification() => surfaceLighting!.ReadLightingForQualification();
     public bool EnableRayShadows { get; set; }
+    public NativeRasterAdmissionMode3D RasterAdmissionMode { get; set; }
     public Aurelian.Graphics.Vulkan.RayQueries.SceneAccelerationUpdateMode3D RaySceneUpdateMode { get; set; }
     public Aurelian.Graphics.Vulkan.RayQueries.SceneAccelerationStatistics3D? RaySceneStatistics => surfaceLighting?.RayStatistics;
     public bool EnableHierarchicalZ { get; set; }

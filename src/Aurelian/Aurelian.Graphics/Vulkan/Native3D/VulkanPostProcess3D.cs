@@ -31,16 +31,29 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
 
     public VulkanPostProcess3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
         CompiledGraphicsProgram program, AurelianVulkanTexture output, int inputCount, Filter filter = Filter.Linear,
-        AurelianVulkanTexture? secondOutput = null, VulkanFrameInFlightSet? frames = null)
+        AurelianVulkanTexture? secondOutput = null, VulkanFrameInFlightSet? frames = null,
+        AurelianVulkanTexture? thirdOutput = null)
     {
         this.plant = plant;
         this.inputCount = inputCount;
         Validate(program, inputCount);
-        if (program.PixelTargets.Count != (secondOutput is null ? 1 : 2))
+        var outputs = new List<AurelianVulkanTexture> { output };
+        if (secondOutput is not null)
+        {
+            outputs.Add(secondOutput);
+        }
+        if (thirdOutput is not null)
+        {
+            if (secondOutput is null)
+                throw new ArgumentException("A third fullscreen output requires the second output.");
+            outputs.Add(thirdOutput);
+        }
+        if (program.PixelTargets.Count != outputs.Count)
+        {
             throw new ArgumentException("Fullscreen outputs must match the compiled target count.");
+        }
         try
         {
-            AurelianVulkanTexture[] outputs = secondOutput is null ? [output] : [output, secondOutput];
             if (outputs.Any(texture => texture.Width != output.Width || texture.Height != output.Height))
                 throw new ArgumentException("Fullscreen targets must have matching dimensions.");
             var attachments = outputs.Select(texture => new VulkanRenderPassAttachmentDescriptor(

@@ -151,13 +151,16 @@ and applicable FLIP checks pass. Vulkan and synchronization validation are clean
 `verification.json` confirms all **86 source hashes**, the proof assembly and the
 graphics assembly match the qualified files.
 
-The remaining moving-frame CPU cost includes retained raster admission: replacing
+At this milestone, the remaining moving-frame CPU cost included retained raster admission: replacing
 the snapshot still recreates visibility/material resources in
 `VulkanRetainedModels3D.Upload`. This milestone removes TLAS rebuild/allocation
 and submission work; it does not establish an allocation-free moving renderer.
 The direct retained queued test isolates actual frame-slot reuse without those
 unrelated admission uploads. The primary timing comparison keeps hybrid visibility
 and culling enabled in both cases.
+The subsequent [raster admission milestone](rendering-r3-raster-motion.md) retains
+those resources across continuing motion snapshots. Its comparison holds TLAS
+updates fixed; the historical TLAS comparison holds raster re-admission fixed.
 
 The existing synchronous 96x64 moving-receiver capture still spends approximately
 29 ms in prepare/submit. Its capture latency is largely unchanged, despite the

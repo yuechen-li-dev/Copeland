@@ -36,10 +36,18 @@ public sealed record Native3DFrameResult(int TriangleCount, byte[]? Pixels, stri
 public sealed record Native3DFrameCpuTimings(long Sequence, int Slot, double SlotWaitMilliseconds,
     double PrepareRecordMilliseconds, double SubmitMilliseconds);
 
+public enum NativeRasterAdmissionMode3D
+{
+    Automatic,
+    Rebuild,
+}
+
 public sealed record Native3DRetainedStatistics(int Instances, int DrawGroups, int UploadedMeshes,
     long GeometryUploadBytes, long InstanceUploadBytes, ulong ResidentGeometryBytes)
 {
     public int CpuVisitedInstances { get; init; }
+    public int TopologyAdmissions { get; init; }
+    public int MotionReuses { get; init; }
     public int IndirectGroups { get; init; }
     public int MaterialDescriptorBinds { get; init; }
     public bool BindlessMaterials { get; init; }

@@ -49,6 +49,8 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
     private int uploadedMeshes;
     private long uploadedBytes;
     private NativeInstanceSet3D? resident;
+    private int topologyAdmissions;
+    private int motionReuses;
     private readonly bool[] residentSlots = new bool[VulkanFrameInFlightSet.Count];
     private readonly List<VulkanClusterVisibility3D> visibility = [];
     public bool HasVisibility => visibility.Count > 0;
@@ -102,15 +104,31 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
     }
 
     public void Upload(IReadOnlyList<SceneInstance3D> source, bool resetHistory, bool useBindless = false,
-        bool useVisibilityBuffer = false, bool useHierarchicalZ = false)
+        bool useVisibilityBuffer = false, bool useHierarchicalZ = false,
+        NativeRasterAdmissionMode3D admissionMode = NativeRasterAdmissionMode3D.Automatic)
     {
         if (source.Count > MaximumInstances)
         {
             throw new InvalidOperationException("AUR-MESH-007: Retained draws exceed the declared 65536-instance frame budget.");
         }
+        if (!Enum.IsDefined(admissionMode))
+        {
+            throw new ArgumentOutOfRangeException(nameof(admissionMode));
+        }
+        var nextResident = source as NativeInstanceSet3D;
+        bool continuing = admissionMode == NativeRasterAdmissionMode3D.Automatic
+            && nextResident?.Continues(resident) == true
+            && useBindless == BindlessActive && useVisibilityBuffer == VisibilityBufferActive;
+        if (continuing)
+        {
+            resident = nextResident;
+            Array.Clear(residentSlots);
+            motionReuses++;
+        }
         HierarchicalZActive = useHierarchicalZ;
         if (!ReferenceEquals(resident, source) || useBindless != BindlessActive || useVisibilityBuffer != VisibilityBufferActive)
         {
+            topologyAdmissions++;
             foreach (var item in visibility) frames.Retire(item);
             visibility.Clear();
             if (visibilityBuffer is not null) frames.Retire(visibilityBuffer);
@@ -129,6 +147,8 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
             Statistics = new(source.Count, BindlessActive ? bindlessRuns.Count : groups.Count, 0, 0, 0, residentBytes)
             {
                 CpuVisitedInstances = 0,
+                TopologyAdmissions = topologyAdmissions,
+                MotionReuses = motionReuses,
                 IndirectGroups = visibility.Count,
             };
             return;
@@ -203,11 +223,31 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
         }
         previous = next;
         Statistics = new(source.Count, groups.Count, uploadedMeshes, uploadedBytes,
-            (long)source.Count * InstanceBytes, residentBytes) { CpuVisitedInstances = source.Count };
+            (long)source.Count * InstanceBytes, residentBytes)
+        {
+            CpuVisitedInstances = source.Count,
+            TopologyAdmissions = topologyAdmissions,
+            MotionReuses = motionReuses,
+        };
         uploadedMeshes = 0;
         uploadedBytes = 0;
         if (resident is not null)
         {
+            if (continuing)
+            {
+                int packed = 0;
+                for (int index = 0; index < bindlessRuns.Count; index++)
+                {
+                    var run = bindlessRuns[index];
+                    bindlessRuns[index] = run with { Source = resident.PackedInstances.Slice(packed, (int)run.Draw.Count) };
+                    packed += (int)run.Draw.Count;
+                }
+                var sources = BindlessActive ? bindlessRuns.Select(run => run.Source).ToArray() : resident.Groups.ToArray();
+                for (int index = 0; index < visibility.Count; index++)
+                {
+                    visibility[index].UpdateInstances(sources[index]);
+                }
+            }
             if (BindlessActive && bindlessTable is null) PrepareBindless(resident);
             if (visibility.Count == 0 && programs.Visibility is not null && CanCull())
             {
@@ -239,6 +279,7 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
                 }
             }
             if (VisibilityBufferActive && visibilityBuffer is null) PrepareVisibilityBuffer();
+            visibilityBuffer?.UpdateTransforms(words);
             residentSlots[frames.Slot] = true;
             Statistics = Statistics with { IndirectGroups = visibility.Count };
         }

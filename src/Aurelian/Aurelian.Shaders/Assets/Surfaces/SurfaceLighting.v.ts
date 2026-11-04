@@ -139,7 +139,7 @@ enum LocalSource {
     Spot(cosine: f32, inner: f32, outer: f32),
 }
 function LocalSourceFor(direction: float3, cone: float4, config: float4): LocalSource {
-    if (config.y > 0.5) {
+    if (config.y > 0.5 && config.y < 1.5) {
         return LocalSource.Spot(-Dot3(direction, float3(cone.x, cone.y, cone.z)), config.x, cone.w);
     }
     return LocalSource.Point;

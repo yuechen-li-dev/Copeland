@@ -618,7 +618,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             throw new InvalidOperationException("Environment, local lights and AO require the surface lighting programs.");
         }
         if (surfaceLighting?.Prepare(Environment, ReflectionProbe, LocalLights, settings.LocalShadowBudget, EnableRayShadows) == true) correspondenceChanged = true;
-        if (EnableRayShadows && LocalLights.Any(light => light.CastShadows)
+        if (EnableRayShadows && LocalLights.Any(light => light.CastShadows || light.Kind == LocalLightKind.Sphere)
             && (resident is null || !geometry.IsEmpty || models.Count != 0 || gpuGeometry is not null))
             throw new NotSupportedException("AUR-RAY-SHADOW-002: Ray shadows require one opaque NativeInstanceSet3D snapshot; mixed immediate or GPU-generated geometry has no shared acceleration authority yet.");
         if (correspondenceChanged) InvalidateSurfaceHistory();
@@ -684,7 +684,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             throw new NotSupportedException("AUR-VBUFFER-006: Visibility-buffer mode requires an admitted device, programs and a resident-only opaque/MASK surface scene.");
         modelRenderer?.Upload(models, worldToClip, eye, lighting, previousClip, resetHistory,
             resident?.Materials ?? sourceInstances.Select(instance => instance.Material).ToArray(), bindlessRetained: useBindless);
-        retainedModels?.Upload(sourceInstances, resetHistory, useBindless, EnableVisibilityBuffer, EnableHierarchicalZ);
+        retainedModels?.Upload(sourceInstances, resetHistory, useBindless, EnableVisibilityBuffer, EnableHierarchicalZ, RasterAdmissionMode);
         retainedModels?.UpdateBindlessFrame(worldToClip, eye, lighting, previousClip);
         if (surfaceLighting?.RayShadowsActive == true)
         {
@@ -772,6 +772,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
 
     private void InvalidateSurfaceHistory()
     {
+        surfaceLighting?.ResetTailHistory();
         temporal?.Reset();
         resetHistory = true;
     }

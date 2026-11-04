@@ -1,3 +1,4 @@
+import { EmitterSample3D, SampleLocalEmitter } from "./LocalEmitter3D";
 import { AffineAnalyticIntersection } from "./AffineAnalyticQuery3D";
 import { Target } from "./LocalLightProposal3D";
 import { Dot3 } from "./Lighting3D";
@@ -81,6 +82,7 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
     const temporal: f32 = Visibility[output + 10];
     const reprojected: f32 = Visibility[output + 11];
     const rejected: f32 = Visibility[output + 12];
+    const emitterKey: u32 = U32(Visibility[output + 14]);
     const point: float3 = float3(Candidates[base + 16], Candidates[base + 17], Candidates[base + 18]);
     const normal: float3 = float3(Candidates[base + 20], Candidates[base + 21], Candidates[base + 22]);
     const origin: float3 = point + normal * Parameters[22];
@@ -148,10 +150,12 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
             var weight: f32 = normalized / Convert<f32>(quota);
             const offset: u32 = 64 + selected * 16;
             const sphere: float4 = Read4(Parameters, offset);
-            const delta: float3 = float3(sphere.x, sphere.y, sphere.z) - origin;
+            const emitter: EmitterSample3D = SampleLocalEmitter(point, sphere, Read4(Parameters, offset + 8), Read4(Parameters, offset + 12), emitterKey + sample * 137);
+            const delta: float3 = emitter.endpoint - origin;
             const distance: f32 = Sqrt(Dot3(delta, delta));
             if (Parameters[offset + 14] > 0.5 && distance > Parameters[19] * 2.0
-                && distance < sphere.w && Dot3(normal, delta) > 0.0) {
+                && distance < sphere.w && Dot3(normal, delta) > 0.0
+                && (Parameters[offset + 13] < 1.5 || emitter.attenuation > 0.0)) {
                 const direction: float3 = delta / distance;
                 Rays[packet + 4] = direction.x;
                 Rays[packet + 5] = direction.y;
@@ -173,5 +177,6 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
     Visibility[output + 11] = reprojected;
     Visibility[output + 12] = rejected;
     Visibility[output + 13] = Convert<f32>(spatial);
+    Visibility[output + 14] = Convert<f32>(emitterKey);
     Visibility[output + 15] = Convert<f32>(spatialRejected);
 }

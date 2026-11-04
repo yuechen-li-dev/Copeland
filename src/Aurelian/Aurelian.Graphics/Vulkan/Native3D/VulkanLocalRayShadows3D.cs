@@ -45,6 +45,7 @@ internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
     private float[] priorLights = [];
     private uint sequence;
     private bool historyValid;
+    public ulong SamplingRevision { get; private set; }
     private bool disposed;
     public AurelianVulkanTexture Output { get; }
     public SceneAccelerationStatistics3D Statistics => scene.Statistics;
@@ -96,6 +97,13 @@ internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
     public void Prepare(NativeInstanceSet3D instances, Matrix4x4 inverse, ReadOnlySpan<float> lights, int count, LocalLightSampling3D options, SceneAccelerationUpdateMode3D updateMode)
     {
         options.Validate(checked((int)(width * height)));
+        for (int index = 0; index < count; index++)
+        {
+            if (options.Mode == LocalLightSamplingMode3D.Exact && lights[index * 16 + 13] > 1.5)
+            {
+                throw new NotSupportedException("AUR-AREA-001: Area emitters require a sampled local-light mode; exact delta-light masks cannot represent area visibility.");
+            }
+        }
         if (options.Mode != LocalLightSamplingMode3D.Exact && sampledPipeline.Handle == 0)
         {
             if (sampledProgram is null) throw new NotSupportedException("AUR-LIGHT-SAMPLING-002: The sampled local-light compute program was not configured.");
@@ -304,6 +312,7 @@ internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
 
     public void ResetSampling()
     {
+        SamplingRevision++;
         sequence = 0;
         historyValid = false;
     }

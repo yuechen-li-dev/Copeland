@@ -7,6 +7,25 @@ namespace Aurelian.Rendering.Contracts.Tests;
 public sealed class SurfaceLightingContractsTests
 {
     [Fact]
+    public void SphereEmittersRequireFiniteRadiusInsideTheInfluenceRange()
+    {
+        var light = new LocalLight3D(new(0, 3, 0), Vector3.One, 5, 10)
+        { Kind = LocalLightKind.Sphere, EmitterRadius = .5f };
+        light.Validate();
+        Assert.Throws<ArgumentOutOfRangeException>(() => (light with { EmitterRadius = 0 }).Validate());
+        Assert.Throws<ArgumentOutOfRangeException>(() => (light with { EmitterRadius = float.NaN }).Validate());
+        Assert.Throws<ArgumentOutOfRangeException>(() => (light with { EmitterRadius = 5 }).Validate());
+    }
+
+    [Fact]
+    public void TailReconstructionHasBoundedHistoryAndSpatialWork()
+    {
+        new LocalLightSampling3D { TailHistoryLimit = 16, TailSpatialPasses = 3 }.Validate(100);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LocalLightSampling3D { TailHistoryLimit = 0 }.Validate(100));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LocalLightSampling3D { TailHistoryLimit = 17 }.Validate(100));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LocalLightSampling3D { TailSpatialPasses = 4 }.Validate(100));
+    }
+    [Fact]
     public void SpatialReuseRejectsUnboundedOrInvalidReceiverTests()
     {
         new LocalLightSampling3D { Mode = LocalLightSamplingMode3D.SpatiotemporalReservoir, FrameRayBudget = 400 }.Validate(100);

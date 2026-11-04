@@ -236,6 +236,8 @@ internal static partial class RenderingR3Proof
         const int measured = 40;
         using var target = new VulkanNativeFrameTarget(plant, width, height);
         using var renderer = TlasRenderer(plant, assets, target, mode, LocalLightSamplingMode3D.Importance);
+        // Hold the original raster admission behavior fixed for the TLAS A/B control.
+        renderer.RasterAdmissionMode = NativeRasterAdmissionMode3D.Rebuild;
         var cpu = new List<double>();
         var gpu = new List<double>();
         var wait = new List<double>();

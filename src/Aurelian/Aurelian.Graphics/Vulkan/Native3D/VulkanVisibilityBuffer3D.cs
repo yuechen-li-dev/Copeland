@@ -41,6 +41,8 @@ internal sealed unsafe class VulkanVisibilityBuffer3D : IDisposable
     private readonly VulkanClusterVisibility3D[] cullers;
     private readonly ulong[] commandOffsets;
     private readonly AurelianVulkanBuffer[] drawData = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
+    private readonly AurelianVulkanBuffer[] instanceBuffers = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
+    private byte[] instanceData = [];
     private readonly AurelianVulkanTexture identities;
     private readonly AurelianVulkanTexture depth;
     private readonly VulkanHzbPyramid3D? hzb;
@@ -176,7 +178,7 @@ internal sealed unsafe class VulkanVisibilityBuffer3D : IDisposable
                 throw new InvalidDataException("AUR-VBUFFER-003: Visibility transport atlas exceeds 256 MiB.");
         }
         AtlasBytes = (ulong)vertices.Count + (ulong)indices.Count * 4;
-        byte[] instanceData = new byte[runs.Sum(run => run.Length) * 160];
+        instanceData = new byte[runs.Sum(run => run.Length) * 160];
         int instanceIndex = 0;
         ulong commandBytes = 0;
         for (int runIndex = 0; runIndex < runs.Count; runIndex++)
@@ -197,15 +199,27 @@ internal sealed unsafe class VulkanVisibilityBuffer3D : IDisposable
         }
         var vertexBuffer = Upload(vertices.ToArray());
         var indexBuffer = Upload(MemoryMarshal.AsBytes(indices.ToArray().AsSpan()).ToArray());
-        var instanceBuffer = Upload(instanceData);
         for (int slot = 0; slot < VulkanFrameInFlightSet.Count; slot++)
         {
+            instanceBuffers[slot] = Own(VulkanNativeForwardTexturedRenderer.CreateMappedBuffer(plant, allocator,
+                (ulong)instanceData.Length, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu, "visibility.instances"));
+            Require(instanceBuffers[slot].Write(instanceData).Success, "Visibility instance upload failed.");
             drawData[slot] = Upload(new byte[checked((int)commandBytes)]);
             table.BindVisibilityStorage(5, vertexBuffer, slot);
             table.BindVisibilityStorage(6, indexBuffer, slot);
-            table.BindVisibilityStorage(7, instanceBuffer, slot);
+            table.BindVisibilityStorage(7, instanceBuffers[slot], slot);
             table.BindVisibilityStorage(8, drawData[slot], slot);
         }
+    }
+
+    public void UpdateTransforms(Vector4[] transforms)
+    {
+        int count = instanceData.Length / 160;
+        for (int index = 0; index < count; index++)
+        {
+            MemoryMarshal.AsBytes(transforms.AsSpan(index * 9, 9)).CopyTo(instanceData.AsSpan(index * 160, 144));
+        }
+        Require(instanceBuffers[frames.Slot].Write(instanceData).Success, "Visibility motion upload failed.");
     }
 
     private AurelianVulkanBuffer Upload(byte[] bytes)
@@ -222,6 +236,8 @@ internal sealed unsafe class VulkanVisibilityBuffer3D : IDisposable
     public void RecordRaster(VulkanCommandBufferLease command,
         Action<VulkanRenderPassScope, AurelianVulkanFramebuffer, AurelianVulkanGraphicsPipeline> draw)
     {
+        Barrier(command, AccessFlags.HostWriteBit, AccessFlags.ShaderReadBit,
+            PipelineStageFlags.HostBit, PipelineStageFlags.VertexShaderBit | PipelineStageFlags.FragmentShaderBit);
         if (cullers.Length > 0)
         {
             Barrier(command, AccessFlags.ShaderReadBit, AccessFlags.TransferWriteBit,

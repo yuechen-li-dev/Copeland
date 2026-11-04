@@ -40,7 +40,11 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
     private readonly VulkanFenceBundle fences;
     private readonly List<AurelianVulkanBuffer> buffers = [];
     private readonly Candidate[] candidates;
-    private readonly AurelianVulkanBuffer input;
+    private readonly AurelianVulkanBuffer[] inputs = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
+    private readonly NativeMesh3D sourceMesh;
+    private readonly ImmutableArray<NativeMeshCluster3D> sourceClusters;
+    private readonly Vector4 sourceBounds;
+    private readonly uint sourceFirstInstance;
     private readonly AurelianVulkanBuffer lodState;
     private Vector4 lodSettings;
     private readonly AurelianVulkanBuffer[,] camera = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count, 2];
@@ -104,39 +108,21 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
             center = Vector3.Zero;
             radius = NativeAnalyticPrimitives3D.Bounds(mesh.PrimitiveKind).W;
         }
-        int index = 0;
-        for (int instanceIndex = 0; instanceIndex < instances.Length; instanceIndex++)
-        {
-            var instance = instances[instanceIndex];
-            Vector4 instanceSphere = NativeMeshClusters3D.TransformSphere(new(center, radius), instance.Transform);
-            float errorScale = NativeMeshClusters3D.TransformSphere(new(0, 0, 0, 1), instance.Transform).W;
-            LodRange Range(int level)
-            {
-                if (level >= mesh.LodRanges.Length) return default;
-                var range = mesh.LodRanges[level];
-                return new(range.Error * errorScale, range.FirstIndex, range.IndexCount, 0);
-            }
-            foreach (var cluster in clusters)
-            {
-                Vector4 cone = new(0, 0, 0, -2);
-                if (!instance.Material.DoubleSided && cluster.Cone.W >= -1 && IsSimilarity(instance.Transform))
-                {
-                    Vector3 axis = Vector3.Normalize(Vector3.TransformNormal(new(cluster.Cone.X, cluster.Cone.Y, cluster.Cone.Z), instance.Transform));
-                    cone = new(axis, cluster.Cone.W);
-                }
-                candidates[index++] = new(instanceSphere, NativeMeshClusters3D.TransformSphere(cluster.Sphere, instance.Transform),
-                    cone, cluster.FirstIndex, cluster.IndexCount, firstInstance + (uint)instanceIndex,
-                    (uint)mesh.LodRanges.Length - 1, Range(1), Range(2), Range(3));
-            }
-        }
+        sourceMesh = mesh;
+        sourceClusters = clusters;
+        sourceBounds = new(center, radius);
+        sourceFirstInstance = firstInstance;
+        FillCandidates(instances);
         blockCount = ((uint)candidates.Length + 63) / 64;
         try
         {
-            input = Buffer((ulong)candidates.Length * 112, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferDestination);
+            for (int slot = 0; slot < VulkanFrameInFlightSet.Count; slot++)
+            {
+                inputs[slot] = Buffer((ulong)candidates.Length * 112, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
+                Require(inputs[slot].Write(MemoryMarshal.AsBytes(candidates.AsSpan())).Success, "Candidate upload failed.");
+            }
             lodState = Buffer((ulong)candidates.Length * 4, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferDestination);
             using var uploader = new VulkanBufferUploader(plant, allocator, commands, fences);
-            var upload = uploader.Upload(new(input, MemoryMarshal.AsBytes(candidates.AsSpan()).ToArray(), DebugName: "visibility.candidates"));
-            Require(upload.Success, "Candidate upload failed.");
             Require(uploader.Upload(new(lodState, new byte[candidates.Length * 4], DebugName: "lod.history")).Success,
                 "LOD history initialization failed.");
             for (int slot = 0; slot < VulkanFrameInFlightSet.Count; slot++)
@@ -162,6 +148,46 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
         }
     }
 
+    public void UpdateInstances(ImmutableArray<SceneInstance3D> instances)
+    {
+        if (instances.Length * sourceClusters.Length != candidates.Length
+            || instances.Any(instance => !ReferenceEquals(instance.Mesh, sourceMesh)))
+        {
+            throw new InvalidOperationException("AUR-VIS-005: Motion changed the admitted cluster topology.");
+        }
+        FillCandidates(instances);
+        Require(inputs[frames.Slot].Write(MemoryMarshal.AsBytes(candidates.AsSpan())).Success, "Motion candidate upload failed.");
+    }
+
+    private void FillCandidates(ImmutableArray<SceneInstance3D> instances)
+    {
+        int index = 0;
+        for (int instanceIndex = 0; instanceIndex < instances.Length; instanceIndex++)
+        {
+            var instance = instances[instanceIndex];
+            Vector4 instanceSphere = NativeMeshClusters3D.TransformSphere(sourceBounds, instance.Transform);
+            float errorScale = NativeMeshClusters3D.TransformSphere(new(0, 0, 0, 1), instance.Transform).W;
+            LodRange Range(int level)
+            {
+                if (level >= sourceMesh.LodRanges.Length) return default;
+                var range = sourceMesh.LodRanges[level];
+                return new(range.Error * errorScale, range.FirstIndex, range.IndexCount, 0);
+            }
+            foreach (var cluster in sourceClusters)
+            {
+                Vector4 cone = new(0, 0, 0, -2);
+                if (!instance.Material.DoubleSided && cluster.Cone.W >= -1 && IsSimilarity(instance.Transform))
+                {
+                    Vector3 axis = Vector3.Normalize(Vector3.TransformNormal(new(cluster.Cone.X, cluster.Cone.Y, cluster.Cone.Z), instance.Transform));
+                    cone = new(axis, cluster.Cone.W);
+                }
+                candidates[index++] = new(instanceSphere, NativeMeshClusters3D.TransformSphere(cluster.Sphere, instance.Transform),
+                    cone, cluster.FirstIndex, cluster.IndexCount, sourceFirstInstance + (uint)instanceIndex,
+                    (uint)sourceMesh.LodRanges.Length - 1, Range(1), Range(2), Range(3));
+            }
+        }
+    }
+
     public void Record(VulkanCommandBufferLease command, Matrix4x4 clip, Vector3 eye, ClusterVisibilityMode mode)
         => RecordPhase(command, clip, eye, mode, 0);
 
@@ -177,6 +203,8 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
 
     private void RecordPhase(VulkanCommandBufferLease command, Matrix4x4 clip, Vector3 eye, ClusterVisibilityMode mode, uint hzbPhase)
     {
+        Barrier(command, AccessFlags.HostWriteBit, AccessFlags.ShaderReadBit,
+            PipelineStageFlags.HostBit, PipelineStageFlags.ComputeShaderBit);
         if (!Enum.IsDefined(mode)) throw new ArgumentOutOfRangeException(nameof(mode));
         int variant = hzbPhase == 2 ? 1 : 0;
         Barrier(command, AccessFlags.MemoryReadBit | AccessFlags.MemoryWriteBit,
@@ -380,9 +408,9 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
             for (int variant = 0; variant < variants; variant++)
             {
                 AurelianVulkanBuffer[][] resources = [
-                    [input, ranks[slot], blocks[slot], camera[slot, variant]],
+                    [inputs[slot], ranks[slot], blocks[slot], camera[slot, variant]],
                     [blocks[slot], offsets[slot], counts[slot], camera[slot, variant]],
-                    [input, ranks[slot], offsets[slot], arguments[slot]],
+                    [inputs[slot], ranks[slot], offsets[slot], arguments[slot]],
                 ];
                 for (int phase = 0; phase < 3; phase++)
                 {

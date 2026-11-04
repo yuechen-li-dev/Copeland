@@ -1,3 +1,4 @@
+import { EmitterSample3D, SampleLocalEmitter } from "./LocalEmitter3D";
 import { WorldAt, EnvironmentResponse, EnvironmentDiffuse, MaskAllows, BoxReflection, LocalAttenuation } from "./SurfaceLighting";
 import { Unit, Sub3, Add3, Scale3, Mul3, Dot3, DirectLightModel, DirectDiffuseModel, HemisphereLight, ShadowVisibility, PlaneShadowVisibility, LimitRadiance } from "./Lighting3D";
 import { CompiledDiffuse } from "./CompiledDiffuseLighting";
@@ -90,6 +91,7 @@ stream Varyings {
 stream Output {
     @target(0) color: float4;
     @target(1) diffuse: float4;
+    @target(2) tail: float4;
 }
 @vertex
 function VertexMain(input: Input): Varyings {
@@ -143,7 +145,7 @@ function Occlusion(resources: Resources, uv: float2, p: float3): f32 {
 function PixelMain(input: Varyings, resources: Resources): Output {
     const motion: float4 = Sample(resources.motion, resources.motionSampler, input.uv);
     if (motion.w >= 1.0) {
-        return { color: resources.material.clear, diffuse: float4(0.0, 0.0, 0.0, 0.0) };
+        return { color: resources.material.clear, diffuse: float4(0.0, 0.0, 0.0, 0.0), tail: float4(0.0, 0.0, 0.0, 0.0) };
     }
     const material: float4 = Sample(resources.base, resources.baseSampler, input.uv);
     const n: float4 = Sample(resources.normal, resources.normalSampler, input.uv);
@@ -153,11 +155,11 @@ function PixelMain(input: Varyings, resources: Resources): Output {
     const p: float3 = Position(resources, input.uv, motion.w);
     if (resources.material.surfaceTexels.z > 0.5) {
         const visibility: f32 = Occlusion(resources, input.uv, p);
-        return { color: float4(visibility, visibility, visibility, 1.0), diffuse: float4(0.0, 0.0, 0.0, 0.0) };
+        return { color: float4(visibility, visibility, visibility, 1.0), diffuse: float4(0.0, 0.0, 0.0, 0.0), tail: float4(0.0, 0.0, 0.0, 0.0) };
     }
     if (emission.w < 0.0) {
         const unlit: float3 = Add3(base, emitted);
-        return { color: LimitRadiance(float4(unlit.x, unlit.y, unlit.z, 1.0)), diffuse: float4(0.0, 0.0, 0.0, 0.0) };
+        return { color: LimitRadiance(float4(unlit.x, unlit.y, unlit.z, 1.0)), diffuse: float4(0.0, 0.0, 0.0, 0.0), tail: float4(0.0, 0.0, 0.0, 0.0) };
     }
     const normal: float3 = Unit(float3(n.x, n.y, n.z));
     var view: float3 = Unit(Sub3(float3(resources.material.eye.x, resources.material.eye.y, resources.material.eye.z), p));
@@ -199,31 +201,48 @@ function PixelMain(input: Varyings, resources: Resources): Output {
             diffuseAmbient = ambient;
         }
     }
+    var stochasticTail: float3 = float3(0.0, 0.0, 0.0);
+    var tailVisible: f32 = 0.0;
+    var tailSlots: f32 = 0.0;
     if (resources.material.surfaceTexels.w > 1.5) {
         const pixelX: f32 = Floor(input.uv.x / resources.material.surfaceTexels.x);
+        const sampleMetadata: float4 = Sample(resources.rayVisibility, resources.rayVisibilitySampler,
+            float2((pixelX * 4.0 + 3.5) * resources.material.surfaceTexels.x / 4.0, input.uv.y));
+        const emitterKey: u32 = Convert<u32>(sampleMetadata.z);
+        const budget: float4 = Sample(resources.rayVisibility, resources.rayVisibilitySampler,
+            float2((pixelX * 4.0 + 2.5) * resources.material.surfaceTexels.x / 4.0, input.uv.y));
+        var exactCount: u32 = 0;
+        if ((Convert<u32>(resources.material.surfaceTexels.w) & 1) != 0) { exactCount = Convert<u32>(sampleMetadata.w); }
         for (var sample: u32 = 0; sample < 4; sample = sample + 1) {
             const data: float4 = Sample(resources.rayVisibility, resources.rayVisibilitySampler,
                 float2((pixelX * 4.0 + Floor(Convert<f32>(sample) / 2.0) + 0.5) * resources.material.surfaceTexels.x / 4.0, input.uv.y));
             var index: u32 = Convert<u32>(data.x);
             var weight: f32 = data.y;
             if (sample % 2 == 1) { index = Convert<u32>(data.z); weight = data.w; }
+            if (sample >= exactCount && Convert<f32>(sample) < budget.y) {
+                tailSlots = tailSlots + 1.0;
+                if (weight > 0.0) { tailVisible = tailVisible + 1.0; }
+            }
             if (weight > 0.0) {
                 const row: f32 = (Convert<f32>(index) + 0.5) / 256.0;
                 const sphere: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.125, row));
                 const color: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.375, row));
                 const cone: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.625, row));
                 const config: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.875, row));
-                const delta: float3 = Sub3(float3(sphere.x, sphere.y, sphere.z), p);
-                const squared: f32 = Dot3(delta, delta);
-                if (squared < sphere.w * sphere.w) {
-                    const direction: float3 = Unit(delta);
-                    var attenuation: f32 = LocalAttenuation(direction, squared, sphere.w, cone, config) * weight;
+                const emitter: EmitterSample3D = SampleLocalEmitter(p, sphere, cone, config, emitterKey + sample * 137);
+                const direction: float3 = emitter.direction;
+                if (emitter.attenuation > 0.0) {
+                    var attenuation: f32 = emitter.attenuation * weight;
                     if (profile.w > 0.0) {
                         diffuseDirect = Add3(diffuseDirect, Scale3(Mul3(DirectDiffuseModel(base, normal, view, direction, n.w, material.w, resources.material.ground.w),
                             float3(color.x, color.y, color.z)), color.w * attenuation));
                     }
-                    direct = Add3(direct, Scale3(Mul3(DirectLightModel(base, normal, view, direction, n.w, material.w, resources.material.ground.w),
-                        float3(color.x, color.y, color.z)), color.w * attenuation));
+                    const contribution: float3 = Scale3(Mul3(DirectLightModel(base, normal, view, direction, n.w, material.w, resources.material.ground.w),
+                        float3(color.x, color.y, color.z)), color.w * attenuation);
+                    if (sample >= exactCount) { stochasticTail = Add3(stochasticTail, contribution); }
+                    if (sample < exactCount || resources.material.surfaceTexels.w < 5.5) {
+                        direct = Add3(direct, contribution);
+                    }
                 }
             }
         }
@@ -266,9 +285,10 @@ function PixelMain(input: Varyings, resources: Resources): Output {
         }
     }
     const indirect: float3 = Scale3(ambient, emission.w * Occlusion(resources, input.uv, p));
-    const lit: float3 = Add3(Add3(direct, indirect), emitted);
+    var lit: float3 = Add3(Add3(direct, indirect), emitted);
     const diffuse: float3 = Add3(diffuseDirect, Scale3(diffuseAmbient, emission.w * Occlusion(resources, input.uv, p)));
     return {
+        tail: LimitRadiance(float4(stochasticTail.x, stochasticTail.y, stochasticTail.z, tailVisible / Max(tailSlots, 1.0))),
         color: LimitRadiance(float4(lit.x, lit.y, lit.z, 1.0)),
         diffuse: LimitRadiance(float4(diffuse.x, diffuse.y, diffuse.z, 1.0)),
     };

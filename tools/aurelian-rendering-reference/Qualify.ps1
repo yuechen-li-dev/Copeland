@@ -4,10 +4,14 @@ param(
     [switch]$IncludeR3,
     [switch]$IncludeSampling,
     [switch]$IncludeRestir,
-    [switch]$IncludeTlas
+    [switch]$IncludeTlas,
+    [switch]$IncludeRasterMotion,
+    [switch]$IncludeArea
 )
 
 $ErrorActionPreference = 'Stop'
+if ($IncludeArea) { $IncludeRasterMotion = $true }
+if ($IncludeRasterMotion) { $IncludeTlas = $true }
 if ($IncludeTlas) { $IncludeRestir = $true }
 if ($IncludeRestir) { $IncludeSampling = $true }
 if ($IncludeSampling) { $IncludeR3 = $true }
@@ -126,6 +130,28 @@ try {
             'tools/aurelian-tlas/Qualify.ps1'
         )
     }
+    if ($IncludeRasterMotion) {
+        $sourcePaths += @(
+            'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/Native3DContracts.cs',
+            'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/VulkanRetainedModels3D.cs',
+            'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/VulkanClusterVisibility3D.cs',
+            'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/VulkanVisibilityBuffer3D.cs',
+            'tools/Aurelian.GraphicsProof/RenderingR3Proof.RasterMotion.cs'
+        )
+    }
+    if ($IncludeArea) {
+        $sourcePaths += @(
+            'src/Aurelian/Aurelian.Shaders/Assets/Lighting/LocalEmitter3D.v.ts',
+            'src/Aurelian/Aurelian.Shaders/Assets/Lighting/LocalTailTemporal3D.v.ts',
+            'src/Aurelian/Aurelian.Shaders/Assets/Lighting/LocalTailSpatial3D.v.ts',
+            'src/Aurelian/Aurelian.Shaders/Assets/Lighting/LocalTailCompose3D.v.ts',
+            'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/VulkanLocalTail3D.cs',
+            'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/VulkanPostProcess3D.cs',
+            'tools/Aurelian.GraphicsProof/RenderingR3Proof.Area.cs',
+            'tools/aurelian-area-lights/Qualify.ps1'
+        )
+    }
+    $sourcePaths = @($sourcePaths | Select-Object -Unique)
     $initialHashes = @($sourcePaths | ForEach-Object { (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash })
 
     function Invoke-QualificationCommand {
@@ -212,6 +238,23 @@ try {
         if (-not $tlas.Accepted) { throw 'TLAS update qualification did not accept.' }
     }
 
+    $rasterMotion = $null
+    if ($IncludeRasterMotion) {
+        Invoke-QualificationCommand 'raster-motion' @($proof, '--rendering-raster-motion', '--output', (Join-Path $outputPath 'raster-motion'))
+        $rasterMotion = Get-Content -LiteralPath (Join-Path $outputPath 'raster-motion/evidence.json') -Raw | ConvertFrom-Json
+        if (-not $rasterMotion.Accepted) { throw 'Raster motion qualification did not accept.' }
+    }
+    $area = $null
+    $areaFlip = $null
+    if ($IncludeArea) {
+        Invoke-QualificationCommand 'area' @($proof, '--rendering-area', '--output', (Join-Path $outputPath 'area'))
+        Invoke-QualificationCommand 'area-flip' @((Join-Path $repository 'tools/aurelian-rendering-reference/evaluate_metrics.py'),
+            (Join-Path $outputPath 'area/metrics-manifest.json')) $metricsPython
+        $area = Get-Content -LiteralPath (Join-Path $outputPath 'area/evidence.json') -Raw | ConvertFrom-Json
+        $areaFlip = Get-Content -LiteralPath (Join-Path $outputPath 'area/flip-evidence.json') -Raw | ConvertFrom-Json
+        if (-not $area.Accepted -or -not $areaFlip.Accepted) { throw 'Area native and FLIP qualification did not accept.' }
+    }
+
     $hashes = @($sourcePaths | ForEach-Object {
         @{ Path = $_; Sha256 = (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash }
     })
@@ -231,7 +274,7 @@ try {
         ProofSha256 = (Get-FileHash -LiteralPath $proof -Algorithm SHA256).Hash;
         GraphicsSha256 = (Get-FileHash -LiteralPath (Join-Path (Split-Path $proof) 'Aurelian.Graphics.dll') -Algorithm SHA256).Hash;
         LightingFixture = $fixturePath; Reference = $reference; Affine = $affine;
-        LightingTemporal = $lighting; Flip = $flip; R3 = $r3; R3Flip = $r3Flip; Sampling = $sampling; SamplingFlip = $samplingFlip; Restir = $restir; RestirFlip = $restirFlip; Tlas = $tlas; FullR3Complete = $false } | ConvertTo-Json -Depth 30 |
+        LightingTemporal = $lighting; Flip = $flip; R3 = $r3; R3Flip = $r3Flip; Sampling = $sampling; SamplingFlip = $samplingFlip; Restir = $restir; RestirFlip = $restirFlip; Tlas = $tlas; RasterMotion = $rasterMotion; Area = $area; AreaFlip = $areaFlip; FullR3Complete = $false } | ConvertTo-Json -Depth 30 |
         Set-Content -LiteralPath $evidencePath
     Write-Output "AURELIAN_REFERENCE_QUALIFIED: $evidencePath"
 }
