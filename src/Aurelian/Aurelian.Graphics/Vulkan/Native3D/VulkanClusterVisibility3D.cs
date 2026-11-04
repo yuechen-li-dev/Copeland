@@ -99,6 +99,11 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
         Vector3 maximum = mesh.Vertices.Select(vertex => vertex.Position).Aggregate(Vector3.Max);
         Vector3 center = (minimum + maximum) * .5f;
         float radius = mesh.Vertices.Max(vertex => Vector3.Distance(center, vertex.Position)) + 1e-4f;
+        if (mesh.PrimitiveKind != Aurelian.Rendering.Contracts.Models.AnalyticPrimitiveKind3D.Triangles)
+        {
+            center = Vector3.Zero;
+            radius = NativeAnalyticPrimitives3D.Bounds(mesh.PrimitiveKind).W;
+        }
         int index = 0;
         for (int instanceIndex = 0; instanceIndex < instances.Length; instanceIndex++)
         {

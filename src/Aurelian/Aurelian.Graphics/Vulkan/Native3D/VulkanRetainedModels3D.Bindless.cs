@@ -24,6 +24,7 @@ internal sealed unsafe partial class VulkanRetainedModels3D
     private void PrepareBindless(NativeInstanceSet3D source)
     {
         var tableProgram = VisibilityBufferActive ? programs.VisibilityBuffer!.Resolve : programs.Bindless!;
+        if (source.HasAnalytic) tableProgram = programs.VisibilityBuffer!.HybridResolve!;
         var table = new VulkanBindlessMaterials3D(plant, allocator, commands, fences, frames, materials,
             tableProgram, source, visibility: VisibilityBufferActive);
         try

@@ -21,6 +21,12 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--rendering-hybrid", StringComparer.Ordinal))
+{
+    RenderingHybridProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-hybrid"));
+    return;
+}
+
 if (args.Contains("--rendering-policy", StringComparer.Ordinal))
 {
     RenderingPolicyProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-policy"));

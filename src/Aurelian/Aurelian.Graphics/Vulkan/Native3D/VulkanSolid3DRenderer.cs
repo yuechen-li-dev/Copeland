@@ -545,6 +545,10 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         if (settings.BloomIntensity > 0 && bloom is null) throw new InvalidOperationException("Bloom requires Bloom3D at renderer creation.");
         var modelKeys = models.Select(model => (model.TemporalIdentity, model.Vertices.Length, model.Material)).ToArray();
         var resident = sourceInstances as NativeInstanceSet3D;
+        bool hasAnalytic = resident?.HasAnalytic ?? sourceInstances.Any(instance => instance.Mesh.PrimitiveKind != AnalyticPrimitiveKind3D.Triangles);
+        if (hasAnalytic && (resident is null || !EnableVisibilityBuffer || retainedModels?.CanUseHybrid != true
+            || settings.Shadows || LocalLights.Any(light => light.CastShadows)))
+            throw new NotSupportedException("AUR-HYBRID-001: Analytic instances require resident hybrid visibility programs and Shadows=false; proxy geometry is never a forward/shadow fallback.");
         var instanceKeys = resident?.Keys ?? sourceInstances.Select(instance => (instance.Identity, instance.Mesh, instance.Material)).ToArray();
         bool correspondenceChanged = !(ReferenceEquals(instanceKeys, previousInstances) || instanceKeys.SequenceEqual(previousInstances))
             || !ReferenceEquals(resident, previousResidentSet)

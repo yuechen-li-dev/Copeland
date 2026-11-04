@@ -398,7 +398,11 @@ public sealed class NativeGameGraphics : IDisposable
                     Visibility = new(assets.ComputeShader("VisibilityCull3D.v.ts"), assets.ComputeShader("VisibilityScan3D.v.ts"),
                         assets.ComputeShader("VisibilityScatter3D.v.ts")),
                     Bindless = assets.Shader("BindlessModel3D.v.ts"),
-                    VisibilityBuffer = new(assets.Shader("VisibilityRaster3D.v.ts"), assets.Shader("VisibilityResolve3D.v.ts")),
+                    VisibilityBuffer = new(assets.Shader("VisibilityRaster3D.v.ts"), assets.Shader("VisibilityResolve3D.v.ts"))
+                    {
+                        AnalyticRaster = assets.Shader("AnalyticRaster3D.v.ts"),
+                        HybridResolve = assets.Shader("HybridResolve3D.v.ts"),
+                    },
                     HierarchicalZ = new(assets.ComputeShader("HzbCull3D.v.ts"), assets.ComputeShader("HzbReduce3D.v.ts")),
                 })
             {

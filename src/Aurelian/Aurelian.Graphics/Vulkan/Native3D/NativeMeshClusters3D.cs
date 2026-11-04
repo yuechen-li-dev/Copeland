@@ -12,6 +12,8 @@ public static class NativeMeshClusters3D
 
     public static ImmutableArray<NativeMeshCluster3D> Build(NativeMesh3D mesh)
     {
+        if (mesh.PrimitiveKind != Aurelian.Rendering.Contracts.Models.AnalyticPrimitiveKind3D.Triangles)
+            return [new(0, (uint)mesh.Indices.Length, NativeAnalyticPrimitives3D.Bounds(mesh.PrimitiveKind), new(0, 0, 0, -2))];
         var clusters = ImmutableArray.CreateBuilder<NativeMeshCluster3D>();
         for (int first = 0; first < mesh.Indices.Length; first += TrianglesPerCluster * 3)
         {

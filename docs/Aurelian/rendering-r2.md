@@ -6,8 +6,9 @@ material fragment shaders and R1 frame tape. [Resident bindless material tables]
 now extend that path and remove per-material geometry descriptor binds. [Typed visibility buffers and
 ID-driven material resolve](rendering-r2-visibility.md) are also implemented. [Two-phase HZB](rendering-r2-hzb.md)
 is available as an opt-in follow-up. [Offline asset LOD and GPU selection](rendering-r2-lod.md) are also
-implemented. Compute material scheduling and hybrid analytic visibility
-remain open. The probes below document the original interface boundary; linked follow-ups describe
+implemented. [Bounded hybrid analytic visibility](rendering-r2-hybrid.md) is now qualified for opaque
+canonical primitives. Compute material scheduling and general field/CSG integration remain open.
+The probes below document the original interface boundary; linked follow-ups describe
 the subsequent implementations and their qualification.
 
 ## Use the resident path
@@ -122,8 +123,8 @@ cuts. It redraws the accepted set in stable source order to preserve equal-depth
 opaque pass still discards its hardware depth after the pass; HZB uses the visibility raster's separate
 stored depth target. [Offline LOD chains and hysteresis](rendering-r2-lod.md) are now implemented in a follow-up;
 the original measurements in this report keep full source geometry and incur no simplification error.
-Hybrid analytic/triangle visibility has not been timed
-or killed by an experiment. It depends on the typed shared visibility/depth interface first.
+The [hybrid follow-up](rendering-r2-hybrid.md) now measures analytic primitives against prepared meshes
+through the shared typed visibility/depth interface, retaining curved-instance wins and an overdraw loss.
 
 ## Aetheris reuse and licensing
 
@@ -192,4 +193,5 @@ floating-point correctness claim for every possible scene.
 
 The qualification ledger labels its scope as the resident GPU-clustered grouped-material path and marks
 `FullR2Complete` false. Bindless tables and visibility/material resolve are now implemented in the linked
-follow-ups. Two-phase HZB and offline asset LOD are also implemented. Compute material scheduling and the analytic comparison remain open.
+follow-ups. Two-phase HZB, offline asset LOD and bounded hybrid visibility are also implemented.
+Compute material scheduling, general fields/CSG and analytic shadow/MASK integration remain open.

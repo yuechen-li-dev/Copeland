@@ -868,7 +868,8 @@ public static partial class GpuGraphicsBinder
                     {
                         return tensor;
                     }
-                    if (left.Type == "u32" && right.Type == "u32" && operation is "-" or "*" or "/" or "%")
+                    if (left.Type == "u32" && right.Type == "u32"
+                        && operation is "-" or "*" or "/" or "%" or "&" or "|" or "^" or "<<" or ">>")
                     {
                         usesVisibilityImages = true;
                         return new("binary", "u32", Span(path, binary), operation, [left, right]);

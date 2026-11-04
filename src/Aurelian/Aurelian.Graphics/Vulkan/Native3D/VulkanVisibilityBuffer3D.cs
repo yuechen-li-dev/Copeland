@@ -21,7 +21,11 @@ using Silk.NET.Vulkan;
 
 namespace Aurelian.Graphics.Vulkan.Native3D;
 
-public sealed record VisibilityBufferPrograms(CompiledGraphicsProgram Raster, CompiledGraphicsProgram Resolve);
+public sealed record VisibilityBufferPrograms(CompiledGraphicsProgram Raster, CompiledGraphicsProgram Resolve)
+{
+    public CompiledGraphicsProgram? AnalyticRaster { get; init; }
+    public CompiledGraphicsProgram? HybridResolve { get; init; }
+}
 public sealed record NativeVisibilityBufferReadback(uint Width, uint Height, uint[] Ids);
 
 /// <summary>Typed identity rasterization and ID-driven material resolve for a static resident revision.</summary>
@@ -44,6 +48,7 @@ internal sealed unsafe class VulkanVisibilityBuffer3D : IDisposable
     private readonly AurelianVulkanFramebuffer rasterFramebuffer;
     private readonly AurelianVulkanGraphicsPipeline rasterPipeline;
     private readonly AurelianVulkanGraphicsPipeline resolvePipeline;
+    public AurelianVulkanGraphicsPipeline? AnalyticRasterPipeline { get; }
 
     public ulong IdentityBytes => (ulong)identities.Width * identities.Height * 8;
     public ulong HzbBytes => hzb?.Bytes ?? 0;
@@ -55,7 +60,7 @@ internal sealed unsafe class VulkanVisibilityBuffer3D : IDisposable
         VulkanBindlessMaterials3D table, VisibilityBufferPrograms programs, AurelianVulkanRenderPass geometryPass,
         uint width, uint height, IReadOnlyList<ImmutableArray<SceneInstance3D>> runs, Vector4[] transforms,
         IReadOnlyList<VulkanClusterVisibility3D> visibility,
-        Func<AurelianVulkanRenderPass, AurelianVulkanGraphicsPipeline> createRasterPipeline, byte[]? hzbReduce = null)
+        Func<AurelianVulkanRenderPass, CompiledGraphicsProgram, AurelianVulkanGraphicsPipeline> createRasterPipeline, byte[]? hzbReduce = null)
     {
         this.plant = plant;
         this.allocator = allocator;
@@ -85,7 +90,12 @@ internal sealed unsafe class VulkanVisibilityBuffer3D : IDisposable
             var framebuffer = VulkanFramebufferFactory.Create(plant, rasterPass, new(width, height, [identities], depth));
             Require(framebuffer.Success, "Identity framebuffer rejected.");
             rasterFramebuffer = Own(framebuffer.Framebuffer!);
-            rasterPipeline = Own(createRasterPipeline(rasterPass));
+            rasterPipeline = Own(createRasterPipeline(rasterPass, programs.Raster));
+            if (programs.AnalyticRaster is { } analytic)
+            {
+                ValidateTargets(analytic, [VulkanTextureFormat.Rg32UInt]);
+                AnalyticRasterPipeline = Own(createRasterPipeline(rasterPass, analytic));
+            }
             var descriptor = VulkanCompiledGraphicsPipelineDescriptorFactory.CreateDescriptor(programs.Resolve.Shaders,
                 [new(0, 8)], [new(0, 0, VulkanVertexAttributeFormat.Float2, 0)],
                 enableDepthTest: true, enableDepthWrite: true);
@@ -136,7 +146,7 @@ internal sealed unsafe class VulkanVisibilityBuffer3D : IDisposable
         var instanceFields = new List<CompiledStorageField>();
         foreach (string name in new[] { "worldX", "worldY", "worldZ", "previousX", "previousY", "previousZ", "normalX", "normalY", "normalZ" })
             AddVector(instanceFields, name, 4);
-        foreach (string name in new[] { "vertexBase", "indexBase", "commandBase", "reserved" })
+        foreach (string name in new[] { "vertexBase", "indexBase", "commandBase", "primitiveKind" })
             instanceFields.Add(new(name, "u32", instanceFields.Count * 4));
         var resources = program.Resources.ToDictionary(resource => resource.Binding);
         if (!resources[5].StorageLayout!.Fields.SequenceEqual(vertexFields)
@@ -180,6 +190,7 @@ internal sealed unsafe class VulkanVisibilityBuffer3D : IDisposable
                 metadata[0] = meshes[instance.Mesh].Vertex;
                 metadata[1] = meshes[instance.Mesh].Index;
                 metadata[2] = checked((uint)(commandBytes / 4));
+                metadata[3] = (uint)instance.Mesh.PrimitiveKind;
                 instanceIndex++;
             }
             commandBytes += cullers.Length == 0 ? 20UL : cullers[runIndex].Arguments.SizeBytes;

@@ -173,4 +173,6 @@ raw identity comparisons, oracle counts and per-pass timings are in the native e
 [Two-phase HZB](rendering-r2-hzb.md) now builds on this depth/identity path. It uses GPU depth-buffer
 copies and storage-buffer reductions, conservative current-frame rescue and a stable final raster.
 [Offline asset LOD](rendering-r2-lod.md) now adds prepared index ranges and GPU selection with hysteresis.
-Compute material scheduling and the optional analytic comparison remain subsequent experiments.
+[Hybrid analytic visibility](rendering-r2-hybrid.md) now admits opaque spheres/ellipsoids, boxes and capsules
+through the same identity/depth/material seam. Compute material scheduling and general field/CSG traversal
+remain subsequent experiments.

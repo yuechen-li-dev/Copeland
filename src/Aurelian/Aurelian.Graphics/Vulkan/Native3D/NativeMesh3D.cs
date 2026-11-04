@@ -12,10 +12,18 @@ public sealed class NativeMesh3D
     public ImmutableArray<uint> Indices { get; }
     public ImmutableArray<uint> PackedIndices { get; }
     public ImmutableArray<NativeLodRange3D> LodRanges { get; }
+    public AnalyticPrimitiveKind3D PrimitiveKind { get; }
 
     public NativeMesh3D(string identity, IEnumerable<NativeModel3DVertex> vertices, IEnumerable<uint> indices,
         IEnumerable<ModelLod>? lods = null)
+        : this(identity, vertices, indices, lods, AnalyticPrimitiveKind3D.Triangles)
     {
+    }
+
+    internal NativeMesh3D(string identity, IEnumerable<NativeModel3DVertex> vertices, IEnumerable<uint> indices,
+        IEnumerable<ModelLod>? lods, AnalyticPrimitiveKind3D primitiveKind)
+    {
+        PrimitiveKind = primitiveKind;
         Identity = identity;
         Vertices = vertices.ToImmutableArray();
         Indices = indices.ToImmutableArray();
@@ -64,6 +72,8 @@ public sealed record SceneInstance3D(string Identity, NativeMesh3D Mesh, ModelMa
     /// <summary>Compatibility for forward-only materials and the existing planar reflection renderer.</summary>
     public NativeModel3DBatch Expand()
     {
+        if (Mesh.PrimitiveKind != AnalyticPrimitiveKind3D.Triangles)
+            throw new NotSupportedException("AUR-HYBRID-001: Analytic geometry requires the resident hybrid visibility path.");
         if (!Matrix4x4.Invert(Transform, out var inverse))
         {
             throw new InvalidDataException("AUR-MESH-011: Instance transforms must be invertible.");

@@ -20,7 +20,7 @@ export record ResidentInstance {
     vertexBase: u32;
     indexBase: u32;
     commandBase: u32;
-    reserved: u32;
+    primitiveKind: u32;
 }
 export record ResidentAttributes {
     world: float3;
