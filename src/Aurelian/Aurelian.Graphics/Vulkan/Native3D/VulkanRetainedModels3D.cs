@@ -108,8 +108,8 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
         {
             throw new InvalidOperationException("AUR-MESH-007: Retained draws exceed the declared 65536-instance frame budget.");
         }
-        if (!ReferenceEquals(resident, source) || useBindless != BindlessActive || useVisibilityBuffer != VisibilityBufferActive
-            || useHierarchicalZ != HierarchicalZActive)
+        HierarchicalZActive = useHierarchicalZ;
+        if (!ReferenceEquals(resident, source) || useBindless != BindlessActive || useVisibilityBuffer != VisibilityBufferActive)
         {
             foreach (var item in visibility) frames.Retire(item);
             visibility.Clear();
@@ -226,7 +226,7 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
                     foreach (var group in cullingGroups)
                     {
                         created.Add(new(plant, allocator, commands, fences, frames, programs.Visibility, group, firstInstance,
-                            HierarchicalZActive ? programs.HierarchicalZ!.Cull : null));
+                            HierarchicalZPrepared ? programs.HierarchicalZ!.Cull : null));
                         firstInstance += (uint)group.Length;
                     }
                     visibility.AddRange(created);

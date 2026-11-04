@@ -52,7 +52,7 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
     private readonly AurelianVulkanBuffer[] arguments = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
     private readonly AurelianVulkanBuffer[] counts = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
     private readonly DescriptorSet[,,] sets = new DescriptorSet[VulkanFrameInFlightSet.Count, 2, 3];
-    private readonly Pipeline[] pipelines = new Pipeline[3];
+    private readonly Pipeline[] pipelines = new Pipeline[4];
     private DescriptorSetLayout setLayout;
     private DescriptorPool pool;
     private PipelineLayout layout;
@@ -61,6 +61,7 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
     private Matrix4x4 lastClip;
     private Vector3 lastEye;
     private ClusterVisibilityMode lastMode;
+    private bool lastUsedHzb;
 
     public AurelianVulkanBuffer Arguments => arguments[frames.Slot];
     public AurelianVulkanBuffer Count => counts[frames.Slot];
@@ -179,6 +180,7 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
         lastClip = clip;
         lastEye = eye;
         lastMode = mode;
+        lastUsedHzb = hzbPhase > 0;
         Vector4[] parameters = [.. Planes(clip), new(eye, 1), Vector4.Zero,
             new(clip.M11, clip.M21, clip.M31, clip.M41), new(clip.M12, clip.M22, clip.M32, clip.M42),
             new(clip.M14, clip.M24, clip.M34, clip.M44), lodSettings];
@@ -203,7 +205,8 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
         void Dispatch(int phase, uint groups)
         {
             DescriptorSet set = sets[frames.Slot, variant, phase];
-            plant.Vk.CmdBindPipeline(command.CommandBuffer, PipelineBindPoint.Compute, pipelines[phase]);
+            int pipeline = phase == 0 && hzbPhase > 0 ? 3 : phase;
+            plant.Vk.CmdBindPipeline(command.CommandBuffer, PipelineBindPoint.Compute, pipelines[pipeline]);
             plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Compute, layout, 0, 1, &set, 0, null);
             plant.Vk.CmdDispatch(command.CommandBuffer, groups, 1, 1);
         }
@@ -263,8 +266,8 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
         {
             SelectedLods = data[..candidates.Length].Select(rank => rank >> 8).ToArray(),
             SubmittedTriangles = submittedTriangles,
-            SeedMask = hzbEnabled ? data[(candidates.Length + 1)..(candidates.Length * 2 + 1)] : [],
-            CandidateSpheres = hzbEnabled ? candidates.Select(candidate => candidate.Sphere).ToArray() : [],
+            SeedMask = lastUsedHzb ? data[(candidates.Length + 1)..(candidates.Length * 2 + 1)] : [],
+            CandidateSpheres = lastUsedHzb ? candidates.Select(candidate => candidate.Sphere).ToArray() : [],
         };
     }
 
@@ -389,9 +392,11 @@ internal sealed unsafe class VulkanClusterVisibility3D : IDisposable
                 }
             }
         }
-        byte[][] sources = [hzbCull ?? programs.Cull, programs.Scan, programs.Scatter];
-        string[] entries = [hzbEnabled ? "HzbCullMain" : "VisibilityCullMain", "VisibilityScanMain", "VisibilityScatterMain"];
-        for (int phase = 0; phase < 3; phase++)
+        byte[][] sources = hzbCull is null
+            ? [programs.Cull, programs.Scan, programs.Scatter]
+            : [programs.Cull, programs.Scan, programs.Scatter, hzbCull];
+        string[] entries = ["VisibilityCullMain", "VisibilityScanMain", "VisibilityScatterMain", "HzbCullMain"];
+        for (int phase = 0; phase < sources.Length; phase++)
         {
             ShaderModule module;
             fixed (byte* bytes = sources[phase])

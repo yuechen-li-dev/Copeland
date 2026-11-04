@@ -80,7 +80,7 @@ internal static partial class RenderingHzbProof
         Console.WriteLine("AURELIAN_HZB_PASSED " + output);
     }
 
-    private static Native3DScene Forest(bool wall, bool dense = false, bool mask = false)
+    internal static Native3DScene Forest(bool wall, bool dense = false, bool mask = false)
     {
         var mesh = RenderingR2Proof.Tree();
         var materials = RenderingBindlessProof.Materials(64);

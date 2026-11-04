@@ -18,6 +18,8 @@ supplies `HierarchicalZPrograms` automatically; direct construction supplies `Hz
 `HzbReduce3D.v.ts` through `RetainedModel3DPrograms.HierarchicalZ`. The mode requires visibility-buffer
 and indirect-cluster programs, eight compute storage bindings, and transfer-source support for D32 depth.
 The eighth binding holds the persistent selection state added by [offline asset LOD](rendering-r2-lod.md).
+The [Dominatus policy](rendering-policy.md) can now enable HZB opportunistically. Compatible resident
+visibility-buffer scenes prepare reusable HZB resources once; switching execution on/off retains those resources.
 Unsupported configurations fail with `AUR-HZB-004`. The existing resident limits remain, and pyramid
 admission checks the 16-level bound, device storage range and reduction-dispatch limit.
 

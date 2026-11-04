@@ -31,8 +31,8 @@ it never calls the simplifier. Missing, corrupt, stale or mismatched sidecars fa
 retains the previously published slot on failure. Import settings and compiler version enter the asset
 content identity, and the sidecar contains that identity plus its own SHA-256 checksum.
 
-Loading an authoring manifest without `lod_file` performs explicit import-time compilation. Use the
-generated delivery manifest in a game to avoid that work at startup. Existing manifests default to
+Runtime loading of `lod = true` without `lod_file` is rejected with `AUR-LOD-012`. Generation is an explicit
+`Aurelian.AssetCompiler`/AssetTool operation; ship the generated delivery manifest. Existing manifests default to
 `lod = false` and retain their previous content identity and geometry.
 
 The renderer-neutral `ModelPrimitive.Lods` stores index arrays and object-space error estimates.
@@ -41,15 +41,18 @@ Programmatic asset compilers can call `ModelLodCompiler.Compile` once before adm
 
 ## Generation policy
 
-`Aurelian.Assets` pins MIT `Meshoptimizer.NET` 1.0.7, repository commit
+The tooling-only `Aurelian.AssetCompiler` project pins MIT `Meshoptimizer.NET` 1.0.7, repository commit
 `8ae428f8ef490afed28bf516723859f24cbc6ea8`, as the native binary carrier. The owned adapter calls
 `meshopt_simplifyWithAttributes`, `meshopt_simplifyScale` and `meshopt_optimizeVertexCache` through the
-native C ABI. [Provenance and both MIT notices](../../src/Aurelian/Aurelian.Assets/Models/Licenses/Meshoptimizer-NOTICE.txt)
-are retained in the repository. No Aetheris source or module was ported.
+native C ABI. [Provenance and both MIT notices](../../src/Aurelian/Aurelian.AssetCompiler/Models/Licenses/Meshoptimizer-NOTICE.txt)
+are retained and copied to tooling outputs. Runtime `Aurelian.Assets` has no compiler/native meshoptimizer
+reference. No Aetheris source or module was ported.
 
 The package supplies Windows x64 and Linux x64 binaries; this qualification executes Windows x64.
 Other native platforms need a supported package/build before authoring-time generation can run.
-Delivery consumption has no simplifier dependency at execution time.
+Fresh published delivery consumers and starter games contain no meshoptimizer/compiler files or dependency
+entries; the delivery proof also checks loaded process modules. Existing Vulkan/driver and Skia dependencies
+remain separate from this LOD boundary. See [native boundary and adaptive policy](rendering-policy.md).
 
 Each primitive/material is simplified independently from LOD0 toward 50%, 25% and 12.5% of its original
 triangle count, stopping at a 5% normalized combined-error limit. Errors are converted to object units
@@ -83,6 +86,10 @@ It works with grouped or bindless resident GPU draws and the visibility-buffer p
 list or a device/path without GPU culling uses LOD0. GPU culling's descriptor layout requires eight
 storage buffers per stage/set in addition to the existing indirect-draw capabilities; lower-capability
 devices keep direct retained drawing.
+
+The game host's [Dominatus policy](rendering-policy.md) now chooses baseline, LOD, HZB or both from completed
+GPU timings, with hysteresis and minimum commitment. The per-object GPU selector remains inside the chosen
+quality limit. Disable `NativeGameGraphics.EnableAdaptiveVisibility` for fixed manual experiments.
 
 The immutable GPU index buffer concatenates LOD0 and the accepted prepared ranges. Each LOD object
 uses one visibility candidate, with a conservative transformed whole-object sphere, prepared ranges

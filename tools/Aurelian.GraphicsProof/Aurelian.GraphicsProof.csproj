@@ -4,6 +4,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Aurelian/Aurelian.AssetCompiler/Aurelian.AssetCompiler.csproj" />
     <ProjectReference Include="../../Games/Cloudstep/Cloudstep/Cloudstep.csproj" />
     <ProjectReference Include="../../Games/Beacon3D/Aurelian.Beacon3D/Aurelian.Beacon3D.csproj" />
     <ProjectReference Include="../../src/Integrations/Aurelian.Inference.Dominatus/Aurelian.Inference.Dominatus.csproj" />

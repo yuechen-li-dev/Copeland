@@ -8,7 +8,7 @@ using Aurelian.Graphics.Vulkan.Native3D;
 
 internal static partial class RenderingLodProof
 {
-    private static NativeMesh3D CompileAsset(string output, out object evidence)
+    internal static NativeMesh3D CompileAsset(string output, out object evidence)
     {
         string source = Path.Combine(output, "source");
         string delivery = Path.Combine(output, "delivery");

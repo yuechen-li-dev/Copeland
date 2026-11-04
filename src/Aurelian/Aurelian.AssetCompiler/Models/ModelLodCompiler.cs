@@ -8,7 +8,7 @@ namespace Aurelian.Assets.Models;
 /// <summary>Import-time only. Native meshoptimizer comes from the pinned MIT Meshoptimizer.NET package.</summary>
 public static unsafe class ModelLodCompiler
 {
-    public const string Version = "aurelian.lod.v1/meshoptimizer.net-1.0.7";
+    public const string Version = ModelLodArtifact.CompilerVersion;
 
     public static ModelPrimitive Compile(ModelPrimitive source)
     {

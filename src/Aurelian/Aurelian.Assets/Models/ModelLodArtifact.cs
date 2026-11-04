@@ -8,6 +8,7 @@ namespace Aurelian.Assets.Models;
 /// <summary>Deterministic delivery sidecar. Loading never invokes a simplifier or silently rebuilds stale data.</summary>
 public static class ModelLodArtifact
 {
+    public const string CompilerVersion = "aurelian.lod.v1/meshoptimizer.net-1.0.7";
     private const uint Magic = 0x31444F4C;
     private const int MaximumBytes = 128 * 1024 * 1024;
 
@@ -17,7 +18,7 @@ public static class ModelLodArtifact
         using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true))
         {
             writer.Write(Magic);
-            writer.Write(ModelLodCompiler.Version);
+            writer.Write(CompilerVersion);
             writer.Write(model.ContentIdentity);
             var primitives = model.Occurrences.Select(item => item.Primitive).DistinctBy(item => item.Id).ToArray();
             writer.Write(primitives.Length);
@@ -49,7 +50,7 @@ public static class ModelLodArtifact
             throw new InvalidDataException("AUR-LOD-005: LOD artifact checksum mismatch.");
         using var stream = new MemoryStream(bytes, 0, body.Length, writable: false);
         using var reader = new BinaryReader(stream, Encoding.UTF8);
-        if (reader.ReadUInt32() != Magic || reader.ReadString() != ModelLodCompiler.Version
+        if (reader.ReadUInt32() != Magic || reader.ReadString() != CompilerVersion
             || reader.ReadString() != source.ContentIdentity)
             throw new InvalidDataException("AUR-LOD-006: LOD artifact version/source/settings mismatch; rebuild assets.");
         var originals = source.Occurrences.Select(item => item.Primitive).DistinctBy(item => item.Id)

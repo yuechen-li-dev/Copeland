@@ -27,7 +27,7 @@ public static class ModelAssetBuilder
         {
             string path = Path.Combine(directory, record.Path);
             var result = GlbModelImporter.Load(record.Id, path, record.Settings,
-                record.LodPath is null ? null : Path.Combine(directory, record.LodPath));
+                record.LodPath is null ? null : Path.Combine(directory, record.LodPath), ModelLodCompiler.Compile);
             diagnostics.AddRange(result.Diagnostics);
             if (!result.Success) continue;
             var model = result.Model!;

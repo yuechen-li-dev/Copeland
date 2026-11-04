@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Aurelian.Assets/Aurelian.Assets.csproj" />
+    <PackageReference Include="Meshoptimizer.NET" />
+    <Content Include="Models/Licenses/Meshoptimizer-NOTICE.txt" Link="Licenses/Meshoptimizer-NOTICE.txt"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

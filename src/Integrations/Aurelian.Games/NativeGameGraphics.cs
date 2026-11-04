@@ -56,6 +56,9 @@ public sealed class NativeGameGraphics : IDisposable
     }
 
     public ParticleBudget3D? ParticleBudget => Renderer.ParticleSystem?.Inspection;
+    public bool EnableAdaptiveVisibility { get; set; } = true;
+    public NativeVisibilityPolicy3D VisibilityPolicy { get; private set; } = null!;
+    private long visibilityTick = System.Diagnostics.Stopwatch.GetTimestamp();
 
     /// <summary>
     /// Game-owned native 2D layers (sprites, tiles, game UI), drawn after the optional 3D view and before the shell's HUD
@@ -122,6 +125,7 @@ public sealed class NativeGameGraphics : IDisposable
                 throw new InvalidOperationException(string.Join("; ", initialized.Diagnostics.Select(item => item.Message)));
             }
             Plant = Own(initialized.Plant!);
+            VisibilityPolicy = new(Plant.Facts.HierarchicalZEnabled);
             Font = AurelianNativeUiFont.Create(assets.FontDirectory());
             CreateSurfaceResources(ReadFramebufferExtent());
         }
@@ -277,8 +281,17 @@ public sealed class NativeGameGraphics : IDisposable
         Renderer.Render(vertices, camera, Clear, capture);
 
     public Native3DFrameResult Render(Native3DScene scene, Matrix4x4 camera, Vector3 eye, bool capture = false,
-        NativeGpuGeometry3D? gpuGeometry = null) =>
-        Renderer.Render(scene, camera, eye, Clear, capture, gpuGeometry);
+        NativeGpuGeometry3D? gpuGeometry = null)
+    {
+        long now = System.Diagnostics.Stopwatch.GetTimestamp();
+        TimeSpan elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(visibilityTick, now);
+        visibilityTick = now;
+        if (EnableAdaptiveVisibility)
+            VisibilityPolicy.BeforeFrame(Renderer, scene, camera, TimeSpan.FromSeconds(Math.Min(elapsed.TotalSeconds, 1)));
+        var result = Renderer.Render(scene, camera, eye, Clear, capture, gpuGeometry);
+        if (EnableAdaptiveVisibility) VisibilityPolicy.AfterFrame(result);
+        return result;
+    }
 
     public static void WritePng(string path, int width, int height, byte[] pixels)
     {

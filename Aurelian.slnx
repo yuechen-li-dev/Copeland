@@ -19,6 +19,8 @@
     <Project Path="src/Aurelian/Aurelian.Effects2D/Aurelian.Effects2D.csproj" />
     <Project Path="src/Aurelian/Aurelian.Assets/Aurelian.Assets.csproj" />
     <Project Path="src/Aurelian/Aurelian.AssetTool/Aurelian.AssetTool.csproj" />
+    <Project Path="src/Aurelian/Aurelian.AssetCompiler/Aurelian.AssetCompiler.csproj" />
+    <Project Path="tools/Aurelian.AssetDeliveryProof/Aurelian.AssetDeliveryProof.csproj" />
     <Project Path="src/Aurelian/Aurelian.Core/Aurelian.Core.csproj" />
     <Project Path="src/Aurelian/Aurelian.Diagnostics/Aurelian.Diagnostics.csproj" />
     <Project Path="src/Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />

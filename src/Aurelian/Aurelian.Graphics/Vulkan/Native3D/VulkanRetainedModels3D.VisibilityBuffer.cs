@@ -15,13 +15,14 @@ internal sealed unsafe partial class VulkanRetainedModels3D
 
     public bool CanUseVisibilityBuffer => plant.Facts.VisibilityBufferEnabled && programs.VisibilityBuffer is not null;
     public bool CanUseHierarchicalZ => plant.Facts.HierarchicalZEnabled && programs.Visibility is not null && programs.HierarchicalZ is not null;
+    private bool HierarchicalZPrepared => VisibilityBufferActive && CanUseHierarchicalZ;
 
     private void PrepareVisibilityBuffer()
     {
         visibilityBuffer = new(plant, allocator, commands, fences, frames, bindlessTable!, programs.VisibilityBuffer!,
             geometryPass, visibilityWidth, visibilityHeight, bindlessRuns.Select(run => run.Source).ToArray(), words,
             visibility, pass => CreatePipeline(pass, programs.VisibilityBuffer!.Raster.Shaders, bindlessTable!.Layout, shadow: false),
-            HierarchicalZActive ? programs.HierarchicalZ!.Reduce : null);
+            HierarchicalZPrepared ? programs.HierarchicalZ!.Reduce : null);
     }
 
     public void RecordIdentityRaster(VulkanCommandBufferLease command)

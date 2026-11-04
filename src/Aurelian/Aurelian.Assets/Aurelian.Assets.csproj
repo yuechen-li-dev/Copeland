@@ -5,10 +5,8 @@
     <RootNamespace>Aurelian.Assets</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Meshoptimizer.NET" />
     <PackageReference Include="Tomlyn" />
     <PackageReference Include="SharpGLTF.Core" />
     <PackageReference Include="SkiaSharp" />

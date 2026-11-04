@@ -11,6 +11,6 @@
     <PackageReference Include="System.CommandLine" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../Aurelian.Assets/Aurelian.Assets.csproj" />
+    <ProjectReference Include="../Aurelian.AssetCompiler/Aurelian.AssetCompiler.csproj" />
   </ItemGroup>
 </Project>

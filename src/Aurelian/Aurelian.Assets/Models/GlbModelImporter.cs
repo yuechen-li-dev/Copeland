@@ -22,12 +22,15 @@ public static class GlbModelImporter
     public const string Version = "aurelian.glb.static.v2/sharpgltf-1.0.7";
     private const int MaximumBytes = 128 * 1024 * 1024;
 
-    public static ModelImportResult Load(string id, string path, ModelImportSettings? settings = null, string? compiledLodPath = null)
+    public static ModelImportResult Load(string id, string path, ModelImportSettings? settings = null,
+        string? compiledLodPath = null, Func<ModelPrimitive, ModelPrimitive>? lodCompiler = null)
     {
         var diagnostics = new List<AssetDiagnostic>();
         try
         {
             settings ??= new();
+            if (settings.GenerateLods && compiledLodPath is null && lodCompiler is null)
+                throw new InvalidDataException("AUR-LOD-012: LOD generation requires Aurelian.AssetCompiler tooling. Build assets and load the delivery models.toml at runtime.");
             if (!float.IsFinite(settings.Scale) || settings.Scale <= 0)
                 throw new InvalidDataException("Import scale must be finite and positive.");
             if (!File.Exists(path)) return Failed("AA3101", "GLB file does not exist.", path);
@@ -62,7 +65,7 @@ public static class GlbModelImporter
                                 ? new ModelMaterial("$default") : materials[primitive.Material];
                             imported = ReadPrimitive(primitive, material);
                             if (settings.GenerateLods && compiledLodPath is null)
-                                imported = ModelLodCompiler.Compile(imported);
+                                imported = lodCompiler!(imported);
                             primitives.Add(primitive, imported);
                         }
                         Matrix4x4 transform = node.WorldMatrix * Matrix4x4.CreateScale(settings.Scale);
@@ -109,11 +112,11 @@ public static class GlbModelImporter
         }
     }
 
-    internal static string ContentIdentity(byte[] bytes, ModelImportSettings settings)
+    public static string ContentIdentity(byte[] bytes, ModelImportSettings settings)
     {
         byte[] settingsBytes = System.Text.Encoding.UTF8.GetBytes(Version + ":" + settings.Scale.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
         if (settings.GenerateLods)
-            settingsBytes = [.. settingsBytes, .. System.Text.Encoding.UTF8.GetBytes(":" + ModelLodCompiler.Version)];
+            settingsBytes = [.. settingsBytes, .. System.Text.Encoding.UTF8.GetBytes(":" + ModelLodArtifact.CompilerVersion)];
         return Convert.ToHexString(SHA256.HashData([.. bytes, .. settingsBytes])).ToLowerInvariant();
     }
 

@@ -19,6 +19,9 @@ public sealed class ModelLodTests
             string manifestPath = Path.Combine(directory, "assets.toml");
             string text = "[[models]]\nid = \"crate\"\npath = \"crate.glb\"\nlod = true\n";
             File.WriteAllText(manifestPath, text);
+            var accidentalRuntimeImport = GlbModelImporter.Load("crate", Path.Combine(directory, "crate.glb"), new(1, true));
+            Assert.False(accidentalRuntimeImport.Success);
+            Assert.Contains(accidentalRuntimeImport.Diagnostics, diagnostic => diagnostic.Message.Contains("AUR-LOD-012"));
             var parsed = AssetManifestParser.Parse(text, manifestPath);
             Assert.Empty(parsed.Diagnostics);
             string delivery = Path.Combine(directory, "delivery");
