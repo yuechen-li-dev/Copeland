@@ -179,6 +179,33 @@ internal static class RayQueryHlslEmitter
             $"void AurelianTraceClosest_{intersector}(", StringComparison.Ordinal);
     }
 
+    // Retained geometry has mesh-local triangles shared by instances. The first
+    // 32 words per instance are shading/filter/normal-transform metadata, followed
+    // by the immutable local triangle atlas. Hit identity is the packed instance.
+    internal static string Retained(string resultType, string intersector)
+    {
+        string helper = Procedural(resultType, intersector)
+            .Replace("AurelianTraceClosest_", "AurelianTraceRetained_", StringComparison.Ordinal)
+            .Replace("uint bestPrimitive = 0xffffffffu;", "uint bestPrimitive = 0xffffffffu; uint bestSubprimitive = 0xffffffffu;", StringComparison.Ordinal)
+            .Replace("uint primitive = query.CandidatePrimitiveIndex();",
+                "uint primitive = query.CandidatePrimitiveIndex(); uint instanceIndex = query.CandidateInstanceID(); uint metadata = instanceIndex * 32u;", StringComparison.Ordinal)
+            .Replace("uint vertex = primitive * 12u;", "uint vertex = asuint(triangles[metadata + 24u]) + primitive * 12u;", StringComparison.Ordinal)
+            .Replace("layer = asuint(triangles[vertex + 3u]);", "layer = asuint(triangles[metadata + 1u]);", StringComparison.Ordinal)
+            .Replace("mask = asuint(triangles[vertex + 7u]);", "mask = asuint(triangles[metadata + 2u]);", StringComparison.Ordinal)
+            .Replace("candidateNormal = normalize(cross(b - a, c - a));", """
+                float3 localNormal = cross(b - a, c - a);
+                candidateNormal = normalize(float3(
+                    dot(float3(triangles[metadata + 4u], triangles[metadata + 5u], triangles[metadata + 6u]), localNormal),
+                    dot(float3(triangles[metadata + 8u], triangles[metadata + 9u], triangles[metadata + 10u]), localNormal),
+                    dot(float3(triangles[metadata + 12u], triangles[metadata + 13u], triangles[metadata + 14u]), localNormal)));
+                """, StringComparison.Ordinal)
+            .Replace($"{intersector}(spheres, primitive,", $"{intersector}(spheres, asuint(triangles[metadata + 3u]),", StringComparison.Ordinal)
+            .Replace("primitive < bestPrimitive", "(instanceIndex < bestPrimitive || (instanceIndex == bestPrimitive && primitive < bestSubprimitive))", StringComparison.Ordinal)
+            .Replace("bestPrimitive = primitive;", "bestPrimitive = instanceIndex; bestSubprimitive = primitive;", StringComparison.Ordinal)
+            .Replace("hits[output + 7u] = 0.0f;", "hits[output + 7u] = float(bestSubprimitive);", StringComparison.Ordinal);
+        return helper;
+    }
+
     private static string ExpandCandidate(string candidate)
     {
         return Template.Replace("__AURELIAN_PROCEDURAL_CANDIDATE__",

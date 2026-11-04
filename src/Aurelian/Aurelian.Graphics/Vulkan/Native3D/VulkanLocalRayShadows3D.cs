@@ -48,6 +48,9 @@ internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
     public ulong SamplingRevision { get; private set; }
     private bool disposed;
     public AurelianVulkanTexture Output { get; }
+    internal VulkanSceneAcceleration3D Scene => scene;
+    internal AurelianVulkanBuffer Motion => motion;
+    internal AurelianVulkanBuffer Normals => normals;
     public SceneAccelerationStatistics3D Statistics => scene.Statistics;
 
     public VulkanLocalRayShadows3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,

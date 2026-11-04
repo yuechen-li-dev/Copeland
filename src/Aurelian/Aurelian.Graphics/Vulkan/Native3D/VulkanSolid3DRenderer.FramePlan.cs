@@ -35,6 +35,11 @@ public sealed unsafe partial class VulkanSolid3DRenderer
     public float[] ReadLightSamplesForQualification() => surfaceLighting!.ReadSamplesForQualification();
     public ReferenceImage3D ReadLocalHeadForQualification() => surfaceLighting!.ReadHeadForQualification();
     public ReferenceImage3D ReadLightingForQualification() => surfaceLighting!.ReadLightingForQualification();
+    public DynamicDiffuseLighting3D DynamicDiffuse { get; set; } = new();
+    public CompiledDiffuseProbeField3D CaptureCompiledDiffuseProbes() => surfaceLighting!.CaptureCompiledDiffuseProbes();
+    public void SetCompiledDiffuseProbes(CompiledDiffuseProbeField3D field) => surfaceLighting!.SetCompiledDiffuseProbes(field);
+    public float[] ReadDiffuseCacheForQualification() => surfaceLighting!.ReadDiffuseCache();
+    public float[] ReadDiffuseOutputForQualification() => surfaceLighting!.ReadDiffuseOutput();
     public bool EnableRayShadows { get; set; }
     public NativeRasterAdmissionMode3D RasterAdmissionMode { get; set; }
     public Aurelian.Graphics.Vulkan.RayQueries.SceneAccelerationUpdateMode3D RaySceneUpdateMode { get; set; }

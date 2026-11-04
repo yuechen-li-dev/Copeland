@@ -18,6 +18,7 @@ public static partial class VdMirComputeHlslEmitter
         {
             AddOverloads(RayQueryHlslEmitter.Procedural(MapType(intersector.Type, module), intersector.Value!));
             AddOverloads(RayQueryHlslEmitter.Occlusion(MapType(intersector.Type, module), intersector.Value!));
+            AddOverloads(RayQueryHlslEmitter.Retained(MapType(intersector.Type, module), intersector.Value!));
         }
 
         void Visit(IEnumerable<VdMirStatement> statements)

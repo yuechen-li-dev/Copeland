@@ -144,8 +144,12 @@ public static partial class VdMirComputeHlslEmitter
                 break;
             case "ray-query":
                 var queryArguments = statement.Expression!.Operands!;
-                string queryFunction = statement.Expression.Value == "RayQueryTraceOccluded"
-                    ? "AurelianTraceOccluded" : "AurelianTraceClosest";
+                string queryFunction = statement.Expression.Value switch
+                {
+                    "RayQueryTraceOccluded" => "AurelianTraceOccluded",
+                    "RayQueryTraceRetained" => "AurelianTraceRetained",
+                    _ => "AurelianTraceClosest",
+                };
                 if (queryArguments.Count == 7) queryFunction += "_" + queryArguments[6].Value;
                 builder.AppendLine($"{prefix}{queryFunction}({string.Join(", ", queryArguments.Take(6).Select(EmitExpression))});");
                 break;

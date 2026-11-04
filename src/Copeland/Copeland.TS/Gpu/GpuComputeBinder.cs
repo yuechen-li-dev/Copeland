@@ -114,7 +114,7 @@ public static partial class GpuComputeBinder
                             $"{function.Identifier.Text} is a compiler-owned intrinsic and cannot be redefined.",
                             Span(source.Path, function.Identifier));
                     }
-                    if (function.Identifier.Text is "RayQueryTraceClosest" or "RayQueryTraceOccluded")
+                    if (function.Identifier.Text is "RayQueryTraceClosest" or "RayQueryTraceOccluded" or "RayQueryTraceRetained")
                     {
                         AddDiagnostic("COPE-GPU-RAYQUERY-0003", "SDSL-V4213", "ray-query",
                             "RayQueryTraceClosest is a compiler-owned command and cannot be redefined.", Span(source.Path, function.Identifier));
@@ -475,7 +475,7 @@ public static partial class GpuComputeBinder
                         }
                         if (expressionStatement.Expression is CallExpressionSyntax queryCall
                             && queryCall.Target is NameExpressionSyntax queryName
-                            && queryName.IdentifierToken.Text is "RayQueryTraceClosest" or "RayQueryTraceOccluded")
+                            && queryName.IdentifierToken.Text is "RayQueryTraceClosest" or "RayQueryTraceOccluded" or "RayQueryTraceRetained")
                         {
                             result.Add(BindRayQuery(path, queryCall, scope));
                             break;
@@ -871,7 +871,7 @@ public static partial class GpuComputeBinder
                 return new VdMirExpression("call", intrinsicName == "U32" ? "u32" : "f32",
                     Span(path, call), intrinsicName, operands);
             }
-            if (call.Target is NameExpressionSyntax queryName && queryName.IdentifierToken.Text is "RayQueryTraceClosest" or "RayQueryTraceOccluded")
+            if (call.Target is NameExpressionSyntax queryName && queryName.IdentifierToken.Text is "RayQueryTraceClosest" or "RayQueryTraceOccluded" or "RayQueryTraceRetained")
             {
                 AddDiagnostic("COPE-GPU-RAYQUERY-0002", "SDSL-V4213", "ray-query",
                     "RayQueryTraceClosest is statement-only; opaque mutable query state cannot escape as a value.", Span(path, call));
@@ -984,7 +984,7 @@ public static partial class GpuComputeBinder
             string command = ((NameExpressionSyntax)call.Target).IdentifierToken.Text;
             bool occlusion = command == "RayQueryTraceOccluded";
             _usesRayOcclusion |= occlusion;
-            bool valid = call.Arguments.Count is 6 or 7 && (!occlusion || call.Arguments.Count == 7);
+            bool valid = call.Arguments.Count is 6 or 7 && (!(occlusion || command == "RayQueryTraceRetained") || call.Arguments.Count == 7);
             VdMirResourceAccess[] access = [VdMirResourceAccess.Readonly, VdMirResourceAccess.Readonly,
                 VdMirResourceAccess.Readonly, VdMirResourceAccess.Readwrite, VdMirResourceAccess.Readonly];
             for (int index = 0; index < Math.Min(5, arguments.Count); index++)
@@ -1002,7 +1002,7 @@ public static partial class GpuComputeBinder
             if (!valid)
             {
                 AddDiagnostic("COPE-GPU-RAYQUERY-0001", "SDSL-V4211", "ray-query",
-                    $"{command} requires readonly acceleration_structure and geometry metadata, readable ray storage, readwrite output and a u32 index; occlusion also requires its closed procedural evaluator.", Span(path, call));
+                    $"{command} requires readonly acceleration_structure and geometry metadata, readable ray storage, readwrite output and a u32 index; occlusion and retained closest also require their closed procedural evaluator.", Span(path, call));
             }
             if (valid && call.Arguments.Count == 7)
             {

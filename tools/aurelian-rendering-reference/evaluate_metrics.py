@@ -96,6 +96,11 @@ def evaluate(manifest_path):
         for scene in ["area-only", "key-tail", "many-area"]:
             if means[scene + "-hybrid-tail-1"] >= means[scene + "-hybrid"]:
                 raise ValueError(f"Local tail reconstruction did not improve native FLIP: {scene}")
+    elif manifest.get("Qualification") == "dynamic-diffuse":
+        for result, control in [("gi-static", "direct-static"), ("gi-moved", "compiled-moved"),
+                                ("gi-emissive", "direct-emissive")]:
+            if means[result] >= means[control]:
+                raise ValueError(f"Dynamic diffuse did not improve native FLIP: {result}")
     elif manifest.get("Qualification") == "restir":
         for scene in ["static", "camera-pan", "moving-receiver"]:
             if means[scene + "-SpatiotemporalReservoir"] >= means[scene + "-Reservoir"]:

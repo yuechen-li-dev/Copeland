@@ -6,10 +6,12 @@ param(
     [switch]$IncludeRestir,
     [switch]$IncludeTlas,
     [switch]$IncludeRasterMotion,
-    [switch]$IncludeArea
+    [switch]$IncludeArea,
+    [switch]$IncludeGi
 )
 
 $ErrorActionPreference = 'Stop'
+if ($IncludeGi) { $IncludeArea = $true }
 if ($IncludeArea) { $IncludeRasterMotion = $true }
 if ($IncludeRasterMotion) { $IncludeTlas = $true }
 if ($IncludeTlas) { $IncludeRestir = $true }
@@ -151,6 +153,18 @@ try {
             'tools/aurelian-area-lights/Qualify.ps1'
         )
     }
+    if ($IncludeGi) {
+        $sourcePaths += @(
+            'src/Aurelian/Aurelian.Rendering.Contracts/Lighting/DynamicDiffuseLighting3D.cs',
+            'src/Aurelian/Aurelian.Rendering.Contracts/Lighting/DiffuseProbeGrid.cs',
+            'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/VulkanDynamicDiffuse3D.cs',
+            'src/Aurelian/Aurelian.Graphics/Vulkan/RayQueries/VulkanSceneAcceleration3D.Shading.cs',
+            'src/Aurelian/Aurelian.Shaders/Assets/Queries/DynamicDiffuse3D.v.ts',
+            'tests/Aurelian/Aurelian.Rendering.Contracts.Tests/DynamicDiffuseLightingTests.cs',
+            'tools/Aurelian.GraphicsProof/RenderingR3Proof.Gi.cs',
+            'tools/aurelian-rendering-gi/Qualify.ps1'
+        )
+    }
     $sourcePaths = @($sourcePaths | Select-Object -Unique)
     $initialHashes = @($sourcePaths | ForEach-Object { (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash })
 
@@ -255,6 +269,16 @@ try {
         if (-not $area.Accepted -or -not $areaFlip.Accepted) { throw 'Area native and FLIP qualification did not accept.' }
     }
 
+    $gi = $null
+    $giFlip = $null
+    if ($IncludeGi) {
+        Invoke-QualificationCommand 'gi' @($proof, '--rendering-gi', '--output', (Join-Path $outputPath 'gi'))
+        Invoke-QualificationCommand 'gi-flip' @((Join-Path $repository 'tools/aurelian-rendering-reference/evaluate_metrics.py'),
+            (Join-Path $outputPath 'gi/metrics-manifest.json')) $metricsPython
+        $gi = Get-Content -LiteralPath (Join-Path $outputPath 'gi/evidence.json') -Raw | ConvertFrom-Json
+        $giFlip = Get-Content -LiteralPath (Join-Path $outputPath 'gi/flip-evidence.json') -Raw | ConvertFrom-Json
+        if (-not $gi.Accepted -or -not $giFlip.Accepted) { throw 'Dynamic diffuse native and FLIP qualification did not accept.' }
+    }
     $hashes = @($sourcePaths | ForEach-Object {
         @{ Path = $_; Sha256 = (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash }
     })
@@ -274,7 +298,7 @@ try {
         ProofSha256 = (Get-FileHash -LiteralPath $proof -Algorithm SHA256).Hash;
         GraphicsSha256 = (Get-FileHash -LiteralPath (Join-Path (Split-Path $proof) 'Aurelian.Graphics.dll') -Algorithm SHA256).Hash;
         LightingFixture = $fixturePath; Reference = $reference; Affine = $affine;
-        LightingTemporal = $lighting; Flip = $flip; R3 = $r3; R3Flip = $r3Flip; Sampling = $sampling; SamplingFlip = $samplingFlip; Restir = $restir; RestirFlip = $restirFlip; Tlas = $tlas; RasterMotion = $rasterMotion; Area = $area; AreaFlip = $areaFlip; FullR3Complete = $false } | ConvertTo-Json -Depth 30 |
+        LightingTemporal = $lighting; Flip = $flip; R3 = $r3; R3Flip = $r3Flip; Sampling = $sampling; SamplingFlip = $samplingFlip; Restir = $restir; RestirFlip = $restirFlip; Tlas = $tlas; RasterMotion = $rasterMotion; Area = $area; AreaFlip = $areaFlip; Gi = $gi; GiFlip = $giFlip; FullR4Complete = $false; FullR3Complete = $false } | ConvertTo-Json -Depth 30 |
         Set-Content -LiteralPath $evidencePath
     Write-Output "AURELIAN_REFERENCE_QUALIFIED: $evidencePath"
 }

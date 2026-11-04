@@ -285,8 +285,15 @@ function PixelMain(input: Varyings, resources: Resources): Output {
         }
     }
     const indirect: float3 = Scale3(ambient, emission.w * Occlusion(resources, input.uv, p));
-    var lit: float3 = Add3(Add3(direct, indirect), emitted);
-    const diffuse: float3 = Add3(diffuseDirect, Scale3(diffuseAmbient, emission.w * Occlusion(resources, input.uv, p)));
+    var bounce: float3 = float3(0.0, 0.0, 0.0);
+    // The legacy floor field and dynamic field are mutually exclusive. Share
+    // their texture binding; probePosition.w selects the current-pixel field.
+    if (resources.material.probePosition.w > 0.5) {
+        const gi: float4 = Sample(resources.diffuse, resources.diffuseSampler, input.uv);
+        bounce = Scale3(Mul3(base, float3(gi.x, gi.y, gi.z)), (1.0 - n.w) * 0.96);
+    }
+    var lit: float3 = Add3(Add3(Add3(direct, indirect), emitted), bounce);
+    const diffuse: float3 = Add3(bounce, Add3(diffuseDirect, Scale3(diffuseAmbient, emission.w * Occlusion(resources, input.uv, p))));
     return {
         tail: LimitRadiance(float4(stochasticTail.x, stochasticTail.y, stochasticTail.z, tailVisible / Max(tailSlots, 1.0))),
         color: LimitRadiance(float4(lit.x, lit.y, lit.z, 1.0)),

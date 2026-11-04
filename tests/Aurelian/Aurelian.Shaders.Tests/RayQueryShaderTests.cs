@@ -8,9 +8,28 @@ namespace Aurelian.Shaders.Tests;
 
 public sealed class RayQueryShaderTests
 {
+    [Fact]
+    public void RetainedClosestUsesInstanceIdentityAndRequiresTheClosedEvaluator()
+    {
+        var sources = BuiltinShaderLibrary.LoadSources("DynamicDiffuse3D.v.ts");
+        var module = GpuComputeBinder.Compile(new(sources));
+        Assert.True(module.Success, string.Join("; ", module.Diagnostics.Select(item => item.Message)));
+        var compiled = VdMirComputeBackend.Compile(module);
+        Assert.True(compiled.SpirvValidated, compiled.DxcOutput + compiled.SpirvValidationOutput);
+        Assert.Contains("void AurelianTraceRetained_", compiled.Hlsl);
+        Assert.Contains("uint metadata = instanceIndex * 32u", compiled.Hlsl);
+        Assert.Contains("bestSubprimitive = primitive", compiled.Hlsl);
+        Assert.Contains("asuint(triangles[metadata + 24u])", compiled.Hlsl);
+        var invalid = sources.Select(source => source with { Source = source.Source.Replace(
+            "Hits, Shading, index, AffineAnalyticIntersection)", "Hits, Shading, index)", StringComparison.Ordinal) });
+        var rejected = GpuComputeBinder.Compile(new(invalid.ToArray()));
+        Assert.Contains(rejected.Diagnostics, item => item.Code == "COPE-GPU-RAYQUERY-0001");
+    }
+
     [Theory]
     [InlineData("SampledLocalLights3D.v.ts")]
     [InlineData("RestirSpatial3D.v.ts")]
+    [InlineData("DynamicDiffuse3D.v.ts")]
     public void SampledLocalLightingUsesTheTypedOcclusionBoundary(string name)
     {
         var module = GpuComputeBinder.Compile(new(BuiltinShaderLibrary.LoadSources(name)));

@@ -20,6 +20,11 @@ using Silk.NET.Maths;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
 
+if (args.Contains("--rendering-gi", StringComparer.Ordinal))
+{
+    RenderingR3Proof.RunGi(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-gi"));
+    return;
+}
 if (args.Contains("--rendering-area", StringComparer.Ordinal))
 {
     RenderingR3Proof.RunArea(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-area"));

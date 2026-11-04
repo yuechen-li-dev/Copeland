@@ -121,6 +121,7 @@ internal static class RenderingBindlessProof
                 TailTemporal = assets.Shader("LocalTailTemporal3D.v.ts"),
                 TailSpatial = assets.Shader("LocalTailSpatial3D.v.ts"),
                 TailCompose = assets.Shader("LocalTailCompose3D.v.ts"),
+                DynamicDiffuse = rayShadows ? assets.ComputeShader("DynamicDiffuse3D.v.ts") : null,
                 RestirSpatial = rayShadows ? assets.ComputeShader("RestirSpatial3D.v.ts") : null,
                 SampledLocalLights = rayShadows ? assets.ComputeShader("SampledLocalLights3D.v.ts") : null,
                 LocalRayShadows = rayShadows ? assets.ComputeShader("LocalShadows3D.v.ts") : null,

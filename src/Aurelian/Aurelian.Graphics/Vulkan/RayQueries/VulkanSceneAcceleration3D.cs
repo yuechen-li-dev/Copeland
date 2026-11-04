@@ -338,6 +338,7 @@ internal sealed unsafe partial class VulkanSceneAcceleration3D : IDisposable
         foreach (var structure in structures.AsEnumerable().Reverse()) acceleration.DestroyAccelerationStructure(plant.Device, structure, null);
         foreach (var buffer in snapshotBuffers.AsEnumerable().Reverse()) buffer.Dispose();
         foreach (var buffer in buffers.AsEnumerable().Reverse()) buffer.Dispose();
+        foreach (var buffer in shadingOwned) buffer.Dispose();
         submitter.Dispose();
         commands.Dispose();
         fences.Dispose();
