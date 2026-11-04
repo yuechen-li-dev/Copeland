@@ -1,3 +1,4 @@
+import { RawTarget, Target } from "./LocalLightProposal3D";
 import { AffineAnalyticIntersection } from "./AffineAnalyticQuery3D";
 import { WorldAt, LocalAttenuation } from "./SurfaceLighting";
 import { Dot3, Unit } from "./Lighting3D";
@@ -6,21 +7,6 @@ import { Read4, HalfToFloat, LightRandom } from "./LocalLightSamplingMath3D";
 function MinIndex(first: u32, second: u32): u32 {
     if (first < second) { return first; }
     return second;
-}
-function RawTarget(readonly parameters: StorageBuffer<f32>, point: float3, normal: float3, light: u32): f32 {
-    const offset: u32 = 64 + light * 16;
-    const sphere: float4 = Read4(parameters, offset);
-    const color: float4 = Read4(parameters, offset + 4);
-    const delta: float3 = float3(sphere.x, sphere.y, sphere.z) - point;
-    const direction: float3 = Unit(delta);
-    const attenuation: f32 = LocalAttenuation(direction, Dot3(delta, delta), sphere.w,
-        Read4(parameters, offset + 8), Read4(parameters, offset + 12));
-    const power: f32 = color.w * (color.x * 0.2126 + color.y * 0.7152 + color.z * 0.0722);
-    return Min(power * attenuation * Max(Dot3(normal, direction), 0.0), 1.0e20);
-}
-function Target(readonly parameters: StorageBuffer<f32>, point: float3, normal: float3, light: u32): f32 {
-    // Positive support keeps temporal normalization well-defined for dark candidates.
-    return Max(0.00000001, RawTarget(parameters, point, normal, light));
 }
 function Proposal(readonly parameters: StorageBuffer<f32>, point: float3, normal: float3, light: u32, mode: u32): f32 {
     if (mode == 6) {
@@ -53,6 +39,8 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
     const pixels: u32 = width * height;
     if (pixel >= pixels) { return; }
     const mode: u32 = U32(Parameters[23]);
+    const importanceReuse: bool = mode >= 7 && Parameters[57] > 0.5;
+    const usesCdf: bool = mode == 2 || mode == 3 || mode == 6 || importanceReuse;
     const count: u32 = U32(Parameters[18]);
     const frame: u32 = Bitcast<u32>(Parameters[28]);
     const seed: u32 = Bitcast<u32>(Parameters[35]);
@@ -75,7 +63,8 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
     Rays[packet + 3] = Parameters[19];
     Rays[packet + 8] = Parameters[20];
     Rays[packet + 9] = Parameters[21];
-    const historyBase: u32 = pixel * 24;
+    const currentBase: u32 = pixel * 24;
+    var historyBase: u32 = currentBase;
     var historyValid: bool = false;
     // Keep the resource read behind control flow. Legacy HLSL boolean operators
     // may evaluate both operands; non-temporal modes bind only a small placeholder.
@@ -86,16 +75,56 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
             historyValid = Dot3(difference, difference) < 0.000001 && Dot3(normal, oldNormal) > 0.999;
         }
     }
+    var reprojected: bool = false;
+    if ((mode == 7 || mode == 8) && Parameters[29] > 0.5 && depth < 1.0) {
+        const previousUv: float2 = float2(Motion[pixel * 4], Motion[pixel * 4 + 1]);
+        const previousDepth: f32 = Motion[pixel * 4 + 2];
+        if (previousUv.x >= 0.0 && previousUv.y >= 0.0 && previousUv.x < 1.0 && previousUv.y < 1.0
+            && previousDepth >= 0.0 && previousDepth < 1.0) {
+            const expected: float3 = WorldAt(previousUv, previousDepth, Read4(Parameters, 40), Read4(Parameters, 44),
+                Read4(Parameters, 48), Read4(Parameters, 52));
+            const adjacentX: float3 = WorldAt(float2(previousUv.x + 1.0 / Parameters[16], previousUv.y), previousDepth,
+                Read4(Parameters, 40), Read4(Parameters, 44), Read4(Parameters, 48), Read4(Parameters, 52)) - expected;
+            const adjacentY: float3 = WorldAt(float2(previousUv.x, previousUv.y + 1.0 / Parameters[17]), previousDepth,
+                Read4(Parameters, 40), Read4(Parameters, 44), Read4(Parameters, 48), Read4(Parameters, 52)) - expected;
+            const maximumDistance: f32 = Max(Dot3(adjacentX, adjacentX) + Dot3(adjacentY, adjacentY), 0.000001) * 4.0;
+            const minimumX: f32 = Floor(previousUv.x * Parameters[16] - 0.5);
+            const minimumY: f32 = Floor(previousUv.y * Parameters[17] - 0.5);
+            var best: f32 = 1.0e30;
+            for (let tap of BoundedIndices<4>(4)) {
+                const x: f32 = minimumX + Convert<f32>(tap % 2);
+                const y: f32 = minimumY + Convert<f32>(tap / 2);
+                if (x >= 0.0 && y >= 0.0 && x < Parameters[16] && y < Parameters[17]) {
+                    const candidateBase: u32 = (U32(y) * width + U32(x)) * 24;
+                    if (History[candidateBase + 23] > 0.5) {
+                        const candidatePoint: float3 = float3(History[candidateBase + 16], History[candidateBase + 17], History[candidateBase + 18]);
+                        const candidateNormal: float3 = float3(History[candidateBase + 20], History[candidateBase + 21], History[candidateBase + 22]);
+                        const difference: float3 = candidatePoint - expected;
+                        const squared: f32 = Dot3(difference, difference);
+                        if (Dot3(normal, candidateNormal) >= Parameters[39]
+                            && Abs(Dot3(difference, candidateNormal)) <= Parameters[38] && squared <= maximumDistance && squared < best) {
+                            best = squared;
+                            historyBase = candidateBase;
+                            historyValid = true;
+                            reprojected = candidateBase != currentBase;
+                        }
+                    }
+                }
+            }
+        }
+    }
     for (let word of BoundedIndices<16>(16)) { Visibility[pixel * 16 + word] = 0.0; }
-    if (mode == 5) {
-        for (let word of BoundedIndices<24>(24)) { NextHistory[historyBase + word] = 0.0; }
-        NextHistory[historyBase + 16] = point.x;
-        NextHistory[historyBase + 17] = point.y;
-        NextHistory[historyBase + 18] = point.z;
-        NextHistory[historyBase + 20] = normal.x;
-        NextHistory[historyBase + 21] = normal.y;
-        NextHistory[historyBase + 22] = normal.z;
-        if (depth < 1.0) { NextHistory[historyBase + 23] = 1.0; }
+    if (mode == 5 || mode >= 7) {
+        for (let word of BoundedIndices<24>(24)) { NextHistory[currentBase + word] = 0.0; }
+        NextHistory[currentBase + 3] = Convert<f32>(quota);
+        NextHistory[currentBase + 16] = point.x;
+        NextHistory[currentBase + 17] = point.y;
+        NextHistory[currentBase + 18] = point.z;
+        NextHistory[currentBase + 19] = depth;
+        NextHistory[currentBase + 20] = normal.x;
+        NextHistory[currentBase + 21] = normal.y;
+        NextHistory[currentBase + 22] = normal.z;
+        if (depth < 1.0) { NextHistory[currentBase + 23] = 1.0; }
     }
     var raysUsed: u32 = 0;
     var reused: u32 = 0;
@@ -103,7 +132,7 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
     var top: float3 = float3(-1.0, -1.0, -1.0);
     var topWeights: float3 = float3(0.0, 0.0, 0.0);
     var total: f32 = 0.0;
-    if (depth < 1.0 && (mode == 2 || mode == 3 || mode == 6)) {
+    if (depth < 1.0 && usesCdf) {
         for (let light of BoundedIndices<256>(256)) {
             if (light < count) {
                 const target: f32 = Proposal(Parameters, point, normal, light, mode);
@@ -135,7 +164,7 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
     }
     // Four inverse-CDF draws share one traversal of the light table.
     var choices: float4 = float4(-1.0, -1.0, -1.0, -1.0);
-    if (depth < 1.0 && (mode == 2 || mode == 3 || mode == 6)) {
+    if (depth < 1.0 && usesCdf) {
         const baseKey: u32 = pixel * 0x9e3779b9 + frame * 0x85ebca6b + seed;
         const thresholds: float4 = float4(LightRandom(baseKey) * total,
             LightRandom(baseKey + 0xc2b2ae35) * total,
@@ -165,22 +194,29 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
                 if (sample == 2) { selected = U32(top.z); }
                 weight = 1.0;
             } else {
-                if (mode == 2 || mode == 3 || mode == 6) {
+                if (usesCdf) {
                     selected = U32(choices.x);
                     if (sample == 1) { selected = U32(choices.y); }
                     if (sample == 2) { selected = U32(choices.z); }
                     if (sample == 3) { selected = U32(choices.w); }
                     weight = total / (Convert<f32>(quota - exactCount) * Proposal(Parameters, point, normal, selected, mode));
                 }
-                if (mode == 4 || mode == 5) {
+                if (mode == 4 || mode == 5 || mode >= 7) {
                     var sum: f32 = 0.0;
-                    for (let candidate of BoundedIndices<32>(32)) {
-                        if (candidate < U32(Parameters[26])) {
-                            const item: u32 = MinIndex(U32(LightRandom(key + candidate * 17 + 1) * Convert<f32>(count)), count - 1);
-                            const value: f32 = Target(Parameters, point, normal, item) * Convert<f32>(count);
-                            sum = sum + value;
-                            if (LightRandom(key + candidate * 17 + 2) * sum < value) { selected = item; }
-                            candidates = candidates + 1.0;
+                    if (importanceReuse) {
+                        // One exact target-CDF proposal has q(i)=target(i)/total.
+                        // Its RIS weight target/q is total, with one fresh sample.
+                        sum = total;
+                        candidates = 1.0;
+                    } else {
+                        for (let candidate of BoundedIndices<32>(32)) {
+                            if (candidate < U32(Parameters[26])) {
+                                const item: u32 = MinIndex(U32(LightRandom(key + candidate * 17 + 1) * Convert<f32>(count)), count - 1);
+                                const value: f32 = Target(Parameters, point, normal, item) * Convert<f32>(count);
+                                sum = sum + value;
+                                if (LightRandom(key + candidate * 17 + 2) * sum < value) { selected = item; }
+                                candidates = candidates + 1.0;
+                            }
                         }
                     }
                     if (historyValid) {
@@ -198,16 +234,16 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
                     weight = reservoirWeight / Convert<f32>(quota);
                 }
             }
-            if (mode == 5) {
-                NextHistory[historyBase + sample * 4] = Convert<f32>(selected);
-                NextHistory[historyBase + sample * 4 + 1] = reservoirWeight;
-                NextHistory[historyBase + sample * 4 + 2] = candidates;
+            if (mode == 5 || mode >= 7) {
+                NextHistory[currentBase + sample * 4] = Convert<f32>(selected);
+                NextHistory[currentBase + sample * 4 + 1] = reservoirWeight;
+                NextHistory[currentBase + sample * 4 + 2] = candidates;
             }
             const offset: u32 = 64 + selected * 16;
             const sphere: float4 = Read4(Parameters, offset);
             const delta: float3 = float3(sphere.x, sphere.y, sphere.z) - origin;
             const distance: f32 = Sqrt(Dot3(delta, delta));
-            if (Parameters[offset + 14] > 0.5 && distance > Parameters[19] * 2.0
+            if (mode != 8 && mode != 9 && Parameters[offset + 14] > 0.5 && distance > Parameters[19] * 2.0
                 && distance < sphere.w && Dot3(normal, delta) > 0.0) {
                 const direction: float3 = delta / distance;
                 Rays[packet + 4] = direction.x;
@@ -225,4 +261,8 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
     Visibility[pixel * 16 + 8] = Convert<f32>(raysUsed);
     Visibility[pixel * 16 + 9] = Convert<f32>(quota);
     Visibility[pixel * 16 + 10] = Convert<f32>(reused);
+    if (reprojected) { Visibility[pixel * 16 + 11] = Convert<f32>(reused); }
+    if ((mode == 7 || mode == 8) && Parameters[29] > 0.5 && depth < 1.0 && !historyValid) {
+        Visibility[pixel * 16 + 12] = 1.0;
+    }
 }

@@ -67,6 +67,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
     private readonly Matrix4x4[] spotCameras = [Matrix4x4.Identity, Matrix4x4.Identity];
     private readonly byte[]? rayShadowProgram;
     private readonly byte[]? sampledProgram;
+    private readonly byte[]? spatialProgram;
     private LocalLightSampling3D localSampling = new();
     private VulkanLocalRayShadows3D? rayShadows;
     public bool RayShadowsActive { get; private set; }
@@ -82,6 +83,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
         this.frames = frames;
         rayShadowProgram = programs.LocalRayShadows;
         sampledProgram = programs.SampledLocalLights;
+        spatialProgram = programs.RestirSpatial;
         this.allocator = allocator;
         transientTextures = Own(new VulkanFrameTransientTextures(plant, allocator, width, height, aliasTransients));
         uploader = Own(new VulkanTextureUploader(plant, allocator, commands, fences));
@@ -371,12 +373,13 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
     public void PrepareRayShadows(NativeInstanceSet3D instances, Matrix4x4 inverse, LocalLightSampling3D options)
     {
         if (!RayShadowsActive) return;
-        rayShadows ??= Own(new VulkanLocalRayShadows3D(plant, allocator, frames!, rayShadowProgram!, Output.Width, Output.Height, sampledProgram));
+        rayShadows ??= Own(new VulkanLocalRayShadows3D(plant, allocator, frames!, rayShadowProgram!, Output.Width, Output.Height, sampledProgram, spatialProgram));
         localSampling = options;
         rayShadows.Prepare(instances, inverse, packedLights, priorLights.Length, options);
     }
 
     public void ResetLightSampling() => rayShadows?.ResetSampling();
+    public float[] ReadMotionForQualification() => rayShadows!.ReadMotionForQualification();
     public float[] ReadSamplesForQualification() => rayShadows!.ReadSamplesForQualification();
     public ReferenceImage3D ReadLightingForQualification() => Vulkan3DQualificationReadback.ReadTexture(plant, frames!, Output);
 

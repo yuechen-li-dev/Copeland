@@ -236,7 +236,8 @@ internal static partial class RenderingR3Proof
     private sealed record SamplingTiming(string Mode, int Width, int Height, int RayBudget,
         double MedianGpuMilliseconds, double MedianCpuPrepareSubmitMilliseconds, double FramesPerSecond);
 
-    private static SamplingTiming MeasureSampling(AurelianVulkanPlant plant, GameAssets assets, NativeMesh3D box, NativeMesh3D sphere, LocalLightSamplingMode3D mode, int historyLimit = 256)
+    private static SamplingTiming MeasureSampling(AurelianVulkanPlant plant, GameAssets assets, NativeMesh3D box, NativeMesh3D sphere,
+        LocalLightSamplingMode3D mode, int historyLimit = 256, bool importanceProposals = false)
     {
         const int width = 1280;
         const int height = 720;
@@ -247,7 +248,14 @@ internal static partial class RenderingR3Proof
         renderer.FrameMode = Native3DFrameMode.Interactive;
         renderer.Settings = Settings();
         renderer.LocalLights = Lights();
-        renderer.LocalLightSampling = new() { Mode = mode, FrameRayBudget = width * height * 4, ExactLights = 2, HistoryLimit = historyLimit };
+        renderer.LocalLightSampling = new()
+        {
+            Mode = mode,
+            FrameRayBudget = width * height * 4,
+            ExactLights = 2,
+            HistoryLimit = historyLimit,
+            ImportanceProposals = importanceProposals,
+        };
         var scene = Scene(box, sphere, 0);
         var gpu = new List<double>();
         var cpu = new List<double>();
@@ -264,7 +272,11 @@ internal static partial class RenderingR3Proof
         renderer.WaitForPendingFrames();
         double fps = 40 / Stopwatch.GetElapsedTime(started).TotalSeconds;
         double median = Median(gpu);
-        string name = historyLimit == 32 ? "TemporalReservoir32" : mode.ToString();
+        string name = mode == LocalLightSamplingMode3D.TemporalReservoir && historyLimit == 32 ? "TemporalReservoir32" : mode.ToString();
+        if (importanceProposals)
+        {
+            name += "Cdf";
+        }
         Console.WriteLine($"Sampling performance {name}: GPU {median:F3} ms, CPU {Median(cpu):F3} ms, {fps:F1} fps");
         return new(name, width, height, width * height * 4, median, Median(cpu), fps);
     }

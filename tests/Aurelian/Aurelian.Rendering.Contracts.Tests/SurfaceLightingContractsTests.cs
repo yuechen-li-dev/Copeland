@@ -7,6 +7,16 @@ namespace Aurelian.Rendering.Contracts.Tests;
 public sealed class SurfaceLightingContractsTests
 {
     [Fact]
+    public void SpatialReuseRejectsUnboundedOrInvalidReceiverTests()
+    {
+        new LocalLightSampling3D { Mode = LocalLightSamplingMode3D.SpatiotemporalReservoir, FrameRayBudget = 400 }.Validate(100);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LocalLightSampling3D { SpatialNeighbors = 9 }.Validate(100));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LocalLightSampling3D { SpatialRadius = float.NaN }.Validate(100));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LocalLightSampling3D { ReusePlaneTolerance = 0 }.Validate(100));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LocalLightSampling3D { ReuseNormalCosine = 1.1f }.Validate(100));
+    }
+
+    [Fact]
     public void SamplingBudgetsRejectUnallocatedPixelsAndUnboundedWork()
     {
         new LocalLightSampling3D().Validate(100);

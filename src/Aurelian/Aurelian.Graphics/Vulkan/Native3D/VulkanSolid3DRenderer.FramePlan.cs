@@ -31,6 +31,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
     public bool EnableVisibilityBuffer { get; set; }
     public LocalLightSampling3D LocalLightSampling { get; set; } = new();
     public void ResetLightSamplingHistory() => surfaceLighting?.ResetLightSampling();
+    public float[] ReadLightMotionForQualification() => surfaceLighting!.ReadMotionForQualification();
     public float[] ReadLightSamplesForQualification() => surfaceLighting!.ReadSamplesForQualification();
     public ReferenceImage3D ReadLightingForQualification() => surfaceLighting!.ReadLightingForQualification();
     public bool EnableRayShadows { get; set; }

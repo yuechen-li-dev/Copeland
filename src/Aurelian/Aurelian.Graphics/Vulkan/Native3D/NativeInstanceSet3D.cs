@@ -1,10 +1,11 @@
 using System.Collections;
+using System.Numerics;
 using System.Collections.Immutable;
 using Aurelian.Rendering.Contracts.Models;
 
 namespace Aurelian.Graphics.Vulkan.Native3D;
 
-/// <summary>Immutable admission boundary for static resident transforms. Replace the set to edit it.</summary>
+/// <summary>Immutable resident transforms. A predecessor publishes one frame of explicit motion without retaining a snapshot chain.</summary>
 public sealed class NativeInstanceSet3D : IReadOnlyList<SceneInstance3D>
 {
     private readonly ImmutableArray<SceneInstance3D> instances;
@@ -16,10 +17,15 @@ public sealed class NativeInstanceSet3D : IReadOnlyList<SceneInstance3D>
     /// <summary>Shared packed order for raster instance IDs and TLAS custom indices.
     /// Enumeration of this set retains the original authoring order.</summary>
     public ImmutableArray<SceneInstance3D> PackedInstances { get; }
+    internal object SnapshotIdentity { get; } = new();
+    internal object? MotionPredecessor { get; }
+    public bool HasMotion => MotionPredecessor is not null;
+    internal bool Continues(NativeInstanceSet3D? previous) => previous is not null
+        && ReferenceEquals(MotionPredecessor, previous.SnapshotIdentity);
     public int Count => instances.Length;
     public SceneInstance3D this[int index] => instances[index];
 
-    public NativeInstanceSet3D(IEnumerable<SceneInstance3D> source)
+    public NativeInstanceSet3D(IEnumerable<SceneInstance3D> source, NativeInstanceSet3D? previous = null)
     {
         instances = source.ToImmutableArray();
         if (instances.Length is < 1 or > 65_536 || instances.Any(instance => string.IsNullOrWhiteSpace(instance.Identity))
@@ -35,8 +41,16 @@ public sealed class NativeInstanceSet3D : IReadOnlyList<SceneInstance3D>
                 throw new NotSupportedException("AUR-HYBRID-002: Analytic MASK surfaces require multi-hit coverage; this profile admits opaque analytic surfaces only.");
             if (instance.PreviousTransform.HasValue || instance.Material.AlphaBlend || instance.Material.Transmission > 0)
             {
-                throw new NotSupportedException("AUR-VIS-002: Resident sets contain static opaque/MASK instances. Dynamic and forward-only instances use the existing batch path.");
+                throw new NotSupportedException("AUR-VIS-002: Resident sets admit opaque/MASK instances. Derive motion from a predecessor snapshot; forward-only materials use the existing batch path.");
             }
+        }
+        if (previous is not null)
+        {
+            var keys = instances.Select(instance => (instance.Identity, instance.Mesh, instance.Material));
+            if (!keys.SequenceEqual(previous.Keys))
+                throw new InvalidDataException("AUR-MOTION-001: A continuing resident snapshot must preserve ordered instance identity, mesh and material.");
+            MotionPredecessor = previous.SnapshotIdentity;
+            instances = instances.Select((instance, index) => instance with { PreviousTransform = previous[index].Transform }).ToImmutableArray();
         }
         Keys = instances.Select(instance => (instance.Identity, instance.Mesh, instance.Material)).ToArray();
         Materials = instances.Select(instance => instance.Material).Distinct().ToArray();

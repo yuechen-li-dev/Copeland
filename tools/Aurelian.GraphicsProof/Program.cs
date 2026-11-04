@@ -20,6 +20,11 @@ using Silk.NET.Maths;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
 
+if (args.Contains("--rendering-restir", StringComparer.Ordinal))
+{
+    RenderingR3Proof.RunRestir(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-restir"));
+    return;
+}
 if (args.Contains("--rendering-light-sampling", StringComparer.Ordinal))
 {
     RenderingR3Proof.RunSampling(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-light-sampling"));

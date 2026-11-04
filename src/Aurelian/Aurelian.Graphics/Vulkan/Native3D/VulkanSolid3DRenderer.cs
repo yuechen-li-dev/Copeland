@@ -349,7 +349,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
                 waterReflection?.Dispose();
                 waterReflection = null;
                 waterReflection = waterReflectionFactory(configuration);
-                ResetTemporalHistory();
+                InvalidateSurfaceHistory();
             }
             waterReflection.Render(scene.Instances.Count == 0 ? scene : scene with
             {
@@ -513,7 +513,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             || waterFrame.Impulses.Any(impulse => impulse.StartedAt < previousWaterTime && !previousWaterImpulses.Contains(impulse));
         if (waterFrame.Time < previousWaterTime || useWaterReflection != previousWaterReflection || changedPastImpulses)
         {
-            ResetTemporalHistory();
+            InvalidateSurfaceHistory();
         }
         if ((geometry.IsEmpty && models.Count == 0 && sourceInstances.Count == 0 && gpuGeometry is null) || geometry.Length % 3 != 0 || geometry.Length > MaximumVertices)
         {
@@ -550,8 +550,10 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             || settings.Shadows || !EnableRayShadows && LocalLights.Any(light => light.CastShadows)))
             throw new NotSupportedException("AUR-HYBRID-001: Analytic instances require resident hybrid visibility programs and Shadows=false; proxy geometry is never a forward/shadow fallback.");
         var instanceKeys = resident?.Keys ?? sourceInstances.Select(instance => (instance.Identity, instance.Mesh, instance.Material)).ToArray();
+        if (resident?.HasMotion == true && ReferenceEquals(resident, previousResidentSet))
+            throw new InvalidOperationException("AUR-MOTION-002: A motion snapshot represents one frame. Advance it from the previous snapshot or publish a new static set.");
         bool correspondenceChanged = !(ReferenceEquals(instanceKeys, previousInstances) || instanceKeys.SequenceEqual(previousInstances))
-            || !ReferenceEquals(resident, previousResidentSet)
+            || !(ReferenceEquals(resident, previousResidentSet) || resident?.Continues(previousResidentSet) == true)
             || !modelKeys.SequenceEqual(previousModels) || previousGeometry.Length != geometry.Length || previousRevision != temporalRevision
             || previousSettings != settings || previousStaticEmissionIntensity != StaticEmissionIntensity
             || lastGpuSource != gpuGeometry?.Buffer;
@@ -619,7 +621,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         if (EnableRayShadows && LocalLights.Any(light => light.CastShadows)
             && (resident is null || !geometry.IsEmpty || models.Count != 0 || gpuGeometry is not null))
             throw new NotSupportedException("AUR-RAY-SHADOW-002: Ray shadows require one opaque NativeInstanceSet3D snapshot; mixed immediate or GPU-generated geometry has no shared acceleration authority yet.");
-        if (correspondenceChanged) ResetTemporalHistory();
+        if (correspondenceChanged) InvalidateSurfaceHistory();
         Matrix4x4 logicalCamera = worldToClip;
         if (useTemporal) worldToClip = temporal!.Begin(logicalCamera);
         if (surfaceOnly && !Matrix4x4.Invert(worldToClip, out _))
@@ -666,7 +668,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
                     "solid3d.previous-gpu"));
                 Require(created.Success, "Previous GPU geometry allocation failed.");
                 previousGpu = created.Buffer!;
-                ResetTemporalHistory();
+                InvalidateSurfaceHistory();
             }
         }
         Require(camera.Write(MemoryMarshal.AsBytes(cameraRows.AsSpan())).Success, "Camera upload failed.");
@@ -764,6 +766,12 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
     /// <summary>Call for camera cuts, teleports, or replacement of raw vertex correspondence.</summary>
     public void ResetTemporalHistory()
     {
+        surfaceLighting?.ResetLightSampling();
+        InvalidateSurfaceHistory();
+    }
+
+    private void InvalidateSurfaceHistory()
+    {
         temporal?.Reset();
         resetHistory = true;
     }
@@ -855,7 +863,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             diffuseData = replacement;
             diffuseAsset = asset;
             diffusePublished = false;
-            ResetTemporalHistory();
+            InvalidateSurfaceHistory();
             return uploaded.SignalFenceValue!.Value;
         }
         catch
@@ -868,7 +876,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
     public void PublishStaticDiffuseLighting(bool published)
     {
         bool next = published && diffuseAsset is not null;
-        if (next != diffusePublished) ResetTemporalHistory();
+        if (next != diffusePublished) InvalidateSurfaceHistory();
         diffusePublished = next;
     }
 

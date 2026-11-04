@@ -8,6 +8,7 @@ public sealed record SurfaceLightingPrograms(
     CompiledGraphicsProgram AmbientDenoise,
     CompiledGraphicsProgram LightTiles)
 {
+    public byte[]? RestirSpatial { get; init; }
     public byte[]? SampledLocalLights { get; init; }
     public byte[]? LocalRayShadows { get; init; }
     public CompiledGraphicsProgram? HeightFog { get; init; }

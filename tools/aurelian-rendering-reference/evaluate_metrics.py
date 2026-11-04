@@ -92,6 +92,12 @@ def evaluate(manifest_path):
                 raise ValueError(f"Local ray shadows failed to improve FLIP: {scene}")
             if edge_means[scene + "-ray"] >= edge_means[scene + "-unshadowed"]:
                 raise ValueError(f"Local ray shadows failed to improve reference-edge FLIP: {scene}")
+    elif manifest.get("Qualification") == "restir":
+        for scene in ["static", "camera-pan", "moving-receiver"]:
+            if means[scene + "-SpatiotemporalReservoir"] >= means[scene + "-Reservoir"]:
+                raise ValueError(f"Spatial/temporal reuse failed final-frame FLIP: {scene}")
+        if means["camera-pan-ReprojectedReservoir"] >= means["camera-pan-TemporalReservoir"]:
+            raise ValueError("Motion reprojection did not improve camera-pan FLIP")
     elif manifest.get("Qualification") == "local-light-sampling":
         for scene in ["hall", "key-fill"]:
             if means[scene + "-Importance"] >= means[scene + "-Uniform"]:

@@ -8,6 +8,20 @@ namespace Aurelian.Graphics.Tests;
 public sealed class NativeMesh3DTests
 {
     [Fact]
+    public void MotionSnapshotsDerivePriorTransformsWithoutRetainingSnapshotChains()
+    {
+        var mesh = new NativeMesh3D("motion", Triangle(), [0, 1, 2]);
+        var material = new ModelMaterial("motion");
+        var old = new NativeInstanceSet3D([new("moving", mesh, material, Matrix4x4.Identity)]);
+        var moved = new NativeInstanceSet3D([new("moving", mesh, material, Matrix4x4.CreateTranslation(1, 0, 0))], old);
+        Assert.True(moved.HasMotion);
+        Assert.Equal(Matrix4x4.Identity, moved[0].PreviousTransform);
+        var again = new NativeInstanceSet3D([new("moving", mesh, material, Matrix4x4.CreateTranslation(2, 0, 0))], moved);
+        Assert.Equal(moved[0].Transform, again[0].PreviousTransform);
+        Assert.Throws<InvalidDataException>(() => new NativeInstanceSet3D([new("renamed", mesh, material, Matrix4x4.Identity)], old));
+    }
+
+    [Fact]
     public void RetainedIdentityPackingIsSharedAcrossRasterAndRayAdmission()
     {
         var first = new NativeMesh3D("first", Triangle(), [0, 1, 2]);

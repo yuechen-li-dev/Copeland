@@ -81,13 +81,16 @@ no RTXDI library or native CPU tracing dependency was added.
 Temporal validation requires the same-pixel receiver position to agree within
 1 mm and its normal dot product to exceed 0.999. Geometry/background changes
 reject history. Explicit control flow guards history reads, including on shader
-backends whose boolean operators do not short-circuit. Non-temporal modes bind a
-small unused placeholder; only temporal mode allocates the two full history buffers.
+backends whose boolean operators do not short-circuit. The original uniform, CDF,
+hybrid and fresh-RIS modes bind a small unused history placeholder. Temporal RIS
+allocates two full history buffers; the subsequent spatial/reprojected modes have
+their own documented allocation requirements.
 
-This is temporal RIS, not full spatiotemporal ReSTIR DI. It has no spatial reuse,
-motion-vector reprojection, area-source samples or dedicated denoiser. Camera
-motion and TAA jitter commonly reject same-pixel history. These are concrete next
-implementation seams rather than features being claimed by the current mode.
+`TemporalReservoir` is the original same-pixel temporal RIS control. Camera
+motion and TAA jitter commonly reject its history. The subsequent
+[spatial ReSTIR and motion reprojection milestone](rendering-r3-restir.md) adds
+separate modes with validated previous-UV lookup and immutable neighbor reuse.
+Area-source samples and a dedicated denoiser remain outside both milestones.
 
 ## Qualification
 

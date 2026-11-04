@@ -134,7 +134,7 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
             return;
         }
         // A replacement resident set is a static scene revision, not a continuing transform stream.
-        if (resident is not null) resetHistory = true;
+        if (resident is not null && !resident.HasMotion) resetHistory = true;
         groups.Clear();
         TriangleCount = 0;
         var activeMeshes = source.Select(instance => instance.Mesh).ToHashSet();

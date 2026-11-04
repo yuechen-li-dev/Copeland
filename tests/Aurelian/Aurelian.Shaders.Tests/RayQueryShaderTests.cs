@@ -8,10 +8,12 @@ namespace Aurelian.Shaders.Tests;
 
 public sealed class RayQueryShaderTests
 {
-    [Fact]
-    public void SampledLocalLightingUsesTheTypedOcclusionBoundary()
+    [Theory]
+    [InlineData("SampledLocalLights3D.v.ts")]
+    [InlineData("RestirSpatial3D.v.ts")]
+    public void SampledLocalLightingUsesTheTypedOcclusionBoundary(string name)
     {
-        var module = GpuComputeBinder.Compile(new(BuiltinShaderLibrary.LoadSources("SampledLocalLights3D.v.ts")));
+        var module = GpuComputeBinder.Compile(new(BuiltinShaderLibrary.LoadSources(name)));
         Assert.True(module.Success, string.Join("; ", module.Diagnostics.Select(item => item.Message)));
         var compiled = VdMirComputeBackend.Compile(module);
         Assert.True(compiled.SpirvValidated, compiled.DxcOutput + compiled.SpirvValidationOutput);

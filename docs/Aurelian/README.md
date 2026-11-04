@@ -34,6 +34,7 @@ The docs above describe current code paths and contracts. For exact signatures a
 - [R3a lighting and temporal qualification](rendering-r3a-lighting-temporal.md): sun/HDR environment transport, the compiled sun basis, native-output FLIP and scripted TAA/reference comparisons.
 - [R3 retained ray shadows](rendering-r3-ray-shadows.md): shared retained instance identity, GPU point/spot occlusion, the exact 256-light baseline, reference/FLIP controls and measured frame costs.
 - [R3 fixed-budget light sampling](rendering-r3-light-sampling.md): uniform and eligible-uniform controls, shared-CDF importance sampling, exact-few tails, fresh/temporal RIS, HDR convergence and full-path cost comparisons.
+- [R3 spatial ReSTIR and motion reprojection](rendering-r3-restir.md): immutable neighbor reuse, pairwise target MIS, moving instance snapshots, current visibility and native HDR/TAA qualification.
 - [Diffuse comparison](diffuse-comparison.md): controlled Lambert, Burley, Frostbite, EON and Aurelian PathDiffuse experiments, live `IGame` lab, paper references and native numerical qualification.
 - [Image guided look pilot](image-guided-look-pilot.md): generated appearance targets, a frozen Cloudstep policy sweep, native VTS selection, transfer results and methodology limits.
 - [Image guided look refinement](image-guided-look-refinement.md): material-balanced CPU search, palette/lighting calibration, soft gamut compression, richer native captures and a rejected AI reference registration.

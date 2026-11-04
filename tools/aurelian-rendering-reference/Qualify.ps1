@@ -2,10 +2,12 @@ param(
     [string]$Output = 'artifacts/local/rendering-reference/final',
     [string]$LightingFixture = 'artifacts/local/beacon-compiled-lighting',
     [switch]$IncludeR3,
-    [switch]$IncludeSampling
+    [switch]$IncludeSampling,
+    [switch]$IncludeRestir
 )
 
 $ErrorActionPreference = 'Stop'
+if ($IncludeRestir) { $IncludeSampling = $true }
 if ($IncludeSampling) { $IncludeR3 = $true }
 $repository = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $previousSyncValidation = $env:VK_LAYER_VALIDATE_SYNC
@@ -106,6 +108,14 @@ try {
             'tools/aurelian-light-sampling/Qualify.ps1'
         )
     }
+    if ($IncludeRestir) {
+        $sourcePaths += @(
+            'src/Aurelian/Aurelian.Shaders/Assets/Queries/LocalLightProposal3D.v.ts',
+            'src/Aurelian/Aurelian.Shaders/Assets/Queries/RestirSpatial3D.v.ts',
+            'tools/Aurelian.GraphicsProof/RenderingR3Proof.Restir.cs',
+            'tools/aurelian-restir/Qualify.ps1'
+        )
+    }
     $initialHashes = @($sourcePaths | ForEach-Object { (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash })
 
     function Invoke-QualificationCommand {
@@ -174,6 +184,17 @@ try {
         if (-not $sampling.Accepted -or -not $samplingFlip.Accepted) { throw 'Local-light sampling and FLIP qualification did not accept.' }
     }
 
+    $restir = $null
+    $restirFlip = $null
+    if ($IncludeRestir) {
+        Invoke-QualificationCommand 'restir' @($proof, '--rendering-restir', '--output', (Join-Path $outputPath 'restir'))
+        Invoke-QualificationCommand 'restir-flip' @((Join-Path $repository 'tools/aurelian-rendering-reference/evaluate_metrics.py'),
+            (Join-Path $outputPath 'restir/metrics-manifest.json')) $metricsPython
+        $restir = Get-Content -LiteralPath (Join-Path $outputPath 'restir/evidence.json') -Raw | ConvertFrom-Json
+        $restirFlip = Get-Content -LiteralPath (Join-Path $outputPath 'restir/flip-evidence.json') -Raw | ConvertFrom-Json
+        if (-not $restir.Accepted -or -not $restirFlip.Accepted) { throw 'ReSTIR native and FLIP qualification did not accept.' }
+    }
+
     $hashes = @($sourcePaths | ForEach-Object {
         @{ Path = $_; Sha256 = (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash }
     })
@@ -193,7 +214,7 @@ try {
         ProofSha256 = (Get-FileHash -LiteralPath $proof -Algorithm SHA256).Hash;
         GraphicsSha256 = (Get-FileHash -LiteralPath (Join-Path (Split-Path $proof) 'Aurelian.Graphics.dll') -Algorithm SHA256).Hash;
         LightingFixture = $fixturePath; Reference = $reference; Affine = $affine;
-        LightingTemporal = $lighting; Flip = $flip; R3 = $r3; R3Flip = $r3Flip; Sampling = $sampling; SamplingFlip = $samplingFlip; FullR3Complete = $false } | ConvertTo-Json -Depth 30 |
+        LightingTemporal = $lighting; Flip = $flip; R3 = $r3; R3Flip = $r3Flip; Sampling = $sampling; SamplingFlip = $samplingFlip; Restir = $restir; RestirFlip = $restirFlip; FullR3Complete = $false } | ConvertTo-Json -Depth 30 |
         Set-Content -LiteralPath $evidencePath
     Write-Output "AURELIAN_REFERENCE_QUALIFIED: $evidencePath"
 }

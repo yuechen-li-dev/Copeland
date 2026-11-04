@@ -122,6 +122,8 @@ public static class BuiltinShaderLibrary
         new("Cloth3D.v.ts", ShaderFamily.Deformation, ShaderSourceKind.Compute),
         new("RayQuery.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
         new("AffineAnalyticQuery3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Module),
+        new("RestirSpatial3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
+        new("LocalLightProposal3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Module),
         new("SampledLocalLights3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
         new("LocalLightSamplingMath3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Module),
         new("LocalShadows3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
