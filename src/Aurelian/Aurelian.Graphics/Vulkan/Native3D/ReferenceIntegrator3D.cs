@@ -6,7 +6,7 @@ using Aurelian.Rendering.Contracts.Models;
 namespace Aurelian.Graphics.Vulkan.Native3D;
 
 /// <summary>Untextured opaque material evaluated by the real-time lighting module.
-/// Capture currently admits emissive triangles and a black environment.</summary>
+/// Capture admits emissive triangles, directional sun and an HDR source environment.</summary>
 public sealed record ReferenceMaterial3D(Vector3 BaseColor, float Roughness = .5f,
     float Metallic = 0, float Dielectric = .04f, DirectDiffuseModel3D DiffuseModel = DirectDiffuseModel3D.Lambert,
     Vector3 Emission = default, bool TwoSidedEmission = false);
@@ -37,11 +37,15 @@ public sealed class ReferenceIntegrator3D : IDisposable
     public ReferenceIntegrator3D(AurelianVulkanPlant plant, byte[] program,
         ReferenceCapture3D capture, ReferenceCamera3D camera, IReadOnlyList<ReferenceTriangle3D> triangles,
         IReadOnlyList<ReferenceSphere3D> spheres, ReferenceRectLight3D? light = null,
-        IReadOnlyList<ReferenceAnalytic3D>? analytic = null)
+        IReadOnlyList<ReferenceAnalytic3D>? analytic = null, ReferenceLighting3D? lighting = null)
     {
         ArgumentNullException.ThrowIfNull(capture);
         ArgumentNullException.ThrowIfNull(camera);
         analytic ??= [];
+        lighting ??= new();
+        float[] environmentCdf = lighting.Distribution();
+        if (!float.IsFinite(lighting.EnvironmentIntensity) || lighting.EnvironmentIntensity < 0)
+            throw new ArgumentException("AUR-REF-012: Environment intensity must be finite and nonnegative.");
         if (capture.Width < 1 || capture.Height < 1 || (long)capture.Width * capture.Height > 1_048_576
             || capture.MaximumBounces is < 1 or > 16)
         {
@@ -82,7 +86,8 @@ public sealed class ReferenceIntegrator3D : IDisposable
             materials.Add(emitter);
         }
         int emitterTable = 64 + (geometry.Count + spheres.Count + analytic.Count) * 16;
-        float[] parameters = new float[emitterTable + geometry.Count];
+        int distributionOffset = emitterTable + geometry.Count;
+        float[] parameters = new float[distributionOffset + environmentCdf.Length];
         parameters[0] = capture.Width;
         parameters[1] = capture.Height;
         parameters[2] = capture.MaximumBounces;
@@ -94,11 +99,33 @@ public sealed class ReferenceIntegrator3D : IDisposable
         float scale = camera.OrthographicHeight > 0 ? camera.OrthographicHeight * .5f : MathF.Tan(camera.VerticalFieldOfViewRadians * .5f);
         Write3(parameters, 12, right * (scale * capture.Width / capture.Height));
         Write3(parameters, 16, up * scale);
+        if (lighting.Sun is { } sun)
+        {
+            RequireFinite(sun.Direction);
+            RequireNonnegative(sun.Irradiance);
+            float length = sun.Direction.LengthSquared();
+            if (!float.IsFinite(length) || length < 1e-12f)
+                throw new ArgumentException("AUR-REF-012: Sun direction must have finite nonzero length.");
+            Write3(parameters, 20, Vector3.Normalize(sun.Direction));
+            Write3(parameters, 24, sun.Irradiance);
+        }
+        parameters[28] = lighting.Environment?.Width ?? 1;
+        parameters[29] = lighting.Environment?.Height ?? 1;
+        parameters[30] = lighting.EnvironmentIntensity;
         parameters[35] = geometry.Count;
         parameters[36] = capture.NextEventEstimation ? 1 : 0;
         parameters[37] = camera.OrthographicHeight > 0 ? 1 : 0;
         parameters[38] = capture.PixelJitter ? 1 : 0;
         parameters[41] = emitterTable;
+        parameters[42] = distributionOffset;
+        parameters[43] = Math.Min(lighting.Environment?.Width ?? 1, 64);
+        parameters[44] = Math.Min(lighting.Environment?.Height ?? 1, 32);
+        parameters[45] = lighting.Environment is not null ? 1 : 0;
+        parameters[46] = lighting.ExcludePrimarySun ? 1 : 0;
+        parameters[47] = lighting.ImportanceSampleEnvironment ? 1 : 0;
+        parameters[48] = lighting.Environment is not null && lighting.EnvironmentIntensity > 0
+            && (!lighting.ImportanceSampleEnvironment || !lighting.Environment.IsConstant) ? 1 : 0;
+        environmentCdf.CopyTo(parameters, distributionOffset);
         float totalArea = 0;
         int emitterCount = 0;
         for (int index = 0; index < geometry.Count; index++)
@@ -117,8 +144,8 @@ public sealed class ReferenceIntegrator3D : IDisposable
                 parameters[emitterTable + emitterCount++] = index;
             }
         }
-        if (emitterCount is < 1 or > 256 || !float.IsFinite(totalArea))
-            throw new ArgumentException("AUR-REF-009: Capture admits 1..256 emissive triangles.");
+        if (emitterCount > 256 || !float.IsFinite(totalArea))
+            throw new ArgumentException("AUR-REF-009: Capture admits at most 256 emissive triangles.");
         parameters[39] = totalArea;
         parameters[40] = emitterCount;
         var procedurals = new List<RayQueryAnalytic3D>(spheres.Count + analytic.Count);
@@ -142,7 +169,7 @@ public sealed class ReferenceIntegrator3D : IDisposable
             procedurals.Add(new(primitive.Kind, primitive.Transform));
         }
         queries = new(plant, program, geometry, null, capture.Width * capture.Height, parameters,
-            capture.Width * capture.Height * 4, procedurals);
+            capture.Width * capture.Height * 4, procedurals, lighting.Environment?.Rgba.ToArray());
     }
 
     /// <summary>Submit a batch without reading back pixels. Different batch partitions

@@ -1,4 +1,5 @@
 import { DecodeOcta } from "./SurfaceLighting";
+import { EnvironmentUv } from "./EnvironmentCoordinates3D";
 import { Unit, Cross3, Add3, Scale3, Sub3, Dot3, Geometry } from "./Lighting3D";
 
 @space(clip.position)
@@ -39,8 +40,7 @@ function Radical(index: u32): f32 {
     return result;
 }
 function Source(resources: Resources, direction: float3): float3 {
-    const uv: float2 = float2(Atan2(direction.z, direction.x) / 6.2831853 + 0.5,
-        Acos(Clamp(direction.y, -1.0, 1.0)) / 3.14159265);
+    const uv: float2 = EnvironmentUv(direction);
     const sample: float4 = Sample(resources.source, resources.sourceSampler, uv);
     return float3(sample.x, sample.y, sample.z);
 }

@@ -275,8 +275,10 @@ subsurface) without duplicating it. Then keep those materials on the forward pat
 qualifies Cornell+, all five diffuse models and the existing compiled receiver's
 emission basis. The [affine intersection continuation](../Aurelian/rendering-r3a-affine.md)
 shares canonical sphere/box/capsule math between rasterization and reference
-queries. The sun/environment bases, FLIP and full temporal/scene suite remain open;
-this proposal's full done criteria are not yet met.
+queries. The [lighting continuation](../Aurelian/rendering-r3a-lighting-temporal.md)
+qualifies sun/environment transport, FLIP and bounded temporal sequences. Material
+coverage/textures and the full standing scene suite remain open; this proposal's
+full done criteria are not yet met.
 
 **Aurelian proposal: reference-gated rendering.** Unreal ships a path tracer, but does not gate its real-time
 features on it. Aurelian should. Every approximate technique in R3–R8 reports its error against an in-engine

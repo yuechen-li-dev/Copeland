@@ -81,6 +81,7 @@ public static class BuiltinShaderLibrary
         new("Lighting3D.v.ts", ShaderFamily.Lighting, ShaderSourceKind.Module),
         new("LightTiles3D.v.ts", ShaderFamily.Lighting, ShaderSourceKind.Graphics),
         new("EnvironmentCompile3D.v.ts", ShaderFamily.Lighting, ShaderSourceKind.Graphics),
+        new("EnvironmentCoordinates3D.v.ts", ShaderFamily.Lighting, ShaderSourceKind.Module),
         new("AmbientOcclusion3D.v.ts", ShaderFamily.Lighting, ShaderSourceKind.Graphics),
         new("AmbientDenoise3D.v.ts", ShaderFamily.Lighting, ShaderSourceKind.Graphics),
 
@@ -123,6 +124,7 @@ public static class BuiltinShaderLibrary
         new("AffineAnalyticQuery3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Module),
         new("AffineRayQuery3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
         new("ReferenceIntegrator3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
+        new("ReferenceEnvironment3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Module),
         new("ReferenceFurnace3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
         new("KernelMath.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Module),
         new("QuantizedLinear.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),

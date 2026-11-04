@@ -20,6 +20,11 @@ namespace Aurelian.Graphics.Vulkan.Native3D;
 public static unsafe class VulkanEnvironmentCompiler
 {
     public static EnvironmentLighting Compile(AurelianVulkanPlant plant, CompiledGraphicsProgram program,
+        EnvironmentRadiance3D source)
+    {
+        return Compile(plant, program, source.Width, source.Height, source.Rgba.AsSpan());
+    }
+    public static EnvironmentLighting Compile(AurelianVulkanPlant plant, CompiledGraphicsProgram program,
         int width, int height, ReadOnlySpan<float> linearRgba)
     {
         if (width < 1 || height < 1 || width > 4096 || height > 2048 || linearRgba.Length != width * height * 4)

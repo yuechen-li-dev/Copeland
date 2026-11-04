@@ -8,6 +8,10 @@ emission basis of Beacon's existing compiled floor asset. Full R3a remains open.
 The [shared affine continuation](rendering-r3a-affine.md) adds hybrid visibility's
 sphere/box/capsule intersections, including shear and reflection, while retaining
 the original measuring controls.
+The [lighting and temporal continuation](rendering-r3a-lighting-temporal.md) adds
+directional sun, shared HDR sources, actual native-output FLIP and scripted
+temporal comparisons. The initial black-environment measurements below remain
+the original bounded controls.
 
 ## Run and reproduce
 
@@ -89,7 +93,7 @@ Ray packets, hit packets and accumulation use `GpuOnly` storage. Initialization
 fills them on the GPU. Only an explicit `Capture` copies sums into a temporary
 host-readable staging buffer; accumulating more samples does not copy pixels.
 
-Every scattering vertex samples an emissive triangle and a cosine-weighted
+In the original area-light controls, each scattering vertex samples an emissive triangle and a cosine-weighted
 hemisphere direction. Both techniques use the corresponding solid-angle PDFs and
 the power heuristic. Emission reached by continuation receives the complementary
 MIS weight. A terminal visibility ray preserves the same finite scattering-depth
@@ -105,8 +109,9 @@ does not yet share textured material reconstruction, normal maps or coverage wit
 the visibility resolver.
 
 Captures declare 1–16 scattering vertices, with an additional terminal visibility
-query. They have a black environment, a 100,000 metre ray range, and a 0.1 mm ray
-minimum. There is no denoising, adaptive sampling, Russian roulette or radiance
+query. Omitted lighting gives a black environment; explicit sun/HDR environments
+are covered by the continuation above. The ray range is 100,000 metres and the
+minimum is 0.1 mm. There is no denoising, adaptive sampling, Russian roulette or radiance
 clamping. Finite-depth transport is explicit; more samples do not remove its
 truncation error. The proof also measures common-seed 8 versus 16 vertex captures.
 
@@ -191,13 +196,12 @@ use `AnalyticIntersections3D.v.ts`; the reference admits immutable affine sphere
 box and capsule declarations. A general retained-scene material adapter remains
 open. Coverage quads are never supplied as reference geometry.
 
-The other unqualified boundaries are the directional-sun basis, environment and
-textured/coverage materials, efficient glossy sampling, FLIP, scripted temporal
-sequences, and the remaining standing scenes (Forest, moving occluders, thin
-geometry, Wet Night and Hall of 256 Lights). `FullR3aComplete` remains false until
-those promised qualification cases are present. The current instrument can
-already gate changes within its declared constant-material, emissive-triangle
-domain.
+Directional sun, source environments, the sun-indirect compiled receiver basis,
+FLIP and bounded static/camera/moving-occluder temporal sequences are now qualified
+in the [continuation report](rendering-r3a-lighting-temporal.md). Remaining cases
+include textured/coverage materials, efficient glossy sampling and the full
+standing scene suite (Forest, alpha foliage/thin geometry, Wet Night and Hall of
+256 Lights). `FullR3aComplete` remains false until the promised suite is present.
 
 ## Validation
 

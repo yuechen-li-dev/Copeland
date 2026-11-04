@@ -1,5 +1,6 @@
 import { DirectLightResponseModel, Dot3, Cross3, Unit } from "./Lighting3D";
 import { AffineAnalyticIntersection } from "./AffineAnalyticQuery3D";
+import { ReferenceEnvironment, ReferenceEnvironmentPdf, SampleReferenceEnvironment } from "./ReferenceEnvironment3D";
 
 // Counter-based integer randomness: sample identity is independent of submission batches.
 function Random(key: u32): f32 {
@@ -77,7 +78,8 @@ function ReferenceMain(@builtin(dispatchThreadId) thread: uint3,
     @binding(3) readwrite Hits: StorageBuffer<f32>,
     @binding(4) readonly Triangles: StorageBuffer<f32>,
     @binding(5) readonly Parameters: StorageBuffer<f32>,
-    @binding(6) readwrite Accumulation: StorageBuffer<f32>): void {
+    @binding(6) readwrite Accumulation: StorageBuffer<f32>,
+    @binding(7) readonly Environment: StorageBuffer<f32>): void {
     const width: u32 = U32(Parameters[0]);
     const height: u32 = U32(Parameters[1]);
     const pixel: u32 = thread.x;
@@ -106,12 +108,17 @@ function ReferenceMain(@builtin(dispatchThreadId) thread: uint3,
         const lightArea: f32 = Parameters[39];
         const ray: u32 = 4 + pixel * 12;
         const hit: u32 = pixel * 16;
-        static for (let bounce of Indices<17>()) {
+        for (let bounce of BoundedIndices<17>(17)) {
             if (active && bounce <= U32(Parameters[2])) {
                 SetRay(Rays, ray, origin, direction, 100000.0);
                 RayQueryTraceClosest(Scene, Procedurals, Rays, Hits, Triangles, pixel, AffineAnalyticIntersection);
                 const kind: u32 = Bitcast<u32>(Hits[hit]);
                 if (kind == 0) {
+                    var environmentWeight: f32 = 1.0;
+                    if (bounce > 0 && Parameters[36] > 0.5 && Parameters[48] > 0.5) {
+                        environmentWeight = PowerWeight(previousPdf, ReferenceEnvironmentPdf(Parameters, direction));
+                    }
+                    radiance = radiance + throughput * ReferenceEnvironment(Environment, Parameters, direction) * environmentWeight;
                     active = false;
                 } else {
                     const primitive: u32 = Bitcast<u32>(Hits[hit + 1]);
@@ -142,26 +149,56 @@ function ReferenceMain(@builtin(dispatchThreadId) thread: uint3,
                         }
                     }
                     if (bounce < U32(Parameters[2])) {
-                        const randomBase: u32 = key + 2 + bounce * 7;
-                        const emitter: ReferenceEmitter = SampleEmitter(Triangles, Parameters, randomBase);
-                        const delta: float3 = emitter.position - point;
-                        const range: f32 = Sqrt(Dot3(delta, delta));
-                        const incoming: float3 = delta / range;
-                        var cosLight: f32 = Max(Dot3(emitter.normal, incoming * -1.0), 0.0);
-                        if (emitter.twoSided > 0.5) {
-                            cosLight = Abs(Dot3(emitter.normal, incoming));
-                        }
-                        const cosSurface: f32 = Max(Dot3(normal, incoming), 0.0);
-                        if (Parameters[36] > 0.5 && cosLight > 0.0 && cosSurface > 0.0) {
-                            SetRay(Rays, ray, point, incoming, Max(range - 0.0002, 0.0001));
+                        const sun: float3 = Read3(Parameters, 24);
+                        const sunDirection: float3 = Read3(Parameters, 20);
+                        if (Dot3(sun, sun) > 0.0 && Dot3(normal, sunDirection) > 0.0 && (bounce > 0 || Parameters[46] < 0.5)) {
+                            SetRay(Rays, ray, point, sunDirection, 100000.0);
                             RayQueryTraceClosest(Scene, Procedurals, Rays, Hits, Triangles, pixel, AffineAnalyticIntersection);
                             if (Bitcast<u32>(Hits[hit]) == 0) {
-                                const lightPdf: f32 = range * range / (lightArea * cosLight);
-                                const bsdfPdf: f32 = cosSurface / 3.14159265;
                                 const response: float3 = DirectLightResponseModel(base, normal, direction * -1.0,
-                                    incoming, metallic, roughness, dielectric, model);
-                                const neeWeight: f32 = PowerWeight(lightPdf, bsdfPdf);
-                                radiance = radiance + throughput * response * emitter.emission * (neeWeight / lightPdf);
+                                    sunDirection, metallic, roughness, dielectric, model);
+                                radiance = radiance + throughput * response * sun;
+                            }
+                        }
+                        const randomBase: u32 = key + 2 + bounce * 7;
+                        if (Parameters[36] > 0.5 && Parameters[40] > 0.5) {
+                            const emitter: ReferenceEmitter = SampleEmitter(Triangles, Parameters, randomBase);
+                            const delta: float3 = emitter.position - point;
+                            const range: f32 = Sqrt(Dot3(delta, delta));
+                            const incoming: float3 = delta / range;
+                            var cosLight: f32 = Max(Dot3(emitter.normal, incoming * -1.0), 0.0);
+                            if (emitter.twoSided > 0.5) {
+                                cosLight = Abs(Dot3(emitter.normal, incoming));
+                            }
+                            const cosSurface: f32 = Max(Dot3(normal, incoming), 0.0);
+                            if (cosLight > 0.0 && cosSurface > 0.0) {
+                                SetRay(Rays, ray, point, incoming, Max(range - 0.0002, 0.0001));
+                                RayQueryTraceClosest(Scene, Procedurals, Rays, Hits, Triangles, pixel, AffineAnalyticIntersection);
+                                if (Bitcast<u32>(Hits[hit]) == 0) {
+                                    const lightPdf: f32 = range * range / (lightArea * cosLight);
+                                    const bsdfPdf: f32 = cosSurface / 3.14159265;
+                                    const response: float3 = DirectLightResponseModel(base, normal, direction * -1.0,
+                                        incoming, metallic, roughness, dielectric, model);
+                                    const neeWeight: f32 = PowerWeight(lightPdf, bsdfPdf);
+                                    radiance = radiance + throughput * response * emitter.emission * (neeWeight / lightPdf);
+                                }
+                            }
+                        }
+                        if (Parameters[36] > 0.5 && Parameters[48] > 0.5) {
+                            const environmentKey: u32 = key + 0x51ed270b + bounce * 7;
+                            const incoming: float3 = SampleReferenceEnvironment(Parameters, Random(environmentKey),
+                                Random(environmentKey + 1), Random(environmentKey + 2));
+                            if (Dot3(normal, incoming) > 0.0) {
+                                SetRay(Rays, ray, point, incoming, 100000.0);
+                                RayQueryTraceClosest(Scene, Procedurals, Rays, Hits, Triangles, pixel, AffineAnalyticIntersection);
+                                if (Bitcast<u32>(Hits[hit]) == 0) {
+                                    const lightPdf: f32 = ReferenceEnvironmentPdf(Parameters, incoming);
+                                    const bsdfPdf: f32 = Max(Dot3(normal, incoming), 0.0) / 3.14159265;
+                                    const response: float3 = DirectLightResponseModel(base, normal, direction * -1.0,
+                                        incoming, metallic, roughness, dielectric, model);
+                                    radiance = radiance + throughput * response * ReferenceEnvironment(Environment, Parameters, incoming)
+                                        * (PowerWeight(lightPdf, bsdfPdf) / lightPdf);
+                                }
                             }
                         }
                         const radius: f32 = Sqrt(Random(randomBase + 3));

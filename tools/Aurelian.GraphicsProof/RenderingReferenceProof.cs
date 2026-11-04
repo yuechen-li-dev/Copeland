@@ -98,9 +98,9 @@ internal static partial class RenderingReferenceProof
             Floor = floor,
             Furnace = furnace,
             CompiledReceiver = compiledReceiver,
-            Limits = new[] { "Opaque constant materials; triangles and nonemissive affine sphere/box/capsule surfaces; at most 256 emissive triangles; black environment.",
+            Limits = new[] { "Opaque constant materials; triangles and nonemissive affine sphere/box/capsule surfaces; at most 256 emissive triangles; directional sun and source HDR environment.",
                 "Finite 1..16 scattering vertices, no denoiser or radiance clamp; cosine sampler is inefficient for glossy lobes.",
-                "Remaining: sun/environment bases, textured/coverage materials, temporal suite, FLIP, other standing scenes." }
+                "Remaining: textured/coverage materials and the full standing scene suite; bounded sun/environment, FLIP and temporal qualification is available." }
         }, new JsonSerializerOptions { WriteIndented = true, IncludeFields = true }));
         Console.WriteLine($"AURELIAN_REFERENCE_PASSED: MIS error {misError:F6} versus BSDF-only {bsdfError:F6}");
     }

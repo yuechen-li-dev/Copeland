@@ -21,6 +21,12 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--rendering-reference-lighting", StringComparer.Ordinal))
+{
+    RenderingReferenceLightingProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-reference-lighting"),
+        Path.GetFullPath(Option("--reference-lighting") ?? "artifacts/local/beacon-compiled-lighting"));
+    return;
+}
 if (args.Contains("--rendering-affine", StringComparer.Ordinal))
 {
     RenderingHybridProof.RunAffineQueries(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-affine"));

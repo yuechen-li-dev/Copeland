@@ -15,6 +15,10 @@ try {
     @{ Accepted = $false } | ConvertTo-Json | Set-Content -LiteralPath $evidencePath
     $sourcePaths = @(
         'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/ReferenceIntegrator3D.cs',
+        'src/Aurelian/Aurelian.Rendering.Contracts/Models/EnvironmentRadiance3D.cs',
+        'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/ReferenceLighting3D.cs',
+        'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/VulkanReferenceOutput3D.cs',
+        'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/VulkanEnvironmentCompiler.cs',
         'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/ReferenceDiffuseScene3D.cs',
         'src/Aurelian/Aurelian.Graphics/Vulkan/RayQueries/VulkanRayQueryScene.cs',
         'src/Aurelian/Aurelian.Graphics/Vulkan/RayQueries/RayQueryAnalytic3D.cs',
@@ -23,6 +27,10 @@ try {
         'src/Aurelian/Aurelian.Shaders/Assets/Queries/ReferenceIntegrator3D.v.ts',
         'src/Aurelian/Aurelian.Shaders/Assets/Queries/ReferenceFurnace3D.v.ts',
         'src/Aurelian/Aurelian.Shaders/Assets/Lighting/Lighting3D.v.ts',
+        'src/Aurelian/Aurelian.Shaders/Assets/Lighting/EnvironmentCoordinates3D.v.ts',
+        'src/Aurelian/Aurelian.Shaders/Assets/Lighting/EnvironmentCompile3D.v.ts',
+        'src/Aurelian/Aurelian.Shaders/Assets/Queries/ReferenceEnvironment3D.v.ts',
+        'src/Aurelian/Aurelian.Shaders/Assets/PostProcessing/ToneMap3D.v.ts',
         'src/Aurelian/Aurelian.Shaders/Assets/Surfaces/AnalyticIntersections3D.v.ts',
         'src/Aurelian/Aurelian.Shaders/Assets/Surfaces/AnalyticGeometry3D.v.ts',
         'src/Aurelian/Aurelian.Shaders/Assets/Surfaces/AnalyticRaster3D.v.ts',
@@ -41,21 +49,28 @@ try {
         'tests/Aurelian/Aurelian.Shaders.Tests/RayQueryShaderTests.cs',
         'tests/Aurelian/Aurelian.Graphics.Tests/ReferenceDiffuseScene3DTests.cs',
         'tests/Aurelian/Aurelian.Graphics.Tests/RayQueryAnalytic3DTests.cs',
+        'tests/Aurelian/Aurelian.Graphics.Tests/ReferenceLighting3DTests.cs',
+        'tests/Aurelian/Aurelian.Rendering.Contracts.Tests/EnvironmentRadiance3DTests.cs',
         'tools/Aurelian.GraphicsProof/RenderingReferenceProof.cs',
         'tools/Aurelian.GraphicsProof/RenderingReferenceProof.Receivers.cs',
+        'tools/Aurelian.GraphicsProof/RenderingReferenceLightingProof.cs',
+        'tools/Aurelian.GraphicsProof/RenderingReferenceLightingProof.Environment.cs',
+        'tools/Aurelian.GraphicsProof/RenderingReferenceLightingProof.Temporal.cs',
         'tools/Aurelian.GraphicsProof/RenderingHybridProof.Oracle.cs',
         'tools/Aurelian.GraphicsProof/RenderingHybridProof.AffineQueries.cs',
         'tools/Aurelian.GraphicsProof/RenderingHybridProof.AffineRaster.cs',
         'tools/Aurelian.GraphicsProof/RenderingHybridProof.AffineCapture.cs',
         'tools/Aurelian.GraphicsProof/Program.cs',
-        'tools/aurelian-rendering-reference/Qualify.ps1'
+        'tools/aurelian-rendering-reference/Qualify.ps1',
+        'tools/aurelian-rendering-reference/requirements-metrics.txt',
+        'tools/aurelian-rendering-reference/evaluate_metrics.py'
     )
     $initialHashes = @($sourcePaths | ForEach-Object { (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash })
 
     function Invoke-QualificationCommand {
-        param([string]$Name, [string[]]$Arguments)
+        param([string]$Name, [string[]]$Arguments, [string]$Executable = 'dotnet')
         $logPath = Join-Path $outputPath ($Name + '.log')
-        & dotnet @Arguments *> $logPath
+        & $Executable @Arguments *> $logPath
         if ($LASTEXITCODE -ne 0) {
             Get-Content -LiteralPath $logPath -Tail 25
             throw "$Name failed with exit code $LASTEXITCODE. See $logPath"
@@ -65,6 +80,14 @@ try {
         }
         Write-Output "$Name passed"
     }
+
+    $metricsRoot = Join-Path $repository 'artifacts/local/rendering-metrics-tools/venv'
+    $metricsPython = Join-Path $metricsRoot 'Scripts/python.exe'
+    if (-not (Test-Path -LiteralPath $metricsPython)) {
+        Invoke-QualificationCommand 'metrics-venv' @('-m', 'venv', $metricsRoot) 'python'
+    }
+    Invoke-QualificationCommand 'metrics-dependencies' @('-m', 'pip', 'install', '--disable-pip-version-check',
+        '-r', (Join-Path $repository 'tools/aurelian-rendering-reference/requirements-metrics.txt')) $metricsPython
 
     Invoke-QualificationCommand 'build' @('build', 'Aurelian.slnx', '-c', 'Release', '-m:1', '-nr:false', '-p:UseSharedCompilation=false')
     $naga = Join-Path $repository 'artifacts/local/webgpu-tools/bin/naga.exe'
@@ -81,6 +104,10 @@ try {
     Invoke-QualificationCommand 'reference' @($proof, '--rendering-reference', '--output', (Join-Path $outputPath 'capture'),
         '--reference-lighting', $fixturePath)
     Invoke-QualificationCommand 'affine' @($proof, '--rendering-affine', '--output', (Join-Path $outputPath 'affine'))
+    Invoke-QualificationCommand 'lighting-temporal' @($proof, '--rendering-reference-lighting', '--output',
+        (Join-Path $outputPath 'lighting-temporal'), '--reference-lighting', $fixturePath)
+    Invoke-QualificationCommand 'flip' @((Join-Path $repository 'tools/aurelian-rendering-reference/evaluate_metrics.py'),
+        (Join-Path $outputPath 'lighting-temporal/metrics-manifest.json')) $metricsPython
     Invoke-QualificationCommand 'hybrid-regression' @($proof, '--rendering-hybrid', '--output', (Join-Path $outputPath 'hybrid-regression'))
     Invoke-QualificationCommand 'diffuse-regression' @($proof, '--diffuse-proof', '--output', (Join-Path $outputPath 'diffuse-regression'))
 
@@ -96,10 +123,14 @@ try {
     if (-not $reference.Accepted) { throw 'Reference capture did not accept its workload.' }
     $affine = Get-Content -LiteralPath (Join-Path $outputPath 'affine/evidence.json') -Raw | ConvertFrom-Json
     if (-not $affine.Accepted) { throw 'Affine intersection capture did not accept its workload.' }
+    $lighting = Get-Content -LiteralPath (Join-Path $outputPath 'lighting-temporal/evidence.json') -Raw | ConvertFrom-Json
+    $flip = Get-Content -LiteralPath (Join-Path $outputPath 'lighting-temporal/flip-evidence.json') -Raw | ConvertFrom-Json
+    if (-not $lighting.Accepted -or -not $flip.Accepted) { throw 'Lighting, temporal or FLIP qualification did not accept.' }
     @{ Accepted = $true; FullR3aComplete = $false; Sources = $hashes;
         ProofSha256 = (Get-FileHash -LiteralPath $proof -Algorithm SHA256).Hash;
         GraphicsSha256 = (Get-FileHash -LiteralPath (Join-Path (Split-Path $proof) 'Aurelian.Graphics.dll') -Algorithm SHA256).Hash;
-        LightingFixture = $fixturePath; Reference = $reference; Affine = $affine } | ConvertTo-Json -Depth 30 |
+        LightingFixture = $fixturePath; Reference = $reference; Affine = $affine;
+        LightingTemporal = $lighting; Flip = $flip } | ConvertTo-Json -Depth 30 |
         Set-Content -LiteralPath $evidencePath
     Write-Output "AURELIAN_REFERENCE_QUALIFIED: $evidencePath"
 }

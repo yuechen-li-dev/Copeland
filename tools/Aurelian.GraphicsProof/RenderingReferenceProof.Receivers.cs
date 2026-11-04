@@ -42,7 +42,7 @@ internal static partial class RenderingReferenceProof
         return rows;
     }
 
-    private static object QualifyCompiledReceiver(AurelianVulkanPlant plant, byte[] program, string output, string baseline)
+    internal static object QualifyCompiledReceiver(AurelianVulkanPlant plant, byte[] program, string output, string baseline, bool sunBasis = false)
     {
         string recipePath = Path.Combine(baseline, "recipe.json");
         string assetPath = Path.Combine(baseline, "lighting.alight");
@@ -56,15 +56,22 @@ internal static partial class RenderingReferenceProof
         HorizontalDiffuseReceiver domain = recipe.Receiver;
         Require(domain.Width == domain.Depth, "This qualification uses a square receiver grid.");
         ReferenceTriangle3D[] geometry = ReferenceDiffuseScene3D.Describe(recipe);
+        ReferenceLighting3D? lighting = null;
+        if (sunBasis)
+        {
+            geometry = geometry.Select(triangle => triangle with { Material = triangle.Material with { Emission = Vector3.Zero } }).ToArray();
+            lighting = new(new(new(recipe.SunDirection[0], recipe.SunDirection[1], recipe.SunDirection[2]), Vector3.One), ExcludePrimarySun: true);
+        }
         var camera = new ReferenceCamera3D(new(domain.MinimumX + domain.Width / 2, domain.Height + .005f,
             domain.MinimumZ + domain.Depth / 2), new(domain.MinimumX + domain.Width / 2, domain.Height - 1,
             domain.MinimumZ + domain.Depth / 2), -Vector3.UnitZ, 1, domain.Depth);
         var settings = new ReferenceCapture3D(64, 64, 8, 243, PixelJitter: false);
-        using var integrator = new ReferenceIntegrator3D(plant, program, settings, camera, geometry, []);
+        using var integrator = new ReferenceIntegrator3D(plant, program, settings, camera, geometry, [], lighting: lighting);
         AccumulateTo(integrator, 4096);
         ReferenceImage3D actual = integrator.Capture();
-        WriteImage(output, "beacon-emission-reference", actual);
-        var decoded = CaptureCompiledReceiver(plant, asset);
+        string basisName = sunBasis ? "sun-indirect" : "emission-total";
+        WriteImage(output, "beacon-" + basisName + "-reference", actual);
+        var decoded = CaptureCompiledReceiver(plant, asset, sunBasis);
         WriteImage(output, "beacon-compiled-response", new(64, 64, 1, decoded.LinearRgb));
         using var manifest = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(baseline, "reference-manifest.json")));
         Require(manifest.RootElement.GetProperty("SceneKey").GetString() == declaredKey, "Cycles reference scene identity differs.");
@@ -116,8 +123,8 @@ internal static partial class RenderingReferenceProof
                 Vector3 reference = new(actual.LinearRgb[offset] / albedo.X, actual.LinearRgb[offset + 1] / albedo.Y,
                     actual.LinearRgb[offset + 2] / albedo.Z);
                 Vector3 compiled = new(decoded.LinearRgb[offset], decoded.LinearRgb[offset + 1], decoded.LinearRgb[offset + 2]);
-                Vector3 cpu = asset.Mesh.EvaluateNormalized(new(u * 2 - 1, v * 2 - 1), 0, 1);
-                int retainedOffset = (y * actual.Width + x) * 6 + 3;
+                Vector3 cpu = asset.Mesh.EvaluateNormalized(new(u * 2 - 1, v * 2 - 1), sunBasis ? 1 : 0, sunBasis ? 0 : 1);
+                int retainedOffset = (y * actual.Width + x) * 6 + (sunBasis ? 0 : 3);
                 Vector3 retained = Read3(cycles, retainedOffset) / albedo;
                 Vector3 retainedRepeat = Read3(repeat, retainedOffset) / albedo;
                 cpuError += Vector3.DistanceSquared(reference, cpu);
@@ -136,7 +143,7 @@ internal static partial class RenderingReferenceProof
         Require(sites > 3500 && energy > .01 && rmse < .02, $"Compiled receiver comparison failed: {sites} sites, RMSE {rmse}.");
         File.Copy(recipePath, Path.Combine(output, "beacon-recipe.json"), true);
         File.Copy(assetPath, Path.Combine(output, "beacon-lighting.alight"), true);
-        Console.WriteLine($"Beacon compiled emission receiver: {sites} sites; radiance RMSE {radianceRmse:F7}; per-unit-albedo RMSE {rmse:F7}");
+        Console.WriteLine($"Beacon compiled {basisName} receiver: {sites} sites; radiance RMSE {radianceRmse:F7}; per-unit-albedo RMSE {rmse:F7}");
         return new { SceneKey = declaredKey, Samples = actual.Samples, Sites = sites, LinearHdrRmse = radianceRmse,
             PerUnitAlbedoRmse = rmse, ReferenceVsRetainedCyclesRadianceRmse = Math.Sqrt(rawCyclesError / (sites * 3)),
             AssetCoefficientsVsReferenceRmse = Math.Sqrt(cpuError / (sites * 3)),
@@ -144,11 +151,11 @@ internal static partial class RenderingReferenceProof
             AssetCoefficientsVsRetainedCyclesRmse = Math.Sqrt(fitError / (sites * 3)),
             RetainedCyclesRepeatRmse = Math.Sqrt(cyclesNoise / (sites * 3)),
             decoded.QuantizationBound, decoded.MaximumDecodeError,
-            Basis = "emission-total; per-unit-receiver-albedo", Decode = "Actual CompiledDiffuse GPU module and uploaded asset; scaled RGBA8 readback",
-            Mask = "Same conservative contributor AABB ground-contact exclusion as the asset compiler", SunBasisQualified = false };
+            Basis = basisName + "; per-unit-receiver-albedo", Decode = "Actual CompiledDiffuse GPU module and uploaded asset; scaled RGBA8 readback",
+            Mask = "Same conservative contributor AABB ground-contact exclusion as the asset compiler", SunBasisQualified = sunBasis };
     }
 
-    private static (float[] LinearRgb, double QuantizationBound, double MaximumDecodeError) CaptureCompiledReceiver(AurelianVulkanPlant plant, StaticDiffuseLighting asset)
+    private static (float[] LinearRgb, double QuantizationBound, double MaximumDecodeError) CaptureCompiledReceiver(AurelianVulkanPlant plant, StaticDiffuseLighting asset, bool sunBasis)
     {
         string? ReadSource(string name)
         {
@@ -168,7 +175,7 @@ internal static partial class RenderingReferenceProof
         {
             for (int x = 0; x < 64; x++)
             {
-                Vector3 value = asset.Mesh.EvaluateNormalized(new((x + .5f) / 32 - 1, (y + .5f) / 32 - 1), 0, 1);
+                Vector3 value = asset.Mesh.EvaluateNormalized(new((x + .5f) / 32 - 1, (y + .5f) / 32 - 1), sunBasis ? 1 : 0, sunBasis ? 0 : 1);
                 maximum = Math.Max(maximum, Math.Max(value.X, Math.Max(value.Y, value.Z)));
             }
         }
@@ -176,8 +183,8 @@ internal static partial class RenderingReferenceProof
         Native3DVertex Vertex(float x, float z) => new(new(x, 0, z), Vector3.UnitY, new(scale, 0, 0, 1));
         Native3DVertex[] quad = [Vertex(-1, -1), Vertex(1, -1), Vertex(1, 1), Vertex(-1, -1), Vertex(1, 1), Vertex(-1, 1)];
         renderer.Settings = Graphics3DSettings.Basic with { SolidPbr = true, SunDirection = asset.SunDirection,
-            SunIntensity = 0, DirectDiffuseModel = DirectDiffuseModel3D.Lambert };
-        renderer.StaticEmissionIntensity = 1;
+            SunColor = Vector3.One, SunIntensity = sunBasis ? 1 : 0, DirectDiffuseModel = DirectDiffuseModel3D.Lambert };
+        renderer.StaticEmissionIntensity = sunBasis ? 0 : 1;
         byte[] pixels = renderer.Render(quad, Matrix4x4.Identity, new(0, 0, 0, 1), capture: true).Pixels!;
         float[] rgb = new float[64 * 64 * 3];
         double maximumError = 0;
@@ -186,7 +193,7 @@ internal static partial class RenderingReferenceProof
             Require(pixels[pixel * 4 + 3] == 255, "Compiled decoder left a receiver hole.");
             int x = pixel % 64;
             int y = pixel / 64;
-            Vector3 expected = asset.Mesh.EvaluateNormalized(new((x + .5f) / 32 - 1, (y + .5f) / 32 - 1), 0, 1);
+            Vector3 expected = asset.Mesh.EvaluateNormalized(new((x + .5f) / 32 - 1, (y + .5f) / 32 - 1), sunBasis ? 1 : 0, sunBasis ? 0 : 1);
             for (int channel = 0; channel < 3; channel++)
             {
                 float value = pixels[pixel * 4 + channel] / 255f;

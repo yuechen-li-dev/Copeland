@@ -158,6 +158,7 @@ visibility through the path tracer.
 
 These are bounded single-precision workloads, not guarantees for arbitrary
 conditioning or scene magnitudes. Analytic emitter sampling, analytic MASK/CSG,
-native analytic shadow maps, reference material textures, sun/environment bases
-and the remaining R3a temporal/FLIP suite remain separate boundaries. Full R3a
-is still open.
+native analytic shadow maps and reference material textures remain separate
+boundaries. The [lighting continuation](rendering-r3a-lighting-temporal.md) now
+qualifies sun/environment transport, FLIP and bounded temporal sequences. The
+remaining full scene suite keeps R3a open.
