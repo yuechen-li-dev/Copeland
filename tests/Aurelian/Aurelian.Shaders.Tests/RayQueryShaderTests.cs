@@ -1,4 +1,5 @@
 using Aurelian.Shaders.Compute;
+using Aurelian.Shaders.Library;
 using Copeland.TS.Gpu;
 using Copeland.TS.Gpu.VdMir;
 using Xunit;
@@ -7,6 +8,68 @@ namespace Aurelian.Shaders.Tests;
 
 public sealed class RayQueryShaderTests
 {
+    [Fact]
+    public void AffineCandidatesUseTheSameIntersectionModuleAsRasterization()
+    {
+        var sources = BuiltinShaderLibrary.LoadSources("AffineRayQuery3D.v.ts");
+        Assert.Contains(sources, source => source.Path == "AnalyticIntersections3D.v.ts");
+        var module = GpuComputeBinder.Compile(new(sources));
+        Assert.True(module.Success, string.Join("; ", module.Diagnostics.Select(item => item.Message)));
+        Assert.Equal("compute.rayquery.m3", module.FeatureLevel);
+        var compiled = VdMirComputeBackend.Compile(module);
+        Assert.True(compiled.SpirvValidated, compiled.DxcOutput + compiled.SpirvValidationOutput);
+        Assert.Contains("OpRayQueryProceedKHR", compiled.SpirvDisassembly);
+        Assert.Contains("IntersectAnalyticRange", compiled.Hlsl);
+    }
+
+    [Theory]
+    [InlineData("readonly primitives", "readwrite primitives")]
+    [InlineData("mask: u32;", "mask: f32;")]
+    public void ClosedIntersectorRejectsMutationAndInvalidHitContracts(string before, string after)
+    {
+        var sources = BuiltinShaderLibrary.LoadSources("AffineRayQuery3D.v.ts")
+            .Select(source => source.Path == "AffineAnalyticQuery3D.v.ts"
+                ? source with { Source = source.Source.Replace(before, after, StringComparison.Ordinal) }
+                : source).ToArray();
+        var module = GpuComputeBinder.Compile(new(sources));
+        Assert.False(module.Success);
+        Assert.Contains(module.Diagnostics, item => item.Code == "COPE-GPU-RAYQUERY-0004");
+    }
+
+    [Fact]
+    public void IntersectorOperandIsAClosedSymbolRatherThanAnOrdinaryFunctionValue()
+    {
+        var sources = BuiltinShaderLibrary.LoadSources("AffineRayQuery3D.v.ts")
+            .Select(source => source.Path == "AffineRayQuery3D.v.ts"
+                ? source with { Source = source.Source.Replace("thread.x, AffineAnalyticIntersection)", "thread.x, 1)", StringComparison.Ordinal) }
+                : source).ToArray();
+        var module = GpuComputeBinder.Compile(new(sources));
+        Assert.False(module.Success);
+        Assert.Contains(module.Diagnostics, item => item.Code == "COPE-GPU-RAYQUERY-0004");
+    }
+
+    [Fact]
+    public void ReferenceKernelUsesSharedLightingAndCompilesToValidatedRayQuerySpirv()
+    {
+        var module = GpuComputeBinder.Compile(new(BuiltinShaderLibrary.LoadSources("ReferenceIntegrator3D.v.ts")));
+        Assert.True(module.Success, string.Join("; ", module.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        var compiled = VdMirComputeBackend.Compile(module);
+        Assert.True(compiled.SpirvValidated, compiled.DxcOutput + compiled.SpirvValidationOutput);
+        Assert.Contains("OpRayQueryProceedKHR", compiled.SpirvDisassembly);
+        Assert.Contains("RWStructuredBuffer<float> Rays", compiled.Hlsl);
+    }
+
+    [Fact]
+    public void ResidentRayPacketsCompileWithoutExposingOpaqueQueryState()
+    {
+        string source = Source.Replace("readonly Rays", "readwrite Rays", StringComparison.Ordinal);
+        var module = GpuComputeBinder.Compile(new([new("resident.v.ts", source)]));
+        Assert.True(module.Success, string.Join("; ", module.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        var compiled = VdMirComputeBackend.Compile(module);
+        Assert.True(compiled.SpirvValidated, compiled.SpirvValidationOutput);
+        Assert.Contains("OpRayQueryProceedKHR", compiled.SpirvDisassembly);
+    }
+
     private static string Source => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "RayQuery.v.ts"));
 
     [Fact]

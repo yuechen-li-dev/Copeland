@@ -105,7 +105,7 @@ internal static class GpuReachability
         }
         void Expression(VdMirExpression expression)
         {
-            if (expression.Kind == "call")
+            if (expression.Kind is "call" or "ray-query-intersector")
             {
                 Visit(expression.Value!);
             }

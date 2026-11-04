@@ -29,6 +29,8 @@ The docs above describe current code paths and contracts. For exact signatures a
 - [R2 offline asset LOD](rendering-r2-lod.md): deterministic import-time simplification, prepared delivery indices, GPU selection with hysteresis and native image/performance qualification.
 - [Rendering policy and native asset boundary](rendering-policy.md): tooling-only native simplification, managed delivery loading, and measured Dominatus HZB/LOD decisions with hysteresis and minimum commitment.
 - [R2 hybrid visibility](rendering-r2-hybrid.md): canonical analytic primitives and triangles sharing depth, typed hit identity, materials, HZB and native qualification.
+- [R3a progressive reference captures](rendering-r3a-reference.md): GPU path tracing with shared BRDFs, seeded HDR convergence, NEE/MIS controls, furnaces and the compiled floor comparison.
+- [R3a shared affine intersections](rendering-r3a-affine.md): shared sphere/box/capsule math in raster and ray queries, reflected instances, and oracle/depth/secondary-visibility controls.
 - [Diffuse comparison](diffuse-comparison.md): controlled Lambert, Burley, Frostbite, EON and Aurelian PathDiffuse experiments, live `IGame` lab, paper references and native numerical qualification.
 - [Image guided look pilot](image-guided-look-pilot.md): generated appearance targets, a frozen Cloudstep policy sweep, native VTS selection, transfer results and methodology limits.
 - [Image guided look refinement](image-guided-look-refinement.md): material-balanced CPU search, palette/lighting calibration, soft gamut compression, richer native captures and a rejected AI reference registration.

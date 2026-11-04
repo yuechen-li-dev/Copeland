@@ -1,7 +1,8 @@
 import { BindlessMaterialRecord } from "./ResidentMaterial3D";
 import { ResidentVertex, ResidentInstance, ResidentAttributes, PointRow } from "./ResidentGeometry3D";
 import { TestSurfaceCoverage } from "./SurfaceMaterial3D";
-import { AnalyticRay, AnalyticHit, AnalyticLocalRay, IntersectAnalytic, AnalyticAttributes, AnalyticGradients } from "./AnalyticGeometry3D";
+import { AnalyticRay, AnalyticHit, IntersectAnalytic } from "./AnalyticIntersections3D";
+import { AnalyticLocalRay, AnalyticAttributes, AnalyticGradients } from "./AnalyticGeometry3D";
 import { Dot3 } from "./Lighting3D";
 @space(clip.position)
 type ClipPosition4 = float4;

@@ -980,24 +980,31 @@ public static partial class GpuComputeBinder
         // cannot be copied, returned, stored, or invoked through a helper ABI.
         private VdMirStatement BindRayQuery(string path, CallExpressionSyntax call, Dictionary<string, ValueBinding> scope)
         {
-            var arguments = call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray();
-            bool valid = arguments.Length == 6;
+            var arguments = call.Arguments.Take(6).Select(argument => BindExpression(path, argument, scope)).ToList();
+            bool valid = call.Arguments.Count is 6 or 7;
             VdMirResourceAccess[] access = [VdMirResourceAccess.Readonly, VdMirResourceAccess.Readonly,
                 VdMirResourceAccess.Readonly, VdMirResourceAccess.Readwrite, VdMirResourceAccess.Readonly];
-            for (int index = 0; index < Math.Min(5, arguments.Length); index++)
+            for (int index = 0; index < Math.Min(5, arguments.Count); index++)
             {
                 string expected = index == 0 ? "acceleration_structure" : "storage-buffer<f32>";
                 bool resourceValid = call.Arguments[index] is NameExpressionSyntax name
                     && scope.TryGetValue(name.IdentifierToken.Text, out ValueBinding? value)
-                    && value.Resource is { } resource && resource.Access == access[index]
+                    && value.Resource is { } resource
+                    && (resource.Access == access[index]
+                        || index == 2 && resource.Access == VdMirResourceAccess.Readwrite)
                     && arguments[index].Type == expected;
                 valid &= resourceValid;
             }
-            valid &= arguments.Length == 6 && arguments[5].Type == "u32";
+            valid &= arguments.Count == 6 && arguments[5].Type == "u32";
             if (!valid)
             {
                 AddDiagnostic("COPE-GPU-RAYQUERY-0001", "SDSL-V4211", "ray-query",
-                    "RayQueryTraceClosest requires readonly acceleration_structure, readonly sphere/ray/triangle buffers, readwrite output and a u32 dispatch index.", Span(path, call));
+                    "RayQueryTraceClosest requires readonly acceleration_structure and sphere/triangle buffers, readable ray storage, readwrite output and a u32 dispatch index.", Span(path, call));
+            }
+            if (valid && call.Arguments.Count == 7)
+            {
+                VdMirExpression? intersector = BindRayIntersector(path, call, scope);
+                if (intersector is not null) arguments.Add(intersector);
             }
             return new VdMirStatement("ray-query", Span(path, call),
                 Expression: new VdMirExpression("intrinsic", "void", Span(path, call), "RayQueryTraceClosest", arguments));
@@ -1140,6 +1147,15 @@ public static partial class GpuComputeBinder
         private VdMirComputeModule CreateModule()
         {
             VdMirFlowTape[] tapes = CreateTapeMetadata();
+            string featureLevel = VdMirComputeModule.ComputeM1FeatureLevel;
+            if (_resources.Any(resource => resource.ElementType == "acceleration_structure"))
+            {
+                featureLevel = _usesProceduralIntersector ? "compute.rayquery.m3" : "compute.rayquery.m2";
+            }
+            if (_boundFunctions.Any(function => function.Statements.Any(statement => statement.Kind == "cooperative-matmul")))
+            {
+                featureLevel = "compute.cooperative.m1";
+            }
             string[] types = _resources.Select(resource => resource.ElementType)
                 .Concat(_boundFunctions.SelectMany(function => function.Parameters.Select(parameter => parameter.Type)))
                 .Concat(_boundFunctions.Select(function => function.ReturnType))
@@ -1155,9 +1171,7 @@ public static partial class GpuComputeBinder
             return new VdMirComputeModule(
                 VdMirComputeModule.CurrentSchema,
                 VdMirComputeModule.CanonicalConformanceSchema,
-                _boundFunctions.Any(function => function.Statements.Any(statement => statement.Kind == "cooperative-matmul"))
-                    ? "compute.cooperative.m1"
-                    : _resources.Any(resource => resource.ElementType == "acceleration_structure") ? "compute.rayquery.m2" : VdMirComputeModule.ComputeM1FeatureLevel,
+                featureLevel,
                 _request.Sources.Select(source => source.Path).Distinct(StringComparer.Ordinal).OrderBy(path => path, StringComparer.Ordinal).ToArray(),
                 types,
                 _resources.OrderBy(resource => resource.Set).ThenBy(resource => resource.Binding).ThenBy(resource => resource.Name, StringComparer.Ordinal).ToArray(),

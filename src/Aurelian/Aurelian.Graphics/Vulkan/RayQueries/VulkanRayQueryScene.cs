@@ -19,8 +19,11 @@ namespace Aurelian.Graphics.Vulkan.RayQueries;
 public readonly record struct RayQueryTriangle(Vector3 A, Vector3 B, Vector3 C, uint Layer = 1, uint Mask = uint.MaxValue);
 public readonly record struct RayQuerySphere(Vector3 Center, float Radius, uint Layer = 1, uint Mask = uint.MaxValue);
 public readonly record struct RayQueryRequest(Vector3 Origin, Vector3 Direction, float MaximumDistance,
-    uint IncludedLayers = uint.MaxValue, uint QueryLayer = uint.MaxValue);
-public readonly record struct RayQueryHit(uint Kind, uint Primitive, float Distance, Vector3 Point, Vector3 Normal, Vector2 Barycentrics);
+    uint IncludedLayers = uint.MaxValue, uint QueryLayer = uint.MaxValue, float MinimumDistance = 0);
+public readonly record struct RayQueryHit(uint Kind, uint Primitive, float Distance, Vector3 Point, Vector3 Normal, Vector2 Barycentrics)
+{
+    public bool FrontFace { get; init; }
+}
 
 /// <summary>Retained BLAS/TLAS and batched inline traversal, adapted from Oct's
 /// reactor_vulkan_ray_query.c. Uses the existing Aurelian plant, allocator and submission owners.</summary>
@@ -46,6 +49,8 @@ public sealed unsafe class VulkanRayQueryScene : IDisposable
     private bool disposed;
     private AurelianVulkanTexture? hitTexture;
     private Vulkan3DGpuTimings? timings;
+    private AurelianVulkanBuffer? residentParameters;
+    private AurelianVulkanBuffer? residentAccumulation;
 
     public ulong BottomLevelAddress { get; private set; }
     public ulong TopLevelAddress { get; private set; }
@@ -54,12 +59,27 @@ public sealed unsafe class VulkanRayQueryScene : IDisposable
 
     public VulkanRayQueryScene(AurelianVulkanPlant plant, byte[] spirv,
         IReadOnlyList<RayQueryTriangle> triangles, IReadOnlyList<RayQuerySphere>? spheres = null, int capacity = 4096)
+        : this(plant, spirv, triangles, spheres, capacity, null, 0)
+    {
+    }
+
+    public static VulkanRayQueryScene CreateAnalytic(AurelianVulkanPlant plant, byte[] spirv,
+        IReadOnlyList<RayQueryTriangle> triangles, IReadOnlyList<RayQueryAnalytic3D> analytic, int capacity = 4096)
+    {
+        return new(plant, spirv, triangles, null, capacity, null, 0, analytic);
+    }
+
+    internal VulkanRayQueryScene(AurelianVulkanPlant plant, byte[] spirv,
+        IReadOnlyList<RayQueryTriangle> triangles, IReadOnlyList<RayQuerySphere>? spheres, int capacity,
+        float[]? parameters, int accumulationWords, IReadOnlyList<RayQueryAnalytic3D>? analytic = null)
     {
         ArgumentNullException.ThrowIfNull(plant);
         ArgumentNullException.ThrowIfNull(spirv);
         spheres ??= [];
+        int proceduralCount = analytic?.Count ?? spheres.Count;
         if (capacity is < 1 or > 1_048_576 || triangles.Count > 1_000_000 || spheres.Count > 1_000_000
-            || triangles.Count + spheres.Count == 0
+            || proceduralCount > 1_000_000 || analytic is not null && spheres.Count != 0
+            || triangles.Count + proceduralCount == 0
             || spirv.Length < 20 || spirv.Length % 4 != 0)
         {
             throw new ArgumentException("Ray query scenes need geometry, aligned SPIR-V and a bounded batch capacity.");
@@ -95,8 +115,9 @@ public sealed unsafe class VulkanRayQueryScene : IDisposable
             var vertices = Buffer((ulong)triangleWords.Length * 4, VulkanBufferUsage.Storage
                 | VulkanBufferUsage.AccelerationStructureInput | VulkanBufferUsage.ShaderDeviceAddress, VulkanMemoryUsage.CpuToGpu);
             Write(vertices, triangleWords);
-            float[] sphereWords = new float[Math.Max(8, checked(spheres.Count * 8))];
-            float[] aabbWords = new float[Math.Max(6, checked(spheres.Count * 6))];
+            int proceduralStride = analytic is null ? 8 : 16;
+            float[] sphereWords = new float[Math.Max(proceduralStride, checked(proceduralCount * proceduralStride))];
+            float[] aabbWords = new float[Math.Max(6, checked(proceduralCount * 6))];
             for (int index = 0; index < spheres.Count; index++)
             {
                 var sphere = spheres[index];
@@ -112,6 +133,16 @@ public sealed unsafe class VulkanRayQueryScene : IDisposable
                 sphereWords[index * 8 + 5] = Bits(sphere.Mask);
                 WritePoint(aabbWords, index * 6, minimum);
                 WritePoint(aabbWords, index * 6 + 3, maximum);
+            }
+            if (analytic is not null)
+            {
+                for (int index = 0; index < analytic.Count; index++)
+                {
+                    RayQueryAnalytic3D primitive = analytic[index];
+                    primitive.Pack(sphereWords.AsSpan(index * 16, 16));
+                    WritePoint(aabbWords, index * 6, primitive.Minimum);
+                    WritePoint(aabbWords, index * 6 + 3, primitive.Maximum);
+                }
             }
             var sphereData = Buffer((ulong)sphereWords.Length * 4, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
             Write(sphereData, sphereWords);
@@ -138,7 +169,7 @@ public sealed unsafe class VulkanRayQueryScene : IDisposable
                 BottomLevelAddress = Build(AccelerationStructureTypeKHR.BottomLevelKhr, geometry, (uint)triangles.Count);
                 instances.Add(BottomLevelAddress);
             }
-            if (spheres.Count > 0)
+            if (proceduralCount > 0)
             {
                 var aabbs = Buffer((ulong)aabbWords.Length * 4, VulkanBufferUsage.AccelerationStructureInput
                     | VulkanBufferUsage.ShaderDeviceAddress, VulkanMemoryUsage.CpuToGpu);
@@ -157,7 +188,7 @@ public sealed unsafe class VulkanRayQueryScene : IDisposable
                         },
                     },
                 };
-                instances.Add(Build(AccelerationStructureTypeKHR.BottomLevelKhr, geometry, (uint)spheres.Count));
+                instances.Add(Build(AccelerationStructureTypeKHR.BottomLevelKhr, geometry, (uint)proceduralCount));
             }
             byte[] instanceBytes = new byte[instances.Count * 64];
             for (int index = 0; index < instances.Count; index++)
@@ -184,10 +215,30 @@ public sealed unsafe class VulkanRayQueryScene : IDisposable
                 },
             };
             TopLevelAddress = Build(AccelerationStructureTypeKHR.TopLevelKhr, instanceGeometry, (uint)instances.Count);
-            rays = Buffer((ulong)(4 + capacity * 12) * 4, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
-            hits = Buffer((ulong)((capacity + 3) / 4) * 256, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferSource, VulkanMemoryUsage.GpuToCpu);
+            rays = Buffer((ulong)(4 + capacity * 12) * 4, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferDestination,
+                parameters is null ? VulkanMemoryUsage.CpuToGpu : VulkanMemoryUsage.GpuOnly);
+            hits = Buffer((ulong)((capacity + 3) / 4) * 256, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferSource,
+                parameters is null ? VulkanMemoryUsage.GpuToCpu : VulkanMemoryUsage.GpuOnly);
+            if (parameters is not null)
+            {
+                residentParameters = Buffer((ulong)parameters.Length * 4, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
+                Write(residentParameters, parameters);
+                residentAccumulation = Buffer((ulong)accumulationWords * 4,
+                    VulkanBufferUsage.Storage | VulkanBufferUsage.TransferDestination | VulkanBufferUsage.TransferSource,
+                    VulkanMemoryUsage.GpuOnly);
+            }
             CreatePipeline(spirv, structures[^1], sphereData, vertices);
             timings = new(plant, ["ray-query-hit-packets"]);
+            if (residentAccumulation is not null)
+            {
+                VulkanCommandBufferLease initialize = Begin();
+                uint count = (uint)capacity;
+                plant.Vk.CmdUpdateBuffer(initialize.CommandBuffer, rays.NativeBuffer, 0, 4, &count);
+                plant.Vk.CmdFillBuffer(initialize.CommandBuffer, residentAccumulation.NativeBuffer, 0, residentAccumulation.SizeBytes, 0);
+                Barrier(initialize.CommandBuffer, AccessFlags.TransferWriteBit, AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
+                    PipelineStageFlags.TransferBit, PipelineStageFlags.ComputeShaderBit);
+                Submit(initialize);
+            }
         }
         catch
         {
@@ -212,7 +263,10 @@ public sealed unsafe class VulkanRayQueryScene : IDisposable
                 int offset = index * 16;
                 result[index] = new(BitConverter.SingleToUInt32Bits(data[offset]), BitConverter.SingleToUInt32Bits(data[offset + 1]),
                     data[offset + 4], new(data[offset + 8], data[offset + 9], data[offset + 10]),
-                    new(data[offset + 12], data[offset + 13], data[offset + 14]), new(data[offset + 5], data[offset + 6]));
+                    new(data[offset + 12], data[offset + 13], data[offset + 14]), new(data[offset + 5], data[offset + 6]))
+                {
+                    FrontFace = data[offset + 15] > 0,
+                };
             }
             return result;
         }
@@ -244,6 +298,7 @@ public sealed unsafe class VulkanRayQueryScene : IDisposable
         lock (gate)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
+            if (residentParameters is not null) throw new InvalidOperationException("Resident kernels generate their own ray packets.");
             if (requests.Count > capacity) throw new ArgumentOutOfRangeException(nameof(requests));
             if (requests.Count == 0) return;
             float[] words = new float[4 + requests.Count * 12];
@@ -254,10 +309,12 @@ public sealed unsafe class VulkanRayQueryScene : IDisposable
                 RequireFinite(ray.Origin);
                 RequireFinite(ray.Direction);
                 if (MathF.Abs(ray.Direction.LengthSquared() - 1) > 0.0001f
-                    || !float.IsFinite(ray.MaximumDistance) || ray.MaximumDistance <= 0)
+                    || !float.IsFinite(ray.MaximumDistance) || ray.MaximumDistance <= 0
+                    || !float.IsFinite(ray.MinimumDistance) || ray.MinimumDistance < 0 || ray.MinimumDistance >= ray.MaximumDistance)
                     throw new ArgumentException("GPU rays need unit directions and positive finite ranges.");
                 int offset = 4 + index * 12;
                 WritePoint(words, offset, ray.Origin);
+                words[offset + 3] = ray.MinimumDistance;
                 WritePoint(words, offset + 4, ray.Direction);
                 words[offset + 7] = ray.MaximumDistance;
                 words[offset + 8] = Bits(ray.IncludedLayers);
@@ -311,6 +368,62 @@ public sealed unsafe class VulkanRayQueryScene : IDisposable
             && !VulkanBarrierCommandEmitter.EmitTextureBarriers(plant, command, [new(hitTexture, transition.Plan)]).Success)
         {
             throw new InvalidOperationException("Ray hit texture barrier failed.");
+        }
+    }
+
+    /// <summary>Capture kernels own their ray packets and accumulation. Record whole
+    /// sample batches; no path state, hit packets, or bounce decisions visit the host.</summary>
+    internal void AccumulateResident(int samples)
+    {
+        lock (gate)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            if (residentParameters is null) throw new InvalidOperationException("Not a resident kernel.");
+            if (samples is < 1 or > 4096) throw new ArgumentOutOfRangeException(nameof(samples));
+            VulkanCommandBufferLease command = Begin();
+            timings!.Reset(command);
+            timings.Mark(command, 0);
+            plant.Vk.CmdBindPipeline(command.CommandBuffer, PipelineBindPoint.Compute, pipeline);
+            DescriptorSet set = descriptorSet;
+            plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Compute, pipelineLayout, 0, 1, &set, 0, null);
+            for (int sample = 0; sample < samples; sample++)
+            {
+                Barrier(command.CommandBuffer, AccessFlags.ShaderWriteBit, AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
+                    PipelineStageFlags.ComputeShaderBit, PipelineStageFlags.ComputeShaderBit);
+                plant.Vk.CmdDispatch(command.CommandBuffer, ((uint)capacity + 63) / 64, 1, 1);
+            }
+            timings.Mark(command, 1);
+            Submit(command);
+            LastGpuMilliseconds = timings.Read().Sum(time => time.Milliseconds);
+            DispatchCount += samples;
+        }
+    }
+
+    internal float[] ReadResidentAccumulation()
+    {
+        lock (gate)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            if (residentAccumulation is null) throw new InvalidOperationException("Not a resident kernel.");
+            AurelianVulkanBuffer readback = Buffer((ulong)capacity * 16, VulkanBufferUsage.TransferDestination, VulkanMemoryUsage.GpuToCpu);
+            try
+            {
+                VulkanCommandBufferLease command = Begin();
+                Barrier(command.CommandBuffer, AccessFlags.ShaderWriteBit, AccessFlags.TransferReadBit,
+                    PipelineStageFlags.ComputeShaderBit, PipelineStageFlags.TransferBit);
+                BufferCopy region = new(0, 0, (ulong)capacity * 16);
+                plant.Vk.CmdCopyBuffer(command.CommandBuffer, residentAccumulation.NativeBuffer, readback.NativeBuffer, 1, &region);
+                Barrier(command.CommandBuffer, AccessFlags.TransferWriteBit | AccessFlags.TransferReadBit,
+                    AccessFlags.HostReadBit | AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
+                    PipelineStageFlags.TransferBit, PipelineStageFlags.HostBit | PipelineStageFlags.ComputeShaderBit);
+                Submit(command);
+                return MemoryMarshal.Cast<byte, float>(readback.ReadBytes(capacity * 16)).ToArray();
+            }
+            finally
+            {
+                buffers.Remove(readback);
+                readback.Dispose();
+            }
         }
     }
 
@@ -368,14 +481,15 @@ public sealed unsafe class VulkanRayQueryScene : IDisposable
 
     private void CreatePipeline(byte[] spirv, AccelerationStructureKHR tlas, AurelianVulkanBuffer spheres, AurelianVulkanBuffer triangles)
     {
-        DescriptorSetLayoutBinding* bindings = stackalloc DescriptorSetLayoutBinding[5];
-        for (uint index = 0; index < 5; index++) bindings[index] = new(index,
+        uint bindingCount = residentParameters is null ? 5u : 7u;
+        DescriptorSetLayoutBinding* bindings = stackalloc DescriptorSetLayoutBinding[(int)bindingCount];
+        for (uint index = 0; index < bindingCount; index++) bindings[index] = new(index,
             index == 0 ? DescriptorType.AccelerationStructureKhr : DescriptorType.StorageBuffer, 1, ShaderStageFlags.ComputeBit);
-        var layout = new DescriptorSetLayoutCreateInfo { SType = StructureType.DescriptorSetLayoutCreateInfo, BindingCount = 5, PBindings = bindings };
+        var layout = new DescriptorSetLayoutCreateInfo { SType = StructureType.DescriptorSetLayoutCreateInfo, BindingCount = bindingCount, PBindings = bindings };
         fixed (DescriptorSetLayout* value = &setLayout) Check(plant.Vk.CreateDescriptorSetLayout(plant.Device, &layout, null, value));
         DescriptorPoolSize* sizes = stackalloc DescriptorPoolSize[2];
         sizes[0] = new(DescriptorType.AccelerationStructureKhr, 1);
-        sizes[1] = new(DescriptorType.StorageBuffer, 4);
+        sizes[1] = new(DescriptorType.StorageBuffer, bindingCount - 1);
         var pool = new DescriptorPoolCreateInfo { SType = StructureType.DescriptorPoolCreateInfo, MaxSets = 1, PoolSizeCount = 2, PPoolSizes = sizes };
         fixed (DescriptorPool* value = &descriptorPool) Check(plant.Vk.CreateDescriptorPool(plant.Device, &pool, null, value));
         DescriptorSetLayout descriptorLayout = setLayout;
@@ -388,9 +502,11 @@ public sealed unsafe class VulkanRayQueryScene : IDisposable
             AccelerationStructureCount = 1,
             PAccelerationStructures = &tlas,
         };
-        AurelianVulkanBuffer[] resources = [spheres, rays, hits, triangles];
-        DescriptorBufferInfo* bufferInfos = stackalloc DescriptorBufferInfo[4];
-        WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[5];
+        AurelianVulkanBuffer[] resources = residentParameters is null
+            ? [spheres, rays, hits, triangles]
+            : [spheres, rays, hits, triangles, residentParameters, residentAccumulation!];
+        DescriptorBufferInfo* bufferInfos = stackalloc DescriptorBufferInfo[resources.Length];
+        WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[(int)bindingCount];
         writes[0] = new() { SType = StructureType.WriteDescriptorSet, PNext = &structureWrite, DstSet = descriptorSet,
             DstBinding = 0, DescriptorCount = 1, DescriptorType = DescriptorType.AccelerationStructureKhr };
         for (int index = 0; index < resources.Length; index++)
@@ -399,7 +515,7 @@ public sealed unsafe class VulkanRayQueryScene : IDisposable
             writes[index + 1] = new() { SType = StructureType.WriteDescriptorSet, DstSet = descriptorSet, DstBinding = (uint)index + 1,
                 DescriptorCount = 1, DescriptorType = DescriptorType.StorageBuffer, PBufferInfo = &bufferInfos[index] };
         }
-        plant.Vk.UpdateDescriptorSets(plant.Device, 5, writes, 0, null);
+        plant.Vk.UpdateDescriptorSets(plant.Device, bindingCount, writes, 0, null);
         var pipelineLayoutInfo = new PipelineLayoutCreateInfo { SType = StructureType.PipelineLayoutCreateInfo,
             SetLayoutCount = 1, PSetLayouts = &descriptorLayout };
         fixed (PipelineLayout* value = &pipelineLayout) Check(plant.Vk.CreatePipelineLayout(plant.Device, &pipelineLayoutInfo, null, value));
@@ -409,7 +525,7 @@ public sealed unsafe class VulkanRayQueryScene : IDisposable
             var shader = new ShaderModuleCreateInfo { SType = StructureType.ShaderModuleCreateInfo, CodeSize = (nuint)spirv.Length, PCode = (uint*)code };
             Check(plant.Vk.CreateShaderModule(plant.Device, &shader, null, out module));
         }
-        nint entry = SilkMarshal.StringToPtr("RayQueryMain");
+        nint entry = SilkMarshal.StringToPtr(residentParameters is null ? "RayQueryMain" : "ReferenceMain");
         try
         {
             var create = new ComputePipelineCreateInfo

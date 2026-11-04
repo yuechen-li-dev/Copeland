@@ -8,7 +8,7 @@ internal static class RayQueryHlslEmitter
     // Each triangle: three float4 vertices, w stores layer/mask/reserved uint bits.
     // Each sphere: centre/radius, layer/mask/reserved/reserved (eight words).
     // Each hit: four float4 lanes: metadata uint bits, t/barycentrics, point, normal.
-    internal const string Helper = """
+    private const string Template = """
         void AurelianTraceClosest(
             RaytracingAccelerationStructure scene,
             StructuredBuffer<float> spheres,
@@ -56,21 +56,7 @@ internal static class RayQueryHlslEmitter
                     candidateBary = query.CandidateTriangleBarycentrics();
                     kind = 1u;
                 } else {
-                    uint sphere = primitive * 8u;
-                    float3 centre = float3(spheres[sphere], spheres[sphere + 1u], spheres[sphere + 2u]);
-                    float radius = spheres[sphere + 3u];
-                    float3 offset = ray.Origin - centre;
-                    float b = dot(offset, ray.Direction);
-                    float c = dot(offset, offset) - radius * radius;
-                    float discriminant = b * b - c;
-                    if (discriminant < 0.0f) continue;
-                    float root = sqrt(discriminant);
-                    float nearT = -b - root;
-                    t = nearT >= ray.TMin ? nearT : -b + root;
-                    layer = asuint(spheres[sphere + 4u]);
-                    mask = asuint(spheres[sphere + 5u]);
-                    candidateNormal = normalize(ray.Origin + t * ray.Direction - centre);
-                    kind = 2u;
+                    __AURELIAN_PROCEDURAL_CANDIDATE__
                 }
                 if ((layers & layer) == 0u || (queryLayer & mask) == 0u || t < ray.TMin || t > ray.TMax) continue;
                 if (bestKind == 0u || t < bestT - 0.00001f || (abs(t - bestT) <= 0.00001f &&
@@ -105,4 +91,43 @@ internal static class RayQueryHlslEmitter
             hits[output + 15u] = frontFacing;
         }
         """;
+    private const string SphereCandidate = """
+        uint sphere = primitive * 8u;
+        float3 centre = float3(spheres[sphere], spheres[sphere + 1u], spheres[sphere + 2u]);
+        float radius = spheres[sphere + 3u];
+        float3 offset = ray.Origin - centre;
+        float b = dot(offset, ray.Direction);
+        float c = dot(offset, offset) - radius * radius;
+        float discriminant = b * b - c;
+        if (discriminant < 0.0f) continue;
+        float root = sqrt(discriminant);
+        float nearT = -b - root;
+        t = nearT >= ray.TMin ? nearT : -b + root;
+        layer = asuint(spheres[sphere + 4u]);
+        mask = asuint(spheres[sphere + 5u]);
+        candidateNormal = normalize(ray.Origin + t * ray.Direction - centre);
+        kind = 2u;
+        """;
+
+    internal static string Helper => ExpandCandidate(SphereCandidate);
+
+    internal static string Procedural(string resultType, string intersector)
+    {
+        string candidate = $"""
+            {resultType} candidate = {intersector}(spheres, primitive, ray.Origin, ray.Direction, ray.TMin);
+            t = candidate.distance;
+            layer = candidate.layer;
+            mask = candidate.mask;
+            candidateNormal = candidate.normal;
+            kind = 2u;
+            """;
+        return ExpandCandidate(candidate).Replace("void AurelianTraceClosest(",
+            $"void AurelianTraceClosest_{intersector}(", StringComparison.Ordinal);
+    }
+
+    private static string ExpandCandidate(string candidate)
+    {
+        return Template.Replace("__AURELIAN_PROCEDURAL_CANDIDATE__",
+            candidate.Replace("\n", "\n            ", StringComparison.Ordinal), StringComparison.Ordinal);
+    }
 }

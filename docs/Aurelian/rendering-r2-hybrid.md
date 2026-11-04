@@ -5,6 +5,11 @@ triangle meshes. Instance transforms provide placement, rotation, nonuniform sca
 unit sphere therefore renders an ellipsoid. Intersections, normals, UVs and depth are reconstructed in GPU
 shaders and use the same material and surface-lighting functions as triangle hits.
 
+The [shared affine reference continuation](rendering-r3a-affine.md) extracts those
+intersections into a common module used by ray queries and permits reflected
+analytic instances with corrected tangent handedness. Triangle instance winding
+admission remains unchanged.
+
 This is a bounded implementation of the hybrid proposal. It does not admit arbitrary field programs/CSG,
 analytic MASK coverage or analytic shadows. Those combinations fail explicitly rather than drawing the
 coverage proxy as if it were the surface. Triangle-only rendering and its existing forward paths remain intact.

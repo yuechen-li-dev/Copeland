@@ -51,17 +51,16 @@ public static partial class VdMirComputeHlslEmitter
             using var reader = new StreamReader(stream);
             builder.AppendLine(reader.ReadToEnd());
         }
-        if (module.FeatureLevel == "compute.rayquery.m2")
-        {
-            builder.AppendLine(RayQueryHlslEmitter.Helper);
-        }
-
         IReadOnlyList<VdMirFunction> functions = ResourceVariants(module);
         foreach (VdMirFunction function in functions.Where(function => function.Name != module.EntryPoint.Name))
         {
             string parameters = string.Join(", ", function.Parameters.Select(parameter =>
                 ParameterType(parameter, module) + " " + LocalName(parameter.Name)));
             builder.AppendLine($"{MapType(function.ReturnType, module)} {function.Name}({parameters});");
+        }
+        if (module.FeatureLevel is "compute.rayquery.m2" or "compute.rayquery.m3")
+        {
+            EmitQueryHelpers(builder, module);
         }
         foreach (VdMirFunction function in functions.Where(function => function.Name != module.EntryPoint.Name))
         {
@@ -144,7 +143,11 @@ public static partial class VdMirComputeHlslEmitter
                 builder.AppendLine($"{prefix}{EmitExpression(statement.Expression!)};");
                 break;
             case "ray-query":
-                builder.AppendLine($"{prefix}AurelianTraceClosest({string.Join(", ", statement.Expression!.Operands!.Select(EmitExpression))});");
+                var queryArguments = statement.Expression!.Operands!;
+                string queryFunction = queryArguments.Count == 7
+                    ? "AurelianTraceClosest_" + queryArguments[6].Value
+                    : "AurelianTraceClosest";
+                builder.AppendLine($"{prefix}{queryFunction}({string.Join(", ", queryArguments.Take(6).Select(EmitExpression))});");
                 break;
             case "if":
                 builder.AppendLine($"{prefix}if ({EmitExpression(statement.Expression!)})");

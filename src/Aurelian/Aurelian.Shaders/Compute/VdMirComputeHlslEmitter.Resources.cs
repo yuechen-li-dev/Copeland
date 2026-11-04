@@ -38,7 +38,7 @@ public static partial class VdMirComputeHlslEmitter
                 {
                     VisitExpression(operand);
                 }
-                if (expression.Kind != "call" || !functions.TryGetValue(expression.Value!, out var target))
+                if (expression.Kind is not ("call" or "ray-query-intersector") || !functions.TryGetValue(expression.Value!, out var target))
                 {
                     return;
                 }

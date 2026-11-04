@@ -162,13 +162,14 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
                     throw new InvalidDataException("AUR-MESH-008: Instance identities must be nonempty and unique within a frame.");
                 }
                 Matrix4x4 world = instance.Transform;
-                ValidateTransform(world);
+                bool analytic = instance.Mesh.PrimitiveKind != AnalyticPrimitiveKind3D.Triangles;
+                ValidateTransform(world, analytic);
                 Matrix4x4 prior = world;
                 if (!resetHistory)
                 {
                     if (instance.PreviousTransform is { } authored)
                     {
-                        ValidateTransform(authored);
+                        ValidateTransform(authored, analytic);
                         prior = authored;
                     }
                     else if (previous.TryGetValue(instance.Identity, out var old) && ReferenceEquals(old.Mesh, instance.Mesh))
@@ -361,14 +362,15 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
         words[offset + 2] = new(matrix.M13, matrix.M23, matrix.M33, matrix.M43);
     }
 
-    internal static void ValidateTransform(Matrix4x4 matrix)
+    internal static void ValidateTransform(Matrix4x4 matrix, bool allowReflection = false)
     {
         float[] values = Lighting3DUniforms.Rows(matrix);
         if (values.Any(value => !float.IsFinite(value)) || matrix.M14 != 0 || matrix.M24 != 0
             || matrix.M34 != 0 || matrix.M44 != 1 || !Matrix4x4.Invert(matrix, out _)
-            || !float.IsFinite(matrix.GetDeterminant()) || matrix.GetDeterminant() <= 0)
+            || !float.IsFinite(matrix.GetDeterminant()) || matrix.GetDeterminant() == 0
+            || !allowReflection && matrix.GetDeterminant() < 0)
         {
-            throw new InvalidDataException("AUR-MESH-011: Instances require finite, invertible, positive affine transforms.");
+            throw new InvalidDataException("AUR-MESH-011: Instances require finite invertible affine transforms; triangle transforms must preserve orientation.");
         }
     }
 

@@ -14,7 +14,7 @@ internal static partial class RenderingHybridProof
         public static D3 From(Vector3 value) => new(value.X, value.Y, value.Z);
     }
     private sealed record OracleObject(SceneInstance3D Instance, uint Id, double[,] Inverse);
-    private sealed record OracleHit(double T, D3 World, uint Instance, uint Identity, double Margin);
+    private sealed record OracleHit(double T, D3 World, uint Instance, uint Identity, double Margin, D3 Normal);
 
     private static object CheckOracle(Native3DScene scene, Matrix4x4 camera, NativeVisibilityBufferReadback ids, float[] depth)
     {
@@ -66,7 +66,7 @@ internal static partial class RenderingHybridProof
             MaximumDepthError = maximumDepthError, Kinds = kinds.Select(kind => kind.ToString()).ToArray() };
     }
 
-    private static IEnumerable<OracleHit> Intersections(OracleObject item, D3 worldStart, D3 worldDirection)
+    private static IEnumerable<OracleHit> Intersections(OracleObject item, D3 worldStart, D3 worldDirection, double minimum = 0)
     {
         D3 origin = Project(worldStart, item.Inverse);
         D3 direction = Project(worldStart + worldDirection, item.Inverse) - origin;
@@ -74,7 +74,7 @@ internal static partial class RenderingHybridProof
         var kind = item.Instance.Mesh.PrimitiveKind;
         void Add(double t, D3 normal, uint identity, double margin)
         {
-            if (t is < 0 or > 1) return;
+            if (t < minimum || t > 1) return;
             bool front = normal.Dot(direction) < 0;
             if (!front && !item.Instance.Material.DoubleSided) return;
             candidates.Add((t, normal, identity | (front ? 0u : 1u), margin));
@@ -141,7 +141,14 @@ internal static partial class RenderingHybridProof
                 Add(edge2.Dot(q) / determinant, edge1.Cross(edge2), (uint)triangle * 2, Math.Min(u, Math.Min(v, 1 - u - v)));
             }
         }
-        return candidates.Select(hit => new OracleHit(hit.T, worldStart + worldDirection * hit.T, item.Id, hit.Identity, hit.Margin));
+        return candidates.Select(hit =>
+        {
+            D3 normal = new(item.Inverse[0, 0] * hit.Normal.X + item.Inverse[0, 1] * hit.Normal.Y + item.Inverse[0, 2] * hit.Normal.Z,
+                item.Inverse[1, 0] * hit.Normal.X + item.Inverse[1, 1] * hit.Normal.Y + item.Inverse[1, 2] * hit.Normal.Z,
+                item.Inverse[2, 0] * hit.Normal.X + item.Inverse[2, 1] * hit.Normal.Y + item.Inverse[2, 2] * hit.Normal.Z);
+            normal *= 1 / Math.Sqrt(normal.Dot(normal));
+            return new OracleHit(hit.T, worldStart + worldDirection * hit.T, item.Id, hit.Identity, hit.Margin, normal);
+        });
     }
 
     private static IEnumerable<double> Roots(double a, double b, double c)

@@ -4,7 +4,8 @@ import { ResidentVertex, ResidentInstance, ResidentAttributes, TransformResident
 import { SurfaceData, EvaluateSurfaceMaterialGrad } from "./SurfaceMaterial3D";
 import { VisibilityHit, EmptyVisibilityHit, ResolveTriangleHit } from "./VisibilityGeometry3D";
 import { TemporalProjection } from "./TemporalGeometry";
-import { AnalyticRay, AnalyticHit, AnalyticLocalRay, IntersectAnalytic, AnalyticAttributes, AnalyticGradients } from "./AnalyticGeometry3D";
+import { AnalyticRay, AnalyticHit, IntersectAnalytic } from "./AnalyticIntersections3D";
+import { AnalyticLocalRay, AnalyticAttributes, AnalyticGradients } from "./AnalyticGeometry3D";
 @space(clip.position)
 type ClipPosition4 = float4;
 @material

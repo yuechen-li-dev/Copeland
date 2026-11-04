@@ -26,7 +26,7 @@ public sealed class NativeInstanceSet3D : IReadOnlyList<SceneInstance3D>
         }
         foreach (SceneInstance3D instance in instances)
         {
-            VulkanRetainedModels3D.ValidateTransform(instance.Transform);
+            VulkanRetainedModels3D.ValidateTransform(instance.Transform, instance.Mesh.PrimitiveKind != AnalyticPrimitiveKind3D.Triangles);
             instance.Material.Validate();
             if (instance.Mesh.PrimitiveKind != AnalyticPrimitiveKind3D.Triangles && instance.Material.AlphaMask)
                 throw new NotSupportedException("AUR-HYBRID-002: Analytic MASK surfaces require multi-hit coverage; this profile admits opaque analytic surfaces only.");
