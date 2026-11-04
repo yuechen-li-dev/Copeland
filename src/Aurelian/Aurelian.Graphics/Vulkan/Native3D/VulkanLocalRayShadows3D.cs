@@ -93,7 +93,7 @@ internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
         }
     }
 
-    public void Prepare(NativeInstanceSet3D instances, Matrix4x4 inverse, ReadOnlySpan<float> lights, int count, LocalLightSampling3D options)
+    public void Prepare(NativeInstanceSet3D instances, Matrix4x4 inverse, ReadOnlySpan<float> lights, int count, LocalLightSampling3D options, SceneAccelerationUpdateMode3D updateMode)
     {
         options.Validate(checked((int)(width * height)));
         if (options.Mode != LocalLightSamplingMode3D.Exact && sampledPipeline.Handle == 0)
@@ -130,11 +130,11 @@ internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
             sampling = options;
             priorLights = lights.ToArray();
         }
-        if (!scene.Matches(instances))
+        if (scene.RequiresRebuild(instances, updateMode))
         {
             frames.Drain();
-            scene.Update(instances);
         }
+        scene.Prepare(instances, frames.Slot, updateMode);
         var words = new float[64 + 256 * 16];
         Lighting3DUniforms.Rows(inverse).CopyTo(words, 0);
         words[16] = width;
@@ -193,6 +193,7 @@ internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
 
     public void Record(VulkanCommandBufferLease command, AurelianVulkanTexture source, AurelianVulkanTexture normal)
     {
+        scene.RecordUpdate(command);
         // Previous frames use these GPU-only scratch buffers on this same queue.
         Barrier(command, AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit | AccessFlags.TransferReadBit,
             AccessFlags.TransferWriteBit | AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit, PipelineStageFlags.AllCommandsBit,

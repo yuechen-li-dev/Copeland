@@ -20,6 +20,11 @@ using Silk.NET.Maths;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
 
+if (args.Contains("--rendering-tlas", StringComparer.Ordinal))
+{
+    RenderingR3Proof.RunTlas(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-tlas"));
+    return;
+}
 if (args.Contains("--rendering-restir", StringComparer.Ordinal))
 {
     RenderingR3Proof.RunRestir(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-restir"));

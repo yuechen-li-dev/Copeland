@@ -3,10 +3,12 @@ param(
     [string]$LightingFixture = 'artifacts/local/beacon-compiled-lighting',
     [switch]$IncludeR3,
     [switch]$IncludeSampling,
-    [switch]$IncludeRestir
+    [switch]$IncludeRestir,
+    [switch]$IncludeTlas
 )
 
 $ErrorActionPreference = 'Stop'
+if ($IncludeTlas) { $IncludeRestir = $true }
 if ($IncludeRestir) { $IncludeSampling = $true }
 if ($IncludeSampling) { $IncludeR3 = $true }
 $repository = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
@@ -116,6 +118,14 @@ try {
             'tools/aurelian-restir/Qualify.ps1'
         )
     }
+    if ($IncludeTlas) {
+        $sourcePaths += @(
+            'src/Aurelian/Aurelian.Graphics/Vulkan/RayQueries/VulkanSceneAcceleration3D.Updates.cs',
+            'tests/Aurelian/Aurelian.Graphics.Tests/SceneAccelerationUpdateTests.cs',
+            'tools/Aurelian.GraphicsProof/RenderingR3Proof.Tlas.cs',
+            'tools/aurelian-tlas/Qualify.ps1'
+        )
+    }
     $initialHashes = @($sourcePaths | ForEach-Object { (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash })
 
     function Invoke-QualificationCommand {
@@ -195,6 +205,13 @@ try {
         if (-not $restir.Accepted -or -not $restirFlip.Accepted) { throw 'ReSTIR native and FLIP qualification did not accept.' }
     }
 
+    $tlas = $null
+    if ($IncludeTlas) {
+        Invoke-QualificationCommand 'tlas' @($proof, '--rendering-tlas', '--output', (Join-Path $outputPath 'tlas'))
+        $tlas = Get-Content -LiteralPath (Join-Path $outputPath 'tlas/evidence.json') -Raw | ConvertFrom-Json
+        if (-not $tlas.Accepted) { throw 'TLAS update qualification did not accept.' }
+    }
+
     $hashes = @($sourcePaths | ForEach-Object {
         @{ Path = $_; Sha256 = (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash }
     })
@@ -214,7 +231,7 @@ try {
         ProofSha256 = (Get-FileHash -LiteralPath $proof -Algorithm SHA256).Hash;
         GraphicsSha256 = (Get-FileHash -LiteralPath (Join-Path (Split-Path $proof) 'Aurelian.Graphics.dll') -Algorithm SHA256).Hash;
         LightingFixture = $fixturePath; Reference = $reference; Affine = $affine;
-        LightingTemporal = $lighting; Flip = $flip; R3 = $r3; R3Flip = $r3Flip; Sampling = $sampling; SamplingFlip = $samplingFlip; Restir = $restir; RestirFlip = $restirFlip; FullR3Complete = $false } | ConvertTo-Json -Depth 30 |
+        LightingTemporal = $lighting; Flip = $flip; R3 = $r3; R3Flip = $r3Flip; Sampling = $sampling; SamplingFlip = $samplingFlip; Restir = $restir; RestirFlip = $restirFlip; Tlas = $tlas; FullR3Complete = $false } | ConvertTo-Json -Depth 30 |
         Set-Content -LiteralPath $evidencePath
     Write-Output "AURELIAN_REFERENCE_QUALIFIED: $evidencePath"
 }

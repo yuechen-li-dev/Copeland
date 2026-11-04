@@ -370,12 +370,13 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
         denoisePass.Record(command, triangle);
     }
 
-    public void PrepareRayShadows(NativeInstanceSet3D instances, Matrix4x4 inverse, LocalLightSampling3D options)
+    public void PrepareRayShadows(NativeInstanceSet3D instances, Matrix4x4 inverse, LocalLightSampling3D options,
+        Aurelian.Graphics.Vulkan.RayQueries.SceneAccelerationUpdateMode3D updateMode)
     {
         if (!RayShadowsActive) return;
         rayShadows ??= Own(new VulkanLocalRayShadows3D(plant, allocator, frames!, rayShadowProgram!, Output.Width, Output.Height, sampledProgram, spatialProgram));
         localSampling = options;
-        rayShadows.Prepare(instances, inverse, packedLights, priorLights.Length, options);
+        rayShadows.Prepare(instances, inverse, packedLights, priorLights.Length, options, updateMode);
     }
 
     public void ResetLightSampling() => rayShadows?.ResetSampling();

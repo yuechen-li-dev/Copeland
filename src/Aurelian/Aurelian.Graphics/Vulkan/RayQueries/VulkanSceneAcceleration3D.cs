@@ -13,11 +13,25 @@ using Silk.NET.Vulkan.Extensions.KHR;
 
 namespace Aurelian.Graphics.Vulkan.RayQueries;
 
-public sealed record SceneAccelerationStatistics3D(int MeshBuilds, int TopLevelBuilds, int Instances, long MeshTriangles, int ResidentMeshes);
+public enum SceneAccelerationUpdateMode3D
+{
+    /// <summary>Update continuing rigid snapshots on the frame queue; rebuild other revisions.</summary>
+    Automatic,
+    /// <summary>Rebuild changed snapshots synchronously as a correctness and performance control.</summary>
+    Rebuild,
+}
 
-/// <summary>Opaque LOD0 BLAS per immutable mesh, TLAS per retained instance snapshot.
-/// Raster culling never removes off-camera ray occluders. Snapshot replacement is drained by the renderer.</summary>
-internal sealed unsafe class VulkanSceneAcceleration3D : IDisposable
+public sealed record SceneAccelerationStatistics3D(int MeshBuilds, int TopLevelBuilds, int Instances, long MeshTriangles, int ResidentMeshes)
+{
+    public int TopLevelUpdates { get; init; }
+    public int SnapshotAllocations { get; init; }
+    public int SynchronousBuildSubmissions { get; init; }
+    public long InstanceUploadBytes { get; init; }
+}
+
+/// <summary>Opaque LOD0 BLAS per immutable mesh and an updateable TLAS for retained snapshots.
+/// Raster culling never removes off-camera ray occluders. Cold rebuilds are drained; compatible motion updates execute on the frame queue.</summary>
+internal sealed unsafe partial class VulkanSceneAcceleration3D : IDisposable
 {
     private readonly AurelianVulkanPlant plant;
     private readonly KhrAccelerationStructure acceleration;
@@ -38,7 +52,13 @@ internal sealed unsafe class VulkanSceneAcceleration3D : IDisposable
     public AccelerationStructureKHR TopLevel { get; private set; }
     public AurelianVulkanBuffer Instances { get; private set; } = null!;
     public AurelianVulkanBuffer Procedurals { get; private set; } = null!;
-    public SceneAccelerationStatistics3D Statistics => new(meshBuilds, topLevelBuilds, previous?.Count ?? 0, meshTriangles, meshes.Count);
+    public SceneAccelerationStatistics3D Statistics => new(meshBuilds, topLevelBuilds, previous?.Count ?? 0, meshTriangles, meshes.Count)
+    {
+        TopLevelUpdates = topLevelUpdates,
+        SnapshotAllocations = snapshotAllocations,
+        SynchronousBuildSubmissions = synchronousBuildSubmissions,
+        InstanceUploadBytes = instanceUploadBytes,
+    };
 
     public VulkanSceneAcceleration3D(AurelianVulkanPlant plant)
     {
@@ -54,7 +74,7 @@ internal sealed unsafe class VulkanSceneAcceleration3D : IDisposable
 
     public bool Matches(NativeInstanceSet3D instances) => ReferenceEquals(previous, instances);
 
-    public void Update(NativeInstanceSet3D instances)
+    private void Rebuild(NativeInstanceSet3D instances, int slot, bool useStreamingStorage)
     {
         if (Matches(instances)) return;
         if (instances.Any(instance => instance.Material.AlphaMask || instance.Material.AlphaBlend
@@ -65,6 +85,8 @@ internal sealed unsafe class VulkanSceneAcceleration3D : IDisposable
         previous = null;
         foreach (var buffer in snapshotBuffers) buffer.Dispose();
         snapshotBuffers.Clear();
+        updatePending = false;
+        streamingStorage = useStreamingStorage;
         var active = instances.Select(instance => instance.Mesh).ToHashSet();
         foreach (NativeMesh3D removed in meshes.Keys.Where(mesh => !active.Contains(mesh)).ToArray())
         {
@@ -79,54 +101,28 @@ internal sealed unsafe class VulkanSceneAcceleration3D : IDisposable
             if (removed.PrimitiveKind == AnalyticPrimitiveKind3D.Triangles) meshTriangles -= removed.Indices.Length / 3;
             meshes.Remove(removed);
         }
-        var descriptors = new byte[instances.Count * 64];
-        var metadata = new float[instances.Count * 4];
-        var analytic = new float[instances.Count * 16];
-        for (int index = 0; index < instances.Count; index++)
+        instanceMetadata = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
+        proceduralData = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
+        instanceInputs = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
+        for (int index = 0; index < VulkanFrameInFlightSet.Count; index++)
         {
-            SceneInstance3D instance = instances.PackedInstances[index];
-            NativeMesh3D mesh = instance.Mesh;
-            if (!meshes.TryGetValue(mesh, out MeshEntry? entry))
+            if (!streamingStorage && index > 0)
             {
-                int firstBuffer = buffers.Count;
-                ulong address = BuildMesh(mesh);
-                entry = new(address, structures[^1], buffers.Skip(firstBuffer).ToArray());
-                meshes.Add(mesh, entry);
-                meshBuilds++;
+                instanceMetadata[index] = instanceMetadata[0];
+                proceduralData[index] = proceduralData[0];
+                instanceInputs[index] = instanceInputs[0];
+                continue;
             }
-            float[] rows = Lighting3DUniforms.Rows(instance.Transform);
-            MemoryMarshal.AsBytes(rows.AsSpan(0, 12)).CopyTo(descriptors.AsSpan(index * 64, 48));
-            BitConverter.TryWriteBytes(descriptors.AsSpan(index * 64 + 48, 4), (uint)index | 0xff000000u);
-            BitConverter.TryWriteBytes(descriptors.AsSpan(index * 64 + 56, 8), entry.Address);
-            metadata[index * 4] = Bits((uint)mesh.PrimitiveKind);
-            metadata[index * 4 + 1] = Bits(instance.RayLayer);
-            metadata[index * 4 + 2] = Bits(instance.RayMask);
-            metadata[index * 4 + 3] = Bits((uint)index);
-            if (mesh.PrimitiveKind != AnalyticPrimitiveKind3D.Triangles)
-                new RayQueryAnalytic3D(mesh.PrimitiveKind, instance.Transform, instance.RayLayer, instance.RayMask)
-                    .Pack(analytic.AsSpan(index * 16, 16));
+            instanceMetadata[index] = Snapshot((ulong)instances.Count * 16, VulkanBufferUsage.Storage);
+            proceduralData[index] = Snapshot((ulong)instances.Count * 64, VulkanBufferUsage.Storage);
+            instanceInputs[index] = Snapshot((ulong)instances.Count * 64,
+                VulkanBufferUsage.AccelerationStructureInput | VulkanBufferUsage.ShaderDeviceAddress);
         }
-        Instances = Snapshot((ulong)metadata.Length * 4, VulkanBufferUsage.Storage);
-        Write(Instances, metadata);
-        Procedurals = Snapshot((ulong)analytic.Length * 4, VulkanBufferUsage.Storage);
-        Write(Procedurals, analytic);
-        var input = Snapshot((ulong)descriptors.Length, VulkanBufferUsage.AccelerationStructureInput | VulkanBufferUsage.ShaderDeviceAddress);
-        if (!input.Write(descriptors).Success) throw new InvalidOperationException("Retained TLAS upload failed.");
-        var geometry = new AccelerationStructureGeometryKHR
-        {
-            SType = StructureType.AccelerationStructureGeometryKhr,
-            GeometryType = GeometryTypeKHR.InstancesKhr,
-            Geometry = new AccelerationStructureGeometryDataKHR
-            {
-                Instances = new AccelerationStructureGeometryInstancesDataKHR
-                {
-                    SType = StructureType.AccelerationStructureGeometryInstancesDataKhr,
-                    Data = new DeviceOrHostAddressConstKHR { DeviceAddress = Address(input) },
-                },
-            },
-        };
+        UploadSnapshot(instances, slot, initializeAllSlots: true);
+        var geometry = InstanceGeometry(instanceInputs[slot]);
         int start = buffers.Count;
         Build(AccelerationStructureTypeKHR.TopLevelKhr, geometry, (uint)instances.Count);
+        snapshotAllocations += buffers.Count - start;
         snapshotBuffers.AddRange(buffers.Skip(start));
         buffers.RemoveRange(start, buffers.Count - start);
         previous = instances;
@@ -137,6 +133,7 @@ internal sealed unsafe class VulkanSceneAcceleration3D : IDisposable
     {
         var buffer = Allocate(bytes, usage, VulkanMemoryUsage.CpuToGpu);
         snapshotBuffers.Add(buffer);
+        snapshotAllocations++;
         return buffer;
     }
 
@@ -197,7 +194,8 @@ internal sealed unsafe class VulkanSceneAcceleration3D : IDisposable
         {
             SType = StructureType.AccelerationStructureBuildGeometryInfoKhr,
             Type = type,
-            Flags = BuildAccelerationStructureFlagsKHR.PreferFastTraceBitKhr,
+            Flags = type == AccelerationStructureTypeKHR.TopLevelKhr
+                ? TopLevelFlags : BuildAccelerationStructureFlagsKHR.PreferFastTraceBitKhr,
             Mode = BuildAccelerationStructureModeKHR.BuildKhr,
             GeometryCount = 1,
             PGeometries = &geometry,
@@ -222,8 +220,17 @@ internal sealed unsafe class VulkanSceneAcceleration3D : IDisposable
         var physical = new PhysicalDeviceProperties2 { SType = StructureType.PhysicalDeviceProperties2, PNext = &properties };
         plant.Vk.GetPhysicalDeviceProperties2(plant.PhysicalDevice, &physical);
         ulong alignment = properties.MinAccelerationStructureScratchOffsetAlignment;
-        using var scratch = Allocate(sizes.BuildScratchSize + alignment, VulkanBufferUsage.Storage | VulkanBufferUsage.ShaderDeviceAddress,
+        ulong scratchSize = sizes.BuildScratchSize;
+        if (type == AccelerationStructureTypeKHR.TopLevelKhr)
+        {
+            scratchSize = Math.Max(scratchSize, sizes.UpdateScratchSize);
+        }
+        var scratch = Allocate(scratchSize + alignment, VulkanBufferUsage.Storage | VulkanBufferUsage.ShaderDeviceAddress,
             VulkanMemoryUsage.GpuOnly);
+        if (type == AccelerationStructureTypeKHR.TopLevelKhr)
+        {
+            buffers.Add(scratch);
+        }
         ulong address = Address(scratch);
         info.DstAccelerationStructure = structure;
         info.ScratchData = new DeviceOrHostAddressKHR { DeviceAddress = (address + alignment - 1) / alignment * alignment };
@@ -235,7 +242,21 @@ internal sealed unsafe class VulkanSceneAcceleration3D : IDisposable
             AccessFlags.AccelerationStructureReadBitKhr | AccessFlags.ShaderReadBit,
             PipelineStageFlags.AccelerationStructureBuildBitKhr,
             PipelineStageFlags.AccelerationStructureBuildBitKhr | PipelineStageFlags.ComputeShaderBit);
-        Submit(command);
+        try
+        {
+            Submit(command);
+        }
+        finally
+        {
+            if (type != AccelerationStructureTypeKHR.TopLevelKhr)
+            {
+                scratch.Dispose();
+            }
+        }
+        if (type == AccelerationStructureTypeKHR.TopLevelKhr)
+        {
+            updateScratchAddress = info.ScratchData.DeviceAddress;
+        }
         var addressInfo = new AccelerationStructureDeviceAddressInfoKHR
         {
             SType = StructureType.AccelerationStructureDeviceAddressInfoKhr,
@@ -283,6 +304,7 @@ internal sealed unsafe class VulkanSceneAcceleration3D : IDisposable
     {
         if (!command.End().Success) throw new InvalidOperationException("Ray query command end failed.");
         var result = submitter.Submit(new(command, DebugName: "rayquery"));
+        synchronousBuildSubmissions++;
         if (!result.Success) throw new InvalidOperationException(string.Join("; ", result.Diagnostics.Select(diagnostic => diagnostic.Message)));
     }
 

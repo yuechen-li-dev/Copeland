@@ -42,7 +42,8 @@ ray counts. No normal frame performs that readback.
 
 `ResetLightSamplingHistory()` resets the sample sequence and temporal reservoirs.
 Changing sampler options or the light table also resets them. Snapshot replacement
-keeps the shared mesh BLAS cache and updates TLAS exactly as before. Reused samples
+keeps the shared mesh BLAS cache. Continuing motion now uses the
+[TLAS update path](rendering-r3-tlas-updates.md). Reused samples
 always retrace current visibility, including after an occluder moves.
 
 ## Compared methods

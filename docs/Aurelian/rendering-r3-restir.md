@@ -58,11 +58,12 @@ motion stops. A static set can be reused indefinitely with zero steady-state CPU
 instance visits and uploads. Caller-authored previous transforms remain rejected.
 
 This extends the retained upload path; it does not introduce a second motion or
-scene authority. Changed snapshots still rebuild the TLAS synchronously, while
-sharing cached mesh BLAS. TLAS refit, skinning and deforming meshes are not claimed.
-The moving 96x64 capture sequence spends about 30 ms in prepare/submit, including
-scene admission and synchronization. This is a concrete remaining motion cost;
-the steady static timing below does not establish interactive moving-scene speed.
+scene authority. The initial qualification rebuilt the TLAS synchronously on
+snapshot changes and spent about 30 ms in moving 96x64 capture prepare/submit.
+The subsequent [TLAS update milestone](rendering-r3-tlas-updates.md) replaces that
+work with frame-ordered updates for continuing snapshots. Skinning and deforming
+meshes remain outside these milestones. The original steady static timing below
+does not establish interactive moving-scene speed.
 `ResetTemporalHistory()` explicitly resets TAA and reservoir history for a camera
 cut. `ResetLightSamplingHistory()` resets only the sampling sequence and reservoirs.
 Changing the sampler or light table also resets sampling history.
@@ -239,8 +240,8 @@ Motion reprojection fits the previous temporal cost in this run. Spatial reuse
 buys lower reservoir-path error at substantially higher GPU cost and memory use.
 CDF importance is both faster and cleaner on this workload. No sampler default
 was changed, and these data do not establish a general ReSTIR performance win.
-Further moving-scene performance work has a concrete TLAS-rebuild bottleneck;
-resident motion correctness alone does not remove it.
+The subsequent [TLAS update milestone](rendering-r3-tlas-updates.md) removes the
+continuing-motion acceleration rebuild bottleneck and reports moving-frame costs.
 
 `artifacts/local/rendering-restir/final/qualification.json` accepted the final
 source. The Release solution build has zero warnings/errors; all **3,356 tests**
