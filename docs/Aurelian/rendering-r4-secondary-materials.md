@@ -10,8 +10,9 @@ visibility, then call the shared `EvaluateSurfaceSamples` function.
 This extends the [first R4 slice](rendering-r4-dynamic-diffuse.md). Dynamic diffuse
 still defaults off. This is an opaque, one-indirect-bounce qualification with
 local and emissive sources, a prepared probe grid, and diffuse receivers.
-Sun/environment transport, recursive bounces, alpha continuation, sparse grids
-and region policy remain open.
+[Sun/environment transport](rendering-r4-sun-environment.md) is now implemented
+and separately qualified with coverage fallback and explicit HDR/FLIP controls. Recursive bounces,
+alpha continuation, sparse grids and region policy remain open.
 
 ## Enable the material path
 

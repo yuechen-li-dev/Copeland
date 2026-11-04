@@ -18,7 +18,7 @@ namespace Aurelian.Graphics.Vulkan.Native3D;
 
 /// <summary>Directional world-space diffuse cache on the shared retained scene.
 /// All updates and receiver connectivity queries run on the ordinary frame queue.</summary>
-internal sealed unsafe class VulkanDynamicDiffuse3D : IDisposable
+internal sealed unsafe partial class VulkanDynamicDiffuse3D : IDisposable
 {
     private readonly AurelianVulkanPlant plant;
     private readonly RawVulkanMemoryAllocator allocator;
@@ -26,8 +26,8 @@ internal sealed unsafe class VulkanDynamicDiffuse3D : IDisposable
     private readonly uint width, height;
     private readonly List<AurelianVulkanBuffer> buffers = [];
     private readonly List<AurelianVulkanBuffer> cacheBuffers = [];
-    private readonly AurelianVulkanBuffer[,] parameters = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count, 3];
-    private readonly DescriptorSet[,] sets = new DescriptorSet[VulkanFrameInFlightSet.Count, 3];
+    private readonly AurelianVulkanBuffer[,] parameters = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count, 4];
+    private readonly DescriptorSet[,] sets = new DescriptorSet[VulkanFrameInFlightSet.Count, 4];
     private readonly VulkanBindlessMaterials3D?[] sampledTables = new VulkanBindlessMaterials3D?[VulkanFrameInFlightSet.Count];
     private readonly AurelianVulkanBuffer rays, hits, occlusion, output;
     private AurelianVulkanBuffer witness = null!;
@@ -67,8 +67,13 @@ internal sealed unsafe class VulkanDynamicDiffuse3D : IDisposable
             occlusion = Buffer(capacity * 4, VulkanBufferUsage.Storage);
             output = Buffer((ulong)width * height * 16, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferSource);
             for (int slot = 0; slot < VulkanFrameInFlightSet.Count; slot++)
-                for (int stage = 0; stage < 3; stage++)
+                for (int stage = 0; stage < 4; stage++)
                     parameters[slot, stage] = Buffer((64 + 256 * 16) * 4, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
+            for (int slot = 0; slot < VulkanFrameInFlightSet.Count; slot++)
+            {
+                skyParameters[slot] = Buffer((64 + 2048) * 4, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
+            }
+            CreateRegionalBuffers();
             Output = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, width, height,
                 VulkanTextureUsage.TransferDestination | VulkanTextureUsage.ShaderResource, VulkanMemoryUsage.GpuOnly,
                 "dynamic-diffuse", VulkanTextureFormat.Rgba32Float);
@@ -87,12 +92,13 @@ internal sealed unsafe class VulkanDynamicDiffuse3D : IDisposable
         frames.Drain();
         compiled = field with { Data = (float[])field.Data.Clone() };
         sequence = 0;
+        ResetRegionalState();
         if (options.Grid == field.Grid && baseline is not null) Write(baseline, compiled.Data);
     }
 
     public void Prepare(VulkanSceneAcceleration3D scene, NativeInstanceSet3D instances, Matrix4x4 inverse,
         ReadOnlySpan<float> lights, int count, DynamicDiffuseLighting3D settings, float responseModel, float emissionIntensity,
-        AurelianVulkanBuffer motion, AurelianVulkanBuffer normals, VulkanBindlessMaterials3D materialTable)
+        AurelianVulkanBuffer motion, AurelianVulkanBuffer normals, VulkanBindlessMaterials3D materialTable, Graphics3DSettings lighting, EnvironmentRadiance3D? environmentSource)
     {
         settings.Validate();
         var grid = settings.Grid!;
@@ -112,12 +118,14 @@ internal sealed unsafe class VulkanDynamicDiffuse3D : IDisposable
             Write(baseline, compiled?.Grid == grid ? compiled.Data : new float[bytes / 4]);
             sequence = 0;
             stationaryFrames = 0;
+            ResetRegionalState();
         }
-        if (options.Mode != settings.Mode || options.RaysPerProbePerFrame != settings.RaysPerProbePerFrame
+        if (options.Mode != settings.Mode || (settings.RegionalPlan is null && options.RaysPerProbePerFrame != settings.RaysPerProbePerFrame)
             || options.SecondaryMaterials != settings.SecondaryMaterials || options.SecondaryTextureLod != settings.SecondaryTextureLod)
         {
             sequence = 0;
             stationaryFrames = 0;
+            ResetRegionalState();
         }
         if (!ReferenceEquals(captureScene, instances) || !lights.SequenceEqual(captureLights)
             || captureResponseModel != responseModel || captureEmissionIntensity != emissionIntensity)
@@ -128,6 +136,8 @@ internal sealed unsafe class VulkanDynamicDiffuse3D : IDisposable
             captureResponseModel = responseModel;
             captureEmissionIntensity = emissionIntensity;
         }
+        PrepareSky(lighting, settings, environmentSource);
+        PrepareRegions(settings);
         options = settings;
         scene.PrepareShading(instances, frames.Slot);
         var words = new float[64 + 256 * 16];
@@ -142,7 +152,9 @@ internal sealed unsafe class VulkanDynamicDiffuse3D : IDisposable
         words[28] = grid.RaysPerProbe;
         words[29] = settings.RaysPerProbePerFrame;
         words[30] = BitConverter.UInt32BitsToSingle(sequence);
-        words[31] = (float)settings.Mode;
+        bool compiledRegions = settings.RegionalPlan is { } regional
+            && regional.Regions.All(region => region.Strategy == DiffuseRegionStrategy3D.Compiled);
+        words[31] = (float)(compiledRegions ? DynamicDiffuseMode3D.CompiledOnly : settings.Mode);
         words[32] = grid.Minimum.X;
         words[33] = grid.Minimum.Y;
         words[34] = grid.Minimum.Z;
@@ -158,28 +170,29 @@ internal sealed unsafe class VulkanDynamicDiffuse3D : IDisposable
         words[46] = settings.SecondaryTextureLod;
         words[47] = settings.SecondaryMaterials ? 1 : 0;
         words[48] = settings.CaptureSecondaryWitness ? 1 : 0;
+        words[49] = settings.RegionalPlan is not null && !compiledRegions ? 1 : 0;
         lights.CopyTo(words.AsSpan(64));
         AccelerationStructureKHR top = scene.TopLevel;
         var structure = new WriteDescriptorSetAccelerationStructureKHR { SType = StructureType.WriteDescriptorSetAccelerationStructureKhr,
             AccelerationStructureCount = 1, PAccelerationStructures = &top };
-        DescriptorBufferInfo* info = stackalloc DescriptorBufferInfo[19];
-        WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[22];
+        DescriptorBufferInfo* info = stackalloc DescriptorBufferInfo[23];
+        WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[26];
         bool bindSampled = !ReferenceEquals(sampledTables[frames.Slot], materialTable);
-        for (int phase = 0; phase < 3; phase++)
+        for (int phase = 0; phase < 4; phase++)
         {
             words[39] = phase;
             Write(parameters[frames.Slot, phase], words);
             AurelianVulkanBuffer[] resources = [scene.Procedurals, rays, hits, scene.Instances, parameters[frames.Slot, phase],
                 motion, output, normals, sequence % 2 == 0 ? historyA : historyB, sequence % 2 == 0 ? historyB : historyA, baseline, scene.Shading, occlusion,
                 materialTable.MaterialRecords, materialTable.InstanceMaterials, materialTable.ResidentVertices,
-                materialTable.ResidentIndices, materialTable.ResidentInstances, witness];
+                materialTable.ResidentIndices, materialTable.ResidentInstances, witness, skyParameters[frames.Slot], environmentRadiance!, regionParameters[frames.Slot], probeMetrics];
             writes[0] = new() { SType = StructureType.WriteDescriptorSet, PNext = &structure,
                 DstSet = sets[frames.Slot, phase], DstBinding = 0, DescriptorCount = 1, DescriptorType = DescriptorType.AccelerationStructureKhr };
             for (int index = 0; index < resources.Length; index++)
             {
                 info[index] = new(resources[index].NativeBuffer, 0, resources[index].SizeBytes);
                 writes[index + 1] = new() { SType = StructureType.WriteDescriptorSet, DstSet = sets[frames.Slot, phase],
-                    DstBinding = index == 18 ? 21u : (uint)index + 1, DescriptorCount = 1, DescriptorType = DescriptorType.StorageBuffer, PBufferInfo = &info[index] };
+                    DstBinding = index >= 18 ? (uint)index + 3 : (uint)index + 1, DescriptorCount = 1, DescriptorType = DescriptorType.StorageBuffer, PBufferInfo = &info[index] };
             }
             // Material images and samplers are immutable for this owner's lifetime.
             // A continuing transform snapshot only changes the storage tables.
@@ -188,18 +201,18 @@ internal sealed unsafe class VulkanDynamicDiffuse3D : IDisposable
                 fixed (DescriptorImageInfo* textures = materialTable.TextureDescriptors)
                 fixed (DescriptorImageInfo* samplers = materialTable.SamplerDescriptors)
                 {
-                    writes[20] = new() { SType = StructureType.WriteDescriptorSet, DstSet = sets[frames.Slot, phase],
+                    writes[24] = new() { SType = StructureType.WriteDescriptorSet, DstSet = sets[frames.Slot, phase],
                         DstBinding = 19, DescriptorCount = VulkanBindlessMaterials3D.TextureCapacity,
                         DescriptorType = DescriptorType.SampledImage, PImageInfo = textures };
-                    writes[21] = new() { SType = StructureType.WriteDescriptorSet, DstSet = sets[frames.Slot, phase],
+                    writes[25] = new() { SType = StructureType.WriteDescriptorSet, DstSet = sets[frames.Slot, phase],
                         DstBinding = 20, DescriptorCount = VulkanBindlessMaterials3D.SamplerCapacity,
                         DescriptorType = DescriptorType.Sampler, PImageInfo = samplers };
-                    plant.Vk.UpdateDescriptorSets(plant.Device, 22, writes, 0, null);
+                    plant.Vk.UpdateDescriptorSets(plant.Device, 26, writes, 0, null);
                 }
             }
             else
             {
-                plant.Vk.UpdateDescriptorSets(plant.Device, 20, writes, 0, null);
+                plant.Vk.UpdateDescriptorSets(plant.Device, 24, writes, 0, null);
             }
         }
         sampledTables[frames.Slot] = materialTable;
@@ -213,9 +226,17 @@ internal sealed unsafe class VulkanDynamicDiffuse3D : IDisposable
         plant.Vk.CmdUpdateBuffer(command.CommandBuffer, rays.NativeBuffer, 0, 4, &capacity);
         Barrier(command, AccessFlags.TransferWriteBit, AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit);
         plant.Vk.CmdBindPipeline(command.CommandBuffer, PipelineBindPoint.Compute, pipeline);
-        uint[] counts = [checked((uint)(options.Grid!.Count * options.Grid.RaysPerProbe)), checked((uint)options.Grid.Count * 64), width * height];
-        for (int phase = 0; phase < 3; phase++)
+        uint[] counts = [checked((uint)(options.Grid!.Count * options.Grid.RaysPerProbe)), checked((uint)options.Grid.Count * 64), width * height,
+            options.RegionalPlan is null ? 0 : (uint)options.Grid.Count];
+        if (options.RegionalPlan is { } regional && regional.Regions.All(region => region.Strategy == DiffuseRegionStrategy3D.Compiled))
         {
+            counts[0] = 0;
+            counts[1] = 0;
+            counts[3] = 0;
+        }
+        for (int phase = 0; phase < 4; phase++)
+        {
+            if (counts[phase] == 0) continue;
             DescriptorSet set = sets[frames.Slot, phase];
             plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Compute, pipelineLayout, 0, 1, &set, 0, null);
             plant.Vk.CmdDispatch(command.CommandBuffer, (counts[phase] + 63) / 64, 1, 1);
@@ -226,6 +247,7 @@ internal sealed unsafe class VulkanDynamicDiffuse3D : IDisposable
         BufferImageCopy copy = new() { ImageSubresource = new(ImageAspectFlags.ColorBit, 0, 0, 1), ImageExtent = new(width, height, 1) };
         plant.Vk.CmdCopyBufferToImage(command.CommandBuffer, output.NativeBuffer, Output.NativeImage, ImageLayout.TransferDstOptimal, 1, &copy);
         Transition(command, VulkanResourceLayout.ShaderResourceFragment);
+        RecordRegionalReadback(command);
         sequence++;
         stationaryFrames++;
     }
@@ -305,8 +327,8 @@ internal sealed unsafe class VulkanDynamicDiffuse3D : IDisposable
 
     private void CreatePipeline(byte[] spirv)
     {
-        DescriptorSetLayoutBinding* bindings = stackalloc DescriptorSetLayoutBinding[22];
-        for (uint index = 0; index < 22; index++)
+        DescriptorSetLayoutBinding* bindings = stackalloc DescriptorSetLayoutBinding[26];
+        for (uint index = 0; index < 26; index++)
         {
             DescriptorType type = index switch
             {
@@ -323,22 +345,22 @@ internal sealed unsafe class VulkanDynamicDiffuse3D : IDisposable
             };
             bindings[index] = new(index, type, count, ShaderStageFlags.ComputeBit);
         }
-        var layout = new DescriptorSetLayoutCreateInfo { SType = StructureType.DescriptorSetLayoutCreateInfo, BindingCount = 22, PBindings = bindings };
+        var layout = new DescriptorSetLayoutCreateInfo { SType = StructureType.DescriptorSetLayoutCreateInfo, BindingCount = 26, PBindings = bindings };
         fixed (DescriptorSetLayout* value = &setLayout) Check(plant.Vk.CreateDescriptorSetLayout(plant.Device, &layout, null, value));
         DescriptorPoolSize* sizes = stackalloc DescriptorPoolSize[4];
-        sizes[0] = new(DescriptorType.AccelerationStructureKhr, VulkanFrameInFlightSet.Count * 3);
-        sizes[1] = new(DescriptorType.StorageBuffer, 19 * VulkanFrameInFlightSet.Count * 3);
-        sizes[2] = new(DescriptorType.SampledImage, VulkanBindlessMaterials3D.TextureCapacity * VulkanFrameInFlightSet.Count * 3);
-        sizes[3] = new(DescriptorType.Sampler, VulkanBindlessMaterials3D.SamplerCapacity * VulkanFrameInFlightSet.Count * 3);
+        sizes[0] = new(DescriptorType.AccelerationStructureKhr, VulkanFrameInFlightSet.Count * 4);
+        sizes[1] = new(DescriptorType.StorageBuffer, 23 * VulkanFrameInFlightSet.Count * 4);
+        sizes[2] = new(DescriptorType.SampledImage, VulkanBindlessMaterials3D.TextureCapacity * VulkanFrameInFlightSet.Count * 4);
+        sizes[3] = new(DescriptorType.Sampler, VulkanBindlessMaterials3D.SamplerCapacity * VulkanFrameInFlightSet.Count * 4);
         var pool = new DescriptorPoolCreateInfo { SType = StructureType.DescriptorPoolCreateInfo,
-            MaxSets = VulkanFrameInFlightSet.Count * 3, PoolSizeCount = 4, PPoolSizes = sizes };
+            MaxSets = VulkanFrameInFlightSet.Count * 4, PoolSizeCount = 4, PPoolSizes = sizes };
         fixed (DescriptorPool* value = &descriptorPool) Check(plant.Vk.CreateDescriptorPool(plant.Device, &pool, null, value));
         DescriptorSetLayout descriptorLayout = setLayout;
         for (int slot = 0; slot < VulkanFrameInFlightSet.Count; slot++)
         {
             var allocate = new DescriptorSetAllocateInfo { SType = StructureType.DescriptorSetAllocateInfo,
                 DescriptorPool = descriptorPool, DescriptorSetCount = 1, PSetLayouts = &descriptorLayout };
-            for (int phase = 0; phase < 3; phase++) Check(plant.Vk.AllocateDescriptorSets(plant.Device, &allocate, out sets[slot, phase]));
+            for (int phase = 0; phase < 4; phase++) Check(plant.Vk.AllocateDescriptorSets(plant.Device, &allocate, out sets[slot, phase]));
         }
         var pipelineInfo = new PipelineLayoutCreateInfo { SType = StructureType.PipelineLayoutCreateInfo, SetLayoutCount = 1, PSetLayouts = &descriptorLayout };
         fixed (PipelineLayout* value = &pipelineLayout) Check(plant.Vk.CreatePipelineLayout(plant.Device, &pipelineInfo, null, value));

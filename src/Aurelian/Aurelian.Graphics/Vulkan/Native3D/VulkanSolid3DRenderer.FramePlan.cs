@@ -35,9 +35,15 @@ public sealed unsafe partial class VulkanSolid3DRenderer
     public float[] ReadLightSamplesForQualification() => surfaceLighting!.ReadSamplesForQualification();
     public ReferenceImage3D ReadLocalHeadForQualification() => surfaceLighting!.ReadHeadForQualification();
     public ReferenceImage3D ReadLightingForQualification() => surfaceLighting!.ReadLightingForQualification();
+    public DiffuseRegionalObservation3D? CompletedDiffuseRegions => surfaceLighting?.CompletedDiffuseRegions;
     public DynamicDiffuseLighting3D DynamicDiffuse { get; set; } = new();
     public CompiledDiffuseProbeField3D CaptureCompiledDiffuseProbes() => surfaceLighting!.CaptureCompiledDiffuseProbes();
-    public void SetCompiledDiffuseProbes(CompiledDiffuseProbeField3D field) => surfaceLighting!.SetCompiledDiffuseProbes(field);
+    public long CompiledDiffuseRevision { get; private set; }
+    public void SetCompiledDiffuseProbes(CompiledDiffuseProbeField3D field)
+    {
+        surfaceLighting!.SetCompiledDiffuseProbes(field);
+        CompiledDiffuseRevision++;
+    }
     public float[] ReadSecondaryWitnessForQualification() => surfaceLighting!.ReadSecondaryWitness();
     public float[] ReadDiffuseCacheForQualification() => surfaceLighting!.ReadDiffuseCache();
     public float[] ReadDiffuseOutputForQualification() => surfaceLighting!.ReadDiffuseOutput();

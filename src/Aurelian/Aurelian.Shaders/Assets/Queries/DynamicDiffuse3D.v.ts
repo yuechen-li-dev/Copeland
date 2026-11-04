@@ -1,3 +1,4 @@
+import { ReadEnvironmentRadiance, EnvironmentSamplePdf, SampleEnvironmentDirection } from "./EnvironmentSampling3D";
 import { SecondaryAttributes } from "./SecondarySurface3D";
 import { ResidentVertex, ResidentInstance, ResidentAttributes } from "./ResidentGeometry3D";
 import { BindlessMaterialRecord } from "./ResidentMaterial3D";
@@ -14,6 +15,7 @@ enum DiffusePhase {
     UpdateRayCache,
     ConvolveIrradiance,
     ResolveReceivers,
+    MeasureProbes,
 }
 
 enum DiffuseMode {
@@ -30,6 +32,7 @@ function PhaseFor(value: u32): DiffusePhase {
     if (value == 1) {
         return DiffusePhase.ConvolveIrradiance;
     }
+    if (value == 3) { return DiffusePhase.MeasureProbes; }
     return DiffusePhase.ResolveReceivers;
 }
 
@@ -161,7 +164,11 @@ function DynamicDiffuseMain(@builtin(dispatchThreadId) thread: uint3,
     @binding(18) readonly Geometry: StorageBuffer<ResidentInstance>,
     @binding(19) readonly Textures: DescriptorArray<Texture2D<float4>, 4096>,
     @binding(20) readonly Samplers: DescriptorArray<Sampler, 64>,
-    @binding(21) readwrite Witness: StorageBuffer<f32>): void {
+    @binding(21) readwrite Witness: StorageBuffer<f32>,
+    @binding(22) readonly SkyParameters: StorageBuffer<f32>,
+    @binding(23) readonly SkyRadiance: StorageBuffer<f32>,
+    @binding(24) readonly RegionParameters: StorageBuffer<f32>,
+    @binding(25) readwrite ProbeMetrics: StorageBuffer<f32>): void {
     let index: u32 = thread.x;
     let count: u32 = U32(Parameters[27]);
     let directions: u32 = U32(Parameters[28]);
@@ -176,22 +183,31 @@ function DynamicDiffuseMain(@builtin(dispatchThreadId) thread: uint3,
             }
             let probe: u32 = index / directions;
             let directionIndex: u32 = index % directions;
+            var activeBudget: u32 = budget;
+            var rotation: u32 = frame * budget;
+            var useHistory: bool = frame > 0;
+            if (Parameters[49] > 0.5) {
+                if (RegionParameters[probe * 4] > 2.5) { return; }
+                activeBudget = U32(RegionParameters[probe * 4 + 1]);
+                rotation = U32(RegionParameters[probe * 4 + 2]);
+                useHistory = RegionParameters[probe * 4 + 3] > 0.5;
+            }
             var value: float3 = float3(0.0, 0.0, 0.0);
             var backface: f32 = 0.0;
             if (mode == DiffuseMode.CompiledResidual) {
                 backface = Baseline[index * 4 + 3];
             }
-            if (frame > 0) {
+            if (useHistory) {
                 value = float3(History[index * 4], History[index * 4 + 1], History[index * 4 + 2]);
                 backface = History[index * 4 + 3];
             }
             // Cyclic intervals cover every direction even when N is not divisible by P.
             let rank: u32 = (directionIndex * U32(Parameters[43]) + probe * 17) % directions;
-            let relative: u32 = (rank + directions - (frame * budget) % directions) % directions;
-            if (relative < budget) {
+            let relative: u32 = (rank + directions - rotation % directions) % directions;
+            if (relative < activeBudget) {
                 let origin: float3 = Probe(Parameters, probe);
                 let direction: float3 = Direction(directionIndex, directions);
-                SetRay(Rays, index, origin, direction, 10000.0);
+                SetRay(Rays, index, origin, direction, 100000.0);
                 RayQueryTraceRetained(Scene, Procedurals, Rays, Hits, Shading, index, AffineAnalyticIntersection);
                 let hit: u32 = index * 16;
                 value = float3(0.0, 0.0, 0.0);
@@ -284,6 +300,39 @@ function DynamicDiffuseMain(@builtin(dispatchThreadId) thread: uint3,
                                 * float3(emission.x, emission.y, emission.z) * (emission.w * sample.attenuation * Convert<f32>(lights));
                         }
                     }
+                    if (backface < 0.5 && SkyParameters[46] > 0.5) {
+                        let sunDirection: float3 = float3(SkyParameters[0], SkyParameters[1], SkyParameters[2]);
+                        let sunIrradiance: float3 = float3(SkyParameters[4], SkyParameters[5], SkyParameters[6]);
+                        if (Dot3(sunIrradiance, sunIrradiance) > 0.0 && Dot3(geometric, sunDirection) > 0.0 && Dot3(normal, sunDirection) > 0.0) {
+                            var sunVisible: bool = true;
+                            if (SkyParameters[7] > 0.5) {
+                                SetRay(Rays, index, position + geometric * 0.0005, sunDirection, 100000.0);
+                                RayQueryTraceOccluded(Scene, Procedurals, Rays, Occlusion, Instances, index, AffineAnalyticIntersection);
+                                sunVisible = Occlusion[index] < 0.5;
+                            }
+                            if (sunVisible) {
+                                value = value + DirectLightModel(base, normal, direction * -1.0, sunDirection,
+                                    metallic, roughness, Parameters[44]) * sunIrradiance;
+                            }
+                        }
+                        if (SkyParameters[45] > 0.5 && SkyParameters[30] > 0.0) {
+                            let key: u32 = index * 0x9e3779b9 + 0x51ed270b;
+                            let incoming: float3 = SampleEnvironmentDirection(SkyParameters, EmitterRandom(key), EmitterRandom(key + 1), EmitterRandom(key + 2));
+                            if (Dot3(geometric, incoming) > 0.0 && Dot3(normal, incoming) > 0.0) {
+                                SetRay(Rays, index, position + geometric * 0.0005, incoming, 100000.0);
+                                RayQueryTraceOccluded(Scene, Procedurals, Rays, Occlusion, Instances, index, AffineAnalyticIntersection);
+                                if (Occlusion[index] < 0.5) {
+                                    let pdf: f32 = EnvironmentSamplePdf(SkyParameters, incoming);
+                                    value = value + DirectLightModel(base, normal, direction * -1.0, incoming,
+                                        metallic, roughness, Parameters[44]) * ReadEnvironmentRadiance(SkyRadiance, SkyParameters, incoming) / pdf;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Miss radiance is the direct visible environment. The receiver
+                    // resolve replaces compiled diffuse IBL, preventing double counting.
+                    value = ReadEnvironmentRadiance(SkyRadiance, SkyParameters, direction);
                 }
                 if (mode == DiffuseMode.CompiledResidual) {
                     // Signed until the final receiver result. Negative changes remove stale light.
@@ -303,6 +352,7 @@ function DynamicDiffuseMain(@builtin(dispatchThreadId) thread: uint3,
             }
             let probe: u32 = index / 64;
             let texel: u32 = index % 64;
+            if (Parameters[49] > 0.5 && RegionParameters[probe * 4] > 2.5) { return; }
             let normal: float3 = DecodeOcta(float2(Convert<f32>(texel % 8) / 7.0, Convert<f32>(texel / 8) / 7.0));
             let band: IrradianceBand = ConvolveProbeBand(Next, Baseline, probe, normal, directions, budget, frame, mode);
             let offset: u32 = coefficients + index * 4;
@@ -347,17 +397,17 @@ function DynamicDiffuseMain(@builtin(dispatchThreadId) thread: uint3,
                             visible = Occlusion[index] < 0.5;
                         }
                         let offset: u32 = coefficients + probe * 64 * 4;
-                        var backs: f32 = Next[offset + 3];
-                        if (mode == DiffuseMode.CompiledOnly) {
-                            backs = Baseline[offset + 3];
-                        }
+                        var compiledProbe: bool = mode == DiffuseMode.CompiledOnly;
+                        if (Parameters[49] > 0.5) { compiledProbe = RegionParameters[probe * 4] > 2.5; }
+                        var backs: f32 = Baseline[offset + 3];
+                        if (!compiledProbe) { backs = Next[offset + 3]; }
                         if (visible && backs < 0.25) {
                             var weight: f32 = Max(Dot3(normal, direction), 0.0) * 0.8 + 0.2;
                             let wx: f32 = CornerWeight(x, fraction.x);
                             let wy: f32 = CornerWeight(y, fraction.y);
                             let wz: f32 = CornerWeight(z, fraction.z);
                             weight = weight * wx * wy * wz;
-                            sum = sum + Band(Next, Baseline, offset, mode == DiffuseMode.CompiledOnly, normal) * weight;
+                            sum = sum + Band(Next, Baseline, offset, compiledProbe, normal) * weight;
                             total = total + weight;
                         }
                     }
@@ -371,5 +421,49 @@ function DynamicDiffuseMain(@builtin(dispatchThreadId) thread: uint3,
             Output[index * 4 + 2] = Max(sum.z, 0.0);
             Output[index * 4 + 3] = total;
         }
+        case DiffusePhase.MeasureProbes => {
+            if (Parameters[49] < 0.5 || index >= count) { return; }
+            let base: u32 = index * 8;
+            var difference: f32 = 0.0;
+            var temporal: f32 = 0.0;
+            var baselineEnergy: f32 = 0.0;
+            var currentEnergy: f32 = 0.0;
+            var baselineValidity: f32 = 0.0;
+            var temporalValidity: f32 = 0.0;
+            if (RegionParameters[index * 4] < 2.5) {
+                for (let direction of BoundedIndices<128>(128)) {
+                    if (direction < directions) {
+                        let offset: u32 = (index * directions + direction) * 4;
+                        let delta: float3 = float3(Next[offset], Next[offset + 1], Next[offset + 2]);
+                        let baseline: float3 = float3(Baseline[offset], Baseline[offset + 1], Baseline[offset + 2]);
+                        var previous: float3 = float3(0.0, 0.0, 0.0);
+                        if (RegionParameters[index * 4 + 3] > 0.5) {
+                            previous = float3(History[offset], History[offset + 1], History[offset + 2]);
+                        }
+                        var previousBackface: f32 = Baseline[offset + 3];
+                        if (RegionParameters[index * 4 + 3] > 0.5) { previousBackface = History[offset + 3]; }
+                        let baselineBackfaceDelta: f32 = Next[offset + 3] - Baseline[offset + 3];
+                        let temporalBackfaceDelta: f32 = Next[offset + 3] - previousBackface;
+                        baselineValidity = baselineValidity + baselineBackfaceDelta * baselineBackfaceDelta;
+                        temporalValidity = temporalValidity + temporalBackfaceDelta * temporalBackfaceDelta;
+                        let change: float3 = delta - previous;
+                        let current: float3 = baseline + delta;
+                        difference = difference + Dot3(delta, delta);
+                        temporal = temporal + Dot3(change, change);
+                        baselineEnergy = baselineEnergy + Dot3(baseline, baseline);
+                        currentEnergy = currentEnergy + Dot3(current, current);
+                    }
+                }
+            }
+            ProbeMetrics[base] = difference;
+            ProbeMetrics[base + 1] = temporal;
+            ProbeMetrics[base + 2] = baselineEnergy;
+            ProbeMetrics[base + 3] = currentEnergy;
+            ProbeMetrics[base + 4] = RegionParameters[index * 4 + 1];
+            ProbeMetrics[base + 5] = 1.0;
+            ProbeMetrics[base + 6] = baselineValidity;
+            ProbeMetrics[base + 7] = temporalValidity;
+        }
+
     }
 }

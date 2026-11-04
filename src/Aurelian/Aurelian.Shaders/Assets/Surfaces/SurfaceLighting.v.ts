@@ -41,21 +41,29 @@ export function PrefilteredEnvironment(map: Texture2D<float4>, sampler: Sampler,
     return Add3(Scale3(Band(map, sampler, uv, low), 1.0 - fraction),
         Scale3(Band(map, sampler, uv, Min(low + 1.0, 5.0)), fraction));
 }
-export function EnvironmentSurfaceResponse(map: Texture2D<float4>, sampler: Sampler, base: float3,
-    normal: float3, reflected: float3, nv: f32, metallic: f32, roughness: f32, dielectric: f32): float3 {
-    let diffuse: float3 = Band(map, sampler, EncodeOcta(normal), 6.0);
-    if (dielectric == 0.0 && metallic == 0.0) {
-        return Mul3(base, diffuse);
-    }
-    let uv: float2 = EncodeOcta(reflected);
-    let specular: float3 = PrefilteredEnvironment(map, sampler, uv, roughness);
+function EnvironmentBrdfEnergy(map: Texture2D<float4>, sampler: Sampler, base: float3,
+    nv: f32, metallic: f32, roughness: f32, dielectric: f32): float3 {
     let dfg: float3 = Band(map, sampler, float2(nv, roughness), 7.0);
     let f0: float3 = Add3(Scale3(base, metallic), float3(dielectric * (1.0 - metallic),
         dielectric * (1.0 - metallic), dielectric * (1.0 - metallic)));
     let energy: float3 = Add3(Scale3(f0, dfg.x), float3(dfg.y, dfg.y, dfg.y));
+    return energy;
+}
+export function EnvironmentSurfaceResponse(map: Texture2D<float4>, sampler: Sampler, base: float3,
+    normal: float3, reflected: float3, nv: f32, metallic: f32, roughness: f32, dielectric: f32): float3 {
+    return EnvironmentSurfaceResponseWeighted(map, sampler, base, normal, reflected, nv, metallic, roughness, dielectric, 1.0);
+}
+export function EnvironmentSurfaceResponseWeighted(map: Texture2D<float4>, sampler: Sampler, base: float3,
+    normal: float3, reflected: float3, nv: f32, metallic: f32, roughness: f32, dielectric: f32, diffuseWeight: f32): float3 {
+    let diffuse: float3 = Band(map, sampler, EncodeOcta(normal), 6.0);
+    if (dielectric == 0.0 && metallic == 0.0) {
+        return Scale3(Mul3(base, diffuse), diffuseWeight);
+    }
+    let specular: float3 = PrefilteredEnvironment(map, sampler, EncodeOcta(reflected), roughness);
+    let energy: float3 = EnvironmentBrdfEnergy(map, sampler, base, nv, metallic, roughness, dielectric);
     let kd: float3 = float3((1.0 - energy.x) * (1.0 - metallic),
         (1.0 - energy.y) * (1.0 - metallic), (1.0 - energy.z) * (1.0 - metallic));
-    return Add3(Mul3(Mul3(base, diffuse), kd), Mul3(specular, energy));
+    return Add3(Scale3(Mul3(Mul3(base, diffuse), kd), diffuseWeight), Mul3(specular, energy));
 }
 export function EnvironmentResponse(map: Texture2D<float4>, sampler: Sampler, base: float3,
     normal: float3, reflected: float3, nv: f32, metallic: f32, roughness: f32): float3 {

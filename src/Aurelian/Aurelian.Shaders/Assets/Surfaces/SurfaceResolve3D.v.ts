@@ -1,5 +1,5 @@
 import { EmitterSample3D, SampleLocalEmitter } from "./LocalEmitter3D";
-import { WorldAt, EnvironmentResponse, EnvironmentDiffuse, MaskAllows, BoxReflection, LocalAttenuation } from "./SurfaceLighting";
+import { WorldAt, EnvironmentResponse, EnvironmentSurfaceResponseWeighted, EnvironmentDiffuse, MaskAllows, BoxReflection, LocalAttenuation } from "./SurfaceLighting";
 import { Unit, Sub3, Add3, Scale3, Mul3, Dot3, DirectLightModel, DirectDiffuseModel, HemisphereLight, ShadowVisibility, PlaneShadowVisibility, LimitRadiance } from "./Lighting3D";
 import { CompiledDiffuse } from "./CompiledDiffuseLighting";
 
@@ -184,10 +184,16 @@ function PixelMain(input: Varyings, resources: Resources): Output {
     if (resources.material.parameters.y > 0.5) {
         let reflected: float3 = BoxReflection(p, Sub3(Scale3(normal, 2.0 * Max(Dot3(normal, view), 0.0)), view),
             resources.material.probePosition, resources.material.probeBounds);
-        ambient = Scale3(EnvironmentResponse(resources.environment, resources.environmentSampler, base, normal, reflected,
-            Max(Dot3(normal, view), 0.0001), n.w, material.w), resources.material.parameters.z);
+        var diffuseWeight: f32 = 1.0;
+        if (resources.material.probePosition.w > 0.5) {
+            let estimate: float4 = Sample(resources.diffuse, resources.diffuseSampler, input.uv);
+            // No valid connection means no diffuse estimate, rather than a black sky.
+            if (estimate.w > 0.000001) { diffuseWeight = 0.0; }
+        }
+        ambient = Scale3(EnvironmentSurfaceResponseWeighted(resources.environment, resources.environmentSampler, base, normal, reflected,
+            Max(Dot3(normal, view), 0.0001), n.w, material.w, 0.04, diffuseWeight), resources.material.parameters.z);
     }
-    if (profile.w > 0.0 && resources.material.parameters.y > 0.5) {
+    if (profile.w > 0.0 && resources.material.parameters.y > 0.5 && resources.material.probePosition.w < 0.5) {
         diffuseAmbient = Scale3(EnvironmentDiffuse(resources.environment, resources.environmentSampler, base, normal,
             Max(Dot3(normal, view), 0.0001), material.w), resources.material.parameters.z);
     }

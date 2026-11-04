@@ -135,6 +135,7 @@ public static class BuiltinShaderLibrary
         new("LocalShadows3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
         new("AffineRayQuery3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
         new("ReferenceIntegrator3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
+        new("EnvironmentSampling3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Module),
         new("ReferenceEnvironment3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Module),
         new("ReferenceFurnace3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
         new("KernelMath.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Module),

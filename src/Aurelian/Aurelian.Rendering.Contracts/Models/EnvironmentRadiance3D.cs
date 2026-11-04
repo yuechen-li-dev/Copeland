@@ -13,6 +13,9 @@ public sealed class EnvironmentRadiance3D
     public ImmutableArray<float> Rgba { get; }
     public string ContentKey { get; }
     public bool IsConstant { get; }
+    public int ImportanceWidth => Math.Min(Width, 64);
+    public int ImportanceHeight => Math.Min(Height, 32);
+    public ImmutableArray<float> ImportanceCdf { get; }
 
     public EnvironmentRadiance3D(int width, int height, IEnumerable<float> rgba)
     {
@@ -32,6 +35,34 @@ public sealed class EnvironmentRadiance3D
                 break;
             }
         }
+        ImportanceCdf = BuildImportanceCdf();
         ContentKey = width + "x" + height + ":" + Convert.ToHexString(SHA256.HashData(MemoryMarshal.AsBytes(Rgba.AsSpan())));
+    }
+
+    private ImmutableArray<float> BuildImportanceCdf()
+    {
+        double[] weights = new double[ImportanceWidth * ImportanceHeight];
+        for (int y = 0; y < Height; y++)
+        {
+            double solidAngle = Math.Tau / Width * (Math.Cos(Math.PI * y / Height)
+                - Math.Cos(Math.PI * (y + 1) / Height));
+            for (int x = 0; x < Width; x++)
+            {
+                int pixel = (y * Width + x) * 4;
+                double luminance = Rgba[pixel] * .2126 + Rgba[pixel + 1] * .7152 + Rgba[pixel + 2] * .0722;
+                int bin = (y * ImportanceHeight / Height) * ImportanceWidth + x * ImportanceWidth / Width;
+                weights[bin] += luminance * solidAngle;
+            }
+        }
+        double sum = weights.Sum();
+        float[] cdf = new float[weights.Length];
+        double cumulative = 0;
+        for (int index = 0; index < cdf.Length; index++)
+        {
+            cumulative += sum > 0 ? weights[index] / sum : 1.0 / weights.Length;
+            cdf[index] = (float)Math.Min(cumulative, 1);
+        }
+        cdf[^1] = 1;
+        return cdf.ToImmutableArray();
     }
 }

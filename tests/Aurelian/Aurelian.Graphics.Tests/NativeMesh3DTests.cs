@@ -8,6 +8,21 @@ namespace Aurelian.Graphics.Tests;
 public sealed class NativeMesh3DTests
 {
     [Fact]
+    public void RegionalInvalidationMetadataTracksTransformAndRayFilterChanges()
+    {
+        var mesh = new NativeMesh3D("regional", Triangle(), [0, 1, 2]);
+        var instance = new SceneInstance3D("item", mesh, new("regional"), Matrix4x4.Identity);
+        var first = new NativeInstanceSet3D([instance]);
+        var same = new NativeInstanceSet3D([instance], first);
+        Assert.True(same.ContinuesFrom(first));
+        Assert.False(same.ContinuesFrom(same));
+        Assert.False(same.HasRaySceneChanges);
+        Assert.True(new NativeInstanceSet3D([instance with { Transform = Matrix4x4.CreateTranslation(1, 0, 0) }], same).HasRaySceneChanges);
+        Assert.True(new NativeInstanceSet3D([instance with { RayLayer = 2 }], same).HasRaySceneChanges);
+        Assert.True(new NativeInstanceSet3D([instance with { RayMask = 2 }], same).HasRaySceneChanges);
+    }
+
+    [Fact]
     public void MotionSnapshotsDerivePriorTransformsWithoutRetainingSnapshotChains()
     {
         var mesh = new NativeMesh3D("motion", Triangle(), [0, 1, 2]);

@@ -100,6 +100,8 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
     public string? StaticDiffuseFallbackReason { get; private set; } = "NoPublishedLightingAsset";
 
     public EnvironmentLighting? Environment { get; set; }
+    /// <summary>Immutable source radiance for visibility-aware dynamic diffuse transport.</summary>
+    public EnvironmentRadiance3D? EnvironmentSource { get; set; }
     public ReflectionProbe3D? ReflectionProbe { get; set; }
     public IReadOnlyList<LocalLight3D> LocalLights { get; set; } = [];
 
@@ -619,10 +621,13 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         }
         DynamicDiffuse.Validate();
         if (DynamicDiffuse.Mode != DynamicDiffuseMode3D.Off && (surfaceLighting is null || !EnableRayShadows
-            || settings.SunIntensity != 0 || settings.SkyAmbient != Vector3.Zero || settings.GroundAmbient != Vector3.Zero
-            || Environment is not null || diffusePublished || !settings.SolidPbr))
-            throw new NotSupportedException("AUR-GI-001: The first dynamic diffuse profile requires surface PBR, shared ray queries, local/emissive lighting, and no sun, environment, hemisphere or legacy floor-field lighting.");
-        if (surfaceLighting?.Prepare(Environment, ReflectionProbe, LocalLights, settings.LocalShadowBudget, EnableRayShadows, DynamicDiffuse) == true) correspondenceChanged = true;
+            || settings.SkyAmbient != Vector3.Zero || settings.GroundAmbient != Vector3.Zero
+            || diffusePublished || !settings.SolidPbr))
+            throw new NotSupportedException("AUR-GI-001: Dynamic diffuse requires surface PBR, shared ray queries, and no unshadowed hemisphere or legacy floor-field lighting.");
+        if (DynamicDiffuse.Mode != DynamicDiffuseMode3D.Off && Environment is not null
+            && (EnvironmentSource is null || Environment.SourceKey != EnvironmentSource.ContentKey))
+            throw new NotSupportedException("AUR-GI-007: Dynamic environment lighting requires source radiance matching the compiled environment's SourceKey.");
+        if (surfaceLighting?.Prepare(Environment, ReflectionProbe, LocalLights, settings.LocalShadowBudget, EnableRayShadows, DynamicDiffuse, EnvironmentSource) == true) correspondenceChanged = true;
         if ((DynamicDiffuse.Mode != DynamicDiffuseMode3D.Off || EnableRayShadows && LocalLights.Any(light => light.CastShadows || light.Kind == LocalLightKind.Sphere))
             && (resident is null || !geometry.IsEmpty || models.Count != 0 || gpuGeometry is not null))
             throw new NotSupportedException("AUR-RAY-SHADOW-002: Ray shadows require one opaque NativeInstanceSet3D snapshot; mixed immediate or GPU-generated geometry has no shared acceleration authority yet.");
@@ -694,7 +699,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         if (surfaceLighting?.RayShadowsActive == true)
         {
             Matrix4x4.Invert(worldToClip, out Matrix4x4 rayInverse);
-            surfaceLighting.PrepareRayShadows(resident!, rayInverse, LocalLightSampling, RaySceneUpdateMode, (float)settings.DirectDiffuseModel, StaticEmissionIntensity, retainedModels?.SecondaryMaterialTable);
+            surfaceLighting.PrepareRayShadows(resident!, rayInverse, LocalLightSampling, RaySceneUpdateMode, (float)settings.DirectDiffuseModel, StaticEmissionIntensity, retainedModels?.SecondaryMaterialTable, settings, EnvironmentSource);
         }
         bool hasParticles = ParticleEmitters.Count > 0;
         if (hasParticles)

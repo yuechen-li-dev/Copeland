@@ -20,6 +20,17 @@ using Silk.NET.Maths;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
 
+if (args.Contains("--rendering-regional", StringComparer.Ordinal))
+{
+    RenderingR3Proof.RunRegional(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-regional"));
+    return;
+}
+
+if (args.Contains("--rendering-sky", StringComparer.Ordinal))
+{
+    RenderingR3Proof.RunSky(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-sky"));
+    return;
+}
 if (args.Contains("--rendering-secondary", StringComparer.Ordinal))
 {
     RenderingR3Proof.RunSecondary(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-secondary"));

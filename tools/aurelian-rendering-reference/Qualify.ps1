@@ -9,10 +9,14 @@ param(
     [switch]$IncludeArea,
     [switch]$IncludeGi,
     [switch]$IncludeSecondary,
+    [switch]$IncludeSky,
+    [switch]$IncludeRegional,
     [string[]]$AdditionalSources = @()
 )
 
 $ErrorActionPreference = 'Stop'
+if ($IncludeRegional) { $IncludeSky = $true }
+if ($IncludeSky) { $IncludeSecondary = $true }
 if ($IncludeSecondary) { $IncludeGi = $true }
 if ($IncludeGi) { $IncludeArea = $true }
 if ($IncludeArea) { $IncludeRasterMotion = $true }
@@ -186,6 +190,30 @@ try {
             'tools/aurelian-rendering-secondary/Qualify.ps1'
         )
     }
+    if ($IncludeSky) {
+        $sourcePaths += @(
+            'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/VulkanDynamicDiffuse3D.Sky.cs',
+            'src/Aurelian/Aurelian.Shaders/Assets/Queries/EnvironmentSampling3D.v.ts',
+            'tests/Aurelian/Aurelian.Rendering.Contracts.Tests/EnvironmentRadiance3DTests.cs',
+            'tools/Aurelian.GraphicsProof/RenderingR3Proof.Sky.cs',
+            'tools/Aurelian.GraphicsProof/RenderingR3Proof.SkyChecks.cs',
+            'tools/Aurelian.GraphicsProof/RenderingR3Proof.SkyPerformance.cs',
+            'tools/aurelian-rendering-sky/Qualify.ps1'
+        )
+    }
+    if ($IncludeRegional) {
+        $sourcePaths += @(
+            'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/VulkanDynamicDiffuse3D.Regions.cs',
+            'src/Aurelian/Aurelian.Rendering.Contracts/Lighting/DiffuseRegionalPlan3D.cs',
+            'src/Aurelian/Aurelian.Runtime/Rendering/DiffuseRegionalPolicyController.cs',
+            'src/Integrations/Aurelian.Games/NativeDiffuseRegionalPolicy3D.cs',
+            'tests/Aurelian/Aurelian.Runtime.Tests/DiffuseRegionalPolicyTests.cs',
+            'tests/Aurelian/Aurelian.Graphics.Tests/NativeMesh3DTests.cs',
+            'tests/Aurelian/Aurelian.Rendering.Contracts.Tests/DiffuseRegionalPlanTests.cs',
+            'tools/Aurelian.GraphicsProof/RenderingR3Proof.Regional.cs',
+            'tools/aurelian-rendering-regional/Qualify.ps1'
+        )
+    }
     $sourcePaths += $AdditionalSources
     $sourcePaths = @($sourcePaths | Select-Object -Unique)
     $initialHashes = @($sourcePaths | ForEach-Object { (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash })
@@ -311,6 +339,26 @@ try {
         $secondaryFlip = Get-Content -LiteralPath (Join-Path $outputPath 'secondary/flip-evidence.json') -Raw | ConvertFrom-Json
         if (-not $secondary.Accepted -or -not $secondaryFlip.Accepted) { throw 'Secondary material native and FLIP qualification did not accept.' }
     }
+    $sky = $null
+    $skyFlip = $null
+    if ($IncludeSky) {
+        Invoke-QualificationCommand 'sky' @($proof, '--rendering-sky', '--output', (Join-Path $outputPath 'sky'))
+        Invoke-QualificationCommand 'sky-flip' @((Join-Path $repository 'tools/aurelian-rendering-reference/evaluate_metrics.py'),
+            (Join-Path $outputPath 'sky/metrics-manifest.json')) $metricsPython
+        $sky = Get-Content -LiteralPath (Join-Path $outputPath 'sky/evidence.json') -Raw | ConvertFrom-Json
+        $skyFlip = Get-Content -LiteralPath (Join-Path $outputPath 'sky/flip-evidence.json') -Raw | ConvertFrom-Json
+        if (-not $sky.Accepted -or -not $skyFlip.Accepted) { throw 'Sun/environment transport and FLIP qualification did not accept.' }
+    }
+    $regional = $null
+    $regionalFlip = $null
+    if ($IncludeRegional) {
+        Invoke-QualificationCommand 'regional' @($proof, '--rendering-regional', '--output', (Join-Path $outputPath 'regional'))
+        Invoke-QualificationCommand 'regional-flip' @((Join-Path $repository 'tools/aurelian-rendering-reference/evaluate_metrics.py'),
+            (Join-Path $outputPath 'regional/metrics-manifest.json')) $metricsPython
+        $regional = Get-Content -LiteralPath (Join-Path $outputPath 'regional/evidence.json') -Raw | ConvertFrom-Json
+        $regionalFlip = Get-Content -LiteralPath (Join-Path $outputPath 'regional/flip-evidence.json') -Raw | ConvertFrom-Json
+        if (-not $regional.Accepted -or -not $regionalFlip.Accepted) { throw 'Regional GI native and FLIP qualification did not accept.' }
+    }
     $hashes = @($sourcePaths | ForEach-Object {
         @{ Path = $_; Sha256 = (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash }
     })
@@ -329,8 +377,11 @@ try {
     @{ Accepted = $true; FullR3aComplete = $false; Sources = $hashes;
         ProofSha256 = (Get-FileHash -LiteralPath $proof -Algorithm SHA256).Hash;
         GraphicsSha256 = (Get-FileHash -LiteralPath (Join-Path (Split-Path $proof) 'Aurelian.Graphics.dll') -Algorithm SHA256).Hash;
+        RuntimeSha256 = (Get-FileHash -LiteralPath (Join-Path (Split-Path $proof) 'Aurelian.Runtime.dll') -Algorithm SHA256).Hash;
+        GamesSha256 = (Get-FileHash -LiteralPath (Join-Path (Split-Path $proof) 'Aurelian.Games.dll') -Algorithm SHA256).Hash;
+        DominatusSha256 = (Get-FileHash -LiteralPath (Join-Path (Split-Path $proof) 'Dominatus.Core.dll') -Algorithm SHA256).Hash;
         LightingFixture = $fixturePath; Reference = $reference; Affine = $affine;
-        LightingTemporal = $lighting; Flip = $flip; R3 = $r3; R3Flip = $r3Flip; Sampling = $sampling; SamplingFlip = $samplingFlip; Restir = $restir; RestirFlip = $restirFlip; Tlas = $tlas; RasterMotion = $rasterMotion; Area = $area; AreaFlip = $areaFlip; Gi = $gi; GiFlip = $giFlip; Secondary = $secondary; SecondaryFlip = $secondaryFlip; FullR4Complete = $false; FullR3Complete = $false } | ConvertTo-Json -Depth 30 |
+        LightingTemporal = $lighting; Flip = $flip; R3 = $r3; R3Flip = $r3Flip; Sampling = $sampling; SamplingFlip = $samplingFlip; Restir = $restir; RestirFlip = $restirFlip; Tlas = $tlas; RasterMotion = $rasterMotion; Area = $area; AreaFlip = $areaFlip; Gi = $gi; GiFlip = $giFlip; Secondary = $secondary; SecondaryFlip = $secondaryFlip; Sky = $sky; SkyFlip = $skyFlip; Regional = $regional; RegionalFlip = $regionalFlip; FullR4Complete = $false; FullR3Complete = $false } | ConvertTo-Json -Depth 30 |
         Set-Content -LiteralPath $evidencePath
     Write-Output "AURELIAN_REFERENCE_QUALIFIED: $evidencePath"
 }

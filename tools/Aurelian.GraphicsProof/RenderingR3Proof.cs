@@ -232,7 +232,7 @@ internal static partial class RenderingR3Proof
     }
 
     private static ReferenceImage3D Reference(AurelianVulkanPlant plant, byte[] program, Native3DScene scene, LocalLight3D[] lights,
-        ReferenceCamera3D? camera = null, int width = Width, int height = Height, int samples = 1, int bounces = 1)
+        ReferenceCamera3D? camera = null, int width = Width, int height = Height, int samples = 1, int bounces = 1, ReferenceLighting3D? lighting = null)
     {
         var triangles = new List<ReferenceTriangle3D>();
         var analytic = new List<ReferenceAnalytic3D>();
@@ -252,7 +252,7 @@ internal static partial class RenderingR3Proof
             }
         }
         using var reference = new ReferenceIntegrator3D(plant, program, new(width, height, bounces, 761, PixelJitter: false),
-            camera ?? Camera, triangles, [], analytic: analytic, lighting: new(LocalLights: lights));
+            camera ?? Camera, triangles, [], analytic: analytic, lighting: lighting ?? new(LocalLights: lights));
         reference.Accumulate(samples);
         return reference.Capture();
     }

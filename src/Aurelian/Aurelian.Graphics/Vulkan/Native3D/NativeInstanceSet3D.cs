@@ -19,6 +19,9 @@ public sealed class NativeInstanceSet3D : IReadOnlyList<SceneInstance3D>
     public ImmutableArray<SceneInstance3D> PackedInstances { get; }
     internal object SnapshotIdentity { get; } = new();
     internal object? MotionPredecessor { get; }
+    /// <summary>Predecessor-relative transform or ray-filter changes, computed once at publication.</summary>
+    public bool HasRaySceneChanges { get; }
+    public bool ContinuesFrom(NativeInstanceSet3D previous) => Continues(previous);
     public bool HasMotion => MotionPredecessor is not null;
     internal bool Continues(NativeInstanceSet3D? previous) => previous is not null
         && ReferenceEquals(MotionPredecessor, previous.SnapshotIdentity);
@@ -50,7 +53,14 @@ public sealed class NativeInstanceSet3D : IReadOnlyList<SceneInstance3D>
             if (!keys.SequenceEqual(previous.Keys))
                 throw new InvalidDataException("AUR-MOTION-001: A continuing resident snapshot must preserve ordered instance identity, mesh and material.");
             MotionPredecessor = previous.SnapshotIdentity;
-            instances = instances.Select((instance, index) => instance with { PreviousTransform = previous[index].Transform }).ToImmutableArray();
+            bool changed = false;
+            instances = instances.Select((instance, index) =>
+            {
+                var prior = previous[index];
+                changed |= instance.Transform != prior.Transform || instance.RayLayer != prior.RayLayer || instance.RayMask != prior.RayMask;
+                return instance with { PreviousTransform = prior.Transform };
+            }).ToImmutableArray();
+            HasRaySceneChanges = changed;
         }
         Keys = instances.Select(instance => (instance.Identity, instance.Mesh, instance.Material)).ToArray();
         Materials = instances.Select(instance => instance.Material).Distinct().ToArray();

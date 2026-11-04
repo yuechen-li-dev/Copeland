@@ -11,9 +11,10 @@ constant materials, flat triangle normals and analytic surfaces. The subsequent
 [textured and smooth-normal secondary-hit pass](rendering-r4-secondary-materials.md)
 extends that profile through shared resident geometry/material tables, including
 an imported GLB witness. Local and emissive sources, a bounded prepared grid and
-diffuse receivers remain the qualified transport scope. Sun/environment
-transport, recursive bounces, sparse allocation, region policy and whole-Beacon
-qualification remain open. Dynamic diffuse lighting defaults off.
+diffuse receivers describe that original scope. The subsequent
+[sun/environment pass](rendering-r4-sun-environment.md) adds source-radiance
+sampling, sky visibility and coverage fallback, with HDR/FLIP qualification. Recursive bounces,
+sparse allocation, region policy and whole-Beacon qualification remain open. Dynamic diffuse lighting defaults off.
 The GI-specific transport specimens cover point lights and emissive geometry;
 spot/area GI qualification remains outstanding.
 
@@ -46,10 +47,11 @@ renderer.DynamicDiffuse = new DynamicDiffuseLighting3D
 ```
 
 Use a resident `NativeInstanceSet3D` scene and the existing opaque shared-ray
-profile. Compiled environments, hemisphere fill, directional sun and the legacy
-compiled floor field must be disabled for this first transport profile; admission
-rejects unsupported combinations explicitly. The tested receiver model is
-Lambert. Other direct lobes still use their shared secondary BRDF, while the
+profile. The original qualification disabled sun, environment, hemisphere fill
+and the legacy floor field. The subsequent
+[sun/environment pass](rendering-r4-sun-environment.md) admits sun and source
+radiance; unshadowed hemisphere fill and the legacy floor field remain excluded.
+The tested receiver model is Lambert. Other direct lobes still use their shared secondary BRDF, while the
 receiver's low-frequency response remains diffuse E/pi with the conventional
 dielectric factor. Indirect specular belongs to later work.
 
@@ -197,3 +199,7 @@ freshness/error controller remains a next seam before choosing GI defaults or
 claiming whole-scene R4 completion. The subsequent
 [secondary-material pass](rendering-r4-secondary-materials.md) now supplies the
 textured and smooth-normal payload through the existing material owner.
+
+The subsequent [regional-policy qualification](rendering-r4-regional-policy.md)
+adds Dominatus hysteresis/minCommit, per-region directional cursors and delayed
+GPU change feedback on this same retained cache. Whole-Beacon remains open.

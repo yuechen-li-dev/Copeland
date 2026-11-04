@@ -14,7 +14,10 @@ public sealed record DynamicDiffuseLighting3D
     public DynamicDiffuseMode3D Mode { get; init; }
     public DiffuseProbeGrid? Grid { get; init; }
     public int RaysPerProbePerFrame { get; init; } = 16;
+    public DiffuseRegionalPlan3D? RegionalPlan { get; init; }
     public bool ConnectivityVisibility { get; init; } = true;
+    public bool SecondarySkyLighting { get; init; } = true;
+    public bool EnvironmentImportanceSampling { get; init; } = true;
     public bool SecondaryMaterials { get; init; } = true;
     public float SecondaryTextureLod { get; init; }
     public bool CaptureSecondaryWitness { get; init; }
@@ -29,6 +32,12 @@ public sealed record DynamicDiffuseLighting3D
         if (Mode == DynamicDiffuseMode3D.Off) return;
         if (Grid is null) throw new ArgumentException("AUR-GI-002: Dynamic diffuse lighting requires a declared world-space grid.");
         Grid.Validate();
+        if (RegionalPlan is not null)
+        {
+            if (Mode != DynamicDiffuseMode3D.CompiledResidual)
+                throw new ArgumentException("AUR-GI-REGION-004: Regional control requires the signed compiled-residual storage contract.");
+            RegionalPlan.Validate(Grid);
+        }
         if (Grid.SurfaceResolution != 8)
             throw new ArgumentException("AUR-GI-002: Dynamic diffuse currently uses an eight by eight octahedral convolution tile.");
         if (RaysPerProbePerFrame > Grid.RaysPerProbe)

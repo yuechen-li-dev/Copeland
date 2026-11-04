@@ -101,6 +101,20 @@ def evaluate(manifest_path):
                                 ("gi-emissive", "direct-emissive")]:
             if means[result] >= means[control]:
                 raise ValueError(f"Dynamic diffuse did not improve native FLIP: {result}")
+    elif manifest.get("Qualification") == "regional-diffuse":
+        for control in ["compiled-0", "fixed-32-0"]:
+            if means["regional-0"] >= means[control]:
+                raise ValueError(f"Regional first-frame recovery did not improve native FLIP: {control}")
+    elif manifest.get("Qualification") == "sky-diffuse":
+        for scene in ["sun", "environment", "combined"]:
+            if means[scene + "-gi"] >= means[scene + "-visibility-only"]:
+                raise ValueError(f"Sky bounce did not improve visibility-only native FLIP: {scene}")
+            if means[scene + "-gi"] >= means[scene + "-off"]:
+                raise ValueError(f"Sky transport did not improve native FLIP: {scene}")
+            if means[scene + "-moved-gi"] >= means[scene + "-moved-stale"]:
+                raise ValueError(f"Sky transport did not remove stale light in native FLIP: {scene}")
+        if means["hdr-importance"] >= means["hdr-uniform"]:
+            raise ValueError("Environment importance sampling did not improve native FLIP")
     elif manifest.get("Qualification") == "secondary-materials":
         for scene in ["albedo", "emissive", "smooth", "normal-map", "all-channels", "negative-tangent",
                       "analytic-sphere", "analytic-box-reflected", "imported-glb"]:
@@ -147,6 +161,11 @@ def evaluate(manifest_path):
                     EvaluatorBinaries={path.name: sha256(path) for path in binary_paths},
                     ReferenceEdgeMask="Either adjacent pixel of a horizontal/vertical reference sRGB channel difference > 0.05",
                     Groups=means, ReferenceEdgeGroups=edge_means, Pairs=results)
+    if manifest.get("Qualification") == "sky-diffuse":
+        evidence["Adoption"] = dict(DefaultPromoted=False,
+            StandaloneEnvironmentBeatsUnoccludedIblFlip=means["environment-gi"] < means["environment-off"],
+            EnvironmentBounceBeatsVisibilityOnlyFlip=means["environment-gi"] < means["environment-visibility-only"],
+            Scope="All tested source cases improve HDR/FLIP; arena-scale and regional-policy qualification remain open.")
     result_path.write_text(json.dumps(evidence, indent=2), encoding="utf-8")
     print("AURELIAN_FLIP_PASSED", json.dumps(means, sort_keys=True))
 
