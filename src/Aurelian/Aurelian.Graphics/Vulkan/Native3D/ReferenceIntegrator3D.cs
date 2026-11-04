@@ -87,7 +87,15 @@ public sealed class ReferenceIntegrator3D : IDisposable
         }
         int emitterTable = 64 + (geometry.Count + spheres.Count + analytic.Count) * 16;
         int distributionOffset = emitterTable + geometry.Count;
-        float[] parameters = new float[distributionOffset + environmentCdf.Length];
+        LocalLight3D[] localLights = lighting.LocalLights?.ToArray() ?? [];
+        if (localLights.Length > 256) throw new ArgumentException("AUR-REF-013: Capture admits at most 256 local lights.");
+        foreach (LocalLight3D local in localLights) local.Validate();
+        int localOffset = distributionOffset + environmentCdf.Length;
+        float[] parameters = new float[localOffset + localLights.Length * 16];
+        parameters[49] = localLights.Length;
+        parameters[50] = localOffset;
+        for (int index = 0; index < localLights.Length; index++)
+            LocalLightPacking3D.Write(localLights[index], parameters.AsSpan(localOffset + index * 16, 16));
         parameters[0] = capture.Width;
         parameters[1] = capture.Height;
         parameters[2] = capture.MaximumBounces;

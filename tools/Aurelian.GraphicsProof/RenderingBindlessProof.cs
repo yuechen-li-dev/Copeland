@@ -110,7 +110,7 @@ internal static class RenderingBindlessProof
     }
 
     internal static VulkanSolid3DRenderer CreateRenderer(AurelianVulkanPlant plant, GameAssets assets, VulkanNativeFrameTarget target,
-        bool enableCulling = false, VisibilityBufferPrograms? visibilityPrograms = null)
+        bool enableCulling = false, VisibilityBufferPrograms? visibilityPrograms = null, bool rayShadows = false)
         => new(plant, assets.Shader("SurfaceSolid3D.v.ts"), target,
             modelProgram: assets.Shader("SurfaceModel3D.v.ts"), shadowProgram: assets.Shader("Shadow3D.v.ts"),
             outputProgram: assets.Shader("ToneMap3D.v.ts"), temporalProgram: assets.Shader("TemporalResolve3D.v.ts"),
@@ -118,6 +118,8 @@ internal static class RenderingBindlessProof
                 assets.Shader("SurfaceResolve3D.v.ts"), assets.Shader("AmbientOcclusion3D.v.ts"),
                 assets.Shader("AmbientDenoise3D.v.ts"), assets.Shader("LightTiles3D.v.ts"))
             {
+                SampledLocalLights = rayShadows ? assets.ComputeShader("SampledLocalLights3D.v.ts") : null,
+                LocalRayShadows = rayShadows ? assets.ComputeShader("LocalShadows3D.v.ts") : null,
                 SubsurfaceDiffuse = assets.Shader("SubsurfaceDiffuse3D.v.ts"),
                 SubsurfaceMerge = assets.Shader("SubsurfaceMerge3D.v.ts"),
             }, retainedPrograms: new(assets.Shader("InstancedModel3D.v.ts"), assets.Shader("InstancedShadow3D.v.ts"))

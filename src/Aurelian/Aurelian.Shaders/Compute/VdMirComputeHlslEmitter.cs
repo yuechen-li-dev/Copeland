@@ -58,7 +58,7 @@ public static partial class VdMirComputeHlslEmitter
                 ParameterType(parameter, module) + " " + LocalName(parameter.Name)));
             builder.AppendLine($"{MapType(function.ReturnType, module)} {function.Name}({parameters});");
         }
-        if (module.FeatureLevel is "compute.rayquery.m2" or "compute.rayquery.m3")
+        if (module.FeatureLevel is "compute.rayquery.m2" or "compute.rayquery.m3" or "compute.rayquery.m4")
         {
             EmitQueryHelpers(builder, module);
         }
@@ -144,9 +144,9 @@ public static partial class VdMirComputeHlslEmitter
                 break;
             case "ray-query":
                 var queryArguments = statement.Expression!.Operands!;
-                string queryFunction = queryArguments.Count == 7
-                    ? "AurelianTraceClosest_" + queryArguments[6].Value
-                    : "AurelianTraceClosest";
+                string queryFunction = statement.Expression.Value == "RayQueryTraceOccluded"
+                    ? "AurelianTraceOccluded" : "AurelianTraceClosest";
+                if (queryArguments.Count == 7) queryFunction += "_" + queryArguments[6].Value;
                 builder.AppendLine($"{prefix}{queryFunction}({string.Join(", ", queryArguments.Take(6).Select(EmitExpression))});");
                 break;
             case "if":

@@ -29,6 +29,12 @@ public sealed unsafe partial class VulkanSolid3DRenderer
     public ClusterVisibilityMode VisibilityMode { get; set; } = ClusterVisibilityMode.ClusterAndCone;
     public bool EnableBindlessMaterials { get; set; } = true;
     public bool EnableVisibilityBuffer { get; set; }
+    public LocalLightSampling3D LocalLightSampling { get; set; } = new();
+    public void ResetLightSamplingHistory() => surfaceLighting?.ResetLightSampling();
+    public float[] ReadLightSamplesForQualification() => surfaceLighting!.ReadSamplesForQualification();
+    public ReferenceImage3D ReadLightingForQualification() => surfaceLighting!.ReadLightingForQualification();
+    public bool EnableRayShadows { get; set; }
+    public Aurelian.Graphics.Vulkan.RayQueries.SceneAccelerationStatistics3D? RaySceneStatistics => surfaceLighting?.RayStatistics;
     public bool EnableHierarchicalZ { get; set; }
     /// <summary>Prepared LOD error estimate in pixels. Zero forces LOD0. No runtime simplification.</summary>
     public float LodPixelError { get; set; } = .25f;
@@ -62,7 +68,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
             shaded && state.HasRefraction, shaded && state.HasTransparency, shaded && state.HasParticles,
             planOptions.AsyncParticleUpdates && plant.ComputeQueue.HasValue, state.UseTemporal && state.GpuGeometry is not null,
             surfaceLighting?.ShadowCount ?? 0, planOptions.AliasTransientTextures, retainedModels?.HasVisibility == true,
-            retainedModels?.VisibilityBufferActive == true, retainedModels?.HierarchicalZActive == true);
+            retainedModels?.VisibilityBufferActive == true, retainedModels?.HierarchicalZActive == true, surfaceLighting?.RayShadowsActive == true);
         if (!framePlanCache.TryGetValue(features, out var plan))
         {
             plan = Native3DFrameGraph.Compile(features, (int)target.Width, (int)target.Height);
@@ -232,6 +238,11 @@ public sealed unsafe partial class VulkanSolid3DRenderer
                 gpuTimings?.Mark(command, 27);
                 break;
             case Native3DPass.DirectionalShadows: RecordDirectionalShadows(command, state); break;
+            case Native3DPass.RayShadows:
+                gpuTimings?.Mark(command, 16);
+                surfaceLighting!.RecordRayShadows(command);
+                gpuTimings?.Mark(command, 17);
+                break;
             case Native3DPass.LocalShadows: RecordLocalShadows(command, state); break;
             case Native3DPass.Geometry: RecordGeometry(command, state); break;
             case Native3DPass.IdentityRaster:
@@ -298,7 +309,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
     {
         Native3DPass.DirectionalShadows => 0, Native3DPass.Geometry => 1, Native3DPass.Temporal => 2,
         Native3DPass.Bloom => 3, Native3DPass.Output => 4, Native3DPass.AmbientOcclusion => 5,
-        Native3DPass.LightTiles => 6, Native3DPass.SurfaceResolve => 7, Native3DPass.LocalShadows => 8,
+        Native3DPass.LightTiles => 6, Native3DPass.SurfaceResolve => 7, Native3DPass.LocalShadows => 8, Native3DPass.RayShadows => 8,
         Native3DPass.Subsurface => 9, Native3DPass.Atmosphere => 10, Native3DPass.Transparency => 11,
         Native3DPass.Refraction => 12, Native3DPass.Particles => 13, Native3DPass.Visibility => 14,
         Native3DPass.IdentityRaster => 15, Native3DPass.HzbSeedRaster => 16, Native3DPass.HzbSeedPyramid => 17,

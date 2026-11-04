@@ -9,6 +9,38 @@ namespace Aurelian.Shaders.Tests;
 public sealed class RayQueryShaderTests
 {
     [Fact]
+    public void SampledLocalLightingUsesTheTypedOcclusionBoundary()
+    {
+        var module = GpuComputeBinder.Compile(new(BuiltinShaderLibrary.LoadSources("SampledLocalLights3D.v.ts")));
+        Assert.True(module.Success, string.Join("; ", module.Diagnostics.Select(item => item.Message)));
+        var compiled = VdMirComputeBackend.Compile(module);
+        Assert.True(compiled.SpirvValidated, compiled.DxcOutput + compiled.SpirvValidationOutput);
+        Assert.Equal("compute.rayquery.m4", module.FeatureLevel);
+    }
+
+    [Fact]
+    public void LocalOcclusionKernelTerminatesTraversalAndValidatesSpirv()
+    {
+        var module = GpuComputeBinder.Compile(new(BuiltinShaderLibrary.LoadSources("LocalShadows3D.v.ts")));
+        Assert.True(module.Success, string.Join("; ", module.Diagnostics.Select(item => item.Message)));
+        var compiled = VdMirComputeBackend.Compile(module);
+        Assert.True(compiled.SpirvValidated, compiled.DxcOutput + compiled.SpirvValidationOutput);
+        Assert.Equal("compute.rayquery.m4", module.FeatureLevel);
+        Assert.Contains("OpRayQueryTerminateKHR", compiled.SpirvDisassembly);
+        Assert.Contains("CandidateInstanceID", compiled.Hlsl);
+    }
+
+    [Fact]
+    public void OcclusionRequiresItsClosedEvaluatorRatherThanSilentlyIgnoringProcedurals()
+    {
+        var sources = BuiltinShaderLibrary.LoadSources("LocalShadows3D.v.ts")
+            .Select(source => source with { Source = source.Source.Replace("index, AffineAnalyticIntersection)", "index)", StringComparison.Ordinal) });
+        var module = GpuComputeBinder.Compile(new(sources.ToArray()));
+        Assert.False(module.Success);
+        Assert.Contains(module.Diagnostics, item => item.Code == "COPE-GPU-RAYQUERY-0001");
+    }
+
+    [Fact]
     public void AffineCandidatesUseTheSameIntersectionModuleAsRasterization()
     {
         var sources = BuiltinShaderLibrary.LoadSources("AffineRayQuery3D.v.ts");

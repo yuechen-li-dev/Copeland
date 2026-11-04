@@ -1,4 +1,4 @@
-import { WorldAt, EnvironmentResponse, EnvironmentDiffuse, MaskAllows, BoxReflection, ConeAttenuation } from "./SurfaceLighting";
+import { WorldAt, EnvironmentResponse, EnvironmentDiffuse, MaskAllows, BoxReflection, LocalAttenuation } from "./SurfaceLighting";
 import { Unit, Sub3, Add3, Scale3, Mul3, Dot3, DirectLightModel, DirectDiffuseModel, HemisphereLight, ShadowVisibility, PlaneShadowVisibility, LimitRadiance } from "./Lighting3D";
 import { CompiledDiffuse } from "./CompiledDiffuseLighting";
 
@@ -79,6 +79,8 @@ stream Resources {
     @binding(28) cascadeFarSampler: Sampler;
     @binding(29) subsurface: Texture2D<float4>;
     @binding(30) subsurfaceSampler: Sampler;
+    @binding(31) rayVisibility: Texture2D<float4>;
+    @binding(32) rayVisibilitySampler: Sampler;
 }
 stream Input { @location(0) position: float2; }
 stream Varyings {
@@ -158,7 +160,10 @@ function PixelMain(input: Varyings, resources: Resources): Output {
         return { color: LimitRadiance(float4(unlit.x, unlit.y, unlit.z, 1.0)), diffuse: float4(0.0, 0.0, 0.0, 0.0) };
     }
     const normal: float3 = Unit(float3(n.x, n.y, n.z));
-    const view: float3 = Unit(Sub3(float3(resources.material.eye.x, resources.material.eye.y, resources.material.eye.z), p));
+    var view: float3 = Unit(Sub3(float3(resources.material.eye.x, resources.material.eye.y, resources.material.eye.z), p));
+    if (resources.material.eye.w < 0.5) {
+        view = Unit(Sub3(Position(resources, input.uv, 0.0), Position(resources, input.uv, 1.0)));
+    }
     const light: float3 = Unit(float3(resources.material.light.x, resources.material.light.y, resources.material.light.z));
     const sun: float3 = float3(resources.material.sun.x, resources.material.sun.y, resources.material.sun.z);
     const visibility: f32 = DirectionalVisibility(resources, p, normal);
@@ -194,31 +199,69 @@ function PixelMain(input: Varyings, resources: Resources): Output {
             diffuseAmbient = ambient;
         }
     }
-    const mask: float4 = Sample(resources.tiles, resources.tilesSampler, input.uv);
-    for (var index: u32 = 0; index < 32; index = index + 1) {
-        if (Convert<f32>(index) < resources.material.parameters.x && (MaskAllows(mask, index) || resources.material.aoParameters.w > 0.5)) {
-            const row: f32 = (Convert<f32>(index) + 0.5) / 32.0;
-            const sphere: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.125, row));
-            const color: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.375, row));
-            const cone: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.625, row));
-            const config: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.875, row));
-            const delta: float3 = Sub3(float3(sphere.x, sphere.y, sphere.z), p);
-            const squared: f32 = Dot3(delta, delta);
-            if (squared < sphere.w * sphere.w) {
-                const direction: float3 = Unit(delta);
-                const ratio: f32 = squared / (sphere.w * sphere.w);
-                const fade: f32 = Max(1.0 - ratio * ratio, 0.0);
-                var attenuation: f32 = fade * fade / Max(squared, 0.01);
-                attenuation = attenuation * ConeAttenuation(direction, cone, config);
-                if (config.z > 0.5) {
-                    attenuation = attenuation * LocalShadow(resources, config.z, p, Max(Dot3(normal, direction), 0.0));
-                }
-                if (profile.w > 0.0) {
-                    diffuseDirect = Add3(diffuseDirect, Scale3(Mul3(DirectDiffuseModel(base, normal, view, direction, n.w, material.w, resources.material.ground.w),
+    if (resources.material.surfaceTexels.w > 1.5) {
+        const pixelX: f32 = Floor(input.uv.x / resources.material.surfaceTexels.x);
+        for (var sample: u32 = 0; sample < 4; sample = sample + 1) {
+            const data: float4 = Sample(resources.rayVisibility, resources.rayVisibilitySampler,
+                float2((pixelX * 4.0 + Floor(Convert<f32>(sample) / 2.0) + 0.5) * resources.material.surfaceTexels.x / 4.0, input.uv.y));
+            var index: u32 = Convert<u32>(data.x);
+            var weight: f32 = data.y;
+            if (sample % 2 == 1) { index = Convert<u32>(data.z); weight = data.w; }
+            if (weight > 0.0) {
+                const row: f32 = (Convert<f32>(index) + 0.5) / 256.0;
+                const sphere: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.125, row));
+                const color: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.375, row));
+                const cone: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.625, row));
+                const config: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.875, row));
+                const delta: float3 = Sub3(float3(sphere.x, sphere.y, sphere.z), p);
+                const squared: f32 = Dot3(delta, delta);
+                if (squared < sphere.w * sphere.w) {
+                    const direction: float3 = Unit(delta);
+                    var attenuation: f32 = LocalAttenuation(direction, squared, sphere.w, cone, config) * weight;
+                    if (profile.w > 0.0) {
+                        diffuseDirect = Add3(diffuseDirect, Scale3(Mul3(DirectDiffuseModel(base, normal, view, direction, n.w, material.w, resources.material.ground.w),
+                            float3(color.x, color.y, color.z)), color.w * attenuation));
+                    }
+                    direct = Add3(direct, Scale3(Mul3(DirectLightModel(base, normal, view, direction, n.w, material.w, resources.material.ground.w),
                         float3(color.x, color.y, color.z)), color.w * attenuation));
                 }
-                direct = Add3(direct, Scale3(Mul3(DirectLightModel(base, normal, view, direction, n.w, material.w, resources.material.ground.w),
-                    float3(color.x, color.y, color.z)), color.w * attenuation));
+            }
+        }
+    } else if (resources.material.parameters.x > 0.0) {
+        for (var group: u32 = 0; group < 8; group = group + 1) {
+            if (Convert<f32>(group * 32) < resources.material.parameters.x) {
+                const mask: float4 = Sample(resources.tiles, resources.tilesSampler,
+                    float2((input.uv.x + Convert<f32>(group)) / 8.0, input.uv.y));
+                for (var lane: u32 = 0; lane < 32; lane = lane + 1) {
+                    const index: u32 = group * 32 + lane;
+                    if (Convert<f32>(index) < resources.material.parameters.x
+                        && (MaskAllows(mask, lane) || resources.material.aoParameters.w > 0.5)) {
+                        const row: f32 = (Convert<f32>(index) + 0.5) / 256.0;
+                        const sphere: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.125, row));
+                        const color: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.375, row));
+                        const cone: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.625, row));
+                        const config: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.875, row));
+                        const delta: float3 = Sub3(float3(sphere.x, sphere.y, sphere.z), p);
+                        const squared: f32 = Dot3(delta, delta);
+                        if (squared < sphere.w * sphere.w) {
+                            const direction: float3 = Unit(delta);
+                            var attenuation: f32 = LocalAttenuation(direction, squared, sphere.w, cone, config);
+                            if (config.z > 0.5) {
+                                if (resources.material.surfaceTexels.w > 0.5) {
+                                    attenuation = attenuation * RayVisibility(resources, input.uv, index);
+                                } else {
+                                    attenuation = attenuation * LocalShadow(resources, config.z, p, Max(Dot3(normal, direction), 0.0));
+                                }
+                            }
+                            if (profile.w > 0.0) {
+                                diffuseDirect = Add3(diffuseDirect, Scale3(Mul3(DirectDiffuseModel(base, normal, view, direction, n.w, material.w, resources.material.ground.w),
+                                    float3(color.x, color.y, color.z)), color.w * attenuation));
+                            }
+                            direct = Add3(direct, Scale3(Mul3(DirectLightModel(base, normal, view, direction, n.w, material.w, resources.material.ground.w),
+                                float3(color.x, color.y, color.z)), color.w * attenuation));
+                        }
+                    }
+                }
             }
         }
     }
@@ -302,4 +345,19 @@ function DirectionalVisibility(resources: Resources, p: float3, normal: float3):
     }
     const fade: f32 = Clamp((depth - ends.z * 0.9) / (ends.z * 0.1), 0.0, 1.0);
     return FarVisibility(resources, p, normal) * (1.0 - fade) + fade;
+}
+
+function RayVisibility(resources: Resources, uv: float2, light: u32): f32 {
+    const pixelX: f32 = Floor(uv.x / resources.material.surfaceTexels.x);
+    const group: f32 = Floor(Convert<f32>(light) / 64.0);
+    const packed: float4 = Sample(resources.rayVisibility, resources.rayVisibilitySampler,
+        float2((pixelX * 4.0 + group + 0.5) * resources.material.surfaceTexels.x / 4.0, uv.y));
+    const word: u32 = (light % 64) / 16;
+    var value: f32 = packed.x;
+    if (word == 1) { value = packed.y; }
+    if (word == 2) { value = packed.z; }
+    if (word == 3) { value = packed.w; }
+    const shifted: f32 = Floor(value / Pow(2.0, Convert<f32>(light % 16)));
+    if (shifted - Floor(shifted / 2.0) * 2.0 > 0.5) { return 0.0; }
+    return 1.0;
 }

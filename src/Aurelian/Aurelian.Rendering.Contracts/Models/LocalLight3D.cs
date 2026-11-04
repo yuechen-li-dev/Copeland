@@ -29,10 +29,7 @@ public sealed record LocalLight3D(Vector3 Position, Vector3 Color, float Intensi
         {
             throw new ArgumentOutOfRangeException(nameof(LocalLight3D), "Local light radiance, radius and spot cone must be finite and bounded.");
         }
-        if (CastShadows && (Kind != LocalLightKind.Spot || Range <= .1f))
-        {
-            throw new NotSupportedException("AUR-LIGHT-LOCAL-002: Local shadows currently require a spot light with range greater than 0.1 metres.");
-        }
+
     }
 
     private static bool Finite(Vector3 value)

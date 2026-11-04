@@ -1,9 +1,12 @@
 param(
     [string]$Output = 'artifacts/local/rendering-reference/final',
-    [string]$LightingFixture = 'artifacts/local/beacon-compiled-lighting'
+    [string]$LightingFixture = 'artifacts/local/beacon-compiled-lighting',
+    [switch]$IncludeR3,
+    [switch]$IncludeSampling
 )
 
 $ErrorActionPreference = 'Stop'
+if ($IncludeSampling) { $IncludeR3 = $true }
 $repository = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $previousSyncValidation = $env:VK_LAYER_VALIDATE_SYNC
 Push-Location $repository
@@ -65,6 +68,44 @@ try {
         'tools/aurelian-rendering-reference/requirements-metrics.txt',
         'tools/aurelian-rendering-reference/evaluate_metrics.py'
     )
+    if ($IncludeR3) {
+        $sourcePaths += @(
+            'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/NativeMesh3D.cs',
+            'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/VulkanSolid3DRenderer.cs',
+            'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/VulkanSolid3DRenderer.FramePlan.cs',
+            'tests/Aurelian/Aurelian.Shaders.Tests/GraphicsStarterShaderTests.cs',
+            'tests/Aurelian/Aurelian.Rendering.Contracts.Tests/SurfaceLightingContractsTests.cs',
+            'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/VulkanBindlessMaterials3D.cs',
+            'tests/Aurelian/Aurelian.Graphics.Tests/NativeMesh3DTests.cs',
+            'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/LocalLightPacking3D.cs',
+            'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/VulkanLocalRayShadows3D.cs',
+            'src/Aurelian/Aurelian.Graphics/Vulkan/RayQueries/VulkanSceneAcceleration3D.cs',
+            'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/VulkanSurfaceLighting3D.cs',
+            'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/Native3DFrameGraph.cs',
+            'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/SurfaceLightingPrograms.cs',
+            'src/Aurelian/Aurelian.Rendering.Contracts/Models/LocalLight3D.cs',
+            'src/Aurelian/Aurelian.Rendering.Contracts/Models/Graphics3DSettings.cs',
+            'src/Aurelian/Aurelian.Shaders/Assets/Queries/LocalShadows3D.v.ts',
+            'src/Aurelian/Aurelian.Shaders/Assets/Surfaces/SurfaceResolve3D.v.ts',
+            'src/Aurelian/Aurelian.Shaders/Assets/Surfaces/SurfaceLighting.v.ts',
+            'src/Aurelian/Aurelian.Shaders/Assets/Lighting/LightTiles3D.v.ts',
+            'src/Aurelian/Aurelian.Shaders.Builtins/Library/BuiltinShaderLibrary.cs',
+            'tools/Aurelian.GraphicsProof/RenderingR3Proof.cs',
+            'tools/Aurelian.GraphicsProof/RenderingBindlessProof.cs',
+            'tools/aurelian-rendering-r3/Qualify.ps1'
+        )
+        $sourcePaths = @($sourcePaths | Select-Object -Unique)
+    }
+    if ($IncludeSampling) {
+        $sourcePaths += @(
+            'src/Aurelian/Aurelian.Rendering.Contracts/Models/LocalLightSampling3D.cs',
+            'src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/Vulkan3DQualificationReadback.cs',
+            'src/Aurelian/Aurelian.Shaders/Assets/Queries/LocalLightSamplingMath3D.v.ts',
+            'src/Aurelian/Aurelian.Shaders/Assets/Queries/SampledLocalLights3D.v.ts',
+            'tools/Aurelian.GraphicsProof/RenderingR3Proof.Sampling.cs',
+            'tools/aurelian-light-sampling/Qualify.ps1'
+        )
+    }
     $initialHashes = @($sourcePaths | ForEach-Object { (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash })
 
     function Invoke-QualificationCommand {
@@ -111,6 +152,28 @@ try {
     Invoke-QualificationCommand 'hybrid-regression' @($proof, '--rendering-hybrid', '--output', (Join-Path $outputPath 'hybrid-regression'))
     Invoke-QualificationCommand 'diffuse-regression' @($proof, '--diffuse-proof', '--output', (Join-Path $outputPath 'diffuse-regression'))
 
+    $r3 = $null
+    $r3Flip = $null
+    if ($IncludeR3) {
+        Invoke-QualificationCommand 'r3' @($proof, '--rendering-r3', '--output', (Join-Path $outputPath 'r3'))
+        Invoke-QualificationCommand 'r3-flip' @((Join-Path $repository 'tools/aurelian-rendering-reference/evaluate_metrics.py'),
+            (Join-Path $outputPath 'r3/metrics-manifest.json')) $metricsPython
+        $r3 = Get-Content -LiteralPath (Join-Path $outputPath 'r3/evidence.json') -Raw | ConvertFrom-Json
+        $r3Flip = Get-Content -LiteralPath (Join-Path $outputPath 'r3/flip-evidence.json') -Raw | ConvertFrom-Json
+        if (-not $r3.Accepted -or -not $r3Flip.Accepted) { throw 'R3 native and FLIP qualification did not accept.' }
+    }
+
+    $sampling = $null
+    $samplingFlip = $null
+    if ($IncludeSampling) {
+        Invoke-QualificationCommand 'light-sampling' @($proof, '--rendering-light-sampling', '--output', (Join-Path $outputPath 'sampling'))
+        Invoke-QualificationCommand 'sampling-flip' @((Join-Path $repository 'tools/aurelian-rendering-reference/evaluate_metrics.py'),
+            (Join-Path $outputPath 'sampling/metrics-manifest.json')) $metricsPython
+        $sampling = Get-Content -LiteralPath (Join-Path $outputPath 'sampling/evidence.json') -Raw | ConvertFrom-Json
+        $samplingFlip = Get-Content -LiteralPath (Join-Path $outputPath 'sampling/flip-evidence.json') -Raw | ConvertFrom-Json
+        if (-not $sampling.Accepted -or -not $samplingFlip.Accepted) { throw 'Local-light sampling and FLIP qualification did not accept.' }
+    }
+
     $hashes = @($sourcePaths | ForEach-Object {
         @{ Path = $_; Sha256 = (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash }
     })
@@ -130,7 +193,7 @@ try {
         ProofSha256 = (Get-FileHash -LiteralPath $proof -Algorithm SHA256).Hash;
         GraphicsSha256 = (Get-FileHash -LiteralPath (Join-Path (Split-Path $proof) 'Aurelian.Graphics.dll') -Algorithm SHA256).Hash;
         LightingFixture = $fixturePath; Reference = $reference; Affine = $affine;
-        LightingTemporal = $lighting; Flip = $flip } | ConvertTo-Json -Depth 30 |
+        LightingTemporal = $lighting; Flip = $flip; R3 = $r3; R3Flip = $r3Flip; Sampling = $sampling; SamplingFlip = $samplingFlip; FullR3Complete = $false } | ConvertTo-Json -Depth 30 |
         Set-Content -LiteralPath $evidencePath
     Write-Output "AURELIAN_REFERENCE_QUALIFIED: $evidencePath"
 }

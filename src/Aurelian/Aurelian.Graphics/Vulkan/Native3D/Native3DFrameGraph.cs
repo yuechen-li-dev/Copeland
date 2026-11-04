@@ -6,13 +6,13 @@ internal enum Native3DPass
 {
     Uploads, Particles, DirectionalShadows, LocalShadows, Geometry, AmbientOcclusion, LightTiles,
     SurfaceResolve, Subsurface, Atmosphere, Refraction, Transparency, Temporal, Bloom, Output, HistoryCopy,
-    Visibility, IdentityRaster, HzbSeedRaster, HzbSeedPyramid, HzbFinalCull, HzbHistoryPyramid,
+    RayShadows, Visibility, IdentityRaster, HzbSeedRaster, HzbSeedPyramid, HzbFinalCull, HzbHistoryPyramid,
 }
 
 internal readonly record struct Native3DFeatures(bool Surface, bool Modern, bool Motion, bool Shadows,
     bool Ambient, bool Tiles, bool Temporal, bool Bloom, bool Subsurface, bool Fog, bool Volume,
     bool Refraction, bool Transparency, bool Particles, bool AsyncParticles, bool GpuHistory,
-    int LocalShadows, bool Alias, bool Visibility = false, bool VisibilityBuffer = false, bool HierarchicalZ = false);
+    int LocalShadows, bool Alias, bool Visibility = false, bool VisibilityBuffer = false, bool HierarchicalZ = false, bool RayShadows = false);
 
 /// <summary>Declarative authoring for the production renderer. The compiler publishes only resolved data.</summary>
 internal static class Native3DFrameGraph
@@ -43,6 +43,8 @@ internal static class Native3DFrameGraph
         var cascade2 = Shadow("directional-cascade-2", (int)Lighting3DUniforms.ShadowSize);
         var spot1 = Shadow("spot-shadow-1", 512, initialized: true);
         var spot2 = Shadow("spot-shadow-2", 512, initialized: true);
+        var rayVisibility = graph.Resource("local-ray-visibility", "rgba32f", width * 4, height,
+            features.RayShadows ? FrameLifetime.Transient : FrameLifetime.Imported, initialized: !features.RayShadows, dedicated: true);
         var volume = graph.Resource("volume-lighting", "external", 1, 1, FrameLifetime.Imported, initialized: true, allowUnused: true);
         var particles = graph.Resource("particle-vertices", "buffer", 1, 1, FrameLifetime.History, initialized: true);
 
@@ -121,6 +123,12 @@ internal static class Native3DFrameGraph
         if (features.Motion) geometry.Write(motion);
         if (features.Surface) geometry.Write(normal).Write(emission).Write(profile);
 
+        if (features.RayShadows)
+        {
+            graph.Pass("local-ray-shadows", (int)Native3DPass.RayShadows)
+                .Read(inputs).Read(lights).Read(motion, FrameAccess.TransferRead).Read(normal, FrameAccess.TransferRead)
+                .Write(rayVisibility, FrameAccess.TransferWrite);
+        }
         FrameResource unfogged = scene;
         if (features.Surface)
         {
@@ -128,13 +136,14 @@ internal static class Native3DFrameGraph
             var rawAo = Texture("ambient-raw", "rgba32f", allowUnused: true, scale: 2);
             var ambient = Texture("ambient-filtered", "rgba32f", scale: 2);
             graph.Pass("ambient-occlusion", (int)Native3DPass.AmbientOcclusion).Read(motion).Read(normal).Write(rawAo).Write(ambient);
-            var tiles = Texture("light-tiles", "rgba32f", scale: 16);
+            var tiles = graph.Resource("light-tiles", "rgba32f", ((width + 15) / 16) * 8, (height + 15) / 16, dedicated: true);
             graph.Pass("light-tiles", (int)Native3DPass.LightTiles).Read(lights).Write(tiles);
             var lit = Texture("surface-lighting");
             var diffuse = Texture("surface.diffuse", allowUnused: true, aliasable: true);
             var resolve = graph.Pass("surface-resolve", (int)Native3DPass.SurfaceResolve)
                 .Read(scene).Read(motion).Read(normal).Read(emission).Read(profile).Read(lights)
                 .Read(shadow).Read(cascade1).Read(cascade2).Read(spot1).Read(spot2).Read(inputs).Write(lit).Write(diffuse);
+            if (features.RayShadows) resolve.Read(rayVisibility);
             if (features.Ambient) resolve.Read(ambient);
             if (features.Tiles) resolve.Read(tiles);
             scene = lit;

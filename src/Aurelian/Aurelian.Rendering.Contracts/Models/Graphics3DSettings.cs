@@ -86,7 +86,7 @@ public sealed record Graphics3DSettings
             || !Range(AmbientOcclusionStrength, 0, 2) || !Range(AmbientOcclusionRadius, .01f, 10)
             || !Range(EnvironmentIntensity, 0, 100)
             || !Range(RefractionTraceDistance, 1, 1000)
-            || LocalShadowBudget is < 0 or > 2
+            || LocalShadowBudget is < 0 or > 256
             || !Range(BloomThreshold, 0, 10000) || !Range(BloomKnee, 0, 10000)
             || !Finite(SunDirection) || !float.IsFinite(SunDirection.LengthSquared()) || SunDirection.LengthSquared() < .000001f
             || !Color(SunColor) || !Color(SkyAmbient) || !Color(GroundAmbient)

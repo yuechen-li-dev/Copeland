@@ -20,6 +20,17 @@ using Silk.NET.Maths;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
 
+if (args.Contains("--rendering-light-sampling", StringComparer.Ordinal))
+{
+    RenderingR3Proof.RunSampling(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-light-sampling"));
+    return;
+}
+if (args.Contains("--rendering-r3", StringComparer.Ordinal))
+{
+    RenderingR3Proof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r3"));
+    return;
+}
+
 string defaultOutput = "artifacts/local/graphics-starter";
 if (args.Contains("--rendering-reference-lighting", StringComparer.Ordinal))
 {

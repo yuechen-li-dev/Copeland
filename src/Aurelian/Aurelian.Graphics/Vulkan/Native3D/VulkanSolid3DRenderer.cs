@@ -191,7 +191,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             if (motionOutput)
             {
                 motion = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, target.Width, target.Height,
-                    VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource, VulkanMemoryUsage.GpuOnly,
+                    VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferSource, VulkanMemoryUsage.GpuOnly,
                     "solid3d.motion", VulkanTextureFormat.Rgba32Float);
                 for (int index = 0; index < VulkanFrameInFlightSet.Count; index++)
                 {
@@ -547,7 +547,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         var resident = sourceInstances as NativeInstanceSet3D;
         bool hasAnalytic = resident?.HasAnalytic ?? sourceInstances.Any(instance => instance.Mesh.PrimitiveKind != AnalyticPrimitiveKind3D.Triangles);
         if (hasAnalytic && (resident is null || !EnableVisibilityBuffer || retainedModels?.CanUseHybrid != true
-            || settings.Shadows || LocalLights.Any(light => light.CastShadows)))
+            || settings.Shadows || !EnableRayShadows && LocalLights.Any(light => light.CastShadows)))
             throw new NotSupportedException("AUR-HYBRID-001: Analytic instances require resident hybrid visibility programs and Shadows=false; proxy geometry is never a forward/shadow fallback.");
         var instanceKeys = resident?.Keys ?? sourceInstances.Select(instance => (instance.Identity, instance.Mesh, instance.Material)).ToArray();
         bool correspondenceChanged = !(ReferenceEquals(instanceKeys, previousInstances) || instanceKeys.SequenceEqual(previousInstances))
@@ -615,7 +615,10 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         {
             throw new InvalidOperationException("Environment, local lights and AO require the surface lighting programs.");
         }
-        if (surfaceLighting?.Prepare(Environment, ReflectionProbe, LocalLights, settings.LocalShadowBudget) == true) correspondenceChanged = true;
+        if (surfaceLighting?.Prepare(Environment, ReflectionProbe, LocalLights, settings.LocalShadowBudget, EnableRayShadows) == true) correspondenceChanged = true;
+        if (EnableRayShadows && LocalLights.Any(light => light.CastShadows)
+            && (resident is null || !geometry.IsEmpty || models.Count != 0 || gpuGeometry is not null))
+            throw new NotSupportedException("AUR-RAY-SHADOW-002: Ray shadows require one opaque NativeInstanceSet3D snapshot; mixed immediate or GPU-generated geometry has no shared acceleration authority yet.");
         if (correspondenceChanged) ResetTemporalHistory();
         Matrix4x4 logicalCamera = worldToClip;
         if (useTemporal) worldToClip = temporal!.Begin(logicalCamera);
@@ -681,6 +684,11 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             resident?.Materials ?? sourceInstances.Select(instance => instance.Material).ToArray(), bindlessRetained: useBindless);
         retainedModels?.Upload(sourceInstances, resetHistory, useBindless, EnableVisibilityBuffer, EnableHierarchicalZ);
         retainedModels?.UpdateBindlessFrame(worldToClip, eye, lighting, previousClip);
+        if (surfaceLighting?.RayShadowsActive == true)
+        {
+            Matrix4x4.Invert(worldToClip, out Matrix4x4 rayInverse);
+            surfaceLighting.PrepareRayShadows(resident!, rayInverse, LocalLightSampling);
+        }
         bool hasParticles = ParticleEmitters.Count > 0;
         if (hasParticles)
         {

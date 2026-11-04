@@ -89,7 +89,7 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
             SamplerCount = samplers.Count;
             if (TextureCount > TextureCapacity || SamplerCount > SamplerCapacity)
                 throw new InvalidDataException("AUR-BINDLESS-002: Resident texture or sampler table exceeds its declared capacity.");
-            uint[] instanceMaterials = source.Groups.SelectMany(group => group).Select(instance => materialIndices[instance.Material]).ToArray();
+            uint[] instanceMaterials = source.PackedInstances.Select(instance => materialIndices[instance.Material]).ToArray();
             var materialBuffer = Upload(records);
             var instanceBuffer = Upload(MemoryMarshal.AsBytes(instanceMaterials.AsSpan()).ToArray());
             DescriptorPoolSize* sizes = stackalloc DescriptorPoolSize[4]

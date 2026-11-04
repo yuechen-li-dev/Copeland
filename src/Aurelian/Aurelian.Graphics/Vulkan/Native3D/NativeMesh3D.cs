@@ -68,6 +68,8 @@ public readonly record struct NativeLodRange3D(float Error, uint FirstIndex, uin
 public sealed record SceneInstance3D(string Identity, NativeMesh3D Mesh, ModelMaterial Material, Matrix4x4 Transform)
 {
     public Matrix4x4? PreviousTransform { get; init; }
+    public uint RayLayer { get; init; } = 1;
+    public uint RayMask { get; init; } = uint.MaxValue;
 
     /// <summary>Compatibility for forward-only materials and the existing planar reflection renderer.</summary>
     public NativeModel3DBatch Expand()

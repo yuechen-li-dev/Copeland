@@ -114,7 +114,7 @@ public static partial class GpuComputeBinder
                             $"{function.Identifier.Text} is a compiler-owned intrinsic and cannot be redefined.",
                             Span(source.Path, function.Identifier));
                     }
-                    if (function.Identifier.Text == "RayQueryTraceClosest")
+                    if (function.Identifier.Text is "RayQueryTraceClosest" or "RayQueryTraceOccluded")
                     {
                         AddDiagnostic("COPE-GPU-RAYQUERY-0003", "SDSL-V4213", "ray-query",
                             "RayQueryTraceClosest is a compiler-owned command and cannot be redefined.", Span(source.Path, function.Identifier));
@@ -475,7 +475,7 @@ public static partial class GpuComputeBinder
                         }
                         if (expressionStatement.Expression is CallExpressionSyntax queryCall
                             && queryCall.Target is NameExpressionSyntax queryName
-                            && queryName.IdentifierToken.Text == "RayQueryTraceClosest")
+                            && queryName.IdentifierToken.Text is "RayQueryTraceClosest" or "RayQueryTraceOccluded")
                         {
                             result.Add(BindRayQuery(path, queryCall, scope));
                             break;
@@ -871,7 +871,7 @@ public static partial class GpuComputeBinder
                 return new VdMirExpression("call", intrinsicName == "U32" ? "u32" : "f32",
                     Span(path, call), intrinsicName, operands);
             }
-            if (call.Target is NameExpressionSyntax queryName && queryName.IdentifierToken.Text == "RayQueryTraceClosest")
+            if (call.Target is NameExpressionSyntax queryName && queryName.IdentifierToken.Text is "RayQueryTraceClosest" or "RayQueryTraceOccluded")
             {
                 AddDiagnostic("COPE-GPU-RAYQUERY-0002", "SDSL-V4213", "ray-query",
                     "RayQueryTraceClosest is statement-only; opaque mutable query state cannot escape as a value.", Span(path, call));
@@ -981,7 +981,10 @@ public static partial class GpuComputeBinder
         private VdMirStatement BindRayQuery(string path, CallExpressionSyntax call, Dictionary<string, ValueBinding> scope)
         {
             var arguments = call.Arguments.Take(6).Select(argument => BindExpression(path, argument, scope)).ToList();
-            bool valid = call.Arguments.Count is 6 or 7;
+            string command = ((NameExpressionSyntax)call.Target).IdentifierToken.Text;
+            bool occlusion = command == "RayQueryTraceOccluded";
+            _usesRayOcclusion |= occlusion;
+            bool valid = call.Arguments.Count is 6 or 7 && (!occlusion || call.Arguments.Count == 7);
             VdMirResourceAccess[] access = [VdMirResourceAccess.Readonly, VdMirResourceAccess.Readonly,
                 VdMirResourceAccess.Readonly, VdMirResourceAccess.Readwrite, VdMirResourceAccess.Readonly];
             for (int index = 0; index < Math.Min(5, arguments.Count); index++)
@@ -999,7 +1002,7 @@ public static partial class GpuComputeBinder
             if (!valid)
             {
                 AddDiagnostic("COPE-GPU-RAYQUERY-0001", "SDSL-V4211", "ray-query",
-                    "RayQueryTraceClosest requires readonly acceleration_structure and sphere/triangle buffers, readable ray storage, readwrite output and a u32 dispatch index.", Span(path, call));
+                    $"{command} requires readonly acceleration_structure and geometry metadata, readable ray storage, readwrite output and a u32 index; occlusion also requires its closed procedural evaluator.", Span(path, call));
             }
             if (valid && call.Arguments.Count == 7)
             {
@@ -1007,7 +1010,7 @@ public static partial class GpuComputeBinder
                 if (intersector is not null) arguments.Add(intersector);
             }
             return new VdMirStatement("ray-query", Span(path, call),
-                Expression: new VdMirExpression("intrinsic", "void", Span(path, call), "RayQueryTraceClosest", arguments));
+                Expression: new VdMirExpression("intrinsic", "void", Span(path, call), ((NameExpressionSyntax)call.Target).IdentifierToken.Text, arguments));
         }
 
         private VdMirExpression BindBinary(string path, BinaryExpressionSyntax binary, Dictionary<string, ValueBinding> scope)
@@ -1150,7 +1153,9 @@ public static partial class GpuComputeBinder
             string featureLevel = VdMirComputeModule.ComputeM1FeatureLevel;
             if (_resources.Any(resource => resource.ElementType == "acceleration_structure"))
             {
-                featureLevel = _usesProceduralIntersector ? "compute.rayquery.m3" : "compute.rayquery.m2";
+                if (_usesRayOcclusion) featureLevel = "compute.rayquery.m4";
+                else if (_usesProceduralIntersector) featureLevel = "compute.rayquery.m3";
+                else featureLevel = "compute.rayquery.m2";
             }
             if (_boundFunctions.Any(function => function.Statements.Any(statement => statement.Kind == "cooperative-matmul")))
             {

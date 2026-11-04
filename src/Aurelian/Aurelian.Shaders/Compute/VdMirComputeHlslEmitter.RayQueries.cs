@@ -8,6 +8,7 @@ public static partial class VdMirComputeHlslEmitter
     private static void EmitQueryHelpers(StringBuilder builder, VdMirComputeModule module)
     {
         AddOverloads(RayQueryHlslEmitter.Helper);
+        AddOverloads(RayQueryHlslEmitter.Occlusion());
         var intersectors = new Dictionary<string, VdMirExpression>(StringComparer.Ordinal);
         foreach (var function in module.Functions)
         {
@@ -16,6 +17,7 @@ public static partial class VdMirComputeHlslEmitter
         foreach (var intersector in intersectors.Values)
         {
             AddOverloads(RayQueryHlslEmitter.Procedural(MapType(intersector.Type, module), intersector.Value!));
+            AddOverloads(RayQueryHlslEmitter.Occlusion(MapType(intersector.Type, module), intersector.Value!));
         }
 
         void Visit(IEnumerable<VdMirStatement> statements)

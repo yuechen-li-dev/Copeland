@@ -8,6 +8,7 @@ public static partial class GpuComputeBinder
     private sealed partial class Binder
     {
         private bool _usesProceduralIntersector;
+        private bool _usesRayOcclusion;
         // This is a closed command operand, not a function value. Only ordinary
         // immutable ray data and one readonly buffer cross into the intersector.
         private VdMirExpression? BindRayIntersector(string path, CallExpressionSyntax command,

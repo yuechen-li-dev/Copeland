@@ -154,3 +154,10 @@ export function ConeAttenuation(direction: float3, cone: float4, config: float4)
         case LocalSource.Spot(payload) => SpotFade(payload.cosine, payload.inner, payload.outer),
     };
 }
+
+export function LocalAttenuation(direction: float3, squared: f32, range: f32, cone: float4, config: float4): f32 {
+    const ratio: f32 = squared / (range * range);
+    const fade: f32 = Max(1.0 - ratio * ratio, 0.0);
+    if (squared >= range * range) { return 0.0; }
+    return fade * fade / Max(squared, 0.01) * ConeAttenuation(direction, cone, config);
+}

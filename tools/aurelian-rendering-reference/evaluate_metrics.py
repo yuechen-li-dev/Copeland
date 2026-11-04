@@ -86,21 +86,40 @@ def evaluate(manifest_path):
     edge_means = {name: float(np.mean(values)) for name, values in edge_groups.items()}
     if means["identity"] != 0:
         raise ValueError("Identical native output produced nonzero FLIP")
-    if means["importance"] >= means["uniform"]:
-        raise ValueError("Environment importance sampling did not improve LDR-FLIP")
-    if means["static-taa"] >= means["static-none"]:
-        raise ValueError("TAA failed to improve static reference LDR-FLIP")
-    if "constant-adaptive" in means and means["constant-adaptive"] >= means["constant-uniform"]:
-        raise ValueError("Adaptive constant environment did not improve FLIP over unnecessary light sampling")
-    if "compiled-environment" in means and means["compiled-environment"] >= means["environment-off"]:
-        raise ValueError("Real-time environment lighting did not improve FLIP against the reference")
-    for sequence in ["static", "camera-pan", "moving-occluder"]:
-        if means[sequence + "-taa"] >= means[sequence + "-none"]:
-            raise ValueError(f"TAA did not improve mean FLIP: {sequence}")
-        if edge_means[sequence + "-taa"] >= edge_means[sequence + "-none"]:
-            raise ValueError(f"TAA did not improve reference-edge FLIP: {sequence}")
-        if sequence != "static" and means[sequence + "-taa"] >= means[sequence + "-frozen-native"]:
-            raise ValueError(f"Frozen native-frame control was not distinguished: {sequence}")
+    if manifest.get("Qualification") == "local-ray-shadows":
+        for scene in ["hall-0", "hall-1", "hall-2", "point"]:
+            if means[scene + "-ray"] >= means[scene + "-unshadowed"]:
+                raise ValueError(f"Local ray shadows failed to improve FLIP: {scene}")
+            if edge_means[scene + "-ray"] >= edge_means[scene + "-unshadowed"]:
+                raise ValueError(f"Local ray shadows failed to improve reference-edge FLIP: {scene}")
+    elif manifest.get("Qualification") == "local-light-sampling":
+        for scene in ["hall", "key-fill"]:
+            if means[scene + "-Importance"] >= means[scene + "-Uniform"]:
+                raise ValueError(f"Importance sampling did not improve mean-image FLIP: {scene}")
+            if edge_means[scene + "-Importance"] >= edge_means[scene + "-Uniform"]:
+                raise ValueError(f"Importance sampling did not improve reference-edge FLIP: {scene}")
+            if means[scene + "-Importance"] >= means[scene + "-UniformEligible"]:
+                raise ValueError(f"Weighted proposal did not improve eligible-uniform FLIP: {scene}")
+            if edge_means[scene + "-Importance"] >= edge_means[scene + "-UniformEligible"]:
+                raise ValueError(f"Weighted proposal did not improve eligible-uniform edge FLIP: {scene}")
+        if means["key-fill-Hybrid"] >= means["key-fill-Importance"]:
+            raise ValueError("Exact-few plus sampled-tail failed to improve key/fill FLIP")
+    else:
+        if means["importance"] >= means["uniform"]:
+            raise ValueError("Environment importance sampling did not improve LDR-FLIP")
+        if means["static-taa"] >= means["static-none"]:
+            raise ValueError("TAA failed to improve static reference LDR-FLIP")
+        if "constant-adaptive" in means and means["constant-adaptive"] >= means["constant-uniform"]:
+            raise ValueError("Adaptive constant environment did not improve FLIP over unnecessary light sampling")
+        if "compiled-environment" in means and means["compiled-environment"] >= means["environment-off"]:
+            raise ValueError("Real-time environment lighting did not improve FLIP against the reference")
+        for sequence in ["static", "camera-pan", "moving-occluder"]:
+            if means[sequence + "-taa"] >= means[sequence + "-none"]:
+                raise ValueError(f"TAA did not improve mean FLIP: {sequence}")
+            if edge_means[sequence + "-taa"] >= edge_means[sequence + "-none"]:
+                raise ValueError(f"TAA did not improve reference-edge FLIP: {sequence}")
+            if sequence != "static" and means[sequence + "-taa"] >= means[sequence + "-frozen-native"]:
+                raise ValueError(f"Frozen native-frame control was not distinguished: {sequence}")
     binary_paths = list(Path(flip.__file__).parent.glob("*.pyd")) + list(Path(flip.__file__).parent.glob("*.so"))
     evidence = dict(Accepted=True, Evaluator="NVIDIA flip-evaluator", Version=version,
                     ManifestSha256=sha256(manifest_path), Metric="LDR-FLIP on native tone-mapped sRGB",

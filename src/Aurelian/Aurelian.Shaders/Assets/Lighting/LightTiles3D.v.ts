@@ -35,15 +35,17 @@ function Row(row: float4, point: float3): f32 {
 }
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
+    const group: u32 = Convert<u32>(Floor(input.uv.x * 8.0));
+    const tileUv: float2 = float2(input.uv.x * 8.0 - Convert<f32>(group), input.uv.y);
     var masks: float4 = float4(0.0, 0.0, 0.0, 0.0);
-    const tileMinimum: float2 = float2(input.uv.x - resources.material.parameters.y * 0.5,
-        input.uv.y - resources.material.parameters.z * 0.5);
-    const tileMaximum: float2 = float2(input.uv.x + resources.material.parameters.y * 0.5,
-        input.uv.y + resources.material.parameters.z * 0.5);
+    const tileMinimum: float2 = float2(tileUv.x - resources.material.parameters.y * 0.5,
+        tileUv.y - resources.material.parameters.z * 0.5);
+    const tileMaximum: float2 = float2(tileUv.x + resources.material.parameters.y * 0.5,
+        tileUv.y + resources.material.parameters.z * 0.5);
     for (var index: u32 = 0; index < 32; index = index + 1) {
-        if (Convert<f32>(index) < resources.material.parameters.x) {
+        if (Convert<f32>(group * 32 + index) < resources.material.parameters.x) {
             const sphere: float4 = Sample(resources.lights, resources.lightsSampler,
-                float2(0.125, (Convert<f32>(index) + 0.5) / 32.0));
+                float2(0.125, (Convert<f32>(group * 32 + index) + 0.5) / 256.0));
             var minimum: float2 = float2(1.0, 1.0);
             var maximum: float2 = float2(0.0, 0.0);
             var crossing: bool = false;

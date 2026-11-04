@@ -8,6 +8,8 @@ public sealed record SurfaceLightingPrograms(
     CompiledGraphicsProgram AmbientDenoise,
     CompiledGraphicsProgram LightTiles)
 {
+    public byte[]? SampledLocalLights { get; init; }
+    public byte[]? LocalRayShadows { get; init; }
     public CompiledGraphicsProgram? HeightFog { get; init; }
     public CompiledGraphicsProgram? SubsurfaceDiffuse { get; init; }
     public CompiledGraphicsProgram? SubsurfaceMerge { get; init; }

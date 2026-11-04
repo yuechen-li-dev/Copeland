@@ -7,6 +7,20 @@ namespace Aurelian.Rendering.Contracts.Tests;
 public sealed class SurfaceLightingContractsTests
 {
     [Fact]
+    public void SamplingBudgetsRejectUnallocatedPixelsAndUnboundedWork()
+    {
+        new LocalLightSampling3D().Validate(100);
+        new LocalLightSampling3D { Mode = LocalLightSamplingMode3D.Hybrid, FrameRayBudget = 350 }.Validate(100);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LocalLightSampling3D
+        { Mode = LocalLightSamplingMode3D.Uniform, FrameRayBudget = 99 }.Validate(100));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LocalLightSampling3D
+        { Mode = LocalLightSamplingMode3D.Reservoir, FrameRayBudget = 401 }.Validate(100));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LocalLightSampling3D { Candidates = 33 }.Validate(100));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LocalLightSampling3D { HistoryLimit = 0 }.Validate(100));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LocalLightSampling3D { Mode = (LocalLightSamplingMode3D)99 }.Validate(100));
+    }
+
+    [Fact]
     public void TransmissionAndVolumeContractsRejectAmbiguousTransport()
     {
         var glass = new ModelMaterial("glass") { Metallic = 0, Transmission = 1, Thickness = .2f };
@@ -59,10 +73,10 @@ public sealed class SurfaceLightingContractsTests
         var point = new LocalLight3D(Vector3.Zero, Vector3.One, 10, 4);
         point.Validate();
         Assert.Throws<ArgumentOutOfRangeException>(() => (point with { Range = float.NaN }).Validate());
-        Assert.Throws<NotSupportedException>(() => (point with { CastShadows = true }).Validate());
+        (point with { CastShadows = true }).Validate();
         (point with { Kind = LocalLightKind.Spot, CastShadows = true }).Validate();
         Assert.Throws<ArgumentOutOfRangeException>(() => new ReflectionProbe3D(Vector3.Zero, Vector3.Zero).Validate());
-        Assert.Throws<ArgumentOutOfRangeException>(() => (Graphics3DSettings.Default with { LocalShadowBudget = 3 }).Validate());
+        Assert.Throws<ArgumentOutOfRangeException>(() => (Graphics3DSettings.Default with { LocalShadowBudget = 257 }).Validate());
         Assert.Throws<ArgumentOutOfRangeException>(() => (Graphics3DSettings.Default with { SurfaceDebugView = (SurfaceDebugView3D)99 }).Validate());
     }
 }

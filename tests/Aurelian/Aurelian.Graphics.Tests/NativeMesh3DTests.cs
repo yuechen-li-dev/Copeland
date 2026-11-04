@@ -8,6 +8,22 @@ namespace Aurelian.Graphics.Tests;
 public sealed class NativeMesh3DTests
 {
     [Fact]
+    public void RetainedIdentityPackingIsSharedAcrossRasterAndRayAdmission()
+    {
+        var first = new NativeMesh3D("first", Triangle(), [0, 1, 2]);
+        var second = new NativeMesh3D("second", Triangle(), [0, 1, 2]);
+        var material = new ModelMaterial("material");
+        SceneInstance3D[] source = [new("a", first, material, Matrix4x4.Identity),
+            new("b", second, material, Matrix4x4.Identity),
+            new("c", first, material, Matrix4x4.Identity) { RayLayer = 4, RayMask = 8 }];
+        var retained = new NativeInstanceSet3D(source);
+        Assert.Equal(new[] { "a", "b", "c" }, retained.Select(instance => instance.Identity));
+        Assert.Equal(new[] { "a", "c", "b" }, retained.PackedInstances.Select(instance => instance.Identity));
+        Assert.Equal(4u, retained.PackedInstances[1].RayLayer);
+        Assert.Equal(8u, retained.PackedInstances[1].RayMask);
+    }
+
+    [Fact]
     public void PreparedLevelsShareVerticesAndKeepLodZeroForCompatibility()
     {
         var mesh = new NativeMesh3D("prepared", Triangle(), [0, 1, 2, 2, 1, 0], [new([0, 1, 2], .01f)]);

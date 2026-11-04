@@ -111,6 +111,60 @@ internal static class RayQueryHlslEmitter
 
     internal static string Helper => ExpandCandidate(SphereCandidate);
 
+    // Occlusion uses the retained instance table rather than the closest-hit
+    // triangle table: kind/layer/mask/proceduralIndex, four uint-bit words.
+    // A validated opaque hit can terminate traversal; primitive ordering is irrelevant.
+    internal static string Occlusion(string? resultType = null, string? intersector = null)
+    {
+        string procedural = intersector is null
+            ? "continue;"
+            : $"""
+                {resultType} candidate = {intersector}(spheres, asuint(instances[metadata + 3u]), ray.Origin, ray.Direction, ray.TMin);
+                t = candidate.distance;
+                if ((layers & candidate.layer) == 0u || (queryLayer & candidate.mask) == 0u) continue;
+                """;
+        string suffix = intersector is null ? "" : "_" + intersector;
+        return $$"""
+            void AurelianTraceOccluded{{suffix}}(
+                RaytracingAccelerationStructure scene,
+                StructuredBuffer<float> spheres,
+                StructuredBuffer<float> rays,
+                RWStructuredBuffer<float> hits,
+                StructuredBuffer<float> instances,
+                uint index)
+            {
+                if (index >= asuint(rays[0])) return;
+                uint base = 4u + index * 12u;
+                RayDesc ray;
+                ray.Origin = float3(rays[base], rays[base + 1u], rays[base + 2u]);
+                ray.TMin = rays[base + 3u];
+                ray.Direction = float3(rays[base + 4u], rays[base + 5u], rays[base + 6u]);
+                ray.TMax = rays[base + 7u];
+                uint layers = asuint(rays[base + 8u]);
+                uint queryLayer = asuint(rays[base + 9u]);
+                RayQuery<RAY_FLAG_FORCE_NON_OPAQUE> query;
+                query.TraceRayInline(scene, RAY_FLAG_FORCE_NON_OPAQUE, 255u, ray);
+                float blocked = 0.0f;
+                while (query.Proceed()) {
+                    uint metadata = query.CandidateInstanceID() * 4u;
+                    if ((layers & asuint(instances[metadata + 1u])) == 0u ||
+                        (queryLayer & asuint(instances[metadata + 2u])) == 0u) continue;
+                    float t;
+                    if (query.CandidateType() == CANDIDATE_NON_OPAQUE_TRIANGLE) {
+                        t = query.CandidateTriangleRayT();
+                    } else {
+                        {{procedural}}
+                    }
+                    if (t < ray.TMin || t > ray.TMax || !isfinite(t)) continue;
+                    blocked = 1.0f;
+                    query.Abort();
+                    break;
+                }
+                hits[index] = blocked;
+            }
+            """;
+    }
+
     internal static string Procedural(string resultType, string intersector)
     {
         string candidate = $"""

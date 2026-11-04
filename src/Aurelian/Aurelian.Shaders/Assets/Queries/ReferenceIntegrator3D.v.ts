@@ -1,3 +1,4 @@
+import { LocalAttenuation } from "./SurfaceLighting";
 import { DirectLightResponseModel, Dot3, Cross3, Unit } from "./Lighting3D";
 import { AffineAnalyticIntersection } from "./AffineAnalyticQuery3D";
 import { ReferenceEnvironment, ReferenceEnvironmentPdf, SampleReferenceEnvironment } from "./ReferenceEnvironment3D";
@@ -158,6 +159,39 @@ function ReferenceMain(@builtin(dispatchThreadId) thread: uint3,
                                 const response: float3 = DirectLightResponseModel(base, normal, direction * -1.0,
                                     sunDirection, metallic, roughness, dielectric, model);
                                 radiance = radiance + throughput * response * sun;
+                            }
+                        }
+                        // Delta point/spot sources are evaluated exactly at every scattering vertex.
+                        // The capture keeps its independent world-space closest-hit acceleration path.
+                        if (Parameters[49] > 0.0) {
+                            for (let local of BoundedIndices<256>(256)) {
+                                if (local < U32(Parameters[49])) {
+                                    const offset: u32 = U32(Parameters[50]) + local * 16;
+                                    const position: float3 = Read3(Parameters, offset);
+                                    const delta: float3 = position - point;
+                                    const squared: f32 = Dot3(delta, delta);
+                                    const distance: f32 = Sqrt(squared);
+                                    if (distance > 0.0004 && distance < Parameters[offset + 3]) {
+                                        const incoming: float3 = delta / distance;
+                                        const cone: float4 = float4(Parameters[offset + 8], Parameters[offset + 9], Parameters[offset + 10], Parameters[offset + 11]);
+                                        const config: float4 = float4(Parameters[offset + 12], Parameters[offset + 13], Parameters[offset + 14], 0.0);
+                                        const attenuation: f32 = LocalAttenuation(incoming, squared, Parameters[offset + 3], cone, config);
+                                        if (attenuation > 0.0 && Dot3(normal, incoming) > 0.0) {
+                                            var visible: bool = true;
+                                            if (config.z > 0.5) {
+                                                SetRay(Rays, ray, point, incoming, distance - 0.0002);
+                                                Rays[ray + 3] = 0.0002;
+                                                RayQueryTraceClosest(Scene, Procedurals, Rays, Hits, Triangles, pixel, AffineAnalyticIntersection);
+                                                visible = Hits[hit + 2] == 0.0;
+                                            }
+                                            if (visible) {
+                                                const response: float3 = DirectLightResponseModel(base, normal, direction * -1.0,
+                                                    incoming, metallic, roughness, dielectric, model);
+                                                radiance = radiance + throughput * response * Read3(Parameters, offset + 4) * (Parameters[offset + 7] * attenuation);
+                                            }
+                                        }
+                                    }
+                            }
                             }
                         }
                         const randomBase: u32 = key + 2 + bounce * 7;

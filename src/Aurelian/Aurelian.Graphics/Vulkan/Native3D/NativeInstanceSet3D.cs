@@ -13,6 +13,9 @@ public sealed class NativeInstanceSet3D : IReadOnlyList<SceneInstance3D>
     internal bool HasSubsurface { get; }
     internal bool HasAnalytic { get; }
     internal ImmutableArray<ImmutableArray<SceneInstance3D>> Groups { get; }
+    /// <summary>Shared packed order for raster instance IDs and TLAS custom indices.
+    /// Enumeration of this set retains the original authoring order.</summary>
+    public ImmutableArray<SceneInstance3D> PackedInstances { get; }
     public int Count => instances.Length;
     public SceneInstance3D this[int index] => instances[index];
 
@@ -41,6 +44,7 @@ public sealed class NativeInstanceSet3D : IReadOnlyList<SceneInstance3D>
         HasAnalytic = instances.Any(instance => instance.Mesh.PrimitiveKind != AnalyticPrimitiveKind3D.Triangles);
         Groups = instances.GroupBy(instance => (instance.Mesh, instance.Material))
             .Select(group => group.ToImmutableArray()).ToImmutableArray();
+        PackedInstances = Groups.SelectMany(group => group).ToImmutableArray();
         if (Groups.Length > 1024)
         {
             throw new InvalidDataException("AUR-VIS-001: Resident sets support at most 1024 mesh/material groups.");
