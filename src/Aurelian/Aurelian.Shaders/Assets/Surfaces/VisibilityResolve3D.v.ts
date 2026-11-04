@@ -63,28 +63,28 @@ function VertexMain(input: VertexInput): Varyings {
 }
 @pixel
 function PixelMain(input: Varyings, uniforms: MaterialResources, tables: TableResources): ModelOutput {
-    const hit: uint2 = Load(tables.visibility, uint2(Convert<u32>(input.position.x), Convert<u32>(input.position.y)));
+    let hit: uint2 = Load(tables.visibility, uint2(Convert<u32>(input.position.x), Convert<u32>(input.position.y)));
     if (hit.x == 0) { Discard(); }
-    const instanceId: u32 = hit.x - 1;
-    const instance: ResidentInstance = tables.instances[instanceId];
-    const resolved: VisibilityHit = ResolveTriangleHit(hit, float2(input.position.x, input.position.y),
+    let instanceId: u32 = hit.x - 1;
+    let instance: ResidentInstance = tables.instances[instanceId];
+    let resolved: VisibilityHit = ResolveTriangleHit(hit, float2(input.position.x, input.position.y),
         float2(uniforms.material.baseColor.x, uniforms.material.baseColor.y), instance,
         uniforms.material.clipX, uniforms.material.clipY, uniforms.material.clipZ, uniforms.material.clipW,
         tables.vertices, tables.indices);
     if (resolved.valid == 0) { Discard(); }
-    const material: BindlessMaterialRecord = tables.materials[tables.instanceMaterials[instanceId]];
-    const tangent: float4 = resolved.attributes.tangent;
-    const surface: SurfaceData = EvaluateSurfaceMaterialGrad(resolved.attributes.normal,
+    let material: BindlessMaterialRecord = tables.materials[tables.instanceMaterials[instanceId]];
+    let tangent: float4 = resolved.attributes.tangent;
+    let surface: SurfaceData = EvaluateSurfaceMaterialGrad(resolved.attributes.normal,
         resolved.attributes.color, resolved.attributes.uv, resolved.uvDx, resolved.uvDy, tangent, hit.y % 2 == 0, material.surface,
         tables.textures[NonUniform(material.baseTexture)], tables.samplers[NonUniform(material.baseSampler)],
         tables.textures[NonUniform(material.metalTexture)], tables.samplers[NonUniform(material.metalSampler)],
         tables.textures[NonUniform(material.normalTexture)], tables.samplers[NonUniform(material.normalSampler)],
         tables.textures[NonUniform(material.occlusionTexture)], tables.samplers[NonUniform(material.occlusionSampler)],
         tables.textures[NonUniform(material.emissiveTexture)], tables.samplers[NonUniform(material.emissiveSampler)]);
-    const world: float3 = resolved.attributes.world;
-    const previous: float3 = resolved.attributes.previous;
-    const currentClip: float4 = ProjectPoint(world, uniforms.material.clipX, uniforms.material.clipY, uniforms.material.clipZ, uniforms.material.clipW);
-    const previousClip: float4 = ProjectPoint(previous, uniforms.material.previousX, uniforms.material.previousY, uniforms.material.previousZ, uniforms.material.previousW);
+    let world: float3 = resolved.attributes.world;
+    let previous: float3 = resolved.attributes.previous;
+    let currentClip: float4 = ProjectPoint(world, uniforms.material.clipX, uniforms.material.clipY, uniforms.material.clipZ, uniforms.material.clipW);
+    let previousClip: float4 = ProjectPoint(previous, uniforms.material.previousX, uniforms.material.previousY, uniforms.material.previousZ, uniforms.material.previousW);
     return { depth: currentClip.z / currentClip.w, color: surface.color, motion: TemporalProjection(currentClip, previousClip),
         normal: surface.normal, emission: surface.emission, subsurface: surface.subsurface };
 }

@@ -39,14 +39,14 @@ function VertexMain(input: Input): Varyings {
 
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
-    const m: PassMaterial = resources.material;
-    const scene: float4 = Sample(resources.scene, resources.sceneSampler, input.uv);
-    const motion: float4 = Sample(resources.motion, resources.motionSampler, input.uv);
-    const delta: float3 = Sub3(WorldAt(input.uv, Min(motion.w, 0.9999), m.inverseX, m.inverseY, m.inverseZ, m.inverseW),
+    let m: PassMaterial = resources.material;
+    let scene: float4 = Sample(resources.scene, resources.sceneSampler, input.uv);
+    let motion: float4 = Sample(resources.motion, resources.motionSampler, input.uv);
+    let delta: float3 = Sub3(WorldAt(input.uv, Min(motion.w, 0.9999), m.inverseX, m.inverseY, m.inverseZ, m.inverseW),
         float3(m.eye.x, m.eye.y, m.eye.z));
     var distance: f32 = Sqrt(Dot3(delta, delta));
     if (motion.w >= 1.0) { distance = m.depth.y; }
-    const volume: float4 = VolumeAt(resources.volume, resources.volumeSampler, input.uv, distance, m.grid, m.depth);
-    const color: float3 = ComposeVolume(float3(scene.x, scene.y, scene.z), volume);
+    let volume: float4 = VolumeAt(resources.volume, resources.volumeSampler, input.uv, distance, m.grid, m.depth);
+    let color: float3 = ComposeVolume(float3(scene.x, scene.y, scene.z), volume);
     return { color: float4(color.x, color.y, color.z, scene.w) };
 }

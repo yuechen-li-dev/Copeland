@@ -1,9 +1,14 @@
 # Visual TypeScript language foundation
 
-The October 2026 pass adds project-owned modules, scalar compile-time evaluation,
-and local payload enums to the real Visual TypeScript graphics and compute paths.
-The production Solid3D and StaticModel3D shaders now import Lighting3D explicitly.
-Solid3D uses a payload match to choose basic or PBR lighting.
+Visual TypeScript shares Copeland's parser and uses its richer value, enum,
+static-evaluation and generic syntax through a bounded GPU profile. Both GPU
+binders certify that profile before backend emission; sharing the parser does
+not automatically admit every host-language construct.
+
+The current binding vocabulary is `const` for compile-time values, `let` for
+runtime immutable values, and `var` for mutable locals. The shader refactor and
+native equivalence qualification are described in
+[shader authoring refactor](shader-authoring-refactor.md).
 
 ## Ownership and reuse
 
@@ -55,19 +60,38 @@ the shared, nonblocking `COPE-STYLE-0001` authoring warning recommending
 carry warnings separately from legality diagnostics; see
 [conditional authoring](../Copeland/language/overview.md#conditional-authoring).
 
-Visual TypeScript uses WGSL-style local mutability:
+Visual TypeScript uses these bindings in both graphics and compute:
+
+| Binding | Meaning | Reassignment |
+| --- | --- | --- |
+| `const` | A value evaluated by the compiler's bounded static evaluator | Rejected |
+| `let` | An immutable runtime value | Rejected |
+| `var` | A mutable runtime local | Allowed |
 
 ```typescript
-let gain: f32 = 0.25;       // Immutable runtime binding.
-var total: f32 = 0.0;      // Explicit mutable binding.
+const pi: f32 = 3.14159265;
+const taps: u32 = 8 * 2;
+let gain: f32 = input.value;
+var total: f32 = 0.0;
 total = total + gain;
-const pi: f32 = static (3.14159265);
 ```
 
-`let` and `const` locals cannot be reassigned. Only `var` opts into mutation.
-This policy also holds inside helpers evaluated at compile time. Ordinary
-Copeland TypeScript semantics remain unchanged. Global scalar constants in this
-pass must use `const` and must evaluate without runtime inputs.
+This follows the conceptual distinction between Rust `const`, `let` and
+`let mut`. A `const` initializer must be certified for compile-time evaluation;
+shader inputs, uniforms, resource reads and runtime `let`/`var` bindings are not
+eligible. `COPE-GPU-CONST-0001` explains failures and recommends `let` for runtime
+immutable values. Dependent constants and closed pure helpers use the existing
+static evaluator. Closed vector constructors and component reads are admitted,
+alongside finite scalar values and the existing finite records/value shapes.
+Other GPU intrinsics and unimplemented static operations still require runtime
+bindings. An explicit `static` expression remains valid and useful.
+
+Resource contents still follow their separate `readonly`/`readwrite` contract;
+an immutable pixel index does not prevent writing a readwrite output buffer.
+Only `var` opts into local mutation. This policy also holds inside helpers
+evaluated at compile time. GPU flow lowering emits runtime immutable temporaries
+as `let`. Ordinary Copeland TypeScript binding semantics remain unchanged.
+Module constants must use `const` and evaluate without runtime inputs.
 
 ```typescript
 function Square(value: f32): f32 {
@@ -88,13 +112,14 @@ function Gain(): f32 {
 
 Static scalar expressions and closed pure helper calls evaluate through the
 ordinary bounded evaluator. Results embed finite `f32`, `u32`, or `bool`
-literals. Arithmetic retains binary32 rounding and unsigned wraparound.
+literals, closed vector constructors, or the existing certified aggregate values. Arithmetic retains binary32 rounding and unsigned wraparound.
 Static-only helpers leave the runtime function closure. `static if` selects its
 branch before GPU binding, so an unselected host-only branch is erased.
 
-Runtime parameters, resources, GPU intrinsics, and root references to local
-bindings cannot be captured into a static expression. Scalar globals and local
-variables inside a closed helper are supported. The adapter admits the existing
+Runtime parameters, resources, GPU intrinsics and runtime local bindings cannot
+be captured into a static expression. Compile-time globals and local `const`
+values can be referenced. Runtime-style local variables inside a closed pure
+helper are evaluated as part of that helper's compile-time call. The adapter admits the existing
 bounded graphics `for` shape inside static helpers; static loop generation,
 vector/array static values, templates, reflection, and enum-valued static
 operations are deferred. Budget, effect, recursion, and nonfinite-result
@@ -130,6 +155,12 @@ and floating vector values; compute payloads are restricted by its existing
 type surface. Nested sums and enums in storage, material, resource, or stage
 interfaces are deferred. Read storage values before matching: storage buffers
 and acceleration structures cannot be captured into the generated helper ABI.
+
+Both graphics and compute support exhaustive enum match expressions. Compute
+also supports statement `match` with block arms, as used by the dynamic GI phase
+dispatch. Statement match has not been added to the graphics binder. Numeric
+buffer/parameter ABI tags should be decoded to typed enums at their boundary;
+missing or duplicate enum cases are compiler errors.
 
 `while` remains rejected. This pass adds no `break` or `continue` support;
 existing graphics compatibility support for `break` is unchanged.

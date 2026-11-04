@@ -37,7 +37,7 @@ public sealed class ComputeScalarMathTests
             function Main(@builtin(dispatchThreadId) thread: uint3,
                 @binding(0) readonly Input: StorageBuffer<f32>,
                 @binding(1) readwrite Output: StorageBuffer<f32>): void {
-                const point: f32 = {{expression}};
+                let point: f32 = {{expression}};
                 Output[thread.x] = point;
             }
             """;

@@ -28,22 +28,22 @@ function VertexMain(input: Input): Varyings {
 
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
-    const grid: float4 = resources.material.grid;
-    const depth: float4 = resources.material.depth;
-    const slice: f32 = Floor(input.uv.y * grid.z);
-    const uv: float2 = float2(input.uv.x, input.uv.y * grid.z - slice);
+    let grid: float4 = resources.material.grid;
+    let depth: float4 = resources.material.depth;
+    let slice: f32 = Floor(input.uv.y * grid.z);
+    let uv: float2 = float2(input.uv.x, input.uv.y * grid.z - slice);
     var r: f32 = 0.0;
     var g: f32 = 0.0;
     var b: f32 = 0.0;
     var transmission: f32 = 1.0;
     var start: f32 = 0.0;
     for (var index: u32 = 0; index < 64; index = index + 1) {
-        const i: f32 = Convert<f32>(index);
+        let i: f32 = Convert<f32>(index);
         if (i <= slice && i < grid.z) {
-            const end: f32 = SliceEnd(i, depth);
-            const source: float4 = Sample(resources.source, resources.sourceSampler, float2(uv.x, (i + uv.y) / grid.z));
-            const segment: f32 = Exp(-Min(source.w * (end - start), 80.0));
-            const weight: f32 = transmission * (1.0 - segment);
+            let end: f32 = SliceEnd(i, depth);
+            let source: float4 = Sample(resources.source, resources.sourceSampler, float2(uv.x, (i + uv.y) / grid.z));
+            let segment: f32 = Exp(-Min(source.w * (end - start), 80.0));
+            let weight: f32 = transmission * (1.0 - segment);
             r = r + source.x * weight;
             g = g + source.y * weight;
             b = b + source.z * weight;

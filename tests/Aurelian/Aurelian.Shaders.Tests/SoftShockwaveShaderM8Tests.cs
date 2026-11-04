@@ -33,7 +33,7 @@ public sealed class SoftShockwaveShaderM8Tests
             @compute
             @numthreads(1, 1, 1)
             function Main(): void {
-                const illegal = new Array<f32>();
+                let illegal = new Array<f32>();
             }
             """;
         VdMirComputeModule module = GpuComputeBinder.Compile(

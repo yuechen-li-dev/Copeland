@@ -26,7 +26,7 @@ function VertexMain(input: Input): Varyings {
 
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
-    const head: float4 = Sample(resources.head, resources.headSampler, input.uv);
-    const tail: float4 = Sample(resources.tail, resources.tailSampler, input.uv);
+    let head: float4 = Sample(resources.head, resources.headSampler, input.uv);
+    let tail: float4 = Sample(resources.tail, resources.tailSampler, input.uv);
     return { color: float4(Min(head.x + tail.x, 65504.0), Min(head.y + tail.y, 65504.0), Min(head.z + tail.z, 65504.0), head.w) };
 }

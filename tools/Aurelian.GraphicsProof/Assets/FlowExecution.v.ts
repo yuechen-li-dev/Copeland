@@ -52,12 +52,12 @@ export function Nested(count: u32): u32 {
     };
 }
 export function Replay(): u32 {
-    const initial = Root.start(2);
-    const checkpoint = Root.step(initial);
-    const forward = Root.step(checkpoint);
-    const replay = Root.step(checkpoint);
+    let initial = Root.start(2);
+    let checkpoint = Root.step(initial);
+    let forward = Root.step(checkpoint);
+    let replay = Root.step(checkpoint);
     // Inspect flat state positions; replaying a checkpoint must select the same state.
-    const result: u32 = Root.position(forward) * 10 + Root.position(replay) + Root.position(initial);
+    let result: u32 = Root.position(forward) * 10 + Root.position(replay) + Root.position(initial);
     return result;
 }
 
@@ -129,8 +129,8 @@ function ResolveRoot(frame: RootFrame): u32 {
 }
 export function ReplayCompletion(count: u32): u32 {
     // Retain a snapshot while the grandchild owns control.
-    const entered = Root.step(Root.step(Root.start(count)));
-    const checkpoint = Root.step(entered);
+    let entered = Root.step(Root.step(Root.start(count)));
+    let checkpoint = Root.step(entered);
     var forward = checkpoint;
     var replay = checkpoint;
     static for (let tick of [0, 1, 2, 3, 4, 5, 6, 7]) {

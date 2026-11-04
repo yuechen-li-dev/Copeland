@@ -57,30 +57,30 @@ function MaxColor(a: float3, b: float3): float3 {
 }
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
-    const motion: float4 = Sample(resources.motion, resources.motionSampler, input.uv);
-    const normal: float4 = Sample(resources.normal, resources.normalSampler, input.uv);
-    const surface: float4 = Sample(resources.surface, resources.surfaceSampler, input.uv);
-    const current: float4 = Sample(resources.tail, resources.tailSampler, input.uv);
+    let motion: float4 = Sample(resources.motion, resources.motionSampler, input.uv);
+    let normal: float4 = Sample(resources.normal, resources.normalSampler, input.uv);
+    let surface: float4 = Sample(resources.surface, resources.surfaceSampler, input.uv);
+    let current: float4 = Sample(resources.tail, resources.tailSampler, input.uv);
     var color: float3 = float3(current.x, current.y, current.z);
     var count: f32 = 1.0;
     if (motion.w >= 1.0) {
         return { color: float4(0.0, 0.0, 0.0, 0.0), geometry: float4(0.0, 0.0, 0.0, 1.0), surface: surface };
     }
-    const previousUv: float2 = float2(motion.x, motion.y);
+    let previousUv: float2 = float2(motion.x, motion.y);
     if (resources.material.settings.z > 0.5 && previousUv.x >= 0.0 && previousUv.y >= 0.0
         && previousUv.x < 1.0 && previousUv.y < 1.0 && motion.z >= 0.0 && motion.z < 1.0) {
-        const geometry: float4 = Sample(resources.geometry, resources.geometrySampler, previousUv);
-        const old: float4 = Sample(resources.history, resources.historySampler, previousUv);
-        const oldSurface: float4 = Sample(resources.previousSurface, resources.previousSurfaceSampler, previousUv);
-        const expected: float3 = WorldAt(previousUv, motion.z, resources.material.previousX,
+        let geometry: float4 = Sample(resources.geometry, resources.geometrySampler, previousUv);
+        let old: float4 = Sample(resources.history, resources.historySampler, previousUv);
+        let oldSurface: float4 = Sample(resources.previousSurface, resources.previousSurfaceSampler, previousUv);
+        let expected: float3 = WorldAt(previousUv, motion.z, resources.material.previousX,
             resources.material.previousY, resources.material.previousZ, resources.material.previousW);
-        const oldPoint: float3 = WorldAt(previousUv, geometry.w, resources.material.previousX,
+        let oldPoint: float3 = WorldAt(previousUv, geometry.w, resources.material.previousX,
             resources.material.previousY, resources.material.previousZ, resources.material.previousW);
-        const oldNormal: float3 = float3(geometry.x, geometry.y, geometry.z);
-        const difference: float3 = Sub3(expected, oldPoint);
-        const materialDifference: float3 = float3(surface.x - oldSurface.x, surface.y - oldSurface.y, surface.z - oldSurface.z);
-        const oldCount: f32 = Floor(old.w);
-        const oldVisibility: f32 = (old.w - oldCount) * 2.0;
+        let oldNormal: float3 = float3(geometry.x, geometry.y, geometry.z);
+        let difference: float3 = Sub3(expected, oldPoint);
+        let materialDifference: float3 = float3(surface.x - oldSurface.x, surface.y - oldSurface.y, surface.z - oldSurface.z);
+        let oldCount: f32 = Floor(old.w);
+        let oldVisibility: f32 = (old.w - oldCount) * 2.0;
         if (oldCount > 0.0 && geometry.w < 1.0
             && Dot3(float3(normal.x, normal.y, normal.z), oldNormal) >= 0.95
             && Abs(Dot3(difference, oldNormal)) < resources.material.control.x
@@ -90,13 +90,13 @@ function PixelMain(input: Varyings, resources: Resources): Output {
             var high: float3 = color;
             static for (let y of [-1.0, 0.0, 1.0]) {
                 static for (let x of [-1.0, 0.0, 1.0]) {
-                    const uv: float2 = float2(input.uv.x + x * resources.material.settings.x, input.uv.y + y * resources.material.settings.y);
-                    const tap: float4 = Sample(resources.tail, resources.tailSampler, uv);
+                    let uv: float2 = float2(input.uv.x + x * resources.material.settings.x, input.uv.y + y * resources.material.settings.y);
+                    let tap: float4 = Sample(resources.tail, resources.tailSampler, uv);
                     low = MinColor(low, float3(tap.x, tap.y, tap.z));
                     high = MaxColor(high, float3(tap.x, tap.y, tap.z));
                 }
             }
-            const history: float3 = MinColor(high, MaxColor(low, float3(old.x, old.y, old.z)));
+            let history: float3 = MinColor(high, MaxColor(low, float3(old.x, old.y, old.z)));
             count = Min(oldCount + 1.0, resources.material.settings.w);
             color = Scale3(Add3(color, Scale3(history, count - 1.0)), 1.0 / count);
         }

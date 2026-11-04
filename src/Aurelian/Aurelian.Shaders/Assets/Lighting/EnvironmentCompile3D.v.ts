@@ -40,8 +40,8 @@ function Radical(index: u32): f32 {
     return result;
 }
 function Source(resources: Resources, direction: float3): float3 {
-    const uv: float2 = EnvironmentUv(direction);
-    const sample: float4 = Sample(resources.source, resources.sourceSampler, uv);
+    let uv: float2 = EnvironmentUv(direction);
+    let sample: float4 = Sample(resources.source, resources.sourceSampler, uv);
     return float3(sample.x, sample.y, sample.z);
 }
 enum BakeJob {
@@ -63,9 +63,9 @@ function JobFor(band: f32, uv: float2): BakeJob {
     return BakeJob.Specular(band / 5.0);
 }
 function HalfVector(x: f32, y: f32, roughness: f32): float3 {
-    const a: f32 = roughness * roughness;
-    const cosine: f32 = Sqrt((1.0 - y) / (1.0 + (a * a - 1.0) * y));
-    const sine: f32 = Sqrt(Max(1.0 - cosine * cosine, 0.0));
+    let a: f32 = roughness * roughness;
+    let cosine: f32 = Sqrt((1.0 - y) / (1.0 + (a * a - 1.0) * y));
+    let sine: f32 = Sqrt(Max(1.0 - cosine * cosine, 0.0));
     return float3(Cos(x * 6.2831853) * sine, Sin(x * 6.2831853) * sine, cosine);
 }
 function Tangent(normal: float3): float3 {
@@ -76,45 +76,45 @@ function Tangent(normal: float3): float3 {
     return Unit(Cross3(up, normal));
 }
 function ConvolveDiffuse(resources: Resources, normal: float3): float3 {
-    const tangent: float3 = Tangent(normal);
-    const bitangent: float3 = Cross3(normal, tangent);
+    let tangent: float3 = Tangent(normal);
+    let bitangent: float3 = Cross3(normal, tangent);
     var accumulated: float3 = float3(0.0, 0.0, 0.0);
     for (var sample: u32 = 0; sample < 1024; sample = sample + 1) {
-        const phi: f32 = (Convert<f32>(sample) + 0.5) / 1024.0 * 6.2831853;
-        const y: f32 = Radical(sample);
-        const direction: float3 = Add3(Add3(Scale3(tangent, Cos(phi) * Sqrt(y)),
+        let phi: f32 = (Convert<f32>(sample) + 0.5) / 1024.0 * 6.2831853;
+        let y: f32 = Radical(sample);
+        let direction: float3 = Add3(Add3(Scale3(tangent, Cos(phi) * Sqrt(y)),
             Scale3(bitangent, Sin(phi) * Sqrt(y))), Scale3(normal, Sqrt(1.0 - y)));
         accumulated = Add3(accumulated, Source(resources, direction));
     }
     return Scale3(accumulated, 1.0 / 1024.0);
 }
 function ConvolveSpecular(resources: Resources, normal: float3, roughness: f32): float3 {
-    const tangent: float3 = Tangent(normal);
-    const bitangent: float3 = Cross3(normal, tangent);
+    let tangent: float3 = Tangent(normal);
+    let bitangent: float3 = Cross3(normal, tangent);
     var accumulated: float3 = float3(0.0, 0.0, 0.0);
     var weight: f32 = 0.0;
     for (var sample: u32 = 0; sample < 1024; sample = sample + 1) {
-        const local: float3 = HalfVector((Convert<f32>(sample) + 0.5) / 1024.0, Radical(sample), roughness);
-        const half: float3 = Add3(Add3(Scale3(tangent, local.x), Scale3(bitangent, local.y)), Scale3(normal, local.z));
-        const direction: float3 = Sub3(Scale3(half, 2.0 * Dot3(normal, half)), normal);
-        const nl: f32 = Max(Dot3(normal, direction), 0.0);
+        let local: float3 = HalfVector((Convert<f32>(sample) + 0.5) / 1024.0, Radical(sample), roughness);
+        let half: float3 = Add3(Add3(Scale3(tangent, local.x), Scale3(bitangent, local.y)), Scale3(normal, local.z));
+        let direction: float3 = Sub3(Scale3(half, 2.0 * Dot3(normal, half)), normal);
+        let nl: f32 = Max(Dot3(normal, direction), 0.0);
         accumulated = Add3(accumulated, Scale3(Source(resources, direction), nl));
         weight = weight + nl;
     }
     return Scale3(accumulated, 1.0 / Max(weight, 0.0001));
 }
 function IntegrateBrdf(nv: f32, roughness: f32): float3 {
-    const view: float3 = float3(Sqrt(1.0 - nv * nv), 0.0, nv);
+    let view: float3 = float3(Sqrt(1.0 - nv * nv), 0.0, nv);
     var accumulated: float3 = float3(0.0, 0.0, 0.0);
     for (var sample: u32 = 0; sample < 1024; sample = sample + 1) {
-        const half: float3 = HalfVector((Convert<f32>(sample) + 0.5) / 1024.0, Radical(sample), roughness);
-        const vh: f32 = Max(Dot3(view, half), 0.0);
-        const light: float3 = Sub3(Scale3(half, 2.0 * vh), view);
-        const nl: f32 = Max(light.z, 0.0);
+        let half: float3 = HalfVector((Convert<f32>(sample) + 0.5) / 1024.0, Radical(sample), roughness);
+        let vh: f32 = Max(Dot3(view, half), 0.0);
+        let light: float3 = Sub3(Scale3(half, 2.0 * vh), view);
+        let nl: f32 = Max(light.z, 0.0);
         if (nl > 0.0) {
-            const k: f32 = roughness * roughness / 2.0;
-            const visibility: f32 = Geometry(nv, k) * Geometry(nl, k) * vh / Max(half.z * nv, 0.00001);
-            const fresnel: f32 = Pow(1.0 - vh, 5.0);
+            let k: f32 = roughness * roughness / 2.0;
+            let visibility: f32 = Geometry(nv, k) * Geometry(nl, k) * vh / Max(half.z * nv, 0.00001);
+            let fresnel: f32 = Pow(1.0 - vh, 5.0);
             accumulated = Add3(accumulated, float3((1.0 - fresnel) * visibility, fresnel * visibility, 0.0));
         }
     }
@@ -122,13 +122,13 @@ function IntegrateBrdf(nv: f32, roughness: f32): float3 {
 }
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
-    const band: f32 = Floor(input.uv.y * 8.0);
+    let band: f32 = Floor(input.uv.y * 8.0);
     // The atlas decoder addresses the endpoints at texel centres. Compile the
     // same endpoint grid so encode/decode does not subtly shrink the directions.
-    const uv: float2 = float2(Clamp((input.uv.x * 64.0 - 0.5) / 63.0, 0.0, 1.0),
+    let uv: float2 = float2(Clamp((input.uv.x * 64.0 - 0.5) / 63.0, 0.0, 1.0),
         Clamp(((input.uv.y * 8.0 - band) * 64.0 - 0.5) / 63.0, 0.0, 1.0));
-    const normal: float3 = DecodeOcta(uv);
-    const result: float3 = match JobFor(band, uv) {
+    let normal: float3 = DecodeOcta(uv);
+    let result: float3 = match JobFor(band, uv) {
         BakeJob.Mirror => Source(resources, normal),
         BakeJob.Specular(payload) => ConvolveSpecular(resources, normal, payload.roughness),
         BakeJob.Diffuse => ConvolveDiffuse(resources, normal),

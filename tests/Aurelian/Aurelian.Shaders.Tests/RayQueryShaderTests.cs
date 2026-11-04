@@ -144,7 +144,7 @@ public sealed class RayQueryShaderTests
     [Theory]
     [InlineData("readonly Scene", "readwrite Scene")]
     [InlineData("readwrite Hits", "readonly Hits")]
-    [InlineData("RayQueryTraceClosest(Scene, Spheres, Rays, Hits, Triangles, thread.x);", "const copy: f32 = RayQueryTraceClosest(Scene, Spheres, Rays, Hits, Triangles, thread.x);")]
+    [InlineData("RayQueryTraceClosest(Scene, Spheres, Rays, Hits, Triangles, thread.x);", "let copy: f32 = RayQueryTraceClosest(Scene, Spheres, Rays, Hits, Triangles, thread.x);")]
     public void InvalidResourceAccessAndOpaqueValueEscapeAreRejected(string before, string after)
     {
         var module = GpuComputeBinder.Compile(new([new("invalid.v.ts", Source.Replace(before, after, StringComparison.Ordinal))]));
@@ -155,7 +155,7 @@ public sealed class RayQueryShaderTests
     [Fact]
     public void AccelerationStructureCannotEscapeIntoLocalStorage()
     {
-        string invalid = Source.Replace("RayQueryTraceClosest(Scene,", "const local: acceleration_structure = Scene;\n    RayQueryTraceClosest(Scene,", StringComparison.Ordinal);
+        string invalid = Source.Replace("RayQueryTraceClosest(Scene,", "let local: acceleration_structure = Scene;\n    RayQueryTraceClosest(Scene,", StringComparison.Ordinal);
         var module = GpuComputeBinder.Compile(new([new("invalid.v.ts", invalid)]));
         Assert.False(module.Success);
         Assert.Contains(module.Diagnostics, diagnostic => diagnostic.CanonicalCode == "SDSL-V4213");

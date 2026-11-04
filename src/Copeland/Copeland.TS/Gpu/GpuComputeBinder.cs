@@ -27,6 +27,7 @@ public static partial class GpuComputeBinder
         private readonly GpuCompilationRequest _request;
         private GpuModuleGraph _modules = null!;
         private GpuConstants _constants = null!;
+        private readonly GpuLocalConstants _localConstants = new();
         private GpuEnums _enums = null!;
         private GpuValues _values = null!;
         private GpuGenericFunctions _generics = null!;
@@ -362,6 +363,23 @@ public static partial class GpuComputeBinder
                         {
                             TypeMismatch(path, local.Initializer, declaredType, initializer.Type);
                         }
+                        bool compileTime = local.Keyword.Kind == SyntaxKind.ConstKeyword;
+                        if (compileTime && initializer.Type != "error")
+                        {
+                            try
+                            {
+                                initializer = _generics.BindingOpen
+                                    ? new("generic-fold", initializer.Type, Span(path, local), Operands: [initializer])
+                                    : GpuStaticEvaluation.Fold(initializer, _boundFunctions, _values.StaticDefinitions,
+                                        aggregate => _values.EmbedStatic(aggregate, AddEnumFunction));
+                            }
+                            catch (StaticEvaluationException exception)
+                            {
+                                AddDiagnostic("COPE-GPU-CONST-0001", "SDSL-V4200", "constant",
+                                    "const requires a compile-time initializer. Use let for a runtime immutable value. " + exception.Message, Span(path, local));
+                            }
+                        }
+                        _localConstants.Declare(scope, local.Identifier.Text, compileTime ? initializer : null);
                         bool mutable = local.Keyword.Kind == SyntaxKind.VarKeyword;
                         scope[local.Identifier.Text] = new ValueBinding(declaredType, mutable, null, false);
                         result.Add(new VdMirStatement(
@@ -638,7 +656,9 @@ public static partial class GpuComputeBinder
                 case NameExpressionSyntax name:
                     if (scope.TryGetValue(name.IdentifierToken.Text, out ValueBinding? binding))
                     {
-                        return new VdMirExpression("name", binding.Type, Span(path, expression), name.IdentifierToken.Text);
+                        return _localConstants.Find(scope, name.IdentifierToken.Text) is { } localConstant
+                            ? localConstant with { Source = Span(path, expression) }
+                            : new VdMirExpression("name", binding.Type, Span(path, expression), name.IdentifierToken.Text);
                     }
                     VdMirExpression? parameter = _values.StaticParameter(name.IdentifierToken.Text);
                     if (parameter is not null) return parameter;
@@ -658,7 +678,12 @@ public static partial class GpuComputeBinder
                     while (_functions.ContainsKey(helperName));
                     return GpuEnumMatch.Bind(path, match, BindExpression(path, match.Expression, scope), _enums,
                         helperName, scope.ToDictionary(item => item.Key, item => item.Value.Type, StringComparer.Ordinal),
-                        (expression, armScope) => BindExpression(path, expression, armScope.ToDictionary(item => item.Key, item => new ValueBinding(item.Value, false, null, false), StringComparer.Ordinal)),
+                        (expression, armScope) =>
+                        {
+                            var bindings = armScope.ToDictionary(item => item.Key, item => new ValueBinding(item.Value, false, null, false), StringComparer.Ordinal);
+                            _localConstants.Inherit(scope, bindings);
+                            return BindExpression(path, expression, bindings);
+                        },
                         AddEnumFunction, (code, message, span) => AddDiagnostic(code, "SDSL-V4200", "payload-match", message, span));
                 case TemplateInstantiationExpressionSyntax instantiated:
                     return _generics.Instantiate(path, instantiated, (value, type) => BindExpression(path, value, scope, type));
@@ -1230,8 +1255,12 @@ public static partial class GpuComputeBinder
             return tapes.ToArray();
         }
 
-        private static Dictionary<string, ValueBinding> CloneScope(Dictionary<string, ValueBinding> source)
-            => new(source, StringComparer.Ordinal);
+        private Dictionary<string, ValueBinding> CloneScope(Dictionary<string, ValueBinding> source)
+        {
+            var clone = new Dictionary<string, ValueBinding>(source, StringComparer.Ordinal);
+            _localConstants.Inherit(source, clone);
+            return clone;
+        }
 
         private static AnnotationSyntax? FindAnnotation(IReadOnlyList<AnnotationSyntax>? annotations, string name)
             => annotations?.FirstOrDefault(annotation => annotation.NameToken.Text == name);

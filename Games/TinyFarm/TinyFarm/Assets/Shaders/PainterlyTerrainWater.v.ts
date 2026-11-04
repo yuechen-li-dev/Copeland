@@ -48,26 +48,26 @@ function VertexMain(input: VertexInput): FieldVaryings {
 
 @pixel
 function PixelMain(input: FieldPixelInput, resources: FieldResources): FieldOutput {
-    const field: float4 = Sample(resources.semanticField, resources.linearSampler, input.uv);
-    const wet: f32 = field.z;
+    let field: float4 = Sample(resources.semanticField, resources.linearSampler, input.uv);
+    let wet: f32 = field.z;
     // Blue stores signed bank distance, rasterized from the same authored geometry as gameplay.
-    const edge: f32 = Clamp((wet - 0.48) / 0.04, 0.0, 1.0);
-    const coverage: f32 = edge * edge * (3.0 - 2.0 * edge);
-    const safeCoverage: f32 = wet * 0.57 + 0.43;
-    const height: f32 = (field.x - 0.5) / safeCoverage + 0.5;
-    const foam: f32 = field.y / safeCoverage;
-    const charge: f32 = field.w / safeCoverage;
-    const depth: f32 = Clamp((wet - 0.5) * 2.0, 0.0, 1.0);
-    const shallow: f32 = 1.0 - depth;
-    const ripple: f32 = Sin(input.uv.y * 197.0 + Sin(input.uv.x * 71.0) * 1.6 + height * 12.0)
+    let edge: f32 = Clamp((wet - 0.48) / 0.04, 0.0, 1.0);
+    let coverage: f32 = edge * edge * (3.0 - 2.0 * edge);
+    let safeCoverage: f32 = wet * 0.57 + 0.43;
+    let height: f32 = (field.x - 0.5) / safeCoverage + 0.5;
+    let foam: f32 = field.y / safeCoverage;
+    let charge: f32 = field.w / safeCoverage;
+    let depth: f32 = Clamp((wet - 0.5) * 2.0, 0.0, 1.0);
+    let shallow: f32 = 1.0 - depth;
+    let ripple: f32 = Sin(input.uv.y * 197.0 + Sin(input.uv.x * 71.0) * 1.6 + height * 12.0)
         * Sin(input.uv.x * 127.0 + input.uv.y * 33.0);
-    const brokenEdge: f32 = Clamp((Sin(input.uv.y * 151.0 + input.uv.x * 83.0) - 0.3) * 2.0, 0.0, 1.0);
-    const edgeFoam: f32 = Clamp(1.0 - depth * 10.0, 0.0, 1.0) * brokenEdge * 0.22;
-    const glint: f32 = Clamp((ripple - 0.90) * 4.0, 0.0, 1.0) * 0.025;
-    const red: f32 = 0.018 + height * 0.025 + shallow * 0.14 + charge * 0.36 + foam * 0.35 + edgeFoam + glint;
-    const green: f32 = 0.13 + height * 0.06 + shallow * 0.13 + charge * 0.30 + foam * 0.48 + edgeFoam + glint;
-    const blue: f32 = 0.18 + height * 0.07 + shallow * 0.10 + charge * 0.45 + foam * 0.42 + edgeFoam + glint;
-    const brush: f32 = 0.96 + 0.025 * Sin(input.uv.y * 137.0 + Sin(input.uv.x * 83.0) * 1.8)
+    let brokenEdge: f32 = Clamp((Sin(input.uv.y * 151.0 + input.uv.x * 83.0) - 0.3) * 2.0, 0.0, 1.0);
+    let edgeFoam: f32 = Clamp(1.0 - depth * 10.0, 0.0, 1.0) * brokenEdge * 0.22;
+    let glint: f32 = Clamp((ripple - 0.90) * 4.0, 0.0, 1.0) * 0.025;
+    let red: f32 = 0.018 + height * 0.025 + shallow * 0.14 + charge * 0.36 + foam * 0.35 + edgeFoam + glint;
+    let green: f32 = 0.13 + height * 0.06 + shallow * 0.13 + charge * 0.30 + foam * 0.48 + edgeFoam + glint;
+    let blue: f32 = 0.18 + height * 0.07 + shallow * 0.10 + charge * 0.45 + foam * 0.42 + edgeFoam + glint;
+    let brush: f32 = 0.96 + 0.025 * Sin(input.uv.y * 137.0 + Sin(input.uv.x * 83.0) * 1.8)
         + 0.015 * Sin(input.uv.y * 57.0 + input.uv.x * 13.0);
     return {
         color: float4(red * brush, green * brush, blue * brush, coverage * 0.94) * resources.material.tint,

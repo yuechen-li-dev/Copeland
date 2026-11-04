@@ -39,20 +39,20 @@ stream Resources {
 stream Output { @target(0) color: float4; }
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
-    const p: float4 = Sample(resources.points, resources.pointsSampler, float2(0.25, input.uv.y));
-    const n: float4 = Sample(resources.points, resources.pointsSampler, float2(0.75, input.uv.y));
+    let p: float4 = Sample(resources.points, resources.pointsSampler, float2(0.25, input.uv.y));
+    let n: float4 = Sample(resources.points, resources.pointsSampler, float2(0.75, input.uv.y));
     if (resources.material.batch.z < 0.5) {
         return { color: float4(0.0, 0.0, 0.0, 0.0) };
     }
     var mask: f32 = 255.0;
     if (resources.material.batch.w > 1.5) {
-        const packet: float4 = Sample(resources.connections, resources.connectionsSampler, float2(0.5, input.uv.y));
+        let packet: float4 = Sample(resources.connections, resources.connectionsSampler, float2(0.5, input.uv.y));
         if (packet.w != resources.material.parameters.w) {
             return { color: float4(0.0, 0.0, 0.0, 0.0) };
         }
         mask = packet.x;
     }
-    const response: float4 = ProbeDiffuseConnected(resources.irradiance, resources.visibility, resources.irradianceSampler,
+    let response: float4 = ProbeDiffuseConnected(resources.irradiance, resources.visibility, resources.irradianceSampler,
         float3(p.x, p.y, p.z), float3(n.x, n.y, n.z), resources.material.gridMinimum, resources.material.gridMaximum,
         resources.material.gridSize, resources.material.parameters.w, resources.material.batch.w > 0.5, mask);
     return { color: response };

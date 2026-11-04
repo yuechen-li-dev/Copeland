@@ -84,56 +84,56 @@ function Lerp(a: f32, b: f32, t: f32): f32 {
 }
 // Trilinearly interpolated lattice noise in [0, 1].
 function Noise(p: float3): f32 {
-    const ix: f32 = Floor(p.x);
-    const iy: f32 = Floor(p.y);
-    const iz: f32 = Floor(p.z);
-    const fx: f32 = Smooth(p.x - ix);
-    const fy: f32 = Smooth(p.y - iy);
-    const fz: f32 = Smooth(p.z - iz);
-    const a: f32 = Lerp(Hash(ix, iy, iz), Hash(ix + 1.0, iy, iz), fx);
-    const b: f32 = Lerp(Hash(ix, iy + 1.0, iz), Hash(ix + 1.0, iy + 1.0, iz), fx);
-    const c: f32 = Lerp(Hash(ix, iy, iz + 1.0), Hash(ix + 1.0, iy, iz + 1.0), fx);
-    const d: f32 = Lerp(Hash(ix, iy + 1.0, iz + 1.0), Hash(ix + 1.0, iy + 1.0, iz + 1.0), fx);
+    let ix: f32 = Floor(p.x);
+    let iy: f32 = Floor(p.y);
+    let iz: f32 = Floor(p.z);
+    let fx: f32 = Smooth(p.x - ix);
+    let fy: f32 = Smooth(p.y - iy);
+    let fz: f32 = Smooth(p.z - iz);
+    let a: f32 = Lerp(Hash(ix, iy, iz), Hash(ix + 1.0, iy, iz), fx);
+    let b: f32 = Lerp(Hash(ix, iy + 1.0, iz), Hash(ix + 1.0, iy + 1.0, iz), fx);
+    let c: f32 = Lerp(Hash(ix, iy, iz + 1.0), Hash(ix + 1.0, iy, iz + 1.0), fx);
+    let d: f32 = Lerp(Hash(ix, iy + 1.0, iz + 1.0), Hash(ix + 1.0, iy + 1.0, iz + 1.0), fx);
     return Lerp(Lerp(a, b, fy), Lerp(c, d, fy), fz);
 }
 // Three octaves of fractal noise, normalised to [0, 1].
 function Fbm(p: float3): f32 {
-    const first: f32 = Noise(p);
-    const second: f32 = Noise(float3(p.x * 2.03 + 17.1, p.y * 2.03 - 3.7, p.z * 2.03 + 9.2));
-    const third: f32 = Noise(float3(p.x * 4.11 - 5.3, p.y * 4.11 + 11.9, p.z * 4.11 - 13.4));
+    let first: f32 = Noise(p);
+    let second: f32 = Noise(float3(p.x * 2.03 + 17.1, p.y * 2.03 - 3.7, p.z * 2.03 + 9.2));
+    let third: f32 = Noise(float3(p.x * 4.11 - 5.3, p.y * 4.11 + 11.9, p.z * 4.11 - 13.4));
     return (first + second * 0.5 + third * 0.25) / 1.75;
 }
 // Blackbody chromaticity with unit luminance. Planck's law ratios at 610, 550 and 465 nm, in the Wien regime:
 // red/green = (0.55/0.61)^5 exp(c2/T (1/0.55 - 1/0.61)), with c2 = 14388 um K; blue likewise.
 function Blackbody(kelvin: f32): float3 {
-    const t: f32 = Max(kelvin, 500.0);
-    const red: f32 = Min(0.5963 * Exp(2573.2 / t), 60.0);
-    const blue: f32 = 2.3138 * Exp(-4781.6 / t);
-    const luminance: f32 = 0.2126 * red + 0.7152 + 0.0722 * blue;
+    let t: f32 = Max(kelvin, 500.0);
+    let red: f32 = Min(0.5963 * Exp(2573.2 / t), 60.0);
+    let blue: f32 = 2.3138 * Exp(-4781.6 / t);
+    let luminance: f32 = 0.2126 * red + 0.7152 + 0.0722 * blue;
     return float3(red / luminance, 1.0 / luminance, blue / luminance);
 }
 // Radiance of a blackbody relative to one at 1800 K: chromaticity times the Stefan-Boltzmann ratio (T/1800)^4.
 function Glowing(kelvin: f32): float3 {
-    const ratio: f32 = Max(kelvin, 0.0) / 1800.0;
+    let ratio: f32 = Max(kelvin, 0.0) / 1800.0;
     return Scale3(Blackbody(kelvin), ratio * ratio * ratio * ratio);
 }
 function Fire(uv: float2, detail: float4): float2 {
     // Teardrop: rounded where the gas leaves the fuel, tapering to a tip. y runs from 0 at the base to 1 at the tip.
-    const y: f32 = Clamp((uv.y + 1.0) * 0.5, 0.0, 1.0);
-    const width: f32 = 1.05 * Pow(Max(1.0 - y, 0.0), 0.6) * Min(1.0, 0.3 + y * 4.0);
+    let y: f32 = Clamp((uv.y + 1.0) * 0.5, 0.0, 1.0);
+    let width: f32 = 1.05 * Pow(Max(1.0 - y, 0.0), 0.6) * Min(1.0, 0.3 + y * 4.0);
     // Noise scrolls downward through the flame, so its features rise; the warp grows toward the tip.
-    const seed: f32 = detail.x;
-    const age: f32 = detail.y;
-    const warp: f32 = (Noise(float3(uv.y * 1.7 - age * 3.1, seed, age * 0.7)) - 0.5) * (0.25 + 0.75 * y);
-    const x: f32 = uv.x + warp * 0.9;
-    const body: f32 = Clamp(1.0 - Abs(x) / Max(width, 0.001), 0.0, 1.0);
-    const turbulence: f32 = Fbm(float3(x * 1.6 + seed, uv.y * 1.3 - age * 2.6, seed * 0.37 + age * 0.4));
-    const flame: f32 = Clamp(body * 1.55 - turbulence * (0.35 + 0.65 * y), 0.0, 1.0);
+    let seed: f32 = detail.x;
+    let age: f32 = detail.y;
+    let warp: f32 = (Noise(float3(uv.y * 1.7 - age * 3.1, seed, age * 0.7)) - 0.5) * (0.25 + 0.75 * y);
+    let x: f32 = uv.x + warp * 0.9;
+    let body: f32 = Clamp(1.0 - Abs(x) / Max(width, 0.001), 0.0, 1.0);
+    let turbulence: f32 = Fbm(float3(x * 1.6 + seed, uv.y * 1.3 - age * 2.6, seed * 0.37 + age * 0.4));
+    let flame: f32 = Clamp(body * 1.55 - turbulence * (0.35 + 0.65 * y), 0.0, 1.0);
     return float2(flame, y);
 }
 function SphereNoise(q: float3, detail: float4): f32 {
-    const seed: f32 = detail.x;
-    const age: f32 = detail.y;
+    let seed: f32 = detail.x;
+    let age: f32 = detail.y;
     // Slow billowing: the domain drifts and turns over with age.
     return Fbm(float3(q.x * 1.4 + seed, q.y * 1.4 - age * 0.18, q.z * 1.4 + seed * 0.61 + age * 0.11));
 }

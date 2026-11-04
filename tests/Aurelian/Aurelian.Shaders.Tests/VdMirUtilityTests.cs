@@ -19,7 +19,7 @@ public sealed class VdMirUtilityTests
                 return { position: float4(input.position, 1.0), evidence: input.position };
             }
             @pixel function PixelMain(input: Varyings): Output {
-                const weight: f32 = when utility {
+                let weight: f32 = when utility {
                     case 0.0 when true score 1
                     case 0.5 when input.evidence.x > 0.8 score 3
                     case 0.25 when input.evidence.x > 0.5 score 2

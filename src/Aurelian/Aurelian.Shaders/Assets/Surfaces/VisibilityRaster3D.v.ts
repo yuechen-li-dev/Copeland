@@ -78,23 +78,23 @@ stream VisibilityVaryings {
 stream VisibilityOutput { @target(0) identity: uint2; }
 @vertex
 function VertexMain(input: VertexInput, uniforms: MaterialResources, tables: TableResources, builtins: VertexBuiltins): VisibilityVaryings {
-    const world: float3 = float3(PointRow(input.worldX, input.position), PointRow(input.worldY, input.position), PointRow(input.worldZ, input.position));
-    const instance: ResidentInstance = tables.instances[builtins.instance];
-    const firstIndex: u32 = tables.commands[instance.commandBase + builtins.draw * 5 + 2];
+    let world: float3 = float3(PointRow(input.worldX, input.position), PointRow(input.worldY, input.position), PointRow(input.worldZ, input.position));
+    let instance: ResidentInstance = tables.instances[builtins.instance];
+    let firstIndex: u32 = tables.commands[instance.commandBase + builtins.draw * 5 + 2];
     return { position: float4(PointRow(uniforms.material.clipX, world), PointRow(uniforms.material.clipY, world),
             PointRow(uniforms.material.clipZ, world), PointRow(uniforms.material.clipW, world)),
         uv: input.uv, color: input.color, instance: builtins.instance, firstTriangle: firstIndex / 3 };
 }
 @pixel
 function PixelMain(input: VisibilityVaryings, tables: TableResources, builtins: PixelBuiltins): VisibilityOutput {
-    const material: BindlessMaterialRecord = tables.materials[tables.instanceMaterials[input.instance]];
+    let material: BindlessMaterialRecord = tables.materials[tables.instanceMaterials[input.instance]];
     // Coverage is the only material work in visibility rasterization.
     var baseSample: float4 = float4(1.0, 1.0, 1.0, 1.0);
     if (material.surface.flags.y > 0.5) {
         baseSample = Sample(tables.textures[NonUniform(material.baseTexture)],
             tables.samplers[NonUniform(material.baseSampler)], input.uv);
     }
-    const covered: float4 = TestSurfaceCoverage(builtins.frontFace, material.surface, baseSample, input.color);
+    let covered: float4 = TestSurfaceCoverage(builtins.frontFace, material.surface, baseSample, input.color);
     var face: u32 = 0;
     if (!builtins.frontFace) { face = 1; }
     return { identity: uint2(input.instance + 1, (input.firstTriangle + builtins.primitive) * 2 + face) };

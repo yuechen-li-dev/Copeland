@@ -60,7 +60,7 @@ function ProjectRow(row: float4, p: WorldPosition3): f32 {
 function VertexMain(input: VertexInput, resources: CameraResources): SolidVaryings {
     var color: float4 = input.color;
     if (resources.camera.surface.z < 0.5) {
-        const light: f32 = resources.camera.light.w + (1.0 - resources.camera.light.w) * Max(
+        let light: f32 = resources.camera.light.w + (1.0 - resources.camera.light.w) * Max(
             input.normal.x * resources.camera.light.x + input.normal.y * resources.camera.light.y + input.normal.z * resources.camera.light.z, 0.0);
         color = input.color * float4(light, light, light, 1.0);
     }
@@ -74,7 +74,7 @@ function VertexMain(input: VertexInput, resources: CameraResources): SolidVaryin
 }
 @pixel
 function PixelMain(input: SolidVaryings, resources: CameraResources): SolidOutput {
-    const n: float3 = Unit(input.normal);
+    let n: float3 = Unit(input.normal);
     var flag: f32 = 1.0;
     if (resources.camera.surface.z < 0.5) {
         flag = -1.0;

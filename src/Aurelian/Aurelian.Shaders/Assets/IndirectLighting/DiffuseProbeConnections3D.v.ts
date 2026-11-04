@@ -33,11 +33,11 @@ stream Resources {
 stream Output { @target(0) color: float4; }
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
-    const site: f32 = Floor(input.uv.y * resources.material.batch.y);
+    let site: f32 = Floor(input.uv.y * resources.material.batch.y);
     var mask: f32 = 0.0;
     for (var corner: u32 = 0; corner < 8; corner = corner + 1) {
-        const index: f32 = site * 8.0 + Convert<f32>(corner);
-        const metadata: float4 = ReadRayHit(resources.hits, resources.hitsSampler, index, 0.0, resources.material.parameters.z);
+        let index: f32 = site * 8.0 + Convert<f32>(corner);
+        let metadata: float4 = ReadRayHit(resources.hits, resources.hitsSampler, index, 0.0, resources.material.parameters.z);
         if (metadata.z < 0.5) {
             mask = mask + Pow(2.0, Convert<f32>(corner));
         }

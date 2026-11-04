@@ -5,7 +5,7 @@ function ComputeNoRegression_CS(
     @binding(0) readonly Input: StorageBuffer<f32>,
     @binding(1) readwrite Output: StorageBuffer<f32>
 ): void {
-    const index: u32 = thread.x;
+    let index: u32 = thread.x;
     Output[index] = Input[index];
     return;
 }

@@ -30,7 +30,7 @@ public sealed class GpuProfileParserReuseAuditTests
             }
 
             function ComputeNoRegression(thread: uint3, io: ComputeIo): void {
-                const index: u32 = thread.x;
+                let index: u32 = thread.x;
                 if (index < io.output.length) {
                     io.output[index] = io.input[index] + 1.0;
                 }

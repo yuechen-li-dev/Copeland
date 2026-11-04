@@ -527,7 +527,15 @@ internal sealed partial class FlowExecutionProjection
 
     private StatementSyntax Local(string name, TypeSyntax type, ExpressionSyntax initializer, bool mutable = false)
     {
-        SyntaxKind keyword = mutable ? gpu ? SyntaxKind.VarKeyword : SyntaxKind.LetKeyword : SyntaxKind.ConstKeyword;
+        SyntaxKind keyword;
+        if (gpu)
+        {
+            keyword = mutable ? SyntaxKind.VarKeyword : SyntaxKind.LetKeyword;
+        }
+        else
+        {
+            keyword = mutable ? SyntaxKind.LetKeyword : SyntaxKind.ConstKeyword;
+        }
         return new VariableDeclarationStatementSyntax(Token(keyword, SyntaxFacts.GetText(keyword)!),
             Identifier(name), Token(SyntaxKind.ColonToken, ":"), type, Token(SyntaxKind.EqualsToken, "="), initializer, Token(SyntaxKind.SemicolonToken, ";"));
     }

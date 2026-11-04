@@ -77,7 +77,7 @@ public sealed class GpuGraphicsBinderM3Tests
         string duplicateBinding = Source.Replace("@binding(1)\n    linearSampler", "@binding(0)\n    linearSampler", StringComparison.Ordinal);
         string roleConflict = Source.Replace("@binding(0)\n    albedo", "@location(0)\n    @binding(0)\n    albedo", StringComparison.Ordinal);
         string badMaterial = Source.Replace("roughness: f32;", "roughness: bool;", StringComparison.Ordinal);
-        string materialMutation = Source.Replace("const texel: float4 = Sample", "resources.material.tint = float4(1.0, 1.0, 1.0, 1.0);\n    const texel: float4 = Sample", StringComparison.Ordinal);
+        string materialMutation = Source.Replace("let texel: float4 = Sample", "resources.material.tint = float4(1.0, 1.0, 1.0, 1.0);\n    let texel: float4 = Sample", StringComparison.Ordinal);
 
         Assert.Contains(Compile(wrongCoordinate).Diagnostics, diagnostic => diagnostic.CanonicalCode == "SDSL-V4119");
         Assert.Contains(Compile(wrongSampler).Diagnostics, diagnostic => diagnostic.CanonicalCode == "SDSL-V4118");
@@ -91,8 +91,8 @@ public sealed class GpuGraphicsBinderM3Tests
     public void Fwidth_Is_A_Typed_Pixel_Stage_Intrinsic()
     {
         string source = Source.Replace(
-            "const texel: float4 = Sample(resources.albedo, resources.linearSampler, input.uv);",
-            "const width: f32 = Fwidth(input.uv.x);\n    const texel: float4 = Sample(resources.albedo, resources.linearSampler, input.uv);",
+            "let texel: float4 = Sample(resources.albedo, resources.linearSampler, input.uv);",
+            "let width: f32 = Fwidth(input.uv.x);\n    let texel: float4 = Sample(resources.albedo, resources.linearSampler, input.uv);",
             StringComparison.Ordinal);
 
         VdMirGraphicsModule module = Compile(source);
@@ -110,8 +110,8 @@ public sealed class GpuGraphicsBinderM3Tests
     public void Fwidth_Is_Rejected_Outside_The_Pixel_Stage()
     {
         string source = Source.Replace(
-            "const vertexBias: f32 = Convert<f32>(builtins.vertexId + builtins.instanceId) * 0.000001;",
-            "const derivative: f32 = Fwidth(input.uv.x);\n    const vertexBias: f32 = derivative * 0.000001;",
+            "let vertexBias: f32 = Convert<f32>(builtins.vertexId + builtins.instanceId) * 0.000001;",
+            "let derivative: f32 = Fwidth(input.uv.x);\n    let vertexBias: f32 = derivative * 0.000001;",
             StringComparison.Ordinal);
 
         VdMirDiagnostic diagnostic = Assert.Single(

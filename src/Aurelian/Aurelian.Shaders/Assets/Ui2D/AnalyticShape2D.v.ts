@@ -47,11 +47,11 @@ stream ShapeResources {
 }
 
 function SignedDistanceRoundedRect(pX: f32, pY: f32, halfWidth: f32, halfHeight: f32, radius: f32): f32 {
-    const qX: f32 = Abs(pX) - (halfWidth - radius);
-    const qY: f32 = Abs(pY) - (halfHeight - radius);
-    const outsideX: f32 = Max(qX, 0.0);
-    const outsideY: f32 = Max(qY, 0.0);
-    const outside: f32 = Sqrt((outsideX * outsideX) + (outsideY * outsideY));
+    let qX: f32 = Abs(pX) - (halfWidth - radius);
+    let qY: f32 = Abs(pY) - (halfHeight - radius);
+    let outsideX: f32 = Max(qX, 0.0);
+    let outsideY: f32 = Max(qY, 0.0);
+    let outside: f32 = Sqrt((outsideX * outsideX) + (outsideY * outsideY));
     return outside + Min(Max(qX, qY), 0.0) - radius;
 }
 
@@ -60,13 +60,13 @@ function SignedDistanceCircle(pX: f32, pY: f32, radius: f32): f32 {
 }
 
 function CoverageFromDistance(distance: f32): f32 {
-    const coverageAmount: f32 = Clamp(0.5 - distance, 0.0, 1.0);
+    let coverageAmount: f32 = Clamp(0.5 - distance, 0.0, 1.0);
     return coverageAmount * coverageAmount * (3.0 - (2.0 * coverageAmount));
 }
 
 @vertex
 function VertexMain(input: VertexInput, builtins: VertexBuiltins): ShapeVaryings {
-    const vertexBias: f32 = Convert<f32>(builtins.vertexId + builtins.instanceId) * 0.000001;
+    let vertexBias: f32 = Convert<f32>(builtins.vertexId + builtins.instanceId) * 0.000001;
     return {
         position: float4(input.position.x + vertexBias, input.position.y, input.position.z, 1.0),
         local: input.local,
@@ -75,20 +75,20 @@ function VertexMain(input: VertexInput, builtins: VertexBuiltins): ShapeVaryings
 
 @pixel
 function PixelMain(input: ShapeVaryings, resources: ShapeResources): ShapeOutput {
-    const pX: f32 = (input.local.x - 0.5) * resources.material.halfSize.x * 2.0;
-    const pY: f32 = (input.local.y - 0.5) * resources.material.halfSize.y * 2.0;
-    const roundedDistance: f32 = SignedDistanceRoundedRect(
+    let pX: f32 = (input.local.x - 0.5) * resources.material.halfSize.x * 2.0;
+    let pY: f32 = (input.local.y - 0.5) * resources.material.halfSize.y * 2.0;
+    let roundedDistance: f32 = SignedDistanceRoundedRect(
         pX,
         pY,
         resources.material.halfSize.x,
         resources.material.halfSize.y,
         resources.material.radius);
-    const circleDistance: f32 = SignedDistanceCircle(pX, pY, resources.material.halfSize.x);
-    const circleMix: f32 = Convert<f32>(resources.material.shapeKind);
-    const distance: f32 = roundedDistance + (circleMix * (circleDistance - roundedDistance));
-    const coverage: f32 = CoverageFromDistance(distance);
-    const borderMix: f32 = Clamp(distance + resources.material.borderWidth + 0.5, 0.0, 1.0);
-    const fillMix: f32 = 1.0 - borderMix;
+    let circleDistance: f32 = SignedDistanceCircle(pX, pY, resources.material.halfSize.x);
+    let circleMix: f32 = Convert<f32>(resources.material.shapeKind);
+    let distance: f32 = roundedDistance + (circleMix * (circleDistance - roundedDistance));
+    let coverage: f32 = CoverageFromDistance(distance);
+    let borderMix: f32 = Clamp(distance + resources.material.borderWidth + 0.5, 0.0, 1.0);
+    let fillMix: f32 = 1.0 - borderMix;
     return {
         color: float4(
             (resources.material.fillColor.x * fillMix) + (resources.material.borderColor.x * borderMix),

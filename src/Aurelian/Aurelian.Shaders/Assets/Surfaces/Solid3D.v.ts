@@ -61,7 +61,7 @@ function ProjectRow(row: float4, p: WorldPosition3): f32 {
 function VertexMain(input: VertexInput, resources: CameraResources): SolidVaryings {
     var color: float4 = input.color;
     if (resources.camera.surface.z < 0.5) {
-        const light: f32 = resources.camera.light.w + (1.0 - resources.camera.light.w) * Max(
+        let light: f32 = resources.camera.light.w + (1.0 - resources.camera.light.w) * Max(
             input.normal.x * resources.camera.light.x + input.normal.y * resources.camera.light.y + input.normal.z * resources.camera.light.z, 0.0);
         color = input.color * float4(light, light, light, 1.0);
     }
@@ -82,21 +82,21 @@ function ChooseLighting(enabled: f32, color: float4): LightingChoice {
 }
 @pixel
 function PixelMain(input: SolidVaryings, resources: CameraResources, shadows: SolidShadowResources): SolidOutput {
-    const lit: float4 = match ChooseLighting(resources.camera.surface.z, input.color) {
+    let lit: float4 = match ChooseLighting(resources.camera.surface.z, input.color) {
         LightingChoice.Basic(payload) => payload.color,
         LightingChoice.Pbr => ShadeSolid(input, resources, shadows),
     };
     return { color: LimitRadiance(lit), motion: TemporalProjection(input.currentClip, input.previousClip) };
 }
 function ShadeSolid(input: SolidVaryings, resources: CameraResources, shadows: SolidShadowResources): float4 {
-    const normal: float3 = Unit(input.normal);
-    const light: float3 = Unit(float3(resources.camera.light.x, resources.camera.light.y, resources.camera.light.z));
-    const view: float3 = Unit(Sub3(float3(resources.camera.eye.x, resources.camera.eye.y, resources.camera.eye.z), input.world));
-    const p: WorldPosition3 = float3(input.world.x, input.world.y, input.world.z);
-    const projected: float3 = float3(ProjectRow(resources.camera.shadowX, p), ProjectRow(resources.camera.shadowY, p), ProjectRow(resources.camera.shadowZ, p));
-    const visibility: f32 = ShadowVisibility(shadows.shadowMap, shadows.shadowSampler, projected,
+    let normal: float3 = Unit(input.normal);
+    let light: float3 = Unit(float3(resources.camera.light.x, resources.camera.light.y, resources.camera.light.z));
+    let view: float3 = Unit(Sub3(float3(resources.camera.eye.x, resources.camera.eye.y, resources.camera.eye.z), input.world));
+    let p: WorldPosition3 = float3(input.world.x, input.world.y, input.world.z);
+    let projected: float3 = float3(ProjectRow(resources.camera.shadowX, p), ProjectRow(resources.camera.shadowY, p), ProjectRow(resources.camera.shadowZ, p));
+    let visibility: f32 = ShadowVisibility(shadows.shadowMap, shadows.shadowSampler, projected,
         resources.camera.shadowParameters, Max(Dot3(normal, light), 0.0));
-    const base: float3 = float3(input.color.x, input.color.y, input.color.z);
+    let base: float3 = float3(input.color.x, input.color.y, input.color.z);
     // surface.w enables a validated static receiver; sky.w is the static-emitter basis coefficient.
     if (resources.camera.surface.w > 0.5 && resources.camera.surface.y == 0.0) {
         let response: float4 = CompiledDiffuse(shadows.diffuseData, shadows.diffuseSampler, input.world, normal,
@@ -109,10 +109,10 @@ function ShadeSolid(input: SolidVaryings, resources: CameraResources, shadows: S
             return float4(radiance.x, radiance.y, radiance.z, 1.0);
         }
     }
-    const direct: float3 = Scale3(Mul3(DirectLightModel(base, normal, view, light, resources.camera.surface.y, resources.camera.surface.x, resources.camera.ground.w),
+    let direct: float3 = Scale3(Mul3(DirectLightModel(base, normal, view, light, resources.camera.surface.y, resources.camera.surface.x, resources.camera.ground.w),
         float3(resources.camera.sun.x, resources.camera.sun.y, resources.camera.sun.z)), resources.camera.sun.w * visibility);
-    const ambient: float3 = HemisphereLight(base, normal, view, float3(resources.camera.sky.x, resources.camera.sky.y, resources.camera.sky.z),
+    let ambient: float3 = HemisphereLight(base, normal, view, float3(resources.camera.sky.x, resources.camera.sky.y, resources.camera.sky.z),
         float3(resources.camera.ground.x, resources.camera.ground.y, resources.camera.ground.z), resources.camera.surface.y, resources.camera.surface.x);
-    const lit: float3 = Add3(direct, ambient);
+    let lit: float3 = Add3(direct, ambient);
     return float4(lit.x, lit.y, lit.z, 1.0);
 }

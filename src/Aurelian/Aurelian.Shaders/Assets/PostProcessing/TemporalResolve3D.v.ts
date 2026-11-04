@@ -49,14 +49,14 @@ function ClipHistory(value: float4, minimum: float4, maximum: float4): float4 {
 }
 @pixel
 function PixelMain(input: Varyings, resources: TemporalResources): Output {
-    const parameters: float4 = resources.temporal.parameters;
-    const current: float4 = Sample(resources.current, resources.currentSampler, input.uv);
-    const motion: float4 = Sample(resources.motion, resources.motionSampler, input.uv);
+    let parameters: float4 = resources.temporal.parameters;
+    let current: float4 = Sample(resources.current, resources.currentSampler, input.uv);
+    let motion: float4 = Sample(resources.motion, resources.motionSampler, input.uv);
     // OIT coverage has no opaque-surface motion correspondence. Reconstruct
     // this pixel immediately and mark its history depth invalid, so removing
     // or moving translucent geometry cannot leave a retained color trail.
     if (current.w < 0.99999) {
-        const reactive: float4 = ReconstructCurrent(resources, float2(input.uv.x + resources.temporal.reconstruction.x,
+        let reactive: float4 = ReconstructCurrent(resources, float2(input.uv.x + resources.temporal.reconstruction.x,
             input.uv.y + resources.temporal.reconstruction.y));
         return { color: float4(reactive.x, reactive.y, reactive.z, -1.0) };
     }
@@ -82,10 +82,10 @@ function PixelMain(input: Varyings, resources: TemporalResources): Output {
     var slopeY: f32 = 1.0;
     for (var y: u32 = 0; y < 3; y = y + 1) {
         for (var x: u32 = 0; x < 3; x = x + 1) {
-            const uv: float2 = float2(input.uv.x + (Convert<f32>(x) - 1.0) * parameters.x,
+            let uv: float2 = float2(input.uv.x + (Convert<f32>(x) - 1.0) * parameters.x,
                 input.uv.y + (Convert<f32>(y) - 1.0) * parameters.y);
-            const neighbor: float4 = Sample(resources.current, resources.currentSampler, uv);
-            const depth: float4 = Sample(resources.motion, resources.motionSampler, uv);
+            let neighbor: float4 = Sample(resources.current, resources.currentSampler, uv);
+            let depth: float4 = Sample(resources.motion, resources.motionSampler, uv);
             minimum = Minimum(minimum, neighbor);
             maximum = Maximum(maximum, neighbor);
             minimumDepth = Min(minimumDepth, depth.w);
@@ -100,39 +100,39 @@ function PixelMain(input: Varyings, resources: TemporalResources): Output {
                 slopeY = Min(slopeY, Abs(depth.w - motion.w));
             }
             if (depth.w < 1.0) {
-                const dx: f32 = (depth.x - uv.x - resources.temporal.jitter.x) / parameters.x;
-                const dy: f32 = (depth.y - uv.y - resources.temporal.jitter.y) / parameters.y;
+                let dx: f32 = (depth.x - uv.x - resources.temporal.jitter.x) / parameters.x;
+                let dy: f32 = (depth.y - uv.y - resources.temporal.jitter.y) / parameters.y;
                 coverageMotion = Max(coverageMotion, Max(Abs(dx), Abs(dy)));
             }
         }
     }
     // Bilinear color with four independently qualified depth taps. A nearest depth
     // cannot represent the fractional foreground coverage retained in the color.
-    const pixel: float2 = float2(previousUv.x / parameters.x - 0.5, previousUv.y / parameters.y - 0.5);
-    const origin: float2 = float2(Floor(pixel.x), Floor(pixel.y));
-    const fraction: float2 = float2(pixel.x - origin.x, pixel.y - origin.y);
-    const movement: float2 = float2((previousUv.x - input.uv.x) / parameters.x,
+    let pixel: float2 = float2(previousUv.x / parameters.x - 0.5, previousUv.y / parameters.y - 0.5);
+    let origin: float2 = float2(Floor(pixel.x), Floor(pixel.y));
+    let fraction: float2 = float2(pixel.x - origin.x, pixel.y - origin.y);
+    let movement: float2 = float2((previousUv.x - input.uv.x) / parameters.x,
         (previousUv.y - input.uv.y) / parameters.y);
-    const speed: f32 = Max(Abs(movement.x), Abs(movement.y));
-    const surfaceSlope: f32 = slopeX + slopeY;
-    const edge: f32 = Clamp((maximumDepth - minimumDepth - 2.0 * surfaceSlope - 0.00002) * 10000.0, 0.0, 1.0);
+    let speed: f32 = Max(Abs(movement.x), Abs(movement.y));
+    let surfaceSlope: f32 = slopeX + slopeY;
+    let edge: f32 = Clamp((maximumDepth - minimumDepth - 2.0 * surfaceSlope - 0.00002) * 10000.0, 0.0, 1.0);
     // A moving silhouette is reactive: previous coverage is no longer evidence
     // for the newly exposed background, even when its stored depth is background.
     if (edge > 0.2 && coverageMotion > 0.05) {
-        const reactive: float4 = ReconstructCurrent(resources, float2(input.uv.x + resources.temporal.reconstruction.x,
+        let reactive: float4 = ReconstructCurrent(resources, float2(input.uv.x + resources.temporal.reconstruction.x,
             input.uv.y + resources.temporal.reconstruction.y));
         return { color: float4(reactive.x, reactive.y, reactive.z, motion.w) };
     }
-    const tolerance: f32 = Max(0.00002, Min(surfaceSlope * 2.0, 0.002));
+    let tolerance: f32 = Max(0.00002, Min(surfaceSlope * 2.0, 0.002));
     var accumulated: float4 = float4(0.0, 0.0, 0.0, 0.0);
     var total: f32 = 0.0;
     for (var y: u32 = 0; y < 2; y = y + 1) {
         for (var x: u32 = 0; x < 2; x = x + 1) {
-            const fx: f32 = Convert<f32>(x);
-            const fy: f32 = Convert<f32>(y);
-            const uv: float2 = float2((origin.x + fx + 0.5) * parameters.x, (origin.y + fy + 0.5) * parameters.y);
-            const history: float4 = Sample(resources.history, resources.historySampler, uv);
-            const weight: f32 = (1.0 - Abs(fx - fraction.x)) * (1.0 - Abs(fy - fraction.y));
+            let fx: f32 = Convert<f32>(x);
+            let fy: f32 = Convert<f32>(y);
+            let uv: float2 = float2((origin.x + fx + 0.5) * parameters.x, (origin.y + fy + 0.5) * parameters.y);
+            let history: float4 = Sample(resources.history, resources.historySampler, uv);
+            let weight: f32 = (1.0 - Abs(fx - fraction.x)) * (1.0 - Abs(fy - fraction.y));
             var accepted: bool = Abs(history.w - previousDepth) <= tolerance;
             // Only stationary subpixel coverage may straddle the local silhouette.
             // Moving/disoccluded surfaces require actual previous-surface depth.
@@ -148,13 +148,13 @@ function PixelMain(input: Varyings, resources: TemporalResources): Output {
     if (total < 0.01) {
         return { color: float4(current.x, current.y, current.z, motion.w) };
     }
-    const historical: float4 = Divide4(accumulated, total);
-    const clipped: float4 = ClipHistory(historical, minimum, maximum);
+    let historical: float4 = Divide4(accumulated, total);
+    let clipped: float4 = ClipHistory(historical, minimum, maximum);
     var colorConfidence: f32 = 1.0 - Clamp(Abs(Luma(historical) - Luma(current)) / Max(Luma(maximum) - Luma(minimum), 0.15), 0.0, 1.0);
     if (speed < 0.05 && coverageMotion < 0.05 && edge > 0.2) { colorConfidence = 1.0; }
-    const decision: float3 = TemporalPolicy(Min(total * 4.0, 1.0), 1.0, colorConfidence, edge);
-    const blend: f32 = Min(decision.y, parameters.w);
-    const resolved: float4 = Add4(current * float4(1.0 - blend, 1.0 - blend, 1.0 - blend, 1.0 - blend),
+    let decision: float3 = TemporalPolicy(Min(total * 4.0, 1.0), 1.0, colorConfidence, edge);
+    let blend: f32 = Min(decision.y, parameters.w);
+    let resolved: float4 = Add4(current * float4(1.0 - blend, 1.0 - blend, 1.0 - blend, 1.0 - blend),
         clipped * float4(blend, blend, blend, blend));
     return { color: float4(resolved.x, resolved.y, resolved.z, motion.w) };
 }
@@ -167,17 +167,17 @@ function Divide4(a: float4, divisor: f32): float4 {
 }
 
 function ReconstructCurrent(resources: TemporalResources, uv: float2): float4 {
-    const parameters: float4 = resources.temporal.parameters;
-    const pixel: float2 = float2(uv.x / parameters.x - 0.5, uv.y / parameters.y - 0.5);
-    const origin: float2 = float2(Floor(pixel.x), Floor(pixel.y));
-    const fraction: float2 = float2(pixel.x - origin.x, pixel.y - origin.y);
+    let parameters: float4 = resources.temporal.parameters;
+    let pixel: float2 = float2(uv.x / parameters.x - 0.5, uv.y / parameters.y - 0.5);
+    let origin: float2 = float2(Floor(pixel.x), Floor(pixel.y));
+    let fraction: float2 = float2(pixel.x - origin.x, pixel.y - origin.y);
     var sum: float4 = float4(0.0, 0.0, 0.0, 0.0);
     for (var y: u32 = 0; y < 2; y = y + 1) {
         for (var x: u32 = 0; x < 2; x = x + 1) {
-            const fx: f32 = Convert<f32>(x);
-            const fy: f32 = Convert<f32>(y);
-            const weight: f32 = (1.0 - Abs(fx - fraction.x)) * (1.0 - Abs(fy - fraction.y));
-            const sample: float4 = Sample(resources.current, resources.currentSampler,
+            let fx: f32 = Convert<f32>(x);
+            let fy: f32 = Convert<f32>(y);
+            let weight: f32 = (1.0 - Abs(fx - fraction.x)) * (1.0 - Abs(fy - fraction.y));
+            let sample: float4 = Sample(resources.current, resources.currentSampler,
                 float2((origin.x + fx + 0.5) * parameters.x, (origin.y + fy + 0.5) * parameters.y));
             sum = Add4(sum, sample * float4(weight, weight, weight, weight));
         }

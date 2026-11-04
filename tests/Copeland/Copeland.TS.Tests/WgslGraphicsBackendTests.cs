@@ -74,7 +74,7 @@ public sealed class WgslGraphicsBackendTests
     {
         string source = GpuGraphicsBinderM3Tests.Source
             .Replace("input: VertexInput, builtins: VertexBuiltins", "input: VertexInput, builtins: VertexBuiltins, resources: ForwardResources", StringComparison.Ordinal)
-            .Replace("const vertexBias: f32", "const sampled: float4 = Sample(resources.albedo, resources.linearSampler, input.uv); const vertexBias: f32", StringComparison.Ordinal);
+            .Replace("let vertexBias: f32", "let sampled: float4 = Sample(resources.albedo, resources.linearSampler, input.uv); let vertexBias: f32", StringComparison.Ordinal);
         var result = Compile(source);
         Assert.False(result.Success);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "COPE-WGSL-STAGE-0001");

@@ -42,7 +42,7 @@ WriteJson("diagnostics.json", new
         Negative("duplicate-binding", source.Replace("@binding(1)\n    linearSampler", "@binding(0)\n    linearSampler", StringComparison.Ordinal), "SDSL-V4112"),
         Negative("resource-role-conflict", source.Replace("@binding(0)\n    albedo", "@location(0)\n    @binding(0)\n    albedo", StringComparison.Ordinal), "SDSL-V4102"),
         Negative("material-type", source.Replace("roughness: f32;", "roughness: bool;", StringComparison.Ordinal), "SDSL-V4114"),
-        Negative("material-immutable", source.Replace("const texel: float4 = Sample", "resources.material.tint = float4(1.0, 1.0, 1.0, 1.0);\n    const texel: float4 = Sample", StringComparison.Ordinal), "SDSL-V3701"),
+        Negative("material-immutable", source.Replace("let texel: float4 = Sample", "resources.material.tint = float4(1.0, 1.0, 1.0, 1.0);\n    let texel: float4 = Sample", StringComparison.Ordinal), "SDSL-V3701"),
         Negative("semantic-space-assignment", source.Replace("return float3(value.x, value.y, value.z);", "return value;", StringComparison.Ordinal), "SDSL-V1503"),
         Negative("semantic-space-linkage", LinkageMismatch(source), "SDSL-V4111"),
     },

@@ -106,15 +106,15 @@ enum ContactShape {
     Sphere(x: f32, y: f32, z: f32, radius: f32),
 }
 function ProjectPlane(position: float3, normal: float3, offset: f32): float3 {
-    const gap: f32 = Dot(normal, position) - offset;
+    let gap: f32 = Dot(normal, position) - offset;
     if (gap < 0.0) {
         return (position - (normal * gap));
     }
     return position;
 }
 function ProjectSphere(position: float3, center: float3, radius: f32): float3 {
-    const difference: float3 = (position - center);
-    const distance: f32 = Length(difference);
+    let difference: float3 = (position - center);
+    let distance: f32 = Length(difference);
     if (distance >= radius) {
         return position;
     }
@@ -132,8 +132,8 @@ function ProjectContact(position: float3, contact: ContactShape): float3 {
     };
 }
 function SegmentBary(p: float3, a: float3, b: float3, wa: float3, wb: float3): float3 {
-    const edge: float3 = (b - a);
-    const length: f32 = Dot(edge, edge);
+    let edge: float3 = (b - a);
+    let length: f32 = Dot(edge, edge);
     var t: f32 = 0.0;
     if (length > 0.00000000000000000001) {
         t = Clamp(Dot((p - a), edge) / length, 0.0, 1.0);
@@ -141,14 +141,14 @@ function SegmentBary(p: float3, a: float3, b: float3, wa: float3, wb: float3): f
     return ((wa * (1.0 - t)) + (wb * t));
 }
 function ClosestBary(p: float3, a: float3, b: float3, c: float3): float3 {
-    const ab: float3 = (b - a);
-    const ac: float3 = (c - a);
-    const aa: f32 = Dot(ab, ab);
-    const bb: f32 = Dot(ab, ac);
-    const cc: f32 = Dot(ac, ac);
+    let ab: float3 = (b - a);
+    let ac: float3 = (c - a);
+    let aa: f32 = Dot(ab, ab);
+    let bb: f32 = Dot(ab, ac);
+    let cc: f32 = Dot(ac, ac);
     if (aa * cc - bb * bb <= 0.00000001 * aa * cc || aa * cc < 0.000000000000000000000001) {
-        const bc: float3 = (c - b);
-        const edgeLength: f32 = Dot(bc, bc);
+        let bc: float3 = (c - b);
+        let edgeLength: f32 = Dot(bc, bc);
         if (aa >= cc && aa >= edgeLength) {
             return SegmentBary(p, a, b, float3(1.0, 0.0, 0.0), float3(0.0, 1.0, 0.0));
         }
@@ -157,72 +157,72 @@ function ClosestBary(p: float3, a: float3, b: float3, c: float3): float3 {
         }
         return SegmentBary(p, b, c, float3(0.0, 1.0, 0.0), float3(0.0, 0.0, 1.0));
     }
-    const ap: float3 = (p - a);
-    const d1: f32 = Dot(ab, ap);
-    const d2: f32 = Dot(ac, ap);
+    let ap: float3 = (p - a);
+    let d1: f32 = Dot(ab, ap);
+    let d2: f32 = Dot(ac, ap);
     if (d1 <= 0.0 && d2 <= 0.0)
     {
         return float3(1.0, 0.0, 0.0);
     }
-    const bp: float3 = (p - b);
-    const d3: f32 = Dot(ab, bp);
-    const d4: f32 = Dot(ac, bp);
+    let bp: float3 = (p - b);
+    let d3: f32 = Dot(ab, bp);
+    let d4: f32 = Dot(ac, bp);
     if (d3 >= 0.0 && d4 <= d3)
     {
         return float3(0.0, 1.0, 0.0);
     }
-    const vc: f32 = d1 * d4 - d3 * d2;
+    let vc: f32 = d1 * d4 - d3 * d2;
     if (vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0) {
-        const t: f32 = d1 / (d1 - d3);
+        let t: f32 = d1 / (d1 - d3);
         return float3(1.0 - t, t, 0.0);
     }
-    const cp: float3 = (p - c);
-    const d5: f32 = Dot(ab, cp);
-    const d6: f32 = Dot(ac, cp);
+    let cp: float3 = (p - c);
+    let d5: f32 = Dot(ab, cp);
+    let d6: f32 = Dot(ac, cp);
     if (d6 >= 0.0 && d5 <= d6)
     {
         return float3(0.0, 0.0, 1.0);
     }
-    const vb: f32 = d5 * d2 - d1 * d6;
+    let vb: f32 = d5 * d2 - d1 * d6;
     if (vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0) {
-        const t: f32 = d2 / (d2 - d6);
+        let t: f32 = d2 / (d2 - d6);
         return float3(1.0 - t, 0.0, t);
     }
-    const va: f32 = d3 * d6 - d5 * d4;
+    let va: f32 = d3 * d6 - d5 * d4;
     if (va <= 0.0 && d4 >= d3 && d5 >= d6) {
-        const t: f32 = (d4 - d3) / (d4 - d3 + d5 - d6);
+        let t: f32 = (d4 - d3) / (d4 - d3 + d5 - d6);
         return float3(0.0, 1.0 - t, t);
     }
-    const inverse: f32 = 1.0 / (va + vb + vc);
-    const v: f32 = vb * inverse;
-    const w: f32 = vc * inverse;
+    let inverse: f32 = 1.0 / (va + vb + vc);
+    let v: f32 = vb * inverse;
+    let w: f32 = vc * inverse;
     return float3(1.0 - v - w, v, w);
 }
 
 function LineT(p: float3, a: float3, b: float3): f32 {
-    const edge: float3 = (b - a);
-    const length: f32 = Dot(edge, edge);
+    let edge: float3 = (b - a);
+    let length: f32 = Dot(edge, edge);
     if (length <= 0.00000000000000000001) {
         return 0.0;
     }
     return Dot((p - a), edge) / length;
 }
 function ClosestSegments(a: float3, b: float3, c: float3, d: float3): float2 {
-    const first: float3 = (b - a);
-    const second: float3 = (d - c);
-    const offset: float3 = (a - c);
-    const aa: f32 = Dot(first, first);
-    const bb: f32 = Dot(first, second);
-    const cc: f32 = Dot(second, second);
-    const dd: f32 = Dot(first, offset);
-    const ee: f32 = Dot(second, offset);
+    let first: float3 = (b - a);
+    let second: float3 = (d - c);
+    let offset: float3 = (a - c);
+    let aa: f32 = Dot(first, first);
+    let bb: f32 = Dot(first, second);
+    let cc: f32 = Dot(second, second);
+    let dd: f32 = Dot(first, offset);
+    let ee: f32 = Dot(second, offset);
     if (aa <= 0.00000000000000000001) {
         return float2(0.0, Clamp(LineT(a, c, d), 0.0, 1.0));
     }
     if (cc <= 0.00000000000000000001) {
         return float2(Clamp(LineT(c, a, b), 0.0, 1.0), 0.0);
     }
-    const determinant: f32 = aa * cc - bb * bb;
+    let determinant: f32 = aa * cc - bb * bb;
     var s: f32 = 0.0;
     if (determinant > 0.00000001 * aa * cc) {
         s = Clamp((bb * ee - cc * dd) / determinant, 0.0, 1.0);
@@ -270,7 +270,7 @@ function OffsetClosest(kind: OffsetFeature, a: float3, b: float3, c: float3, d: 
     var t1: f32 = 0.0;
     var t2: f32 = 0.0;
     if (kind == OffsetFeature.Face) {
-        const bary: float3 = ClosestBary(a, b, c, d);
+        let bary: float3 = ClosestBary(a, b, c, d);
         difference = (a - (((b * bary.x) + (c * bary.y)) + (d * bary.z)));
         weights = float4(1.0, -bary.x, -bary.y, -bary.z);
         active = bary.x > 0.0 && bary.y > 0.0 && bary.z > 0.0;
@@ -280,15 +280,15 @@ function OffsetClosest(kind: OffsetFeature, a: float3, b: float3, c: float3, d: 
         weights = float4(1.0, t1 - 1.0, -t1, 0.0);
         active = t1 > 0.0 && t1 < 1.0;
     } else if (kind == OffsetFeature.EdgePair) {
-        const t: float2 = ClosestSegments(a, b, c, d);
+        let t: float2 = ClosestSegments(a, b, c, d);
         t1 = t.x;
         t2 = t.y;
         difference = (((a * (1.0 - t1)) + (b * t1)) - ((c * (1.0 - t2)) + (d * t2)));
         weights = float4(1.0 - t1, t1, t2 - 1.0, -t2);
-        const cross: float3 = Cross((b - a), (d - c));
+        let cross: float3 = Cross((b - a), (d - c));
         active = Dot(cross, cross) > 0.00000001 * Dot((b - a), (b - a)) * Dot((d - c), (d - c));
     }
-    const distance: f32 = Length(difference);
+    let distance: f32 = Length(difference);
     var normal: float3 = float3(0.0, 0.0, 0.0);
     if (distance > 0.0) {
         normal = (difference * (1.0 / distance));
@@ -302,14 +302,14 @@ function OffsetPotential(distance: f32, radius: f32): float2 {
     if (distance >= radius * 0.5) {
         return float2(radius - distance, -1.0);
     }
-    const coefficient: f32 = radius * radius * 0.25;
-    const energy: f32 = coefficient * (0.5 - Log(distance / (radius * 0.5)));
-    const residual: f32 = Sqrt(2.0 * energy);
+    let coefficient: f32 = radius * radius * 0.25;
+    let energy: f32 = coefficient * (0.5 - Log(distance / (radius * 0.5)));
+    let residual: f32 = Sqrt(2.0 * energy);
     return float2(residual, -coefficient / (distance * residual));
 }
 function Limit(position: float3, anchor: float3, bound: f32): float3 {
-    const delta: float3 = (position - anchor);
-    const length: f32 = Length(delta);
+    let delta: float3 = (position - anchor);
+    let length: f32 = Length(delta);
     if (length > bound) {
         return (anchor + (delta * (bound / length)));
     }
@@ -327,8 +327,8 @@ function Reduce(readonly Source: StorageBuffer<f32>,
     item: u32): void {
     let contactTable = U32(header.contactTable);
     let distances = U32(header.distances);
-    const node: u32 = U32(Source[U32(header.start) + item]);
-    const nodes: u32 = U32(Source[contactTable + 4]) + node * 2;
+    let node: u32 = U32(Source[U32(header.start) + item]);
+    let nodes: u32 = U32(Source[contactTable + 4]) + node * 2;
     State[distances + U32(header.pairCount) + node] = Min(State[distances + U32(Source[nodes])], State[distances + U32(Source[nodes + 1])]);
     return;
 
@@ -341,9 +341,9 @@ function Bounds(readonly Source: StorageBuffer<f32>,
     let contactTable = U32(header.contactTable);
     let anchors = U32(header.anchors);
     let distances = U32(header.distances);
-    const vertex: u32 = item;
-    const position: float3 = Load<float3>(State, vertex * WordCount<ClothParticle>());
-    const root: f32 = Source[U32(Source[contactTable + 5]) + vertex];
+    let vertex: u32 = item;
+    let position: float3 = Load<float3>(State, vertex * WordCount<ClothParticle>());
+    let root: f32 = Source[U32(Source[contactTable + 5]) + vertex];
     var clearance: f32 = 1000000.0;
     if (root >= 0.0) {
         clearance = State[distances + U32(root)];
@@ -352,22 +352,22 @@ function Bounds(readonly Source: StorageBuffer<f32>,
         clearance = Min(clearance, Dot(header.planeNormal, position) - header.planeOffset - header.halfThickness);
     }
     if (header.sphereEnabled > 0.5) {
-        const vertexInfo: u32 = U32(Source[contactTable + 1]) + vertex * 4;
-        const faceList: u32 = U32(Source[vertexInfo + 2]);
-        const faceCount: u32 = U32(Source[vertexInfo + 3]);
-        const sphere: float3 = header.sphere;
+        let vertexInfo: u32 = U32(Source[contactTable + 1]) + vertex * 4;
+        let faceList: u32 = U32(Source[vertexInfo + 2]);
+        let faceCount: u32 = U32(Source[vertexInfo + 3]);
+        let sphere: float3 = header.sphere;
         static for (let local of Indices<32>()) {
             if (local < faceCount) {
-                const face: u32 = U32(Source[contactTable + 2]) + U32(Source[faceList + local]) * 3;
-                const a: u32 = U32(Source[face]) * WordCount<ClothParticle>();
-                const b: u32 = U32(Source[face + 1]) * WordCount<ClothParticle>();
-                const c: u32 = U32(Source[face + 2]) * WordCount<ClothParticle>();
-                const pa: float3 = Load<float3>(State, a);
-                const pb: float3 = Load<float3>(State, b);
-                const pc: float3 = Load<float3>(State, c);
-                const bary: float3 = ClosestBary(sphere, pa, pb, pc);
-                const closest: float3 = (((pa * bary.x) + (pb * bary.y)) + (pc * bary.z));
-                const delta: float3 = (sphere - closest);
+                let face: u32 = U32(Source[contactTable + 2]) + U32(Source[faceList + local]) * 3;
+                let a: u32 = U32(Source[face]) * WordCount<ClothParticle>();
+                let b: u32 = U32(Source[face + 1]) * WordCount<ClothParticle>();
+                let c: u32 = U32(Source[face + 2]) * WordCount<ClothParticle>();
+                let pa: float3 = Load<float3>(State, a);
+                let pb: float3 = Load<float3>(State, b);
+                let pc: float3 = Load<float3>(State, c);
+                let bary: float3 = ClosestBary(sphere, pa, pb, pc);
+                let closest: float3 = (((pa * bary.x) + (pb * bary.y)) + (pc * bary.z));
+                let delta: float3 = (sphere - closest);
                 clearance = Min(clearance, Length(delta) - header.sphereRadius - header.halfThickness);
             }
         }
@@ -392,29 +392,29 @@ function OffsetPair(readonly Source: StorageBuffer<f32>,
     if (phase == ClothPhase.OffsetContacts) {
         pair = U32(Source[U32(header.start) + item]);
     }
-    const entry: u32 = U32(Source[contactTable + 3]) + pair * 8;
-    const kind: OffsetFeature = Feature(Source[entry]);
-    const a: u32 = U32(Source[entry + 2]);
-    const b: u32 = U32(Source[entry + 3]);
-    const c: u32 = U32(Source[entry + 4]);
-    const d: u32 = U32(Source[entry + 5]);
-    const pa: float3 = Load<float3>(State, a * WordCount<ClothParticle>());
-    const pb: float3 = Load<float3>(State, b * WordCount<ClothParticle>());
-    const pc: float3 = Load<float3>(State, c * WordCount<ClothParticle>());
-    const pd: float3 = Load<float3>(State, d * WordCount<ClothParticle>());
-    const query: OffsetQuery = OffsetClosest(kind, pa, pb, pc, pd);
+    let entry: u32 = U32(Source[contactTable + 3]) + pair * 8;
+    let kind: OffsetFeature = Feature(Source[entry]);
+    let a: u32 = U32(Source[entry + 2]);
+    let b: u32 = U32(Source[entry + 3]);
+    let c: u32 = U32(Source[entry + 4]);
+    let d: u32 = U32(Source[entry + 5]);
+    let pa: float3 = Load<float3>(State, a * WordCount<ClothParticle>());
+    let pb: float3 = Load<float3>(State, b * WordCount<ClothParticle>());
+    let pc: float3 = Load<float3>(State, c * WordCount<ClothParticle>());
+    let pd: float3 = Load<float3>(State, d * WordCount<ClothParticle>());
+    let query: OffsetQuery = OffsetClosest(kind, pa, pb, pc, pd);
     if (phase == ClothPhase.OffsetDistances) {
         State[distances + pair] = query.distance;
         return;
     }
     var active: bool = query.active;
     if (kind == OffsetFeature.Edge) {
-        const edge: u32 = U32(Source[contactTable]) + U32(Source[entry + 6]) * 5;
+        let edge: u32 = U32(Source[contactTable]) + U32(Source[entry + 6]) * 5;
         static for (let local of Indices<2>()) {
             if (local < U32(Source[edge + 2])) {
-                const opposite: u32 = U32(Source[edge + 3 + local]) * WordCount<ClothParticle>();
-                const point: float3 = Load<float3>(State, opposite);
-                const foot: float3 = (pb + ((pc - pb) * LineT(point, pb, pc)));
+                let opposite: u32 = U32(Source[edge + 3 + local]) * WordCount<ClothParticle>();
+                let point: float3 = Load<float3>(State, opposite);
+                let foot: float3 = (pb + ((pc - pb) * LineT(point, pb, pc)));
                 active = active && Dot((pa - foot), (foot - point)) >= 0.0;
             }
         }
@@ -446,26 +446,26 @@ function OffsetPair(readonly Source: StorageBuffer<f32>,
             }
         }
         if (check) {
-            const info: u32 = U32(Source[contactTable + 1]) + vertex * 4;
-            const list: u32 = U32(Source[info]);
-            const count: u32 = U32(Source[info + 1]);
-            const origin: float3 = Load<float3>(State, vertex * WordCount<ClothParticle>());
+            let info: u32 = U32(Source[contactTable + 1]) + vertex * 4;
+            let list: u32 = U32(Source[info]);
+            let count: u32 = U32(Source[info + 1]);
+            let origin: float3 = Load<float3>(State, vertex * WordCount<ClothParticle>());
             static for (let local of Indices<32>()) {
                 if (local < count) {
-                    const neighbor: u32 = U32(Source[list + local]) * WordCount<ClothParticle>();
-                    const next: float3 = Load<float3>(State, neighbor);
+                    let neighbor: u32 = U32(Source[list + local]) * WordCount<ClothParticle>();
+                    let next: float3 = Load<float3>(State, neighbor);
                     active = active && Dot((point - origin), (origin - next)) >= 0.0;
                 }
             }
         }
     }
-    const lambda: u32 = U32(header.contactLambda) + pair;
+    let lambda: u32 = U32(header.contactLambda) + pair;
     if (!active || query.distance >= header.contactRadius) {
         State[lambda] = 0.0;
         return;
     }
-    const potential: float2 = OffsetPotential(query.distance, header.contactRadius);
-    const movable: f32 = Load<ClothParticle>(State, a * WordCount<ClothParticle>()).inverseMass * query.weights.x * query.weights.x
+    let potential: float2 = OffsetPotential(query.distance, header.contactRadius);
+    let movable: f32 = Load<ClothParticle>(State, a * WordCount<ClothParticle>()).inverseMass * query.weights.x * query.weights.x
     + Load<ClothParticle>(State, b * WordCount<ClothParticle>()).inverseMass * query.weights.y * query.weights.y
     + Load<ClothParticle>(State, c * WordCount<ClothParticle>()).inverseMass * query.weights.z * query.weights.z
     + Load<ClothParticle>(State, d * WordCount<ClothParticle>()).inverseMass * query.weights.w * query.weights.w;
@@ -476,8 +476,8 @@ function OffsetPair(readonly Source: StorageBuffer<f32>,
     if (header.reset > 0.5) {
         previous = 0.0;
     }
-    const alpha: f32 = header.contactCompliance / (header.step * header.step);
-    const increment: f32 = (-potential.x - alpha * previous) / (movable * potential.y * potential.y + alpha);
+    let alpha: f32 = header.contactCompliance / (header.step * header.step);
+    let increment: f32 = (-potential.x - alpha * previous) / (movable * potential.y * potential.y + alpha);
     State[lambda] = previous + increment;
     static for (let local of Indices<4>()) {
         if (local < U32(Source[entry + 1])) {
@@ -495,9 +495,9 @@ function OffsetPair(readonly Source: StorageBuffer<f32>,
                 vertex = d;
                 weight = query.weights.w;
             }
-            const position: float3 = Load<float3>(State, vertex * WordCount<ClothParticle>());
-            const proposed: float3 = (position + (query.normal * (Load<ClothParticle>(State, vertex * WordCount<ClothParticle>()).inverseMass * weight * potential.y * increment)));
-            const corrected: float3 = LimitToAnchor(State, proposed, anchors + vertex * WordCount<ClothAnchor>());
+            let position: float3 = Load<float3>(State, vertex * WordCount<ClothParticle>());
+            let proposed: float3 = (position + (query.normal * (Load<ClothParticle>(State, vertex * WordCount<ClothParticle>()).inverseMass * weight * potential.y * increment)));
+            let corrected: float3 = LimitToAnchor(State, proposed, anchors + vertex * WordCount<ClothAnchor>());
             Store<float3>(State, vertex * WordCount<ClothParticle>(), corrected);
         }
     }
@@ -556,7 +556,7 @@ function VertexContact(header: ClothHeader,
     var position: float3 = Load<float3>(State, o);
     var contact: ContactShape = ContactShape.None;
     if (header.planeEnabled > 0.5) {
-        const normal: float3 = header.planeNormal;
+        let normal: float3 = header.planeNormal;
         contact = ContactShape.Plane(normal.x, normal.y, normal.z, header.planeOffset + header.halfThickness);
     }
     position = ProjectContact(position, contact);
@@ -698,16 +698,16 @@ function Constraint(readonly Source: StorageBuffer<f32>,
     let h = header.step;
     let sphere = header.sphere;
     let radius = header.sphereRadius + header.halfThickness;
-    const index: u32 = U32(header.start) + item;
+    let index: u32 = U32(header.start) + item;
     let stencil = Load<ClothStencil>(Source, index * WordCount<ClothStencil>());
     if (phase == ClothPhase.Constraints && U32(stencil.kind) >= 6) {
         SurfaceConstraint(Source, header, State, index, stencil);
         return;
     }
-    const a: u32 = U32(stencil.a);
-    const b: u32 = U32(stencil.b);
-    const c: u32 = U32(stencil.c);
-    const d: u32 = U32(stencil.d);
+    let a: u32 = U32(stencil.a);
+    let b: u32 = U32(stencil.b);
+    let c: u32 = U32(stencil.c);
+    let d: u32 = U32(stencil.d);
     var pa: float3 = Load<float3>(State, a * WordCount<ClothParticle>());
     var pb: float3 = Load<float3>(State, b * WordCount<ClothParticle>());
     var pc: float3 = float3(0.0, 0.0, 0.0);
@@ -718,17 +718,17 @@ function Constraint(readonly Source: StorageBuffer<f32>,
     if (phase != ClothPhase.TriangleContact && U32(stencil.kind) == 3) {
         pd = Load<float3>(State, d * WordCount<ClothParticle>());
     }
-    const wa: f32 = Load<ClothParticle>(State, a * WordCount<ClothParticle>()).inverseMass;
-    const wb: f32 = Load<ClothParticle>(State, b * WordCount<ClothParticle>()).inverseMass;
-    const wc: f32 = Load<ClothParticle>(State, c * WordCount<ClothParticle>()).inverseMass;
-    const wd: f32 = Load<ClothParticle>(State, d * WordCount<ClothParticle>()).inverseMass;
+    let wa: f32 = Load<ClothParticle>(State, a * WordCount<ClothParticle>()).inverseMass;
+    let wb: f32 = Load<ClothParticle>(State, b * WordCount<ClothParticle>()).inverseMass;
+    let wc: f32 = Load<ClothParticle>(State, c * WordCount<ClothParticle>()).inverseMass;
+    let wd: f32 = Load<ClothParticle>(State, d * WordCount<ClothParticle>()).inverseMass;
     if (phase == ClothPhase.TriangleContact) {
-        const bary: float3 = ClosestBary(sphere, pa, pb, pc);
-        const closest: float3 = (((pa * bary.x) + (pb * bary.y)) + (pc * bary.z));
-        const difference: float3 = (closest - sphere);
-        const distance: f32 = Length(difference);
-        const penetration: f32 = radius - distance;
-        const denominator: f32 = wa * bary.x * bary.x + wb * bary.y * bary.y + wc * bary.z * bary.z;
+        let bary: float3 = ClosestBary(sphere, pa, pb, pc);
+        let closest: float3 = (((pa * bary.x) + (pb * bary.y)) + (pc * bary.z));
+        let difference: float3 = (closest - sphere);
+        let distance: f32 = Length(difference);
+        let penetration: f32 = radius - distance;
+        let denominator: f32 = wa * bary.x * bary.x + wb * bary.y * bary.y + wc * bary.z * bary.z;
         if (penetration <= 0.0 || denominator <= 0.00000000000000000001)
         {
             return;
@@ -738,7 +738,7 @@ function Constraint(readonly Source: StorageBuffer<f32>,
         {
             normal = (difference * (1.0 / distance));
         }
-        const correction: float3 = (normal * (penetration / denominator));
+        let correction: float3 = (normal * (penetration / denominator));
         pa = (pa + (correction * (wa * bary.x)));
         pb = (pb + (correction * (wb * bary.y)));
         pc = (pc + (correction * (wc * bary.z)));
@@ -749,7 +749,7 @@ function Constraint(readonly Source: StorageBuffer<f32>,
         }
         Store<float3>(State, c * WordCount<ClothParticle>(), pc);
     } else {
-        const l: u32 = U32(header.vertexCount) * WordCount<ClothParticle>() + index * 3;
+        let l: u32 = U32(header.vertexCount) * WordCount<ClothParticle>() + index * 3;
         var previous: float3 = Load<float3>(State, l);
         if (header.reset > 0.5)
         {
@@ -759,18 +759,18 @@ function Constraint(readonly Source: StorageBuffer<f32>,
         if (U32(stencil.kind) == 5) {
             compliance = compliance * header.stitchComplianceScale;
         }
-        const alpha: f32 = compliance / (h * h);
+        let alpha: f32 = compliance / (h * h);
         var increment: float3 = float3(0.0, 0.0, 0.0);
         if (U32(stencil.kind) == 3 || U32(stencil.kind) == 4 || U32(stencil.kind) == 5) {
-            const entries: u32 = U32(stencil.weights);
-            const count: u32 = U32(stencil.arity);
+            let entries: u32 = U32(stencil.weights);
+            let count: u32 = U32(stencil.arity);
             var curvature: float3 = float3(0.0, 0.0, 0.0);
             var movable: f32 = 0.0;
             static for (let local of Indices<32>()) {
                 if (local < count) {
-                    const vertex: u32 = U32(Source[entries + local * 2]);
-                    const weight: f32 = Source[entries + local * 2 + 1];
-                    const position: float3 = Load<float3>(State, vertex * WordCount<ClothParticle>());
+                    let vertex: u32 = U32(Source[entries + local * 2]);
+                    let weight: f32 = Source[entries + local * 2 + 1];
+                    let position: float3 = Load<float3>(State, vertex * WordCount<ClothParticle>());
                     curvature = (curvature + (position * weight));
                     movable = movable + Load<ClothParticle>(State, vertex * WordCount<ClothParticle>()).inverseMass * weight * weight;
                 }
@@ -781,9 +781,9 @@ function Constraint(readonly Source: StorageBuffer<f32>,
             increment = (-curvature - previous * alpha) * (1.0 / (movable + alpha));
             static for (let local of Indices<32>()) {
                 if (local < count) {
-                    const vertex: u32 = U32(Source[entries + local * 2]);
-                    const weight: f32 = Source[entries + local * 2 + 1];
-                    const position: float3 = Load<float3>(State, vertex * WordCount<ClothParticle>());
+                    let vertex: u32 = U32(Source[entries + local * 2]);
+                    let weight: f32 = Source[entries + local * 2 + 1];
+                    let position: float3 = Load<float3>(State, vertex * WordCount<ClothParticle>());
                     var corrected: float3 = (position + (increment * (Load<ClothParticle>(State, vertex * WordCount<ClothParticle>()).inverseMass * weight)));
                     if (header.offsetEnabled > 0.5) {
                         corrected = LimitToAnchor(State, corrected, anchors + vertex * WordCount<ClothAnchor>());
@@ -794,15 +794,15 @@ function Constraint(readonly Source: StorageBuffer<f32>,
             Store<float3>(State, l, previous + increment);
             return;
         } else {
-            const difference: float3 = (pa - pb);
-            const length: f32 = Length(difference);
+            let difference: float3 = (pa - pb);
+            let length: f32 = Length(difference);
             if (length < 0.0000000001 || wa + wb == 0.0)
             {
                 return;
             }
-            const delta: f32 = (0.0 - (length - stencil.restLength) - alpha * previous.x) / (wa + wb + alpha);
+            let delta: f32 = (0.0 - (length - stencil.restLength) - alpha * previous.x) / (wa + wb + alpha);
             increment = float3(delta, 0.0, 0.0);
-            const correction: float3 = (difference * (delta / length));
+            let correction: float3 = (difference * (delta / length));
             pa = (pa + (correction * wa));
             pb = (pb - (correction * wb));
             if (header.offsetEnabled > 0.5) {
@@ -810,7 +810,7 @@ function Constraint(readonly Source: StorageBuffer<f32>,
                 pb = LimitToAnchor(State, pb, anchors + b * WordCount<ClothAnchor>());
             }
         }
-        const next: float3 = (previous + increment);
+        let next: float3 = (previous + increment);
         Store<float3>(State, l, next);
     }
     Store<float3>(State, a * WordCount<ClothParticle>(), pa);

@@ -84,7 +84,7 @@ stream VisibilityOutput {
 }
 @vertex
 function VertexMain(input: VertexInput, uniforms: MaterialResources, tables: TableResources, builtins: VertexBuiltins): VisibilityVaryings {
-    const instance: ResidentInstance = tables.instances[builtins.instance];
+    let instance: ResidentInstance = tables.instances[builtins.instance];
     var minimum: float2 = float2(1.0, 1.0);
     var maximum: float2 = float2(-1.0, -1.0);
     var clipped: bool = false;
@@ -97,9 +97,9 @@ function VertexMain(input: VertexInput, uniforms: MaterialResources, tables: Tab
         if ((corner & 1) != 0) { x = radial; }
         if ((corner & 2) != 0) { y = 1.0; }
         if ((corner & 4) != 0) { z = radial; }
-        const point: float3 = float3(x, y, z);
-        const world: float3 = float3(PointRow(input.worldX, point), PointRow(input.worldY, point), PointRow(input.worldZ, point));
-        const clip: float4 = float4(PointRow(uniforms.material.clipX, world), PointRow(uniforms.material.clipY, world),
+        let point: float3 = float3(x, y, z);
+        let world: float3 = float3(PointRow(input.worldX, point), PointRow(input.worldY, point), PointRow(input.worldZ, point));
+        let clip: float4 = float4(PointRow(uniforms.material.clipX, world), PointRow(uniforms.material.clipY, world),
             PointRow(uniforms.material.clipZ, world), PointRow(uniforms.material.clipW, world));
         if (clip.w <= 0.00001 || clip.z <= 0.0) { clipped = true; }
         if (clip.w > 0.00001) {
@@ -110,36 +110,36 @@ function VertexMain(input: VertexInput, uniforms: MaterialResources, tables: Tab
     if (clipped) { minimum = float2(-1.0, -1.0); maximum = float2(1.0, 1.0); }
     minimum = float2(Max(-1.0, minimum.x - 4.0 / uniforms.material.baseColor.x), Max(-1.0, minimum.y - 4.0 / uniforms.material.baseColor.y));
     maximum = float2(Min(1.0, maximum.x + 4.0 / uniforms.material.baseColor.x), Min(1.0, maximum.y + 4.0 / uniforms.material.baseColor.y));
-    const x: f32 = minimum.x + (maximum.x - minimum.x) * (input.position.x * 0.5 + 0.5);
-    const y: f32 = minimum.y + (maximum.y - minimum.y) * (input.position.y * 0.5 + 0.5);
+    let x: f32 = minimum.x + (maximum.x - minimum.x) * (input.position.x * 0.5 + 0.5);
+    let y: f32 = minimum.y + (maximum.y - minimum.y) * (input.position.y * 0.5 + 0.5);
     return { position: float4(x, y, 0.0, 1.0), uv: float2(0.0, 0.0), color: float4(1.0, 1.0, 1.0, 1.0),
         instance: builtins.instance, firstTriangle: 0 };
 }
 
 @pixel
 function PixelMain(input: VisibilityVaryings, uniforms: MaterialResources, tables: TableResources): VisibilityOutput {
-    const instance: ResidentInstance = tables.instances[input.instance];
-    const viewport: float2 = float2(uniforms.material.baseColor.x, uniforms.material.baseColor.y);
-    const pixel: float2 = float2(input.position.x, input.position.y);
-    const ray: AnalyticRay = AnalyticLocalRay(pixel, viewport, instance, uniforms.material.clipX, uniforms.material.clipY,
+    let instance: ResidentInstance = tables.instances[input.instance];
+    let viewport: float2 = float2(uniforms.material.baseColor.x, uniforms.material.baseColor.y);
+    let pixel: float2 = float2(input.position.x, input.position.y);
+    let ray: AnalyticRay = AnalyticLocalRay(pixel, viewport, instance, uniforms.material.clipX, uniforms.material.clipY,
         uniforms.material.clipZ, uniforms.material.clipW);
-    const hit: AnalyticHit = IntersectAnalytic(ray, instance.primitiveKind);
+    let hit: AnalyticHit = IntersectAnalytic(ray, instance.primitiveKind);
     if (hit.valid == 0) { Discard(); }
-    const attributes: ResidentAttributes = AnalyticAttributes(hit, instance);
-    const clip: float4 = float4(PointRow(uniforms.material.clipX, attributes.world), PointRow(uniforms.material.clipY, attributes.world),
+    let attributes: ResidentAttributes = AnalyticAttributes(hit, instance);
+    let clip: float4 = float4(PointRow(uniforms.material.clipX, attributes.world), PointRow(uniforms.material.clipY, attributes.world),
         PointRow(uniforms.material.clipZ, attributes.world), PointRow(uniforms.material.clipW, attributes.world));
-    const depth: f32 = clip.z / clip.w;
+    let depth: f32 = clip.z / clip.w;
     if (clip.w <= 0.0 || depth < 0.0 || depth > 1.0) { Discard(); }
-    const material: BindlessMaterialRecord = tables.materials[tables.instanceMaterials[input.instance]];
-    const front: bool = Dot3(hit.normal, ray.direction) < 0.0;
+    let material: BindlessMaterialRecord = tables.materials[tables.instanceMaterials[input.instance]];
+    let front: bool = Dot3(hit.normal, ray.direction) < 0.0;
     var baseSample: float4 = float4(1.0, 1.0, 1.0, 1.0);
     if (material.surface.flags.y > 0.5) {
-        const gradient: float4 = AnalyticGradients(pixel, viewport, hit, instance, uniforms.material.clipX,
+        let gradient: float4 = AnalyticGradients(pixel, viewport, hit, instance, uniforms.material.clipX,
             uniforms.material.clipY, uniforms.material.clipZ, uniforms.material.clipW);
         baseSample = SampleGrad(tables.textures[NonUniform(material.baseTexture)], tables.samplers[NonUniform(material.baseSampler)],
             attributes.uv, float2(gradient.x, gradient.y), float2(gradient.z, gradient.w));
     }
-    const covered: float4 = TestSurfaceCoverage(front, material.surface, baseSample, attributes.color);
+    let covered: float4 = TestSurfaceCoverage(front, material.surface, baseSample, attributes.color);
     var face: u32 = 0;
     if (!front) { face = 1; }
     return { depth: depth, identity: uint2(input.instance + 1, 0x80000000 + face) };

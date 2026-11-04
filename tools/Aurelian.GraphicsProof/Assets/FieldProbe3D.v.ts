@@ -52,7 +52,7 @@ function ProjectRow(row: float4, p: WorldPosition3): f32 {
 function VertexMain(input: VertexInput, resources: CameraResources): SolidVaryings {
     var color: float4 = input.color;
     if (resources.camera.surface.z < 0.5) {
-        const light: f32 = resources.camera.light.w + (1.0 - resources.camera.light.w) * Max(
+        let light: f32 = resources.camera.light.w + (1.0 - resources.camera.light.w) * Max(
             input.normal.x * resources.camera.light.x + input.normal.y * resources.camera.light.y + input.normal.z * resources.camera.light.z, 0.0);
         color = input.color * float4(light, light, light, 1.0);
     }
@@ -68,18 +68,18 @@ function ChooseLighting(enabled: f32, color: float4): LightingChoice {
     return LightingChoice.Pbr;
 }
 function ShadeSolid(input: SolidVaryings, resources: CameraResources, shadows: SolidShadowResources): float4 {
-    const normal: float3 = Unit(input.normal);
-    const light: float3 = Unit(float3(resources.camera.light.x, resources.camera.light.y, resources.camera.light.z));
-    const trace: float4 = TraceField(Add3(input.world, Scale3(normal, 0.004)), light, 48.0, TraceBudget());
+    let normal: float3 = Unit(input.normal);
+    let light: float3 = Unit(float3(resources.camera.light.x, resources.camera.light.y, resources.camera.light.z));
+    let trace: float4 = TraceField(Add3(input.world, Scale3(normal, 0.004)), light, 48.0, TraceBudget());
     if (trace.x == 1.0) {
         return float4(0.0, 0.0, 0.0, 1.0);
     }
     if (trace.x == 2.0) {
         return float4(1.0, 1.0, 1.0, 1.0);
     }
-    const p: WorldPosition3 = float3(input.world.x, input.world.y, input.world.z);
-    const projected: float3 = float3(ProjectRow(resources.camera.shadowX, p), ProjectRow(resources.camera.shadowY, p), ProjectRow(resources.camera.shadowZ, p));
-    const fallback: f32 = ShadowVisibility(shadows.shadowMap, shadows.shadowSampler, projected, resources.camera.shadowParameters, 1.0);
+    let p: WorldPosition3 = float3(input.world.x, input.world.y, input.world.z);
+    let projected: float3 = float3(ProjectRow(resources.camera.shadowX, p), ProjectRow(resources.camera.shadowY, p), ProjectRow(resources.camera.shadowZ, p));
+    let fallback: f32 = ShadowVisibility(shadows.shadowMap, shadows.shadowSampler, projected, resources.camera.shadowParameters, 1.0);
     return float4(1.0, fallback * 0.5, 1.0, 1.0);
 }
 @pixel

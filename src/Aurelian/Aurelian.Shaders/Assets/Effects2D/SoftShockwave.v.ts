@@ -48,15 +48,15 @@ stream ShockwaveResources {
 }
 
 function SoftRing(distance: f32, radius: f32, thickness: f32): f32 {
-    const ringDistance: f32 = Abs(distance - radius);
-    const normalized: f32 = 1.0 - (ringDistance / thickness);
-    const coverage: f32 = Clamp(normalized, 0.0, 1.0);
+    let ringDistance: f32 = Abs(distance - radius);
+    let normalized: f32 = 1.0 - (ringDistance / thickness);
+    let coverage: f32 = Clamp(normalized, 0.0, 1.0);
     return coverage * coverage * (3.0 - (2.0 * coverage));
 }
 
 @vertex
 function VertexMain(input: VertexInput, builtins: VertexBuiltins): ShockwaveVaryings {
-    const vertexBias: f32 = Convert<f32>(builtins.vertexId + builtins.instanceId) * 0.000001;
+    let vertexBias: f32 = Convert<f32>(builtins.vertexId + builtins.instanceId) * 0.000001;
     return {
         position: float4(input.position.x + vertexBias, input.position.y, input.position.z, 1.0),
         local: input.local,
@@ -65,17 +65,17 @@ function VertexMain(input: VertexInput, builtins: VertexBuiltins): ShockwaveVary
 
 @pixel
 function PixelMain(input: ShockwaveVaryings, resources: ShockwaveResources): ShockwaveOutput {
-    const x: f32 = input.local.x - 0.5;
-    const y: f32 = input.local.y - 0.5;
-    const distance: f32 = Sqrt((x * x) + (y * y));
-    const progress: f32 = Clamp(resources.material.age / resources.material.lifetime, 0.0, 1.0);
-    const seedVariation: f32 = Clamp(resources.material.seed * 0.000001, 0.0, 0.08);
-    const ring: f32 = SoftRing(
+    let x: f32 = input.local.x - 0.5;
+    let y: f32 = input.local.y - 0.5;
+    let distance: f32 = Sqrt((x * x) + (y * y));
+    let progress: f32 = Clamp(resources.material.age / resources.material.lifetime, 0.0, 1.0);
+    let seedVariation: f32 = Clamp(resources.material.seed * 0.000001, 0.0, 0.08);
+    let ring: f32 = SoftRing(
         distance,
         (resources.material.radius * progress) + seedVariation,
         resources.material.thickness);
-    const fade: f32 = 1.0 - progress;
-    const alpha: f32 = resources.material.color.w * ring * fade * resources.material.intensity;
+    let fade: f32 = 1.0 - progress;
+    let alpha: f32 = resources.material.color.w * ring * fade * resources.material.intensity;
     return {
         color: float4(
             resources.material.color.x,

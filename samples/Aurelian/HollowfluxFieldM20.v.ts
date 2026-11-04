@@ -39,12 +39,12 @@ function VertexMain(input: VertexInput): FieldVaryings {
 
 @pixel
 function PixelMain(input: FieldPixelInput, resources: FieldResources): FieldOutput {
-    const field: float4 = Sample(resources.semanticField, resources.linearSampler, input.uv);
-    const wet: f32 = field.z;
-    const safeCoverage: f32 = wet * 0.57 + 0.43;
-    const reconstructedHeight: f32 = (field.x - 0.5) / safeCoverage + 0.5;
-    const foam: f32 = field.y / safeCoverage;
-    const charge: f32 = field.w / safeCoverage;
+    let field: float4 = Sample(resources.semanticField, resources.linearSampler, input.uv);
+    let wet: f32 = field.z;
+    let safeCoverage: f32 = wet * 0.57 + 0.43;
+    let reconstructedHeight: f32 = (field.x - 0.5) / safeCoverage + 0.5;
+    let foam: f32 = field.y / safeCoverage;
+    let charge: f32 = field.w / safeCoverage;
     return {
         color: float4(reconstructedHeight * wet, foam * wet, charge * wet, wet),
     };

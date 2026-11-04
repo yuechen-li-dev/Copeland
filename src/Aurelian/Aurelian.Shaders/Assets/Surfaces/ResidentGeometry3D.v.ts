@@ -37,12 +37,12 @@ export function DirectionRow(row: float4, direction: float3): f32 {
     return row.x * direction.x + row.y * direction.y + row.z * direction.z;
 }
 export function TransformResidentVertex(vertex: ResidentVertex, instance: ResidentInstance): ResidentAttributes {
-    const world: float3 = float3(PointRow(instance.worldX, vertex.position), PointRow(instance.worldY, vertex.position), PointRow(instance.worldZ, vertex.position));
-    const previous: float3 = float3(PointRow(instance.previousX, vertex.position), PointRow(instance.previousY, vertex.position), PointRow(instance.previousZ, vertex.position));
-    const normal: float3 = Unit(float3(DirectionRow(instance.normalX, vertex.normal), DirectionRow(instance.normalY, vertex.normal), DirectionRow(instance.normalZ, vertex.normal)));
-    const localTangent: float3 = float3(vertex.tangent.x, vertex.tangent.y, vertex.tangent.z);
-    const transformedTangent: float3 = float3(DirectionRow(instance.worldX, localTangent), DirectionRow(instance.worldY, localTangent), DirectionRow(instance.worldZ, localTangent));
-    const tangent: float3 = Unit(Sub3(transformedTangent, Scale3(normal, Dot3(normal, transformedTangent))));
+    let world: float3 = float3(PointRow(instance.worldX, vertex.position), PointRow(instance.worldY, vertex.position), PointRow(instance.worldZ, vertex.position));
+    let previous: float3 = float3(PointRow(instance.previousX, vertex.position), PointRow(instance.previousY, vertex.position), PointRow(instance.previousZ, vertex.position));
+    let normal: float3 = Unit(float3(DirectionRow(instance.normalX, vertex.normal), DirectionRow(instance.normalY, vertex.normal), DirectionRow(instance.normalZ, vertex.normal)));
+    let localTangent: float3 = float3(vertex.tangent.x, vertex.tangent.y, vertex.tangent.z);
+    let transformedTangent: float3 = float3(DirectionRow(instance.worldX, localTangent), DirectionRow(instance.worldY, localTangent), DirectionRow(instance.worldZ, localTangent));
+    let tangent: float3 = Unit(Sub3(transformedTangent, Scale3(normal, Dot3(normal, transformedTangent))));
     return { world: world, previous: previous, normal: normal,
         tangent: float4(tangent.x, tangent.y, tangent.z, vertex.tangent.w), color: vertex.color, uv: vertex.uv };
 }

@@ -30,6 +30,7 @@ public static partial class GpuComputeBinder
             {
                 [loop.Identifier.Text] = new("u32", false, null, false),
             };
+            _localConstants.Inherit(scope, nestedScope);
             var body = BindNestedStatement(path, loop.Body, nestedScope, returnType);
             if (Descendants(body).Any(statement => statement.Kind is "return" or "cooperative-matmul"))
             {

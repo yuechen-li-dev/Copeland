@@ -14,6 +14,6 @@ function VertexMain(input: Input): Varyings {
 
 @pixel
 function PixelMain(input: Varyings): Output {
-    const value: f32 = Shade(input.value);
+    let value: f32 = Shade(input.value);
     return { color: float4(value, value, value, 1.0) };
 }

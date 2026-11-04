@@ -66,7 +66,7 @@ function EstablishClip(value: ObjectPosition3): ClipPosition4 {
 
 @vertex
 function VertexMain(input: VertexInput, builtins: VertexBuiltins): ForwardVaryings {
-    const vertexBias: f32 = Convert<f32>(builtins.vertexId + builtins.instanceId) * 0.000001;
+    let vertexBias: f32 = Convert<f32>(builtins.vertexId + builtins.instanceId) * 0.000001;
     return {
         position: float4(input.position.x + vertexBias, input.position.y, input.position.z, 1.0),
         uv: input.uv,
@@ -76,7 +76,7 @@ function VertexMain(input: VertexInput, builtins: VertexBuiltins): ForwardVaryin
 
 @pixel
 function PixelMain(input: ForwardVaryings, resources: ForwardResources, builtins: PixelBuiltins): ForwardOutput {
-    const texel: float4 = Sample(resources.albedo, resources.linearSampler, input.uv);
+    let texel: float4 = Sample(resources.albedo, resources.linearSampler, input.uv);
     if (builtins.frontFace) {
         return {
             color: texel * resources.material.tint,

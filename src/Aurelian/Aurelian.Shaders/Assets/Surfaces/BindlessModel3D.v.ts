@@ -87,16 +87,16 @@ function DirectionRow(row: float4, direction: float3): f32 {
 }
 @vertex
 function VertexMain(input: VertexInput, uniforms: MaterialResources, tables: TableResources, builtins: VertexBuiltins): ModelVaryings {
-    const world: float3 = float3(PointRow(input.worldX, input.position), PointRow(input.worldY, input.position),
+    let world: float3 = float3(PointRow(input.worldX, input.position), PointRow(input.worldY, input.position),
         PointRow(input.worldZ, input.position));
-    const previous: float3 = float3(PointRow(input.previousX, input.position), PointRow(input.previousY, input.position),
+    let previous: float3 = float3(PointRow(input.previousX, input.position), PointRow(input.previousY, input.position),
         PointRow(input.previousZ, input.position));
-    const normal: float3 = Unit(float3(DirectionRow(input.normalX, input.normal),
+    let normal: float3 = Unit(float3(DirectionRow(input.normalX, input.normal),
         DirectionRow(input.normalY, input.normal), DirectionRow(input.normalZ, input.normal)));
-    const localTangent: float3 = float3(input.tangent.x, input.tangent.y, input.tangent.z);
-    const transformedTangent: float3 = float3(DirectionRow(input.worldX, localTangent),
+    let localTangent: float3 = float3(input.tangent.x, input.tangent.y, input.tangent.z);
+    let transformedTangent: float3 = float3(DirectionRow(input.worldX, localTangent),
         DirectionRow(input.worldY, localTangent), DirectionRow(input.worldZ, localTangent));
-    const tangent: float3 = Unit(Sub3(transformedTangent, Scale3(normal, Dot3(normal, transformedTangent))));
+    let tangent: float3 = Unit(Sub3(transformedTangent, Scale3(normal, Dot3(normal, transformedTangent))));
     return {
         materialId: tables.instanceMaterials[builtins.instance],
         position: float4(PointRow(uniforms.material.clipX, world), PointRow(uniforms.material.clipY, world),

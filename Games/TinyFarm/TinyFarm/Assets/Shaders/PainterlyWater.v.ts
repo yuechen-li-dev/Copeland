@@ -48,15 +48,15 @@ function VertexMain(input: VertexInput): FieldVaryings {
 
 @pixel
 function PixelMain(input: FieldPixelInput, resources: FieldResources): FieldOutput {
-    const field: float4 = Sample(resources.semanticField, resources.linearSampler, input.uv);
-    const wet: f32 = field.z;
-    const safeCoverage: f32 = wet * 0.57 + 0.43;
-    const height: f32 = (field.x - 0.5) / safeCoverage + 0.5;
-    const foam: f32 = field.y / safeCoverage;
-    const charge: f32 = field.w / safeCoverage;
-    const red: f32 = 0.10 + height * 0.08 + charge * 0.36 + foam * 0.35;
-    const green: f32 = 0.34 + height * 0.10 + charge * 0.30 + foam * 0.48;
-    const blue: f32 = 0.48 + height * 0.16 + charge * 0.45 + foam * 0.42;
+    let field: float4 = Sample(resources.semanticField, resources.linearSampler, input.uv);
+    let wet: f32 = field.z;
+    let safeCoverage: f32 = wet * 0.57 + 0.43;
+    let height: f32 = (field.x - 0.5) / safeCoverage + 0.5;
+    let foam: f32 = field.y / safeCoverage;
+    let charge: f32 = field.w / safeCoverage;
+    let red: f32 = 0.10 + height * 0.08 + charge * 0.36 + foam * 0.35;
+    let green: f32 = 0.34 + height * 0.10 + charge * 0.30 + foam * 0.48;
+    let blue: f32 = 0.48 + height * 0.16 + charge * 0.45 + foam * 0.42;
     return {
         color: float4(red, green, blue, wet * 0.94) * resources.material.tint,
     };

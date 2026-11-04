@@ -138,69 +138,69 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
     if (!builtins.frontFace && uniforms.material.flags.z < 0.5) {
         Discard();
     }
-    const base: float4 = Sample(resources.baseMap, resources.baseSampler, input.uv) * uniforms.material.baseColor * input.color;
+    let base: float4 = Sample(resources.baseMap, resources.baseSampler, input.uv) * uniforms.material.baseColor * input.color;
     if (uniforms.material.flags.y > 0.5 && base.w < uniforms.material.emissiveAlpha.w) {
         Discard();
     }
-    const uv: float2 = float2(input.position.x * uniforms.material.surfaceTexels.x,
+    let uv: float2 = float2(input.position.x * uniforms.material.surfaceTexels.x,
         input.position.y * uniforms.material.surfaceTexels.y);
-    const opaque: float4 = Sample(resources.motion, resources.motionSampler, uv);
+    let opaque: float4 = Sample(resources.motion, resources.motionSampler, uv);
     if (input.position.z >= opaque.w) {
         Discard();
     }
-    const emission: float4 = Sample(resources.emissiveMap, resources.emissiveSampler, input.uv);
-    const emitted: float3 = Mul3(float3(emission.x, emission.y, emission.z),
+    let emission: float4 = Sample(resources.emissiveMap, resources.emissiveSampler, input.uv);
+    let emitted: float3 = Mul3(float3(emission.x, emission.y, emission.z),
         float3(uniforms.material.emissiveAlpha.x, uniforms.material.emissiveAlpha.y, uniforms.material.emissiveAlpha.z));
-    const nt: float4 = Sample(resources.normalMap, resources.normalSampler, input.uv);
-    const tangent: float3 = Unit(float3(input.tangent.x, input.tangent.y, input.tangent.z));
-    const geometric: float3 = Unit(input.normal);
-    const bitangent: float3 = Scale3(Cross3(geometric, tangent), input.tangent.w);
+    let nt: float4 = Sample(resources.normalMap, resources.normalSampler, input.uv);
+    let tangent: float3 = Unit(float3(input.tangent.x, input.tangent.y, input.tangent.z));
+    let geometric: float3 = Unit(input.normal);
+    let bitangent: float3 = Scale3(Cross3(geometric, tangent), input.tangent.w);
     var normal: float3 = Unit(Add3(Add3(Scale3(tangent, (nt.x * 2.0 - 1.0) * uniforms.material.factors.z),
         Scale3(bitangent, (nt.y * 2.0 - 1.0) * uniforms.material.factors.z)), Scale3(geometric, nt.z * 2.0 - 1.0)));
     if (!builtins.frontFace) {
         normal = Scale3(normal, -1.0);
     }
-    const mr: float4 = Sample(resources.metalMap, resources.metalSampler, input.uv);
-    const metallic: f32 = Clamp(mr.z * uniforms.material.factors.x, 0.0, 1.0);
-    const roughness: f32 = Clamp(mr.y * uniforms.material.factors.y, 0.045, 1.0);
-    const ao: float4 = Sample(resources.occlusionMap, resources.occlusionSampler, input.uv);
+    let mr: float4 = Sample(resources.metalMap, resources.metalSampler, input.uv);
+    let metallic: f32 = Clamp(mr.z * uniforms.material.factors.x, 0.0, 1.0);
+    let roughness: f32 = Clamp(mr.y * uniforms.material.factors.y, 0.045, 1.0);
+    let ao: float4 = Sample(resources.occlusionMap, resources.occlusionSampler, input.uv);
     var occlusion: f32 = 1.0 - uniforms.material.factors.w + ao.x * uniforms.material.factors.w;
     if (uniforms.material.flags.x > 0.5) {
         occlusion = -1.0;
     }
-    const p: float3 = input.world;
-    const eye: float3 = float3(uniforms.material.eye.x, uniforms.material.eye.y, uniforms.material.eye.z);
-    const view: float3 = Unit(Sub3(eye, p));
-    const light: float3 = Unit(float3(uniforms.material.light.x, uniforms.material.light.y, uniforms.material.light.z));
-    const sun: float3 = float3(uniforms.material.sun.x, uniforms.material.sun.y, uniforms.material.sun.z);
-    const rgb: float3 = float3(base.x, base.y, base.z);
+    let p: float3 = input.world;
+    let eye: float3 = float3(uniforms.material.eye.x, uniforms.material.eye.y, uniforms.material.eye.z);
+    let view: float3 = Unit(Sub3(eye, p));
+    let light: float3 = Unit(float3(uniforms.material.light.x, uniforms.material.light.y, uniforms.material.light.z));
+    let sun: float3 = float3(uniforms.material.sun.x, uniforms.material.sun.y, uniforms.material.sun.z);
+    let rgb: float3 = float3(base.x, base.y, base.z);
     var lit: float3 = Add3(rgb, emitted);
     if (uniforms.material.flags.x < 0.5) {
-        const visibility: f32 = DirectionalVisibility(resources, uniforms, p, normal);
+        let visibility: f32 = DirectionalVisibility(resources, uniforms, p, normal);
         var direct: float3 = Scale3(Mul3(DirectLightModel(rgb, normal, view, light, metallic, roughness, uniforms.material.ground.w), sun),
             uniforms.material.sun.w * visibility);
         var ambient: float3 = HemisphereLight(rgb, normal, view,
             float3(uniforms.material.sky.x, uniforms.material.sky.y, uniforms.material.sky.z),
             float3(uniforms.material.ground.x, uniforms.material.ground.y, uniforms.material.ground.z), metallic, roughness);
         if (uniforms.material.environmentParameters.y > 0.5) {
-            const reflected: float3 = BoxReflection(p, Sub3(Scale3(normal, 2.0 * Max(Dot3(normal, view), 0.0)), view),
+            let reflected: float3 = BoxReflection(p, Sub3(Scale3(normal, 2.0 * Max(Dot3(normal, view), 0.0)), view),
                 uniforms.material.probePosition, uniforms.material.probeBounds);
             ambient = Scale3(EnvironmentResponse(resources.environment, resources.environmentSampler, rgb, normal, reflected,
                 Max(Dot3(normal, view), 0.0001), metallic, roughness), uniforms.material.environmentParameters.z);
         }
         for (var index: u32 = 0; index < 32; index = index + 1) {
             if (Convert<f32>(index) < uniforms.material.environmentParameters.x) {
-                const row: f32 = (Convert<f32>(index) + 0.5) / 32.0;
-                const sphere: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.125, row));
-                const color: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.375, row));
-                const cone: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.625, row));
-                const config: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.875, row));
-                const delta: float3 = Sub3(float3(sphere.x, sphere.y, sphere.z), p);
-                const squared: f32 = Dot3(delta, delta);
+                let row: f32 = (Convert<f32>(index) + 0.5) / 32.0;
+                let sphere: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.125, row));
+                let color: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.375, row));
+                let cone: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.625, row));
+                let config: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.875, row));
+                let delta: float3 = Sub3(float3(sphere.x, sphere.y, sphere.z), p);
+                let squared: f32 = Dot3(delta, delta);
                 if (squared < sphere.w * sphere.w) {
-                    const direction: float3 = Unit(delta);
-                    const ratio: f32 = squared / (sphere.w * sphere.w);
-                    const fade: f32 = Max(1.0 - ratio * ratio, 0.0);
+                    let direction: float3 = Unit(delta);
+                    let ratio: f32 = squared / (sphere.w * sphere.w);
+                    let fade: f32 = Max(1.0 - ratio * ratio, 0.0);
                     var attenuation: f32 = fade * fade / Max(squared, 0.01) * ConeAttenuation(direction, cone, config);
                     if (config.z > 0.5) {
                         attenuation = attenuation * LocalShadow(resources, uniforms, config.z, p, Max(Dot3(normal, direction), 0.0));
@@ -213,16 +213,16 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
         lit = Add3(Add3(direct, Scale3(ambient, occlusion)), emitted);
     }
     if (uniforms.material.volumeGrid.w > 0.5) {
-        const fogDelta: float3 = Sub3(p, eye);
+        let fogDelta: float3 = Sub3(p, eye);
         lit = ComposeVolume(lit, VolumeAt(resources.volume, resources.volumeSampler, uv,
             Sqrt(Dot3(fogDelta, fogDelta)), uniforms.material.volumeGrid, uniforms.material.volumeDepth));
     } else {
         lit = Fogged(lit, p, eye, uniforms.material.fogParameters, uniforms.material.fogColor);
     }
-    const distance: float3 = Sub3(p, eye);
-    const alpha: f32 = Clamp(base.w, 0.0, 1.0);
-    const weight: f32 = Max(alpha, 0.001) / (1.0 + Dot3(distance, distance) * 0.02);
-    const bounded: float4 = LimitRadiance(float4(lit.x, lit.y, lit.z, 1.0));
+    let distance: float3 = Sub3(p, eye);
+    let alpha: f32 = Clamp(base.w, 0.0, 1.0);
+    let weight: f32 = Max(alpha, 0.001) / (1.0 + Dot3(distance, distance) * 0.02);
+    let bounded: float4 = LimitRadiance(float4(lit.x, lit.y, lit.z, 1.0));
     return {
         color: float4(bounded.x * alpha * weight, bounded.y * alpha * weight, bounded.z * alpha * weight, alpha * weight),
         optical: float4(-Log(Max(1.0 - alpha, 0.000001)), 0.0, 0.0, 0.0),
@@ -230,40 +230,40 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
 }
 
 function NearVisibility(resources: Resources, uniforms: MaterialResources, p: float3, normal: float3): f32 {
-    const projected: float3 = float3(Row(uniforms.material.shadowX, p), Row(uniforms.material.shadowY, p), Row(uniforms.material.shadowZ, p));
+    let projected: float3 = float3(Row(uniforms.material.shadowX, p), Row(uniforms.material.shadowY, p), Row(uniforms.material.shadowZ, p));
     return PlaneShadowVisibility(resources.shadow, resources.shadowSampler, projected,
         float4(uniforms.material.shadowParameters.x, uniforms.material.cascadeBias.x, uniforms.material.shadowParameters.z, 0.0), normal, uniforms.material.shadowX, uniforms.material.shadowY, uniforms.material.shadowZ);
 }
 function MidVisibility(resources: Resources, uniforms: MaterialResources, p: float3, normal: float3): f32 {
-    const projected: float3 = float3(Row(uniforms.material.cascadeMidX, p), Row(uniforms.material.cascadeMidY, p), Row(uniforms.material.cascadeMidZ, p));
+    let projected: float3 = float3(Row(uniforms.material.cascadeMidX, p), Row(uniforms.material.cascadeMidY, p), Row(uniforms.material.cascadeMidZ, p));
     return PlaneShadowVisibility(resources.cascadeMid, resources.cascadeMidSampler, projected,
         float4(uniforms.material.shadowParameters.x, uniforms.material.cascadeBias.y, uniforms.material.shadowParameters.z, 0.0), normal, uniforms.material.cascadeMidX, uniforms.material.cascadeMidY, uniforms.material.cascadeMidZ);
 }
 function FarVisibility(resources: Resources, uniforms: MaterialResources, p: float3, normal: float3): f32 {
-    const projected: float3 = float3(Row(uniforms.material.cascadeFarX, p), Row(uniforms.material.cascadeFarY, p), Row(uniforms.material.cascadeFarZ, p));
+    let projected: float3 = float3(Row(uniforms.material.cascadeFarX, p), Row(uniforms.material.cascadeFarY, p), Row(uniforms.material.cascadeFarZ, p));
     return PlaneShadowVisibility(resources.cascadeFar, resources.cascadeFarSampler, projected,
         float4(uniforms.material.shadowParameters.x, uniforms.material.cascadeBias.z, uniforms.material.shadowParameters.z, 0.0), normal, uniforms.material.cascadeFarX, uniforms.material.cascadeFarY, uniforms.material.cascadeFarZ);
 }
 function DirectionalVisibility(resources: Resources, uniforms: MaterialResources, p: float3, normal: float3): f32 {
-    const forward: float4 = uniforms.material.cascadeForward;
-    const eye: float4 = uniforms.material.eye;
-    const depth: f32 = (p.x - eye.x) * forward.x + (p.y - eye.y) * forward.y + (p.z - eye.z) * forward.z;
-    const ends: float4 = uniforms.material.cascadeEnds;
+    let forward: float4 = uniforms.material.cascadeForward;
+    let eye: float4 = uniforms.material.eye;
+    let depth: f32 = (p.x - eye.x) * forward.x + (p.y - eye.y) * forward.y + (p.z - eye.z) * forward.z;
+    let ends: float4 = uniforms.material.cascadeEnds;
     if (depth < ends.x * 0.9) {
         return NearVisibility(resources, uniforms, p, normal);
     }
     if (depth < ends.x) {
-        const blend: f32 = (depth - ends.x * 0.9) / (ends.x * 0.1);
+        let blend: f32 = (depth - ends.x * 0.9) / (ends.x * 0.1);
         return NearVisibility(resources, uniforms, p, normal) * (1.0 - blend) + MidVisibility(resources, uniforms, p, normal) * blend;
     }
     if (depth < ends.y * 0.9) {
         return MidVisibility(resources, uniforms, p, normal);
     }
     if (depth < ends.y) {
-        const blend: f32 = (depth - ends.y * 0.9) / (ends.y * 0.1);
+        let blend: f32 = (depth - ends.y * 0.9) / (ends.y * 0.1);
         return MidVisibility(resources, uniforms, p, normal) * (1.0 - blend) + FarVisibility(resources, uniforms, p, normal) * blend;
     }
-    const fade: f32 = Clamp((depth - ends.z * 0.9) / (ends.z * 0.1), 0.0, 1.0);
+    let fade: f32 = Clamp((depth - ends.z * 0.9) / (ends.z * 0.1), 0.0, 1.0);
     return FarVisibility(resources, uniforms, p, normal) * (1.0 - fade) + fade;
 }
 enum ShadowSource {
@@ -277,20 +277,20 @@ function ShadowSourceFor(index: f32): ShadowSource {
     return ShadowSource.Second;
 }
 function FirstShadow(resources: Resources, uniforms: MaterialResources, p: float3, nl: f32): f32 {
-    const w: f32 = Row(uniforms.material.spotAW, p);
+    let w: f32 = Row(uniforms.material.spotAW, p);
     if (w <= 0.00001) {
         return 1.0;
     }
-    const projected: float3 = float3(Row(uniforms.material.spotAX, p) / w,
+    let projected: float3 = float3(Row(uniforms.material.spotAX, p) / w,
         Row(uniforms.material.spotAY, p) / w, Row(uniforms.material.spotAZ, p) / w);
     return ShadowVisibility(resources.spotA, resources.spotASampler, projected, float4(1.0, 0.0015, 1.0 / 512.0, 0.0), nl);
 }
 function SecondShadow(resources: Resources, uniforms: MaterialResources, p: float3, nl: f32): f32 {
-    const w: f32 = Row(uniforms.material.spotBW, p);
+    let w: f32 = Row(uniforms.material.spotBW, p);
     if (w <= 0.00001) {
         return 1.0;
     }
-    const projected: float3 = float3(Row(uniforms.material.spotBX, p) / w,
+    let projected: float3 = float3(Row(uniforms.material.spotBX, p) / w,
         Row(uniforms.material.spotBY, p) / w, Row(uniforms.material.spotBZ, p) / w);
     return ShadowVisibility(resources.spotB, resources.spotBSampler, projected, float4(1.0, 0.0015, 1.0 / 512.0, 0.0), nl);
 }

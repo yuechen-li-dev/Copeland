@@ -27,6 +27,7 @@ public static partial class GpuGraphicsBinder
         private readonly GpuCompilationRequest _request;
         private GpuModuleGraph _modules = null!;
         private GpuConstants _constants = null!;
+        private readonly GpuLocalConstants _localConstants = new();
         private GpuEnums _enums = null!;
         private GpuValues _values = null!;
         private GpuGenericFunctions _generics = null!;
@@ -583,6 +584,23 @@ public static partial class GpuGraphicsBinder
                     {
                         Add("COPE-GPU-SYMBOL-0001", "SDSL-V1509", "symbol", "GPU locals cannot shadow an existing name.", Span(path, local));
                     }
+                    bool compileTime = local.Keyword.Kind == SyntaxKind.ConstKeyword;
+                    if (compileTime && initializer.Type != "error")
+                    {
+                        try
+                        {
+                            initializer = _generics.BindingOpen
+                                ? new("generic-fold", initializer.Type, Span(path, local), Operands: [initializer])
+                                : GpuStaticEvaluation.Fold(initializer, _functions.Values, _values.StaticDefinitions,
+                                    aggregate => _values.EmbedStatic(aggregate, AddEnumFunction));
+                        }
+                        catch (StaticEvaluationException exception)
+                        {
+                            Add("COPE-GPU-CONST-0001", "SDSL-V4200", "constant",
+                                "const requires a compile-time initializer. Use let for a runtime immutable value. " + exception.Message, Span(path, local));
+                        }
+                    }
+                    _localConstants.Declare(scope, local.Identifier.Text, compileTime ? initializer : null);
                     bool isMutable = local.Keyword.Kind == SyntaxKind.VarKeyword;
                     if (isMutable)
                     {
@@ -703,7 +721,9 @@ public static partial class GpuGraphicsBinder
                         Add("COPE-GPU-LOOP-0001", "SDSL-V4200", "bounded-loop", "GPU for requires var i: u32 = literal; i < literal; i = i + 1, at most 4096 iterations and a fresh counter.", Span(path, loop));
                         continue;
                     }
-                    var loopScope = new Dictionary<string, string>(scope, StringComparer.Ordinal) { [initial.Identifier.Text] = "u32" };
+                    var loopScope = CloneValueScope(scope);
+                    loopScope[initial.Identifier.Text] = "u32";
+                    _localConstants.Declare(loopScope, initial.Identifier.Text, null);
                     var initializer = new VdMirStatement("local", Span(path, initial), initial.Identifier.Text, "u32", true, BindExpression(path, initial.Initializer, scope));
                     var increment = new VdMirStatement("assign", Span(path, loop.Increment), initial.Identifier.Text, Expression: BindExpression(path, update, loopScope));
                     var body = BindBranch(path, loop.Body, loopScope, mutable, returnType, loopDepth + 1);
@@ -737,8 +757,15 @@ public static partial class GpuGraphicsBinder
         {
             IReadOnlyList<StatementSyntax> statements = syntax is BlockStatementSyntax block ? block.Statements : [syntax];
             _usesGraphicsM4 |= statements.Any(statement => statement is not ReturnStatementSyntax);
-            return BindStatementList(path, statements, new Dictionary<string, string>(scope, StringComparer.Ordinal),
+            return BindStatementList(path, statements, CloneValueScope(scope),
                 new HashSet<string>(mutable, StringComparer.Ordinal), returnType, loopDepth);
+        }
+
+        private Dictionary<string, string> CloneValueScope(Dictionary<string, string> source)
+        {
+            var clone = new Dictionary<string, string>(source, StringComparer.Ordinal);
+            _localConstants.Inherit(source, clone);
+            return clone;
         }
 
         private VdMirExpression BindExpression(string path, ExpressionSyntax syntax, Dictionary<string, string> scope, string? expected = null)
@@ -755,7 +782,9 @@ public static partial class GpuGraphicsBinder
             switch (syntax)
             {
                 case NameExpressionSyntax name when scope.TryGetValue(name.IdentifierToken.Text, out string? type):
-                    return new VdMirExpression("name", type, Span(path, syntax), name.IdentifierToken.Text);
+                    return _localConstants.Find(scope, name.IdentifierToken.Text) is { } localConstant
+                        ? localConstant with { Source = Span(path, syntax) }
+                        : new VdMirExpression("name", type, Span(path, syntax), name.IdentifierToken.Text);
                 case NameExpressionSyntax name:
                     VdMirExpression? parameter = _values.StaticParameter(name.IdentifierToken.Text);
                     if (parameter is not null) return parameter;
@@ -775,7 +804,11 @@ public static partial class GpuGraphicsBinder
                     while (_functionSources.ContainsKey(helperName));
                     return GpuEnumMatch.Bind(path, match, BindExpression(path, match.Expression, scope), _enums,
                         helperName, scope,
-                        (expression, armScope) => BindExpression(path, expression, armScope, expected),
+                        (expression, armScope) =>
+                        {
+                            _localConstants.Inherit(scope, armScope);
+                            return BindExpression(path, expression, armScope, expected);
+                        },
                         AddEnumFunction, (code, message, span) => Add(code, "SDSL-V4200", "payload-match", message, span));
                 case TemplateInstantiationExpressionSyntax instantiated:
                     return _generics.Instantiate(path, instantiated, (value, type) => BindExpression(path, value, scope, type));

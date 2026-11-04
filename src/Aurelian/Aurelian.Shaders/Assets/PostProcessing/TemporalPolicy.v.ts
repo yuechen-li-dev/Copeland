@@ -16,9 +16,9 @@ function StableHistory(confidence: f32): float3 { return float3(1.0, 0.875, conf
 function ClampedHistory(confidence: f32): float3 { return float3(2.0, 0.25, confidence); }
 function EdgeConservative(confidence: f32): float3 { return float3(3.0, 0.875, confidence); }
 export function TemporalPolicy(depth: f32, motion: f32, color: f32, edge: f32): float3 {
-    const stable: f32 = depth * motion * color * (1.0 - edge);
-    const clamped: f32 = depth * motion * (1.0 - color) * (1.0 - edge);
-    const risk: f32 = Max(1.0 - depth, Max(1.0 - motion, edge * (1.0 - color)));
+    let stable: f32 = depth * motion * color * (1.0 - edge);
+    let clamped: f32 = depth * motion * (1.0 - color) * (1.0 - edge);
+    let risk: f32 = Max(1.0 - depth, Max(1.0 - motion, edge * (1.0 - color)));
     return when utility {
         case RejectHistory() when true score Score(risk)
         case StableHistory(stable) when depth > 0.8 && motion > 0.7 && edge < 0.2 score Score(stable)

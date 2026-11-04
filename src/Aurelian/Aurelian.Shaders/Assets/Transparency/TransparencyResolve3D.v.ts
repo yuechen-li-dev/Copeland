@@ -32,11 +32,11 @@ function VertexMain(input: Input): Varyings {
 }
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
-    const scene: float4 = Sample(resources.scene, resources.sceneSampler, input.uv);
-    const sum: float4 = Sample(resources.accumulation, resources.accumulationSampler, input.uv);
-    const optical: float4 = Sample(resources.optical, resources.opticalSampler, input.uv);
-    const transmission: f32 = Exp(-optical.x);
-    const scale: f32 = (1.0 - transmission) / Max(sum.w, 0.000001);
+    let scene: float4 = Sample(resources.scene, resources.sceneSampler, input.uv);
+    let sum: float4 = Sample(resources.accumulation, resources.accumulationSampler, input.uv);
+    let optical: float4 = Sample(resources.optical, resources.opticalSampler, input.uv);
+    let transmission: f32 = Exp(-optical.x);
+    let scale: f32 = (1.0 - transmission) / Max(sum.w, 0.000001);
     // optical.yzw sums emitted radiance (fire, sparks). Weighted OIT keeps no order, so treat emitters and absorbers as
     // uniformly mixed: emission inside a homogeneous slab of optical depth tau leaves it scaled by (1 - e^-tau) / tau
     // (the emission-absorption model in Max 1995). That limit is 1 for a clear pixel.

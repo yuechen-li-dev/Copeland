@@ -43,44 +43,44 @@ function VertexMain(input: Input): Varyings {
 
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
-    const depth: f32 = Sample(resources.motion, resources.motionSampler, input.uv).w;
-    const center: float4 = Sample(resources.tail, resources.tailSampler, input.uv);
+    let depth: f32 = Sample(resources.motion, resources.motionSampler, input.uv).w;
+    let center: float4 = Sample(resources.tail, resources.tailSampler, input.uv);
     if (depth >= 1.0) {
         return { color: center };
     }
-    const normal: float4 = Sample(resources.normal, resources.normalSampler, input.uv);
-    const surface: float4 = Sample(resources.surface, resources.surfaceSampler, input.uv);
-    const point: float3 = WorldAt(input.uv, depth, resources.material.inverseX, resources.material.inverseY,
+    let normal: float4 = Sample(resources.normal, resources.normalSampler, input.uv);
+    let surface: float4 = Sample(resources.surface, resources.surfaceSampler, input.uv);
+    let point: float3 = WorldAt(input.uv, depth, resources.material.inverseX, resources.material.inverseY,
         resources.material.inverseZ, resources.material.inverseW);
     var sum: float3 = float3(0.0, 0.0, 0.0);
     var total: f32 = 0.0;
     static for (let y of [-1.0, 0.0, 1.0]) {
         static for (let x of [-1.0, 0.0, 1.0]) {
-            const uv: float2 = float2(input.uv.x + x * resources.material.settings.x * resources.material.control.y,
+            let uv: float2 = float2(input.uv.x + x * resources.material.settings.x * resources.material.control.y,
                 input.uv.y + y * resources.material.settings.y * resources.material.control.y);
             if (uv.x >= 0.0 && uv.y >= 0.0 && uv.x < 1.0 && uv.y < 1.0) {
-                const tapDepth: f32 = Sample(resources.motion, resources.motionSampler, uv).w;
-                const tapNormal: float4 = Sample(resources.normal, resources.normalSampler, uv);
-                const tapSurface: float4 = Sample(resources.surface, resources.surfaceSampler, uv);
-                const tapPoint: float3 = WorldAt(uv, tapDepth, resources.material.inverseX, resources.material.inverseY,
+                let tapDepth: f32 = Sample(resources.motion, resources.motionSampler, uv).w;
+                let tapNormal: float4 = Sample(resources.normal, resources.normalSampler, uv);
+                let tapSurface: float4 = Sample(resources.surface, resources.surfaceSampler, uv);
+                let tapPoint: float3 = WorldAt(uv, tapDepth, resources.material.inverseX, resources.material.inverseY,
                     resources.material.inverseZ, resources.material.inverseW);
-                const delta: float3 = Sub3(tapPoint, point);
-                const materialDelta: float3 = float3(surface.x - tapSurface.x, surface.y - tapSurface.y, surface.z - tapSurface.z);
-                const alignment: f32 = Dot3(float3(normal.x, normal.y, normal.z), float3(tapNormal.x, tapNormal.y, tapNormal.z));
+                let delta: float3 = Sub3(tapPoint, point);
+                let materialDelta: float3 = float3(surface.x - tapSurface.x, surface.y - tapSurface.y, surface.z - tapSurface.z);
+                let alignment: f32 = Dot3(float3(normal.x, normal.y, normal.z), float3(tapNormal.x, tapNormal.y, tapNormal.z));
                 if (tapDepth < 1.0 && alignment > 0.95 && Abs(normal.w - tapNormal.w) < 0.05
                     && Abs(Dot3(delta, float3(normal.x, normal.y, normal.z))) < resources.material.control.x
                     && Dot3(materialDelta, materialDelta) < 0.01) {
-                    const tap: float4 = Sample(resources.tail, resources.tailSampler, uv);
-                    const difference: f32 = Abs(tap.x - center.x) + Abs(tap.y - center.y) + Abs(tap.z - center.z);
-                    const scale: f32 = 0.25 + (center.x + center.y + center.z + tap.x + tap.y + tap.z) * 0.25;
-                    const kernel: f32 = (2.0 - Abs(x)) * (2.0 - Abs(y));
-                    const weight: f32 = kernel * Pow(alignment, 32.0) / (1.0 + difference / scale);
+                    let tap: float4 = Sample(resources.tail, resources.tailSampler, uv);
+                    let difference: f32 = Abs(tap.x - center.x) + Abs(tap.y - center.y) + Abs(tap.z - center.z);
+                    let scale: f32 = 0.25 + (center.x + center.y + center.z + tap.x + tap.y + tap.z) * 0.25;
+                    let kernel: f32 = (2.0 - Abs(x)) * (2.0 - Abs(y));
+                    let weight: f32 = kernel * Pow(alignment, 32.0) / (1.0 + difference / scale);
                     sum = Add3(sum, Scale3(float3(tap.x, tap.y, tap.z), weight));
                     total = total + weight;
                 }
             }
         }
     }
-    const result: float3 = Scale3(sum, 1.0 / Max(total, 0.00001));
+    let result: float3 = Scale3(sum, 1.0 / Max(total, 0.00001));
     return { color: float4(result.x, result.y, result.z, center.w) };
 }

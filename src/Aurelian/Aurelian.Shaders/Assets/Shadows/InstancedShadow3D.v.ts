@@ -26,9 +26,9 @@ function ShadowRow(row: float4, p: float3): f32 {
 }
 @vertex
 function VertexMain(input: ShadowInput, resources: ShadowResources): ShadowVaryings {
-    const world: float3 = float3(ShadowRow(input.worldX, input.position),
+    let world: float3 = float3(ShadowRow(input.worldX, input.position),
         ShadowRow(input.worldY, input.position), ShadowRow(input.worldZ, input.position));
-    const z: f32 = ShadowRow(resources.shadow.clipZ, world);
+    let z: f32 = ShadowRow(resources.shadow.clipZ, world);
     return { position: float4(ShadowRow(resources.shadow.clipX, world), ShadowRow(resources.shadow.clipY, world),
         z, ShadowRow(resources.shadow.clipW, world)), depth: z };
 }

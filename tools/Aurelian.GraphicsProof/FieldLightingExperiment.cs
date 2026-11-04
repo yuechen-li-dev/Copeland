@@ -232,7 +232,7 @@ internal static class FieldLightingExperiment
     private static object VerifyFieldSamples(AurelianVulkanPlant plant, AetherisLightField field, string output, string name)
     {
         var sources = GpuSourceLoader.Load("FieldSamples.v.ts", name => name == "AetherisField.v.ts"
-            ? field.Program.FieldSource : ReadRuntimeSource(name));
+            ? field.CompilerFieldSource : ReadRuntimeSource(name));
         var module = GpuComputeBinder.Compile(new(sources));
         Require(module.Success, string.Join("; ", module.Diagnostics.Select(item => item.Message)));
         var backend = VdMirComputeBackend.Compile(module);

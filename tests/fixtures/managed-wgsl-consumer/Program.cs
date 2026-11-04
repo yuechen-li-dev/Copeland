@@ -11,7 +11,7 @@ const string source = """
         return { position: float4(input.position, 1.0), local: input.position };
     }
     @pixel function PixelMain(input: Varyings): Output {
-        const distance: f32 = Sqrt(input.local.x * input.local.x + input.local.y * input.local.y);
+        let distance: f32 = Sqrt(input.local.x * input.local.x + input.local.y * input.local.y);
         if (distance > 1.0) { Discard(); }
         return { color: float4(distance, 0.0, 0.0, 1.0), depth: distance / 3.0 };
     }

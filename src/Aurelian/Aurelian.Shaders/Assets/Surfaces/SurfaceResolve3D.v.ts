@@ -109,27 +109,27 @@ function Row(row: float4, p: float3): f32 {
     return row.x * p.x + row.y * p.y + row.z * p.z + row.w;
 }
 function Occlusion(resources: Resources, uv: float2, p: float3): f32 {
-    const parameters: float4 = resources.material.aoParameters;
+    let parameters: float4 = resources.material.aoParameters;
     if (parameters.z <= 0.0) {
         return 1.0;
     }
-    const pixel: float2 = float2(uv.x / parameters.x - 0.5, uv.y / parameters.y - 0.5);
-    const origin: float2 = float2(Floor(pixel.x), Floor(pixel.y));
-    const fraction: float2 = float2(pixel.x - origin.x, pixel.y - origin.y);
+    let pixel: float2 = float2(uv.x / parameters.x - 0.5, uv.y / parameters.y - 0.5);
+    let origin: float2 = float2(Floor(pixel.x), Floor(pixel.y));
+    let fraction: float2 = float2(pixel.x - origin.x, pixel.y - origin.y);
     var sum: f32 = 0.0;
     var total: f32 = 0.0;
     for (var y: u32 = 0; y < 2; y = y + 1) {
         for (var x: u32 = 0; x < 2; x = x + 1) {
-            const fx: f32 = Convert<f32>(x);
-            const fy: f32 = Convert<f32>(y);
-            const tapUv: float2 = float2((origin.x + fx + 0.5) * parameters.x, (origin.y + fy + 0.5) * parameters.y);
-            const tap: float4 = Sample(resources.ao, resources.aoSampler, tapUv);
+            let fx: f32 = Convert<f32>(x);
+            let fy: f32 = Convert<f32>(y);
+            let tapUv: float2 = float2((origin.x + fx + 0.5) * parameters.x, (origin.y + fy + 0.5) * parameters.y);
+            let tap: float4 = Sample(resources.ao, resources.aoSampler, tapUv);
             if (tap.y < 1.0) {
-                const texel: float4 = resources.material.surfaceTexels;
-                const snapped: float2 = float2((Floor(tapUv.x / texel.x) + 0.5) * texel.x,
+                let texel: float4 = resources.material.surfaceTexels;
+                let snapped: float2 = float2((Floor(tapUv.x / texel.x) + 0.5) * texel.x,
                     (Floor(tapUv.y / texel.y) + 0.5) * texel.y);
-                const delta: float3 = Sub3(Position(resources, snapped, tap.y), p);
-                const weight: f32 = (1.0 - Abs(fx - fraction.x)) * (1.0 - Abs(fy - fraction.y))
+                let delta: float3 = Sub3(Position(resources, snapped, tap.y), p);
+                let weight: f32 = (1.0 - Abs(fx - fraction.x)) * (1.0 - Abs(fy - fraction.y))
                     / (1.0 + Dot3(delta, delta) / Max(parameters.z * parameters.z * 0.02, 0.000001));
                 sum = sum + tap.x * weight;
                 total = total + weight;
@@ -143,46 +143,46 @@ function Occlusion(resources: Resources, uv: float2, p: float3): f32 {
 }
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
-    const motion: float4 = Sample(resources.motion, resources.motionSampler, input.uv);
+    let motion: float4 = Sample(resources.motion, resources.motionSampler, input.uv);
     if (motion.w >= 1.0) {
         return { color: resources.material.clear, diffuse: float4(0.0, 0.0, 0.0, 0.0), tail: float4(0.0, 0.0, 0.0, 0.0) };
     }
-    const material: float4 = Sample(resources.base, resources.baseSampler, input.uv);
-    const n: float4 = Sample(resources.normal, resources.normalSampler, input.uv);
-    const emission: float4 = Sample(resources.emission, resources.emissionSampler, input.uv);
-    const base: float3 = float3(material.x, material.y, material.z);
-    const emitted: float3 = float3(emission.x, emission.y, emission.z);
-    const p: float3 = Position(resources, input.uv, motion.w);
+    let material: float4 = Sample(resources.base, resources.baseSampler, input.uv);
+    let n: float4 = Sample(resources.normal, resources.normalSampler, input.uv);
+    let emission: float4 = Sample(resources.emission, resources.emissionSampler, input.uv);
+    let base: float3 = float3(material.x, material.y, material.z);
+    let emitted: float3 = float3(emission.x, emission.y, emission.z);
+    let p: float3 = Position(resources, input.uv, motion.w);
     if (resources.material.surfaceTexels.z > 0.5) {
-        const visibility: f32 = Occlusion(resources, input.uv, p);
+        let visibility: f32 = Occlusion(resources, input.uv, p);
         return { color: float4(visibility, visibility, visibility, 1.0), diffuse: float4(0.0, 0.0, 0.0, 0.0), tail: float4(0.0, 0.0, 0.0, 0.0) };
     }
     if (emission.w < 0.0) {
-        const unlit: float3 = Add3(base, emitted);
+        let unlit: float3 = Add3(base, emitted);
         return { color: LimitRadiance(float4(unlit.x, unlit.y, unlit.z, 1.0)), diffuse: float4(0.0, 0.0, 0.0, 0.0), tail: float4(0.0, 0.0, 0.0, 0.0) };
     }
-    const normal: float3 = Unit(float3(n.x, n.y, n.z));
+    let normal: float3 = Unit(float3(n.x, n.y, n.z));
     var view: float3 = Unit(Sub3(float3(resources.material.eye.x, resources.material.eye.y, resources.material.eye.z), p));
     if (resources.material.eye.w < 0.5) {
         view = Unit(Sub3(Position(resources, input.uv, 0.0), Position(resources, input.uv, 1.0)));
     }
-    const light: float3 = Unit(float3(resources.material.light.x, resources.material.light.y, resources.material.light.z));
-    const sun: float3 = float3(resources.material.sun.x, resources.material.sun.y, resources.material.sun.z);
-    const visibility: f32 = DirectionalVisibility(resources, p, normal);
+    let light: float3 = Unit(float3(resources.material.light.x, resources.material.light.y, resources.material.light.z));
+    let sun: float3 = float3(resources.material.sun.x, resources.material.sun.y, resources.material.sun.z);
+    let visibility: f32 = DirectionalVisibility(resources, p, normal);
     var direct: float3 = Scale3(Mul3(DirectLightModel(base, normal, view, light, n.w, material.w, resources.material.ground.w), sun), resources.material.sun.w * visibility);
-    const profile: float4 = Sample(resources.subsurface, resources.subsurfaceSampler, input.uv);
+    let profile: float4 = Sample(resources.subsurface, resources.subsurfaceSampler, input.uv);
     var diffuseDirect: float3 = float3(0.0, 0.0, 0.0);
     var diffuseAmbient: float3 = float3(0.0, 0.0, 0.0);
     if (profile.w > 0.0) {
         diffuseDirect = Scale3(Mul3(DirectDiffuseModel(base, normal, view, light, n.w, material.w, resources.material.ground.w), sun), resources.material.sun.w * visibility);
-        const blend: f32 = Clamp(normal.y * 0.5 + 0.5, 0.0, 1.0);
+        let blend: f32 = Clamp(normal.y * 0.5 + 0.5, 0.0, 1.0);
         diffuseAmbient = Mul3(base, Add3(Scale3(float3(resources.material.sky.x, resources.material.sky.y, resources.material.sky.z), blend),
             Scale3(float3(resources.material.ground.x, resources.material.ground.y, resources.material.ground.z), 1.0 - blend)));
     }
     var ambient: float3 = HemisphereLight(base, normal, view, float3(resources.material.sky.x, resources.material.sky.y, resources.material.sky.z),
         float3(resources.material.ground.x, resources.material.ground.y, resources.material.ground.z), n.w, material.w);
     if (resources.material.parameters.y > 0.5) {
-        const reflected: float3 = BoxReflection(p, Sub3(Scale3(normal, 2.0 * Max(Dot3(normal, view), 0.0)), view),
+        let reflected: float3 = BoxReflection(p, Sub3(Scale3(normal, 2.0 * Max(Dot3(normal, view), 0.0)), view),
             resources.material.probePosition, resources.material.probeBounds);
         ambient = Scale3(EnvironmentResponse(resources.environment, resources.environmentSampler, base, normal, reflected,
             Max(Dot3(normal, view), 0.0001), n.w, material.w), resources.material.parameters.z);
@@ -192,7 +192,7 @@ function PixelMain(input: Varyings, resources: Resources): Output {
             Max(Dot3(normal, view), 0.0001), material.w), resources.material.parameters.z);
     }
     if (resources.material.parameters.w > 0.5 && n.w == 0.0) {
-        const response: float4 = CompiledDiffuse(resources.diffuse, resources.diffuseSampler, p, normal,
+        let response: float4 = CompiledDiffuse(resources.diffuse, resources.diffuseSampler, p, normal,
             resources.material.sun.w, resources.material.sky.w, sun);
         if (response.w > 0.5) {
             direct = Scale3(Mul3(base, sun), Max(Dot3(normal, light), 0.0) * resources.material.sun.w * visibility / 3.14159265);
@@ -205,16 +205,16 @@ function PixelMain(input: Varyings, resources: Resources): Output {
     var tailVisible: f32 = 0.0;
     var tailSlots: f32 = 0.0;
     if (resources.material.surfaceTexels.w > 1.5) {
-        const pixelX: f32 = Floor(input.uv.x / resources.material.surfaceTexels.x);
-        const sampleMetadata: float4 = Sample(resources.rayVisibility, resources.rayVisibilitySampler,
+        let pixelX: f32 = Floor(input.uv.x / resources.material.surfaceTexels.x);
+        let sampleMetadata: float4 = Sample(resources.rayVisibility, resources.rayVisibilitySampler,
             float2((pixelX * 4.0 + 3.5) * resources.material.surfaceTexels.x / 4.0, input.uv.y));
-        const emitterKey: u32 = Convert<u32>(sampleMetadata.z);
-        const budget: float4 = Sample(resources.rayVisibility, resources.rayVisibilitySampler,
+        let emitterKey: u32 = Convert<u32>(sampleMetadata.z);
+        let budget: float4 = Sample(resources.rayVisibility, resources.rayVisibilitySampler,
             float2((pixelX * 4.0 + 2.5) * resources.material.surfaceTexels.x / 4.0, input.uv.y));
         var exactCount: u32 = 0;
         if ((Convert<u32>(resources.material.surfaceTexels.w) & 1) != 0) { exactCount = Convert<u32>(sampleMetadata.w); }
         for (var sample: u32 = 0; sample < 4; sample = sample + 1) {
-            const data: float4 = Sample(resources.rayVisibility, resources.rayVisibilitySampler,
+            let data: float4 = Sample(resources.rayVisibility, resources.rayVisibilitySampler,
                 float2((pixelX * 4.0 + Floor(Convert<f32>(sample) / 2.0) + 0.5) * resources.material.surfaceTexels.x / 4.0, input.uv.y));
             var index: u32 = Convert<u32>(data.x);
             var weight: f32 = data.y;
@@ -224,20 +224,20 @@ function PixelMain(input: Varyings, resources: Resources): Output {
                 if (weight > 0.0) { tailVisible = tailVisible + 1.0; }
             }
             if (weight > 0.0) {
-                const row: f32 = (Convert<f32>(index) + 0.5) / 256.0;
-                const sphere: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.125, row));
-                const color: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.375, row));
-                const cone: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.625, row));
-                const config: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.875, row));
-                const emitter: EmitterSample3D = SampleLocalEmitter(p, sphere, cone, config, emitterKey + sample * 137);
-                const direction: float3 = emitter.direction;
+                let row: f32 = (Convert<f32>(index) + 0.5) / 256.0;
+                let sphere: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.125, row));
+                let color: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.375, row));
+                let cone: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.625, row));
+                let config: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.875, row));
+                let emitter: EmitterSample3D = SampleLocalEmitter(p, sphere, cone, config, emitterKey + sample * 137);
+                let direction: float3 = emitter.direction;
                 if (emitter.attenuation > 0.0) {
                     var attenuation: f32 = emitter.attenuation * weight;
                     if (profile.w > 0.0) {
                         diffuseDirect = Add3(diffuseDirect, Scale3(Mul3(DirectDiffuseModel(base, normal, view, direction, n.w, material.w, resources.material.ground.w),
                             float3(color.x, color.y, color.z)), color.w * attenuation));
                     }
-                    const contribution: float3 = Scale3(Mul3(DirectLightModel(base, normal, view, direction, n.w, material.w, resources.material.ground.w),
+                    let contribution: float3 = Scale3(Mul3(DirectLightModel(base, normal, view, direction, n.w, material.w, resources.material.ground.w),
                         float3(color.x, color.y, color.z)), color.w * attenuation);
                     if (sample >= exactCount) { stochasticTail = Add3(stochasticTail, contribution); }
                     if (sample < exactCount || resources.material.surfaceTexels.w < 5.5) {
@@ -249,21 +249,21 @@ function PixelMain(input: Varyings, resources: Resources): Output {
     } else if (resources.material.parameters.x > 0.0) {
         for (var group: u32 = 0; group < 8; group = group + 1) {
             if (Convert<f32>(group * 32) < resources.material.parameters.x) {
-                const mask: float4 = Sample(resources.tiles, resources.tilesSampler,
+                let mask: float4 = Sample(resources.tiles, resources.tilesSampler,
                     float2((input.uv.x + Convert<f32>(group)) / 8.0, input.uv.y));
                 for (var lane: u32 = 0; lane < 32; lane = lane + 1) {
-                    const index: u32 = group * 32 + lane;
+                    let index: u32 = group * 32 + lane;
                     if (Convert<f32>(index) < resources.material.parameters.x
                         && (MaskAllows(mask, lane) || resources.material.aoParameters.w > 0.5)) {
-                        const row: f32 = (Convert<f32>(index) + 0.5) / 256.0;
-                        const sphere: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.125, row));
-                        const color: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.375, row));
-                        const cone: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.625, row));
-                        const config: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.875, row));
-                        const delta: float3 = Sub3(float3(sphere.x, sphere.y, sphere.z), p);
-                        const squared: f32 = Dot3(delta, delta);
+                        let row: f32 = (Convert<f32>(index) + 0.5) / 256.0;
+                        let sphere: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.125, row));
+                        let color: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.375, row));
+                        let cone: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.625, row));
+                        let config: float4 = Sample(resources.lights, resources.lightsSampler, float2(0.875, row));
+                        let delta: float3 = Sub3(float3(sphere.x, sphere.y, sphere.z), p);
+                        let squared: f32 = Dot3(delta, delta);
                         if (squared < sphere.w * sphere.w) {
-                            const direction: float3 = Unit(delta);
+                            let direction: float3 = Unit(delta);
                             var attenuation: f32 = LocalAttenuation(direction, squared, sphere.w, cone, config);
                             if (config.z > 0.5) {
                                 if (resources.material.surfaceTexels.w > 0.5) {
@@ -284,16 +284,16 @@ function PixelMain(input: Varyings, resources: Resources): Output {
             }
         }
     }
-    const indirect: float3 = Scale3(ambient, emission.w * Occlusion(resources, input.uv, p));
+    let indirect: float3 = Scale3(ambient, emission.w * Occlusion(resources, input.uv, p));
     var bounce: float3 = float3(0.0, 0.0, 0.0);
     // The legacy floor field and dynamic field are mutually exclusive. Share
     // their texture binding; probePosition.w selects the current-pixel field.
     if (resources.material.probePosition.w > 0.5) {
-        const gi: float4 = Sample(resources.diffuse, resources.diffuseSampler, input.uv);
+        let gi: float4 = Sample(resources.diffuse, resources.diffuseSampler, input.uv);
         bounce = Scale3(Mul3(base, float3(gi.x, gi.y, gi.z)), (1.0 - n.w) * 0.96);
     }
     var lit: float3 = Add3(Add3(Add3(direct, indirect), emitted), bounce);
-    const diffuse: float3 = Add3(bounce, Add3(diffuseDirect, Scale3(diffuseAmbient, emission.w * Occlusion(resources, input.uv, p))));
+    let diffuse: float3 = Add3(bounce, Add3(diffuseDirect, Scale3(diffuseAmbient, emission.w * Occlusion(resources, input.uv, p))));
     return {
         tail: LimitRadiance(float4(stochasticTail.x, stochasticTail.y, stochasticTail.z, tailVisible / Max(tailSlots, 1.0))),
         color: LimitRadiance(float4(lit.x, lit.y, lit.z, 1.0)),
@@ -312,20 +312,20 @@ function ShadowSourceFor(index: f32): ShadowSource {
     return ShadowSource.Second;
 }
 function FirstShadow(resources: Resources, p: float3, nl: f32): f32 {
-    const w: f32 = Row(resources.material.spotAW, p);
+    let w: f32 = Row(resources.material.spotAW, p);
     if (w <= 0.00001) {
         return 1.0;
     }
-    const projected: float3 = float3(Row(resources.material.spotAX, p) / w,
+    let projected: float3 = float3(Row(resources.material.spotAX, p) / w,
         Row(resources.material.spotAY, p) / w, Row(resources.material.spotAZ, p) / w);
     return ShadowVisibility(resources.spotA, resources.spotASampler, projected, float4(1.0, 0.0015, 1.0 / 512.0, 0.0), nl);
 }
 function SecondShadow(resources: Resources, p: float3, nl: f32): f32 {
-    const w: f32 = Row(resources.material.spotBW, p);
+    let w: f32 = Row(resources.material.spotBW, p);
     if (w <= 0.00001) {
         return 1.0;
     }
-    const projected: float3 = float3(Row(resources.material.spotBX, p) / w,
+    let projected: float3 = float3(Row(resources.material.spotBX, p) / w,
         Row(resources.material.spotBY, p) / w, Row(resources.material.spotBZ, p) / w);
     return ShadowVisibility(resources.spotB, resources.spotBSampler, projected, float4(1.0, 0.0015, 1.0 / 512.0, 0.0), nl);
 }
@@ -337,54 +337,54 @@ function LocalShadow(resources: Resources, index: f32, p: float3, nl: f32): f32 
 }
 
 function NearVisibility(resources: Resources, p: float3, normal: float3): f32 {
-    const projected: float3 = float3(Row(resources.material.shadowX, p), Row(resources.material.shadowY, p), Row(resources.material.shadowZ, p));
+    let projected: float3 = float3(Row(resources.material.shadowX, p), Row(resources.material.shadowY, p), Row(resources.material.shadowZ, p));
     return PlaneShadowVisibility(resources.shadow, resources.shadowSampler, projected,
         float4(resources.material.shadowParameters.x, resources.material.cascadeBias.x, resources.material.shadowParameters.z, 0.0), normal, resources.material.shadowX, resources.material.shadowY, resources.material.shadowZ);
 }
 function MidVisibility(resources: Resources, p: float3, normal: float3): f32 {
-    const projected: float3 = float3(Row(resources.material.cascadeMidX, p), Row(resources.material.cascadeMidY, p), Row(resources.material.cascadeMidZ, p));
+    let projected: float3 = float3(Row(resources.material.cascadeMidX, p), Row(resources.material.cascadeMidY, p), Row(resources.material.cascadeMidZ, p));
     return PlaneShadowVisibility(resources.cascadeMid, resources.cascadeMidSampler, projected,
         float4(resources.material.shadowParameters.x, resources.material.cascadeBias.y, resources.material.shadowParameters.z, 0.0), normal, resources.material.cascadeMidX, resources.material.cascadeMidY, resources.material.cascadeMidZ);
 }
 function FarVisibility(resources: Resources, p: float3, normal: float3): f32 {
-    const projected: float3 = float3(Row(resources.material.cascadeFarX, p), Row(resources.material.cascadeFarY, p), Row(resources.material.cascadeFarZ, p));
+    let projected: float3 = float3(Row(resources.material.cascadeFarX, p), Row(resources.material.cascadeFarY, p), Row(resources.material.cascadeFarZ, p));
     return PlaneShadowVisibility(resources.cascadeFar, resources.cascadeFarSampler, projected,
         float4(resources.material.shadowParameters.x, resources.material.cascadeBias.z, resources.material.shadowParameters.z, 0.0), normal, resources.material.cascadeFarX, resources.material.cascadeFarY, resources.material.cascadeFarZ);
 }
 function DirectionalVisibility(resources: Resources, p: float3, normal: float3): f32 {
-    const forward: float4 = resources.material.cascadeForward;
-    const eye: float4 = resources.material.eye;
-    const depth: f32 = (p.x - eye.x) * forward.x + (p.y - eye.y) * forward.y + (p.z - eye.z) * forward.z;
-    const ends: float4 = resources.material.cascadeEnds;
+    let forward: float4 = resources.material.cascadeForward;
+    let eye: float4 = resources.material.eye;
+    let depth: f32 = (p.x - eye.x) * forward.x + (p.y - eye.y) * forward.y + (p.z - eye.z) * forward.z;
+    let ends: float4 = resources.material.cascadeEnds;
     if (depth < ends.x * 0.9) {
         return NearVisibility(resources, p, normal);
     }
     if (depth < ends.x) {
-        const blend: f32 = (depth - ends.x * 0.9) / (ends.x * 0.1);
+        let blend: f32 = (depth - ends.x * 0.9) / (ends.x * 0.1);
         return NearVisibility(resources, p, normal) * (1.0 - blend) + MidVisibility(resources, p, normal) * blend;
     }
     if (depth < ends.y * 0.9) {
         return MidVisibility(resources, p, normal);
     }
     if (depth < ends.y) {
-        const blend: f32 = (depth - ends.y * 0.9) / (ends.y * 0.1);
+        let blend: f32 = (depth - ends.y * 0.9) / (ends.y * 0.1);
         return MidVisibility(resources, p, normal) * (1.0 - blend) + FarVisibility(resources, p, normal) * blend;
     }
-    const fade: f32 = Clamp((depth - ends.z * 0.9) / (ends.z * 0.1), 0.0, 1.0);
+    let fade: f32 = Clamp((depth - ends.z * 0.9) / (ends.z * 0.1), 0.0, 1.0);
     return FarVisibility(resources, p, normal) * (1.0 - fade) + fade;
 }
 
 function RayVisibility(resources: Resources, uv: float2, light: u32): f32 {
-    const pixelX: f32 = Floor(uv.x / resources.material.surfaceTexels.x);
-    const group: f32 = Floor(Convert<f32>(light) / 64.0);
-    const packed: float4 = Sample(resources.rayVisibility, resources.rayVisibilitySampler,
+    let pixelX: f32 = Floor(uv.x / resources.material.surfaceTexels.x);
+    let group: f32 = Floor(Convert<f32>(light) / 64.0);
+    let packed: float4 = Sample(resources.rayVisibility, resources.rayVisibilitySampler,
         float2((pixelX * 4.0 + group + 0.5) * resources.material.surfaceTexels.x / 4.0, uv.y));
-    const word: u32 = (light % 64) / 16;
+    let word: u32 = (light % 64) / 16;
     var value: f32 = packed.x;
     if (word == 1) { value = packed.y; }
     if (word == 2) { value = packed.z; }
     if (word == 3) { value = packed.w; }
-    const shifted: f32 = Floor(value / Pow(2.0, Convert<f32>(light % 16)));
+    let shifted: f32 = Floor(value / Pow(2.0, Convert<f32>(light % 16)));
     if (shifted - Floor(shifted / 2.0) * 2.0 > 0.5) { return 0.0; }
     return 1.0;
 }

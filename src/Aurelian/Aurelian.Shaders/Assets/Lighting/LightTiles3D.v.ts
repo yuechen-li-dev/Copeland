@@ -35,16 +35,16 @@ function Row(row: float4, point: float3): f32 {
 }
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
-    const group: u32 = Convert<u32>(Floor(input.uv.x * 8.0));
-    const tileUv: float2 = float2(input.uv.x * 8.0 - Convert<f32>(group), input.uv.y);
+    let group: u32 = Convert<u32>(Floor(input.uv.x * 8.0));
+    let tileUv: float2 = float2(input.uv.x * 8.0 - Convert<f32>(group), input.uv.y);
     var masks: float4 = float4(0.0, 0.0, 0.0, 0.0);
-    const tileMinimum: float2 = float2(tileUv.x - resources.material.parameters.y * 0.5,
+    let tileMinimum: float2 = float2(tileUv.x - resources.material.parameters.y * 0.5,
         tileUv.y - resources.material.parameters.z * 0.5);
-    const tileMaximum: float2 = float2(tileUv.x + resources.material.parameters.y * 0.5,
+    let tileMaximum: float2 = float2(tileUv.x + resources.material.parameters.y * 0.5,
         tileUv.y + resources.material.parameters.z * 0.5);
     for (var index: u32 = 0; index < 32; index = index + 1) {
         if (Convert<f32>(group * 32 + index) < resources.material.parameters.x) {
-            const sphere: float4 = Sample(resources.lights, resources.lightsSampler,
+            let sphere: float4 = Sample(resources.lights, resources.lightsSampler,
                 float2(0.125, (Convert<f32>(group * 32 + index) + 0.5) / 256.0));
             var minimum: float2 = float2(1.0, 1.0);
             var maximum: float2 = float2(0.0, 0.0);
@@ -56,20 +56,20 @@ function PixelMain(input: Varyings, resources: Resources): Output {
                 if (Convert<f32>(corner) - Floor(Convert<f32>(corner) / 2.0) * 2.0 > 0.5) { x = sphere.w; }
                 if (Floor(Convert<f32>(corner) / 2.0) - Floor(Convert<f32>(corner) / 4.0) * 2.0 > 0.5) { y = sphere.w; }
                 if (corner >= 4) { z = sphere.w; }
-                const p: float3 = float3(sphere.x + x, sphere.y + y, sphere.z + z);
-                const w: f32 = Row(resources.material.clipW, p);
+                let p: float3 = float3(sphere.x + x, sphere.y + y, sphere.z + z);
+                let w: f32 = Row(resources.material.clipW, p);
                 if (w <= 0.0001) {
                     crossing = true;
                 } else {
-                    const u: f32 = Row(resources.material.clipX, p) / w * 0.5 + 0.5;
-                    const v: f32 = Row(resources.material.clipY, p) / w * 0.5 + 0.5;
+                    let u: f32 = Row(resources.material.clipX, p) / w * 0.5 + 0.5;
+                    let v: f32 = Row(resources.material.clipY, p) / w * 0.5 + 0.5;
                     minimum = float2(Min(minimum.x, u), Min(minimum.y, v));
                     maximum = float2(Max(maximum.x, u), Max(maximum.y, v));
                 }
             }
             if (crossing || (maximum.x >= tileMinimum.x && minimum.x <= tileMaximum.x
                 && maximum.y >= tileMinimum.y && minimum.y <= tileMaximum.y)) {
-                const value: f32 = Pow(2.0, (Convert<f32>(index) - Floor(Convert<f32>(index) / 8.0) * 8.0));
+                let value: f32 = Pow(2.0, (Convert<f32>(index) - Floor(Convert<f32>(index) / 8.0) * 8.0));
                 masks = AddMaskBit(masks, index, value);
             }
         }

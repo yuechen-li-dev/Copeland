@@ -43,8 +43,8 @@ public sealed class GpuComputeBinderM1Tests
             function Skin(@builtin(dispatchThreadId) thread: uint3,
                 @binding(0) readonly Input: StorageBuffer<f32>,
                 @binding(1) readwrite Output: StorageBuffer<f32>): void {
-                const index: u32 = U32(Input[thread.x]) * 8;
-                const length: f32 = Sqrt(Input[index] * Input[index] + 1.0);
+                let index: u32 = U32(Input[thread.x]) * 8;
+                let length: f32 = Sqrt(Input[index] * Input[index] + 1.0);
                 if (thread.x >= 2) { return; }
                 Output[thread.x] = (length - 1.0) / 2.0;
                 return;
@@ -88,7 +88,7 @@ public sealed class GpuComputeBinderM1Tests
             @binding(0) readonly Input: StorageBuffer<f32>,
             @binding(1) readwrite Output: StorageBuffer<f32>
         ): void {
-            const index: u32 = thread.x;
+            let index: u32 = thread.x;
             Output[index] = Input[index] + 1.0;
             return;
         }

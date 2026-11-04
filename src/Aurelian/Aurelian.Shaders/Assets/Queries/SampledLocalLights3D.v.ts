@@ -3,7 +3,7 @@ import { RawTarget, Target } from "./LocalLightProposal3D";
 import { AffineAnalyticIntersection } from "./AffineAnalyticQuery3D";
 import { WorldAt, LocalAttenuation } from "./SurfaceLighting";
 import { Dot3, Unit } from "./Lighting3D";
-import { Read4, HalfToFloat, LightRandom } from "./LocalLightSamplingMath3D";
+import { Read4, ReadSurfaceNormal, LightRandom } from "./LocalLightSamplingMath3D";
 
 function MinIndex(first: u32, second: u32): u32 {
     if (first < second) { return first; }
@@ -34,74 +34,72 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
     @binding(8) readonly Normals: StorageBuffer<u32>,
     @binding(9) readonly History: StorageBuffer<f32>,
     @binding(10) readwrite NextHistory: StorageBuffer<f32>): void {
-    const pixel: u32 = thread.x;
-    const width: u32 = U32(Parameters[16]);
-    const height: u32 = U32(Parameters[17]);
-    const pixels: u32 = width * height;
+    let pixel: u32 = thread.x;
+    let width: u32 = U32(Parameters[16]);
+    let height: u32 = U32(Parameters[17]);
+    let pixels: u32 = width * height;
     if (pixel >= pixels) { return; }
-    const mode: u32 = U32(Parameters[23]);
-    const importanceReuse: bool = mode >= 7 && Parameters[57] > 0.5;
-    const usesCdf: bool = mode == 2 || mode == 3 || mode == 6 || importanceReuse;
-    const count: u32 = U32(Parameters[18]);
-    const frame: u32 = Bitcast<u32>(Parameters[28]);
-    const seed: u32 = Bitcast<u32>(Parameters[35]);
-    const rank: u32 = (pixel + frame * 997) % pixels;
-    const budget: u32 = U32(Parameters[24]);
+    let mode: u32 = U32(Parameters[23]);
+    let importanceReuse: bool = mode >= 7 && Parameters[57] > 0.5;
+    let usesCdf: bool = mode == 2 || mode == 3 || mode == 6 || importanceReuse;
+    let count: u32 = U32(Parameters[18]);
+    let frame: u32 = Bitcast<u32>(Parameters[28]);
+    let seed: u32 = Bitcast<u32>(Parameters[35]);
+    let rank: u32 = (pixel + frame * 997) % pixels;
+    let budget: u32 = U32(Parameters[24]);
     var quota: u32 = budget / pixels;
     if (rank < budget % pixels) { quota = quota + 1; }
-    const uv: float2 = float2((Convert<f32>(pixel % width) + 0.5) / Parameters[16],
+    let uv: float2 = float2((Convert<f32>(pixel % width) + 0.5) / Parameters[16],
         (Convert<f32>(pixel / width) + 0.5) / Parameters[17]);
-    const depth: f32 = Motion[pixel * 4 + 3];
-    const point: float3 = WorldAt(uv, depth, Read4(Parameters, 0), Read4(Parameters, 4), Read4(Parameters, 8), Read4(Parameters, 12));
-    const xy: u32 = Normals[pixel * 2];
-    const zw: u32 = Normals[pixel * 2 + 1];
-    const normal: float3 = float3(HalfToFloat(xy & 65535), HalfToFloat(xy >> 16), HalfToFloat(zw & 65535));
-    const origin: float3 = point + normal * Parameters[22];
-    const packet: u32 = 4 + pixel * 12;
+    let depth: f32 = Motion[pixel * 4 + 3];
+    let point: float3 = WorldAt(uv, depth, Read4(Parameters, 0), Read4(Parameters, 4), Read4(Parameters, 8), Read4(Parameters, 12));
+    let normal: float3 = ReadSurfaceNormal(Normals, pixel);
+    let origin: float3 = point + normal * Parameters[22];
+    let packet: u32 = 4 + pixel * 12;
     Rays[packet] = origin.x;
     Rays[packet + 1] = origin.y;
     Rays[packet + 2] = origin.z;
     Rays[packet + 3] = Parameters[19];
     Rays[packet + 8] = Parameters[20];
     Rays[packet + 9] = Parameters[21];
-    const currentBase: u32 = pixel * 24;
+    let currentBase: u32 = pixel * 24;
     var historyBase: u32 = currentBase;
     var historyValid: bool = false;
     // Keep the resource read behind control flow. Legacy HLSL boolean operators
     // may evaluate both operands; non-temporal modes bind only a small placeholder.
     if (mode == 5 && Parameters[29] > 0.5 && depth < 1.0) {
         if (History[historyBase + 23] > 0.5) {
-            const difference: float3 = point - float3(History[historyBase + 16], History[historyBase + 17], History[historyBase + 18]);
-            const oldNormal: float3 = float3(History[historyBase + 20], History[historyBase + 21], History[historyBase + 22]);
+            let difference: float3 = point - float3(History[historyBase + 16], History[historyBase + 17], History[historyBase + 18]);
+            let oldNormal: float3 = float3(History[historyBase + 20], History[historyBase + 21], History[historyBase + 22]);
             historyValid = Dot3(difference, difference) < 0.000001 && Dot3(normal, oldNormal) > 0.999;
         }
     }
     var reprojected: bool = false;
     if ((mode == 7 || mode == 8) && Parameters[29] > 0.5 && depth < 1.0) {
-        const previousUv: float2 = float2(Motion[pixel * 4], Motion[pixel * 4 + 1]);
-        const previousDepth: f32 = Motion[pixel * 4 + 2];
+        let previousUv: float2 = float2(Motion[pixel * 4], Motion[pixel * 4 + 1]);
+        let previousDepth: f32 = Motion[pixel * 4 + 2];
         if (previousUv.x >= 0.0 && previousUv.y >= 0.0 && previousUv.x < 1.0 && previousUv.y < 1.0
             && previousDepth >= 0.0 && previousDepth < 1.0) {
-            const expected: float3 = WorldAt(previousUv, previousDepth, Read4(Parameters, 40), Read4(Parameters, 44),
+            let expected: float3 = WorldAt(previousUv, previousDepth, Read4(Parameters, 40), Read4(Parameters, 44),
                 Read4(Parameters, 48), Read4(Parameters, 52));
-            const adjacentX: float3 = WorldAt(float2(previousUv.x + 1.0 / Parameters[16], previousUv.y), previousDepth,
+            let adjacentX: float3 = WorldAt(float2(previousUv.x + 1.0 / Parameters[16], previousUv.y), previousDepth,
                 Read4(Parameters, 40), Read4(Parameters, 44), Read4(Parameters, 48), Read4(Parameters, 52)) - expected;
-            const adjacentY: float3 = WorldAt(float2(previousUv.x, previousUv.y + 1.0 / Parameters[17]), previousDepth,
+            let adjacentY: float3 = WorldAt(float2(previousUv.x, previousUv.y + 1.0 / Parameters[17]), previousDepth,
                 Read4(Parameters, 40), Read4(Parameters, 44), Read4(Parameters, 48), Read4(Parameters, 52)) - expected;
-            const maximumDistance: f32 = Max(Dot3(adjacentX, adjacentX) + Dot3(adjacentY, adjacentY), 0.000001) * 4.0;
-            const minimumX: f32 = Floor(previousUv.x * Parameters[16] - 0.5);
-            const minimumY: f32 = Floor(previousUv.y * Parameters[17] - 0.5);
+            let maximumDistance: f32 = Max(Dot3(adjacentX, adjacentX) + Dot3(adjacentY, adjacentY), 0.000001) * 4.0;
+            let minimumX: f32 = Floor(previousUv.x * Parameters[16] - 0.5);
+            let minimumY: f32 = Floor(previousUv.y * Parameters[17] - 0.5);
             var best: f32 = 1.0e30;
             for (let tap of BoundedIndices<4>(4)) {
-                const x: f32 = minimumX + Convert<f32>(tap % 2);
-                const y: f32 = minimumY + Convert<f32>(tap / 2);
+                let x: f32 = minimumX + Convert<f32>(tap % 2);
+                let y: f32 = minimumY + Convert<f32>(tap / 2);
                 if (x >= 0.0 && y >= 0.0 && x < Parameters[16] && y < Parameters[17]) {
-                    const candidateBase: u32 = (U32(y) * width + U32(x)) * 24;
+                    let candidateBase: u32 = (U32(y) * width + U32(x)) * 24;
                     if (History[candidateBase + 23] > 0.5) {
-                        const candidatePoint: float3 = float3(History[candidateBase + 16], History[candidateBase + 17], History[candidateBase + 18]);
-                        const candidateNormal: float3 = float3(History[candidateBase + 20], History[candidateBase + 21], History[candidateBase + 22]);
-                        const difference: float3 = candidatePoint - expected;
-                        const squared: f32 = Dot3(difference, difference);
+                        let candidatePoint: float3 = float3(History[candidateBase + 16], History[candidateBase + 17], History[candidateBase + 18]);
+                        let candidateNormal: float3 = float3(History[candidateBase + 20], History[candidateBase + 21], History[candidateBase + 22]);
+                        let difference: float3 = candidatePoint - expected;
+                        let squared: f32 = Dot3(difference, difference);
                         if (Dot3(normal, candidateNormal) >= Parameters[39]
                             && Abs(Dot3(difference, candidateNormal)) <= Parameters[38] && squared <= maximumDistance && squared < best) {
                             best = squared;
@@ -127,7 +125,7 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
         NextHistory[currentBase + 22] = normal.z;
         if (depth < 1.0) { NextHistory[currentBase + 23] = 1.0; }
     }
-    const emitterKey: u32 = (pixel * 0x9e3779b9 + frame * 0x85ebca6b + seed) & 0xffffff;
+    let emitterKey: u32 = (pixel * 0x9e3779b9 + frame * 0x85ebca6b + seed) & 0xffffff;
     var headEligible: u32 = 0;
     var raysUsed: u32 = 0;
     var reused: u32 = 0;
@@ -138,7 +136,7 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
     if (depth < 1.0 && usesCdf) {
         for (let light of BoundedIndices<256>(256)) {
             if (light < count) {
-                const target: f32 = Proposal(Parameters, point, normal, light, mode);
+                let target: f32 = Proposal(Parameters, point, normal, light, mode);
                 total = total + target;
                 if (Parameters[64 + light * 16 + 13] < 1.5) {
                     headEligible = headEligible + 1;
@@ -171,8 +169,8 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
     // Four inverse-CDF draws share one traversal of the light table.
     var choices: float4 = float4(-1.0, -1.0, -1.0, -1.0);
     if (depth < 1.0 && usesCdf) {
-        const baseKey: u32 = pixel * 0x9e3779b9 + frame * 0x85ebca6b + seed;
-        const thresholds: float4 = float4(LightRandom(baseKey) * total,
+        let baseKey: u32 = pixel * 0x9e3779b9 + frame * 0x85ebca6b + seed;
+        let thresholds: float4 = float4(LightRandom(baseKey) * total,
             LightRandom(baseKey + 0xc2b2ae35) * total,
             LightRandom(baseKey + 0x85655c6a) * total,
             LightRandom(baseKey + 0x48180a9f) * total);
@@ -189,7 +187,7 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
     }
     for (let sample of BoundedIndices<4>(4)) {
         if (sample < quota && depth < 1.0 && count > 0 && (sample < exactCount || count > exactCount) && (mode != 6 || total > 0.0)) {
-            const key: u32 = pixel * 0x9e3779b9 + frame * 0x85ebca6b + seed + sample * 0xc2b2ae35;
+            let key: u32 = pixel * 0x9e3779b9 + frame * 0x85ebca6b + seed + sample * 0xc2b2ae35;
             var selected: u32 = MinIndex(U32(LightRandom(key) * Convert<f32>(count)), count - 1);
             var weight: f32 = Convert<f32>(count) / Convert<f32>(quota);
             var reservoirWeight: f32 = 0.0;
@@ -217,8 +215,8 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
                     } else {
                         for (let candidate of BoundedIndices<32>(32)) {
                             if (candidate < U32(Parameters[26])) {
-                                const item: u32 = MinIndex(U32(LightRandom(key + candidate * 17 + 1) * Convert<f32>(count)), count - 1);
-                                const value: f32 = Target(Parameters, point, normal, item) * Convert<f32>(count);
+                                let item: u32 = MinIndex(U32(LightRandom(key + candidate * 17 + 1) * Convert<f32>(count)), count - 1);
+                                let value: f32 = Target(Parameters, point, normal, item) * Convert<f32>(count);
                                 sum = sum + value;
                                 if (LightRandom(key + candidate * 17 + 2) * sum < value) { selected = item; }
                                 candidates = candidates + 1.0;
@@ -227,9 +225,9 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
                     }
                     if (historyValid) {
                         if (History[historyBase + sample * 4 + 2] > 0.0) {
-                            const oldLight: u32 = U32(History[historyBase + sample * 4]);
-                            const oldCount: f32 = Min(History[historyBase + sample * 4 + 2], Parameters[27]);
-                            const value: f32 = Target(Parameters, point, normal, oldLight) * History[historyBase + sample * 4 + 1] * oldCount;
+                            let oldLight: u32 = U32(History[historyBase + sample * 4]);
+                            let oldCount: f32 = Min(History[historyBase + sample * 4 + 2], Parameters[27]);
+                            let value: f32 = Target(Parameters, point, normal, oldLight) * History[historyBase + sample * 4 + 1] * oldCount;
                             sum = sum + value;
                             if (LightRandom(key + 0x51ed270b) * sum < value) { selected = oldLight; }
                             candidates = candidates + oldCount;
@@ -245,15 +243,15 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
                 NextHistory[currentBase + sample * 4 + 1] = reservoirWeight;
                 NextHistory[currentBase + sample * 4 + 2] = candidates;
             }
-            const offset: u32 = 64 + selected * 16;
-            const sphere: float4 = Read4(Parameters, offset);
-            const emitter: EmitterSample3D = SampleLocalEmitter(point, sphere, Read4(Parameters, offset + 8), Read4(Parameters, offset + 12), emitterKey + sample * 137);
-            const delta: float3 = emitter.endpoint - origin;
-            const distance: f32 = Sqrt(Dot3(delta, delta));
+            let offset: u32 = 64 + selected * 16;
+            let sphere: float4 = Read4(Parameters, offset);
+            let emitter: EmitterSample3D = SampleLocalEmitter(point, sphere, Read4(Parameters, offset + 8), Read4(Parameters, offset + 12), emitterKey + sample * 137);
+            let delta: float3 = emitter.endpoint - origin;
+            let distance: f32 = Sqrt(Dot3(delta, delta));
             if (mode != 8 && mode != 9 && Parameters[offset + 14] > 0.5 && distance > Parameters[19] * 2.0
                 && distance < sphere.w && Dot3(normal, delta) > 0.0
                 && (Parameters[offset + 13] < 1.5 || emitter.attenuation > 0.0)) {
-                const direction: float3 = delta / distance;
+                let direction: float3 = delta / distance;
                 Rays[packet + 4] = direction.x;
                 Rays[packet + 5] = direction.y;
                 Rays[packet + 6] = direction.z;

@@ -34,10 +34,10 @@ function VertexMain(input: Input): Varyings {
 }
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
-    const scene: float4 = Sample(resources.scene, resources.sceneSampler, input.uv);
-    const original: float4 = Sample(resources.diffuse, resources.diffuseSampler, input.uv);
-    const blurred: float4 = Sample(resources.blurred, resources.blurredSampler, input.uv);
-    const profile: float4 = Sample(resources.profile, resources.profileSampler, input.uv);
+    let scene: float4 = Sample(resources.scene, resources.sceneSampler, input.uv);
+    let original: float4 = Sample(resources.diffuse, resources.diffuseSampler, input.uv);
+    let blurred: float4 = Sample(resources.blurred, resources.blurredSampler, input.uv);
+    let profile: float4 = Sample(resources.profile, resources.profileSampler, input.uv);
     return { color: float4(Max(scene.x + (blurred.x - original.x) * profile.x, 0.0),
         Max(scene.y + (blurred.y - original.y) * profile.y, 0.0),
         Max(scene.z + (blurred.z - original.z) * profile.z, 0.0), scene.w) };

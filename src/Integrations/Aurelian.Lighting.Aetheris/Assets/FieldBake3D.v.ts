@@ -38,16 +38,16 @@ function VertexMain(input: BakeInput): BakeVaryings {
 }
 @pixel
 function PixelMain(input: BakeVaryings, resources: BakeResources): BakeOutput {
-    const settings: float4 = resources.bake.parameters;
-    const light: float3 = float3(resources.bake.light.x, resources.bake.light.y, resources.bake.light.z);
-    const p: float3 = float3(
+    let settings: float4 = resources.bake.parameters;
+    let light: float3 = float3(resources.bake.light.x, resources.bake.light.y, resources.bake.light.z);
+    let p: float3 = float3(
         resources.bake.origin.x + input.uv.x * resources.bake.axisU.x + input.uv.y * resources.bake.axisV.x,
         resources.bake.origin.y + input.uv.x * resources.bake.axisU.y + input.uv.y * resources.bake.axisV.y,
         resources.bake.origin.z + input.uv.x * resources.bake.axisU.z + input.uv.y * resources.bake.axisV.z);
     // This first admitted receiver domain is a horizontal plane, normal +Y.
-    const origin: float3 = Add3(p, float3(0.0, 0.004, 0.0));
+    let origin: float3 = Add3(p, float3(0.0, 0.004, 0.0));
     if (settings.x < 0.5) {
-        const shadow: float4 = TraceField(origin, light, 48.0, TraceBudget());
+        let shadow: float4 = TraceField(origin, light, 48.0, TraceBudget());
         var value: f32 = 0.0;
         var resolved: f32 = 1.0;
         if (shadow.x == 0.0) {
@@ -59,10 +59,10 @@ function PixelMain(input: BakeVaryings, resources: BakeResources): BakeOutput {
         return { color: float4(value, value, value, resolved) };
     }
     if (settings.x > 1.5) {
-        const eye: float3 = float3(resources.bake.eye.x, resources.bake.eye.y, resources.bake.eye.z);
-        const view: float3 = Unit(Sub3(eye, p));
-        const direction: float3 = float3(-view.x, view.y, -view.z);
-        const trace: float4 = TraceSurfaceField(origin, direction, 48.0, TraceBudget());
+        let eye: float3 = float3(resources.bake.eye.x, resources.bake.eye.y, resources.bake.eye.z);
+        let view: float3 = Unit(Sub3(eye, p));
+        let direction: float3 = float3(-view.x, view.y, -view.z);
+        let trace: float4 = TraceSurfaceField(origin, direction, 48.0, TraceBudget());
         if (trace.x == 1.0) {
             return { color: SurfaceRadiance(Add3(origin, Scale3(direction, trace.y)), light, TraceBudget()) };
         }
@@ -75,18 +75,18 @@ function PixelMain(input: BakeVaryings, resources: BakeResources): BakeOutput {
     var resolved: f32 = 1.0;
     // Explicit finite cosine-weighted quadrature: a bounded one-bounce experiment, not converged GI.
     for (var index: u32 = 0; index < 16; index = index + 1) {
-        const direction: float3 = HemisphereDirection(index);
-        const trace: float4 = TraceSurfaceField(origin, direction, 48.0, TraceBudget());
+        let direction: float3 = HemisphereDirection(index);
+        let trace: float4 = TraceSurfaceField(origin, direction, 48.0, TraceBudget());
         if (trace.x == 0.0) {
             resolved = 0.0;
         }
         if (trace.x == 1.0) {
-            const hit: float4 = SurfaceRadiance(Add3(origin, Scale3(direction, trace.y)), light, TraceBudget());
+            let hit: float4 = SurfaceRadiance(Add3(origin, Scale3(direction, trace.y)), light, TraceBudget());
             radiance = Add3(radiance, float3(hit.x, hit.y, hit.z));
             resolved = Min(resolved, hit.w);
         }
     }
     // Unit-albedo Lambertian receiver: cosine-weighted average gives outgoing diffuse radiance.
-    const average: float3 = Scale3(radiance, 1.0 / 16.0);
+    let average: float3 = Scale3(radiance, 1.0 / 16.0);
     return { color: float4(average.x, average.y, average.z, resolved) };
 }

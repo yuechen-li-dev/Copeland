@@ -5,6 +5,7 @@ using Aetheris.Continuum.Backends.Sdf;
 using Aetheris.Kernel.Core.Math;
 using Copeland.TS.Gpu;
 using Copeland.TS.Gpu.VdMir;
+using Copeland.TS.Syntax;
 
 namespace Aurelian.Lighting.Aetheris;
 
@@ -20,15 +21,18 @@ public sealed class AetherisLightField
     {
         Program = program;
         tape = SdfTapeLowerer.Lower(root);
+        CompilerFieldSource = AdaptLegacyRuntimeBindings(program.FieldSource);
         WorldSource = "// AGPL-3.0-only: generated from Aetheris.Fields; retain source and provenance.\n"
             + "// CIR structural identity: " + program.StructuralHash + "\n"
-            + program.FieldSource
+            + CompilerFieldSource
             + "\nexport function FieldWorld(p: float3): f32 {\n"
             + "    return Field(p.x * 1000.0, -p.z * 1000.0, p.y * 1000.0) * 0.001;\n}\n";
         WorldSourceSha256 = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(WorldSource))).ToLowerInvariant();
     }
 
     public CirVisualTsProgram Program { get; }
+    /// <summary>Current VTS binding syntax. The upstream program and its provenance remain intact.</summary>
+    public string CompilerFieldSource { get; }
     public string WorldSource { get; }
     public string WorldSourceSha256 { get; }
 
@@ -43,6 +47,41 @@ public sealed class AetherisLightField
             throw new ArgumentException(result.FallbackReason ?? "Field has no admitted exterior step bound.", nameof(root));
         }
         return new(root, result.Program);
+    }
+
+    private static string AdaptLegacyRuntimeBindings(string source)
+    {
+        // CIR VTS v2 predates compile-time-only const. Adapt declaration tokens
+        // at this optional bridge; geometry lowering remains owned by Aetheris.
+        if (!string.Equals(CirVisualTsLowerer.CompatibilityVersion, "cir-visual-ts/2", StringComparison.Ordinal))
+        {
+            return source;
+        }
+        var syntax = SyntaxTree.Parse(source);
+        if (syntax.Diagnostics.Count != 0)
+        {
+            throw new InvalidOperationException("The upstream field generator emitted invalid VTS syntax.");
+        }
+        var positions = new List<int>();
+        Visit(syntax.Root, false);
+        foreach (int position in positions.OrderDescending())
+        {
+            source = source.Remove(position, "const".Length).Insert(position, "let");
+        }
+        return source;
+
+        void Visit(SyntaxNode node, bool local)
+        {
+            local |= node is FunctionDeclarationSyntax;
+            if (local && node is VariableDeclarationStatementSyntax declaration && declaration.Keyword.Kind == SyntaxKind.ConstKeyword)
+            {
+                positions.Add(declaration.Keyword.Position);
+            }
+            foreach (object child in node.GetChildren())
+            {
+                if (child is SyntaxNode nested) Visit(nested, local);
+            }
+        }
     }
 
     public double EvaluateMetres(Vector3 point)

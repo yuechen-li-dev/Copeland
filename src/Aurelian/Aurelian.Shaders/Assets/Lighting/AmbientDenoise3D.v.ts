@@ -35,32 +35,32 @@ function VertexMain(input: Input): Varyings {
 }
 
 function Position(resources: Resources, uv: float2, depth: f32): float3 {
-    const texel: float4 = resources.material.sourceTexels;
-    const snapped: float2 = float2((Floor(uv.x / texel.x) + 0.5) * texel.x,
+    let texel: float4 = resources.material.sourceTexels;
+    let snapped: float2 = float2((Floor(uv.x / texel.x) + 0.5) * texel.x,
         (Floor(uv.y / texel.y) + 0.5) * texel.y);
     return WorldAt(snapped, depth, resources.material.inverseX, resources.material.inverseY,
         resources.material.inverseZ, resources.material.inverseW);
 }
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
-    const center: float4 = Sample(resources.ao, resources.aoSampler, input.uv);
+    let center: float4 = Sample(resources.ao, resources.aoSampler, input.uv);
     if (center.y >= 1.0 || resources.material.parameters.w <= 0.0) {
         return { color: center };
     }
-    const p: float3 = Position(resources, input.uv, center.y);
-    const n: float4 = Sample(resources.normal, resources.normalSampler, input.uv);
+    let p: float3 = Position(resources, input.uv, center.y);
+    let n: float4 = Sample(resources.normal, resources.normalSampler, input.uv);
     var total: f32 = 0.0;
     var sum: f32 = 0.0;
     static for (let dy of [-1.0, 0.0, 1.0]) {
         static for (let dx of [-1.0, 0.0, 1.0]) {
-            const uv: float2 = float2(input.uv.x + dx * resources.material.parameters.x,
+            let uv: float2 = float2(input.uv.x + dx * resources.material.parameters.x,
                 input.uv.y + dy * resources.material.parameters.y);
-            const tap: float4 = Sample(resources.ao, resources.aoSampler, uv);
+            let tap: float4 = Sample(resources.ao, resources.aoSampler, uv);
             if (tap.y < 1.0) {
-                const neighbor: float4 = Sample(resources.normal, resources.normalSampler, uv);
-                const delta: float3 = Sub3(Position(resources, uv, tap.y), p);
-                const alignment: f32 = Dot3(float3(n.x, n.y, n.z), float3(neighbor.x, neighbor.y, neighbor.z));
-                const weight: f32 = Max(alignment, 0.0) / (1.0 + Dot3(delta, delta) / Max(resources.material.parameters.z * resources.material.parameters.z * 0.02, 0.000001));
+                let neighbor: float4 = Sample(resources.normal, resources.normalSampler, uv);
+                let delta: float3 = Sub3(Position(resources, uv, tap.y), p);
+                let alignment: f32 = Dot3(float3(n.x, n.y, n.z), float3(neighbor.x, neighbor.y, neighbor.z));
+                let weight: f32 = Max(alignment, 0.0) / (1.0 + Dot3(delta, delta) / Max(resources.material.parameters.z * resources.material.parameters.z * 0.02, 0.000001));
                 sum = sum + tap.x * weight;
                 total = total + weight;
             }

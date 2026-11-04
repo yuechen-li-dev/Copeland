@@ -24,10 +24,10 @@ function VertexMain(input: Input): Varyings {
         uv: float2(input.position.x * 0.5 + 0.5, input.position.y * 0.5 + 0.5) };
 }
 function Prefilter(color: float4, settings: float4): float4 {
-    const brightness: f32 = Max(color.x, Max(color.y, color.z));
-    const knee: f32 = Max(settings.w, 0.00001);
-    const soft: f32 = Clamp(brightness - settings.z + knee, 0.0, 2.0 * knee);
-    const contribution: f32 = Max(brightness - settings.z, soft * soft / (4.0 * knee)) / Max(brightness, 0.00001);
+    let brightness: f32 = Max(color.x, Max(color.y, color.z));
+    let knee: f32 = Max(settings.w, 0.00001);
+    let soft: f32 = Clamp(brightness - settings.z + knee, 0.0, 2.0 * knee);
+    let contribution: f32 = Max(brightness - settings.z, soft * soft / (4.0 * knee)) / Max(brightness, 0.00001);
     return color * float4(contribution, contribution, contribution, 0.0);
 }
 function TentWeight(dx: f32, dy: f32): f32 {
@@ -36,7 +36,7 @@ function TentWeight(dx: f32, dy: f32): f32 {
 }
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
-    const filter: float4 = resources.bloom.filter;
+    let filter: float4 = resources.bloom.filter;
     var sum: float4 = float4(0.0, 0.0, 0.0, 0.0);
     // Separable tent footprint in one pass: broad highlights survive downsampling.
     static for (let dy of [-1.0, 0.0, 1.0]) {
@@ -48,9 +48,9 @@ function PixelMain(input: Varyings, resources: Resources): Output {
             sum = Add4(sum, color * float4(weight, weight, weight, weight));
         }
     }
-    const low: float4 = Sample(resources.lower, resources.lowerSampler, input.uv);
-    const addition: f32 = resources.bloom.operation.y;
-    const result: float4 = Add4(Divide4(sum, 16.0), low * float4(addition, addition, addition, 0.0));
+    let low: float4 = Sample(resources.lower, resources.lowerSampler, input.uv);
+    let addition: f32 = resources.bloom.operation.y;
+    let result: float4 = Add4(Divide4(sum, 16.0), low * float4(addition, addition, addition, 0.0));
     return { color: float4(result.x, result.y, result.z, 1.0) };
 }
 

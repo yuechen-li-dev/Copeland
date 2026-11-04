@@ -30,9 +30,9 @@ function VertexMain(input: Input): Varyings {
 
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
-    const scene: float4 = Sample(resources.scene, resources.sceneSampler, input.uv);
-    const glass: float4 = Sample(resources.glass, resources.glassSampler, input.uv);
-    const coverage: float4 = Sample(resources.coverage, resources.coverageSampler, input.uv);
+    let scene: float4 = Sample(resources.scene, resources.sceneSampler, input.uv);
+    let glass: float4 = Sample(resources.glass, resources.glassSampler, input.uv);
+    let coverage: float4 = Sample(resources.coverage, resources.coverageSampler, input.uv);
     if (coverage.x < 0.5) { return { color: scene }; }
     // Alpha marks refracted pixels reactive to the existing temporal resolver.
     return { color: float4(glass.x, glass.y, glass.z, 0.0) };

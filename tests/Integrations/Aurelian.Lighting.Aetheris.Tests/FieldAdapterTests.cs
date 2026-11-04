@@ -7,6 +7,7 @@ using Aurelian.Shaders.Graphics;
 using Aurelian.Rendering.Contracts.Lighting;
 using Copeland.TS.Gpu;
 using Copeland.TS.Gpu.VdMir;
+using Copeland.TS.Syntax;
 using Xunit;
 
 namespace Aurelian.Lighting.Aetheris.Tests;
@@ -115,7 +116,7 @@ public sealed class FieldAdapterTests
     }
 
     [Fact]
-    public void Real_Aetheris_CSG_source_lowers_through_compute_without_shader_rewriting()
+    public void Real_Aetheris_CSG_source_adapts_binding_syntax_and_lowers_through_compute()
     {
         var field = AetherisLightField.Create(new SdfSubtractNode(new SdfBoxNode(2000, 3000, 4000), new SdfSphereNode(900)));
         const string shader = """
@@ -128,10 +129,14 @@ public sealed class FieldAdapterTests
                 Output[thread.x] = Field(Input[thread.x], -20.0, 0.0);
             }
             """;
+        var originalTokens = SyntaxTree.Parse(field.Program.FieldSource).Tokens
+            .Select(token => token.Kind == SyntaxKind.ConstKeyword ? "let" : token.Text);
+        var compilerTokens = SyntaxTree.Parse(field.CompilerFieldSource).Tokens.Select(token => token.Text);
+        Assert.Equal(originalTokens, compilerTokens);
         var sources = GpuSourceLoader.Load("sample.v.ts", name => name switch
         {
             "sample.v.ts" => shader,
-            "AetherisField.v.ts" => field.Program.FieldSource,
+            "AetherisField.v.ts" => field.CompilerFieldSource,
             _ => null,
         });
         var module = GpuComputeBinder.Compile(new(sources));

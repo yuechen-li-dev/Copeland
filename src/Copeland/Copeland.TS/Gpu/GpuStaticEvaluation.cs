@@ -44,6 +44,10 @@ internal sealed class GpuStaticEvaluation
         if (result is StaticRecordValue record && embedAggregate is not null)
         {
             var values = record.RecordType.Fields.Select(field => Embed(record.Fields[field], source, embedAggregate)).ToArray();
+            if (VectorShape(record.Type.Name) is not null)
+            {
+                return new("call", record.Type.Name, source, record.Type.Name, values);
+            }
             return embedAggregate(new("object", record.Type.Name, source, record.Type.Name,
                 values, record.RecordType.Fields.Select(field => field.Name).ToArray()));
         }
@@ -93,6 +97,35 @@ internal sealed class GpuStaticEvaluation
                 return new BoundBinaryExpression(Expression(operands[0], scope), Operator(expression.Value!), Expression(operands[1], scope), type);
             case "unary":
                 return new BoundUnaryExpression(Operator(expression.Value!), Expression(operands[0], scope), type);
+            case "call" or "intrinsic" when expression.Value == expression.Type && VectorShape(expression.Type) is not null:
+            {
+                // Closed vector construction is a finite record of scalar values
+                // for the existing evaluator. No GPU arithmetic is executed here.
+                var vector = (RecordTypeSymbol)type;
+                var components = new List<BoundExpression>();
+                foreach (var operand in operands)
+                {
+                    BoundExpression componentValue = Expression(operand, scope);
+                    if (VectorShape(operand.Type) is not null && componentValue.Type is RecordTypeSymbol nested)
+                    {
+                        components.AddRange(nested.Fields.Select(field => new BoundRecordFieldAccessExpression(componentValue, nested, field)));
+                    }
+                    else
+                    {
+                        components.Add(componentValue);
+                    }
+                }
+                if (components.Count == 1)
+                {
+                    components = Enumerable.Repeat(components[0], vector.Fields.Count).ToList();
+                }
+                if (components.Count != vector.Fields.Count)
+                {
+                    throw StaticEvaluationException.Unsupported("Static vector construction has the wrong component count.");
+                }
+                return new BoundRecordConstructionExpression(vector, vector.Fields.Select((field, index) =>
+                    new BoundRecordFieldInitializer(field, components[index])).ToArray());
+            }
             case "call":
                 FunctionSymbol function = Function(expression.Value!);
                 return new BoundCallExpression(function, operands.Select(operand => Expression(operand, scope)).ToArray());
@@ -100,8 +133,20 @@ internal sealed class GpuStaticEvaluation
                 return new BoundRecordConstructionExpression(record, record.Fields.Select((field, index) =>
                     new BoundRecordFieldInitializer(field, Expression(operands[index], scope))).ToArray());
             case "field" when Type(operands[0].Type) is RecordTypeSymbol receiver:
-                return new BoundRecordFieldAccessExpression(Expression(operands[0], scope), receiver,
-                    receiver.Fields.Single(field => field.Name == expression.Value));
+            {
+                BoundExpression subject = Expression(operands[0], scope);
+                if (VectorShape(operands[0].Type) is not null && VectorShape(expression.Type) is not null
+                    && type is RecordTypeSymbol swizzle)
+                {
+                    var components = expression.Value!.Select(component => receiver.Fields.SingleOrDefault(field => field.Name == component.ToString())
+                        ?? throw StaticEvaluationException.Unsupported("Unknown static vector component: " + component)).ToArray();
+                    return new BoundRecordConstructionExpression(swizzle, swizzle.Fields.Select((field, index) =>
+                        new BoundRecordFieldInitializer(field, new BoundRecordFieldAccessExpression(subject, receiver, components[index]))).ToArray());
+                }
+                var member = receiver.Fields.SingleOrDefault(field => field.Name == expression.Value)
+                    ?? throw StaticEvaluationException.Unsupported("Unknown static field: " + expression.Value);
+                return new BoundRecordFieldAccessExpression(subject, receiver, member);
+            }
             default:
                 throw StaticEvaluationException.Ineligible($"Static scalar closure contains '{expression.Kind}' ({expression.Value}); resources and GPU intrinsics require runtime execution.");
         }
@@ -192,6 +237,16 @@ internal sealed class GpuStaticEvaluation
         if (type == "u32") return U32;
         if (type == "bool") return PrimitiveTypeSymbol.Boolean;
         if (recordTypes.TryGetValue(type, out var existing)) return existing;
+        if (VectorShape(type) is { } shape)
+        {
+            var vector = new RecordTypeSymbol(type, new(recordTypes.Count), type);
+            recordTypes.Add(type, vector);
+            foreach (char component in "xyzw".Take(shape.Count))
+            {
+                vector.AddField(new(component.ToString(), new(vector.Id, vector.Fields.Count), Type(shape.Element), true));
+            }
+            return vector;
+        }
         if (!valueTypes.TryGetValue(type, out var definition))
         {
             throw StaticEvaluationException.Unsupported($"GPU static value closure cannot represent '{type}'.");
@@ -204,6 +259,17 @@ internal sealed class GpuStaticEvaluation
         }
         return record;
     }
+
+    private static (string Element, int Count)? VectorShape(string type) => type switch
+    {
+        "float2" => ("f32", 2),
+        "float3" => ("f32", 3),
+        "float4" => ("f32", 4),
+        "uint2" => ("u32", 2),
+        "uint3" => ("u32", 3),
+        "uint4" => ("u32", 4),
+        _ => null,
+    };
 
     private static SyntaxKind Operator(string operation) => operation switch
     {

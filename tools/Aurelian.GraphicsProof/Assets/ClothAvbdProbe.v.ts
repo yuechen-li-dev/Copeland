@@ -8,10 +8,10 @@ function Main(@builtin(dispatchThreadId) thread: uint3,
     if (thread.x >= 12) {
         return;
     }
-    const index: u32 = thread.x * 3;
-    const method: u32 = U32(Input[index]);
-    const augmented: bool = method == 1;
-    const budget: u32 = U32(Input[index + 1]);
+    let index: u32 = thread.x * 3;
+    let method: u32 = U32(Input[index]);
+    let augmented: bool = method == 1;
+    let budget: u32 = U32(Input[index + 1]);
     var x1: f32 = 0.01;
     var x2: f32 = 0.01;
     var lambda: f32 = 0.0;
@@ -30,10 +30,10 @@ function Main(@builtin(dispatchThreadId) thread: uint3,
     ]) {
         if (iteration < budget) {
             if (method == 2) {
-                const groundIncrement: f32 = (-x1 - 0.36 * groundMultiplier) / 1.36;
+                let groundIncrement: f32 = (-x1 - 0.36 * groundMultiplier) / 1.36;
                 groundMultiplier = groundMultiplier + groundIncrement;
                 x1 = x1 + groundIncrement;
-                const couplingIncrement: f32 = (x2 - x1) * 0.5;
+                let couplingIncrement: f32 = (x2 - x1) * 0.5;
                 couplingMultiplier = couplingMultiplier + couplingIncrement;
                 x1 = x1 + couplingIncrement;
                 x2 = x2 - couplingIncrement;
@@ -45,7 +45,7 @@ function Main(@builtin(dispatchThreadId) thread: uint3,
                 x1 = (36.0 + penalty * x2 - lambda) / (13600.0 + penalty);
                 x2 = (36.0 + penalty * x1 + lambda) / (3600.0 + penalty);
                 if (augmented) {
-                    const residual: f32 = x1 - x2;
+                    let residual: f32 = x1 - x2;
                     lambda = lambda + penalty * residual;
                     penalty = penalty + 10.0 * Abs(residual);
                 }

@@ -53,7 +53,7 @@ public sealed class AetherisLightingScene
         material.AppendLine("    var identity: f32 = 0.0;");
         for (int index = 1; index < bodies.Length; index++)
         {
-            material.AppendLine($"    const distance{index}: f32 = Abs(Body{index}(p));");
+            material.AppendLine($"    let distance{index}: f32 = Abs(Body{index}(p));");
             material.AppendLine($"    if (distance{index} < nearest) {{");
             material.AppendLine($"        nearest = distance{index};");
             material.AppendLine($"        identity = {index}.0;");
@@ -68,7 +68,7 @@ public sealed class AetherisLightingScene
         void AppendProperty(string name, Func<AetherisLightingBody, Vector3> property)
         {
             material.AppendLine($"export function {name}(p: float3): float3 {{");
-            material.AppendLine("    const identity: f32 = SurfaceId(p);");
+            material.AppendLine("    let identity: f32 = SurfaceId(p);");
             for (int index = 0; index < bodies.Length; index++)
             {
                 Vector3 value = property(bodies[index]);

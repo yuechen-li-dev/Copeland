@@ -38,16 +38,16 @@ function VertexMain(input: Input): Varyings {
 }
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
-    const source: float4 = Sample(resources.scene, resources.sceneSampler, input.uv);
-    const motion: float4 = Sample(resources.motion, resources.motionSampler, input.uv);
-    const depth: f32 = Min(motion.w, 0.9999);
+    let source: float4 = Sample(resources.scene, resources.sceneSampler, input.uv);
+    let motion: float4 = Sample(resources.motion, resources.motionSampler, input.uv);
+    let depth: f32 = Min(motion.w, 0.9999);
     var point: float3 = WorldAt(input.uv, depth, resources.material.inverseX,
         resources.material.inverseY, resources.material.inverseZ, resources.material.inverseW);
-    const eye: float3 = float3(resources.material.eye.x, resources.material.eye.y, resources.material.eye.z);
+    let eye: float3 = float3(resources.material.eye.x, resources.material.eye.y, resources.material.eye.z);
     if (motion.w >= 1.0) {
         point = Add3(eye, Scale3(Unit(Sub3(point, eye)), resources.material.fogColor.w));
     }
-    const lit: float3 = Fogged(float3(source.x, source.y, source.z), point, eye,
+    let lit: float3 = Fogged(float3(source.x, source.y, source.z), point, eye,
         resources.material.fogParameters, resources.material.fogColor);
     return { color: float4(lit.x, lit.y, lit.z, source.w) };
 }

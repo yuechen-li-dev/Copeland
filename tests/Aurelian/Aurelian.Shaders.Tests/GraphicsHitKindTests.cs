@@ -18,13 +18,13 @@ public sealed class GraphicsHitKindTests
             stream Output { @target(0) identity: uint2; }
             @vertex
             function VertexMain(input: Input): Varyings {
-                const kind: u32 = (1 << 31) | 3;
+                let kind: u32 = (1 << 31) | 3;
                 return { position: float4(input.position.x, input.position.y, 0.0, 1.0), kind: kind };
             }
             @pixel
             function PixelMain(input: Varyings): Output {
-                const tag: u32 = input.kind & 0x80000000;
-                const payload: u32 = (input.kind ^ tag) >> 1;
+                let tag: u32 = input.kind & 0x80000000;
+                let payload: u32 = (input.kind ^ tag) >> 1;
                 return { identity: uint2(tag, payload) };
             }
             """;

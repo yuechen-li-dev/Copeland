@@ -68,7 +68,7 @@ public sealed class StaticForLanguageTests
     {
         var module = Compute("""
             const choice: Choice = static Choice.Value(7);
-            const value: u32 = match choice {
+            let value: u32 = match choice {
                 case Choice.Empty => 0,
                 case Choice.Value(payload) => payload.value,
             };

@@ -17,7 +17,7 @@ export function TraceFieldWithTolerance(origin: float3, direction: float3, maxim
     var travel: f32 = 0.0;
     var visibility: f32 = 1.0;
     var evaluations: f32 = 0.0;
-    const directionLengthSquared: f32 = direction.x * direction.x + direction.y * direction.y + direction.z * direction.z;
+    let directionLengthSquared: f32 = direction.x * direction.x + direction.y * direction.y + direction.z * direction.z;
     if (!(Abs(directionLengthSquared - 1.0) <= 0.0001)
         || !(tolerance >= 0.0001 && tolerance <= 0.0005)
         || !(maximum > 0.0 && maximum <= 48.0)) {
@@ -25,18 +25,18 @@ export function TraceFieldWithTolerance(origin: float3, direction: float3, maxim
     }
     for (var step: u32 = 0; step < 256; step = step + 1) {
         if (status == 0.0 && step < budget) {
-            const samplePosition: float3 = Add3(origin, Scale3(direction, travel));
+            let samplePosition: float3 = Add3(origin, Scale3(direction, travel));
             if (!(Abs(samplePosition.x) <= 64.0 && Abs(samplePosition.y) <= 64.0 && Abs(samplePosition.z) <= 64.0)) {
                 return float4(0.0, travel, 0.0, evaluations);
             }
-            const distance: f32 = FieldWorld(samplePosition);
+            let distance: f32 = FieldWorld(samplePosition);
             evaluations = evaluations + 1.0;
             if (distance <= tolerance) {
                 status = 1.0;
                 visibility = 0.0;
             } else {
                 visibility = Min(visibility, 12.0 * distance / Max(travel, 0.004));
-                const advance: f32 = (distance - 0.00005) * 0.9;
+                let advance: f32 = (distance - 0.00005) * 0.9;
                 if (travel + advance >= maximum) {
                     status = 2.0;
                 } else {
@@ -49,7 +49,7 @@ export function TraceFieldWithTolerance(origin: float3, direction: float3, maxim
 }
 
 export function FieldShadow(world: float3, normal: float3, light: float3, rasterFallback: f32): f32 {
-    const trace: float4 = TraceField(Add3(world, Scale3(normal, 0.004)), light, 48.0, TraceBudget());
+    let trace: float4 = TraceField(Add3(world, Scale3(normal, 0.004)), light, 48.0, TraceBudget());
     if (trace.x == 0.0) {
         return rasterFallback;
     }
@@ -60,7 +60,7 @@ export function FieldShadow(world: float3, normal: float3, light: float3, raster
 }
 
 export function SoftFieldShadow(world: float3, normal: float3, light: float3, rasterFallback: f32): f32 {
-    const trace: float4 = TraceField(Add3(world, Scale3(normal, 0.004)), light, 48.0, TraceBudget());
+    let trace: float4 = TraceField(Add3(world, Scale3(normal, 0.004)), light, 48.0, TraceBudget());
     if (trace.x == 0.0) {
         return rasterFallback;
     }

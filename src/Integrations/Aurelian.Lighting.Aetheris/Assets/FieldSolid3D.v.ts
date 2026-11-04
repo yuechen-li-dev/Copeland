@@ -53,12 +53,12 @@ function ProjectRow(row: float4, p: WorldPosition3): f32 {
 function VertexMain(input: VertexInput, resources: CameraResources): SolidVaryings {
     var color: float4 = input.color;
     if (resources.camera.surface.z < 0.5) {
-        const diffuse: f32 = Max(
+        let diffuse: f32 = Max(
             input.normal.x * resources.camera.light.x
                 + input.normal.y * resources.camera.light.y
                 + input.normal.z * resources.camera.light.z,
             0.0);
-        const light: f32 = resources.camera.light.w + (1.0 - resources.camera.light.w) * diffuse;
+        let light: f32 = resources.camera.light.w + (1.0 - resources.camera.light.w) * diffuse;
         color = input.color * float4(light, light, light, 1.0);
     }
     return {
@@ -92,31 +92,31 @@ function PixelMain(input: SolidVaryings, resources: CameraResources, shadows: So
     };
 }
 function ShadeSolid(input: SolidVaryings, resources: CameraResources, shadows: SolidShadowResources): float4 {
-    const normal: float3 = Unit(input.normal);
-    const light: float3 = Unit(float3(resources.camera.light.x, resources.camera.light.y, resources.camera.light.z));
-    const eye: float3 = float3(resources.camera.eye.x, resources.camera.eye.y, resources.camera.eye.z);
-    const view: float3 = Unit(Sub3(eye, input.world));
-    const p: WorldPosition3 = float3(input.world.x, input.world.y, input.world.z);
-    const projected: float3 = float3(
+    let normal: float3 = Unit(input.normal);
+    let light: float3 = Unit(float3(resources.camera.light.x, resources.camera.light.y, resources.camera.light.z));
+    let eye: float3 = float3(resources.camera.eye.x, resources.camera.eye.y, resources.camera.eye.z);
+    let view: float3 = Unit(Sub3(eye, input.world));
+    let p: WorldPosition3 = float3(input.world.x, input.world.y, input.world.z);
+    let projected: float3 = float3(
         ProjectRow(resources.camera.shadowX, p),
         ProjectRow(resources.camera.shadowY, p),
         ProjectRow(resources.camera.shadowZ, p));
-    const raster: f32 = ShadowVisibility(
+    let raster: f32 = ShadowVisibility(
         shadows.shadowMap, shadows.shadowSampler, projected,
         resources.camera.shadowParameters, Max(Dot3(normal, light), 0.0));
     var visibility: f32 = 1.0;
     if (resources.camera.shadowParameters.x > 0.5) {
         visibility = ApplyFieldVisibility(input.world, normal, light, raster);
     }
-    const base: float3 = float3(input.color.x, input.color.y, input.color.z);
-    const sun: float3 = float3(resources.camera.sun.x, resources.camera.sun.y, resources.camera.sun.z);
-    const irradiance: float3 = DirectLight(
+    let base: float3 = float3(input.color.x, input.color.y, input.color.z);
+    let sun: float3 = float3(resources.camera.sun.x, resources.camera.sun.y, resources.camera.sun.z);
+    let irradiance: float3 = DirectLight(
         base, normal, view, light, resources.camera.surface.y, resources.camera.surface.x);
-    const direct: float3 = Scale3(Mul3(irradiance, sun), resources.camera.sun.w * visibility);
-    const sky: float3 = float3(resources.camera.sky.x, resources.camera.sky.y, resources.camera.sky.z);
-    const ground: float3 = float3(resources.camera.ground.x, resources.camera.ground.y, resources.camera.ground.z);
-    const ambient: float3 = HemisphereLight(
+    let direct: float3 = Scale3(Mul3(irradiance, sun), resources.camera.sun.w * visibility);
+    let sky: float3 = float3(resources.camera.sky.x, resources.camera.sky.y, resources.camera.sky.z);
+    let ground: float3 = float3(resources.camera.ground.x, resources.camera.ground.y, resources.camera.ground.z);
+    let ambient: float3 = HemisphereLight(
         base, normal, view, sky, ground, resources.camera.surface.y, resources.camera.surface.x);
-    const lit: float3 = Add3(direct, ambient);
+    let lit: float3 = Add3(direct, ambient);
     return float4(lit.x, lit.y, lit.z, 1.0);
 }

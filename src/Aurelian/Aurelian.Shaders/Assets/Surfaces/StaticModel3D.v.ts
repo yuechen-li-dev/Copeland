@@ -96,39 +96,39 @@ function VertexMain(input: VertexInput, uniforms: MaterialResources): ModelVaryi
 @pixel
 function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources: ModelResources, builtins: PixelBuiltins): ModelOutput {
     if (!builtins.frontFace && uniforms.material.flags.z < 0.5) { Discard(); }
-    const base: float4 = Sample(resources.baseMap, resources.baseSampler, input.uv) * uniforms.material.baseColor * input.color;
+    let base: float4 = Sample(resources.baseMap, resources.baseSampler, input.uv) * uniforms.material.baseColor * input.color;
     if (uniforms.material.flags.y > 0.5 && base.w < uniforms.material.emissiveAlpha.w) { Discard(); }
-    const emission: float4 = Sample(resources.emissiveMap, resources.emissiveSampler, input.uv);
-    const emitted: float3 = Mul3(float3(emission.x, emission.y, emission.z),
+    let emission: float4 = Sample(resources.emissiveMap, resources.emissiveSampler, input.uv);
+    let emitted: float3 = Mul3(float3(emission.x, emission.y, emission.z),
         float3(uniforms.material.emissiveAlpha.x, uniforms.material.emissiveAlpha.y, uniforms.material.emissiveAlpha.z));
     if (uniforms.material.flags.x > 0.5) {
-        const unlit: float3 = Add3(float3(base.x, base.y, base.z), emitted);
+        let unlit: float3 = Add3(float3(base.x, base.y, base.z), emitted);
         return { color: LimitRadiance(float4(unlit.x, unlit.y, unlit.z, 1.0)), motion: TemporalProjection(input.currentClip, input.previousClip) };
     }
 
-    const nt: float4 = Sample(resources.normalMap, resources.normalSampler, input.uv);
-    const tangent: float3 = Unit(float3(input.tangent.x, input.tangent.y, input.tangent.z));
-    const geometric: float3 = Unit(input.normal);
-    const bitangent: float3 = Scale3(Cross3(geometric, tangent), input.tangent.w);
+    let nt: float4 = Sample(resources.normalMap, resources.normalSampler, input.uv);
+    let tangent: float3 = Unit(float3(input.tangent.x, input.tangent.y, input.tangent.z));
+    let geometric: float3 = Unit(input.normal);
+    let bitangent: float3 = Scale3(Cross3(geometric, tangent), input.tangent.w);
     var normal: float3 = Unit(Add3(Add3(Scale3(tangent, (nt.x * 2.0 - 1.0) * uniforms.material.factors.z),
         Scale3(bitangent, (nt.y * 2.0 - 1.0) * uniforms.material.factors.z)), Scale3(geometric, nt.z * 2.0 - 1.0)));
     if (!builtins.frontFace) { normal = Scale3(normal, -1.0); }
-    const light: float3 = Unit(float3(uniforms.material.light.x, uniforms.material.light.y, uniforms.material.light.z));
-    const view: float3 = Unit(Sub3(float3(uniforms.material.eye.x, uniforms.material.eye.y, uniforms.material.eye.z), input.world));
-    const mr: float4 = Sample(resources.metalMap, resources.metalSampler, input.uv);
-    const metallic: f32 = Clamp(mr.z * uniforms.material.factors.x, 0.0, 1.0);
-    const roughness: f32 = Clamp(mr.y * uniforms.material.factors.y, 0.045, 1.0);
-    const p: WorldPosition3 = float3(input.world.x, input.world.y, input.world.z);
-    const projected: float3 = float3(Row(uniforms.material.shadowX, p), Row(uniforms.material.shadowY, p), Row(uniforms.material.shadowZ, p));
-    const visibility: f32 = ShadowVisibility(resources.shadowMap, resources.shadowSampler, projected,
+    let light: float3 = Unit(float3(uniforms.material.light.x, uniforms.material.light.y, uniforms.material.light.z));
+    let view: float3 = Unit(Sub3(float3(uniforms.material.eye.x, uniforms.material.eye.y, uniforms.material.eye.z), input.world));
+    let mr: float4 = Sample(resources.metalMap, resources.metalSampler, input.uv);
+    let metallic: f32 = Clamp(mr.z * uniforms.material.factors.x, 0.0, 1.0);
+    let roughness: f32 = Clamp(mr.y * uniforms.material.factors.y, 0.045, 1.0);
+    let p: WorldPosition3 = float3(input.world.x, input.world.y, input.world.z);
+    let projected: float3 = float3(Row(uniforms.material.shadowX, p), Row(uniforms.material.shadowY, p), Row(uniforms.material.shadowZ, p));
+    let visibility: f32 = ShadowVisibility(resources.shadowMap, resources.shadowSampler, projected,
         uniforms.material.shadowParameters, Max(Dot3(normal, light), 0.0));
-    const direct: float3 = Scale3(Mul3(DirectLightModel(float3(base.x, base.y, base.z), normal, view, light, metallic, roughness, uniforms.material.ground.w),
+    let direct: float3 = Scale3(Mul3(DirectLightModel(float3(base.x, base.y, base.z), normal, view, light, metallic, roughness, uniforms.material.ground.w),
         float3(uniforms.material.sun.x, uniforms.material.sun.y, uniforms.material.sun.z)), uniforms.material.sun.w * visibility);
-    const ao: float4 = Sample(resources.occlusionMap, resources.occlusionSampler, input.uv);
-    const occlusion: f32 = 1.0 - uniforms.material.factors.w + ao.x * uniforms.material.factors.w;
-    const ambient: float3 = Scale3(HemisphereLight(float3(base.x, base.y, base.z), normal, view,
+    let ao: float4 = Sample(resources.occlusionMap, resources.occlusionSampler, input.uv);
+    let occlusion: f32 = 1.0 - uniforms.material.factors.w + ao.x * uniforms.material.factors.w;
+    let ambient: float3 = Scale3(HemisphereLight(float3(base.x, base.y, base.z), normal, view,
         float3(uniforms.material.sky.x, uniforms.material.sky.y, uniforms.material.sky.z),
         float3(uniforms.material.ground.x, uniforms.material.ground.y, uniforms.material.ground.z), metallic, roughness), occlusion);
-    const lit: float3 = Add3(Add3(direct, ambient), emitted);
+    let lit: float3 = Add3(Add3(direct, ambient), emitted);
     return { color: LimitRadiance(float4(lit.x, lit.y, lit.z, 1.0)), motion: TemporalProjection(input.currentClip, input.previousClip) };
 }

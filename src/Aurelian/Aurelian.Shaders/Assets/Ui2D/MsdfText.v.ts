@@ -59,14 +59,14 @@ function SmoothCoverage(distance: f32, pixelRange: f32, fieldScale: f32, thresho
     // A full half-pixel ramp swells narrow stems at Mossward's 12px UI size.
     // The shared CPU policy supplies a small-size threshold correction; this
     // narrower screen-space ramp keeps both Profile vectors and glyphs crisp.
-    const smoothing: f32 = 0.25 / Max(1.0, pixelRange * fieldScale);
-    const t: f32 = Clamp((distance - (threshold - smoothing)) / (smoothing + smoothing), 0.0, 1.0);
+    let smoothing: f32 = 0.25 / Max(1.0, pixelRange * fieldScale);
+    let t: f32 = Clamp((distance - (threshold - smoothing)) / (smoothing + smoothing), 0.0, 1.0);
     return t * t * (3.0 - (2.0 * t));
 }
 
 @vertex
 function VertexMain(input: VertexInput, builtins: VertexBuiltins): TextVaryings {
-    const vertexBias: f32 = Convert<f32>(builtins.vertexId + builtins.instanceId) * 0.000001;
+    let vertexBias: f32 = Convert<f32>(builtins.vertexId + builtins.instanceId) * 0.000001;
     return {
         position: float4(input.position.x + vertexBias, input.position.y, input.position.z, 1.0),
         uv: input.uv,
@@ -76,9 +76,9 @@ function VertexMain(input: VertexInput, builtins: VertexBuiltins): TextVaryings 
 
 @pixel
 function PixelMain(input: TextVaryings, resources: TextResources): TextOutput {
-    const sample: float4 = Sample(resources.atlas, resources.linearSampler, input.uv);
-    const distance: f32 = Median3(sample.x, sample.y, sample.z);
-    const coverage: f32 = SmoothCoverage(
+    let sample: float4 = Sample(resources.atlas, resources.linearSampler, input.uv);
+    let distance: f32 = Median3(sample.x, sample.y, sample.z);
+    let coverage: f32 = SmoothCoverage(
         distance,
         resources.material.pixelRange,
         input.fieldScale,

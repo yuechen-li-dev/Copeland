@@ -2,7 +2,7 @@ import { EncodeOcta } from "./SurfaceLighting";
 import { Add3, Sub3, Scale3, Dot3 } from "./Lighting3D";
 
 function ProbeBand(map: Texture2D<float4>, sampler: Sampler, index: f32, count: f32, direction: float3): float4 {
-    const uv: float2 = EncodeOcta(direction);
+    let uv: float2 = EncodeOcta(direction);
     return Sample(map, sampler, float2((uv.x * 7.0 + 0.5) / 8.0,
         (index * 8.0 + uv.y * 7.0 + 0.5) / (count * 8.0)));
 }
@@ -21,46 +21,46 @@ export function ProbeDiffuse(map: Texture2D<float4>, visibility: Texture2D<float
 export function ProbeDiffuseConnected(map: Texture2D<float4>, visibility: Texture2D<float4>, sampler: Sampler,
     point: float3, normal: float3, minimum: float4, maximum: float4, size: float4,
     generation: f32, useVisibility: bool, connections: f32): float4 {
-    const spacing: float3 = float3((maximum.x - minimum.x) / (size.x - 1.0),
+    let spacing: float3 = float3((maximum.x - minimum.x) / (size.x - 1.0),
         (maximum.y - minimum.y) / (size.y - 1.0), (maximum.z - minimum.z) / (size.z - 1.0));
     if (point.x < minimum.x - spacing.x || point.x > maximum.x + spacing.x
         || point.y < minimum.y - spacing.y || point.y > maximum.y + spacing.y
         || point.z < minimum.z - spacing.z || point.z > maximum.z + spacing.z) {
         return float4(0.0, 0.0, 0.0, 0.0);
     }
-    const biased: float3 = Add3(point, Scale3(normal, 0.03));
-    const coordinate: float3 = float3(Clamp((biased.x - minimum.x) / spacing.x, 0.0, size.x - 1.0001),
+    let biased: float3 = Add3(point, Scale3(normal, 0.03));
+    let coordinate: float3 = float3(Clamp((biased.x - minimum.x) / spacing.x, 0.0, size.x - 1.0001),
         Clamp((biased.y - minimum.y) / spacing.y, 0.0, size.y - 1.0001),
         Clamp((biased.z - minimum.z) / spacing.z, 0.0, size.z - 1.0001));
-    const cell: float3 = float3(Floor(coordinate.x), Floor(coordinate.y), Floor(coordinate.z));
-    const fraction: float3 = Sub3(coordinate, cell);
+    let cell: float3 = float3(Floor(coordinate.x), Floor(coordinate.y), Floor(coordinate.z));
+    let fraction: float3 = Sub3(coordinate, cell);
     var sum: float3 = float3(0.0, 0.0, 0.0);
     var total: f32 = 0.0;
     for (var corner: u32 = 0; corner < 8; corner = corner + 1) {
-        const value: f32 = Convert<f32>(corner);
-        const shifted: f32 = Floor(connections / Pow(2.0, value));
-        const allowed: f32 = shifted - Floor(shifted / 2.0) * 2.0;
-        const half: f32 = Floor(value / 2.0);
-        const x: f32 = value - half * 2.0;
-        const y: f32 = half - Floor(half / 2.0) * 2.0;
-        const z: f32 = Floor(value / 4.0);
-        const index: f32 = cell.x + x + (cell.y + y) * size.x + (cell.z + z) * size.x * size.y;
-        const probe: float3 = float3(minimum.x + (cell.x + x) * spacing.x,
+        let value: f32 = Convert<f32>(corner);
+        let shifted: f32 = Floor(connections / Pow(2.0, value));
+        let allowed: f32 = shifted - Floor(shifted / 2.0) * 2.0;
+        let half: f32 = Floor(value / 2.0);
+        let x: f32 = value - half * 2.0;
+        let y: f32 = half - Floor(half / 2.0) * 2.0;
+        let z: f32 = Floor(value / 4.0);
+        let index: f32 = cell.x + x + (cell.y + y) * size.x + (cell.z + z) * size.x * size.y;
+        let probe: float3 = float3(minimum.x + (cell.x + x) * spacing.x,
             minimum.y + (cell.y + y) * spacing.y, minimum.z + (cell.z + z) * spacing.z);
-        const delta: float3 = Sub3(biased, probe);
-        const distance: f32 = Sqrt(Max(Dot3(delta, delta), 0.000001));
-        const direction: float3 = Scale3(delta, 1.0 / distance);
-        const irradiance: float4 = ProbeBand(map, sampler, index, size.x * size.y * size.z, normal);
-        const moments: float4 = ProbeBand(visibility, sampler, index, size.x * size.y * size.z, direction);
+        let delta: float3 = Sub3(biased, probe);
+        let distance: f32 = Sqrt(Max(Dot3(delta, delta), 0.000001));
+        let direction: float3 = Scale3(delta, 1.0 / distance);
+        let irradiance: float4 = ProbeBand(map, sampler, index, size.x * size.y * size.z, normal);
+        let moments: float4 = ProbeBand(visibility, sampler, index, size.x * size.y * size.z, direction);
         var weight: f32 = (x * fraction.x + (1.0 - x) * (1.0 - fraction.x))
             * (y * fraction.y + (1.0 - y) * (1.0 - fraction.y))
             * (z * fraction.z + (1.0 - z) * (1.0 - fraction.z));
         weight = weight * allowed;
         weight = weight * (0.2 + 0.8 * Max(Dot3(normal, Scale3(direction, -1.0)), 0.0));
         if (useVisibility && distance > moments.x) {
-            const variance: f32 = Max(moments.y - moments.x * moments.x, 0.0001);
-            const error: f32 = distance - moments.x;
-            const probability: f32 = variance / (variance + error * error);
+            let variance: f32 = Max(moments.y - moments.x * moments.x, 0.0001);
+            let error: f32 = distance - moments.x;
+            let probability: f32 = variance / (variance + error * error);
             weight = weight * probability * probability * probability;
         }
         if (irradiance.w == generation && moments.w == generation) {

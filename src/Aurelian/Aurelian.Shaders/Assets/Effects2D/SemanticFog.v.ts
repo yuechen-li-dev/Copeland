@@ -51,13 +51,13 @@ stream FogResources {
 }
 
 function SmoothUnit(value: f32): f32 {
-    const bounded: f32 = Clamp(value, 0.0, 1.0);
+    let bounded: f32 = Clamp(value, 0.0, 1.0);
     return bounded * bounded * (3.0 - (2.0 * bounded));
 }
 
 @vertex
 function VertexMain(input: VertexInput, builtins: VertexBuiltins): FogVaryings {
-    const vertexBias: f32 = Convert<f32>(builtins.vertexId + builtins.instanceId) * 0.000001;
+    let vertexBias: f32 = Convert<f32>(builtins.vertexId + builtins.instanceId) * 0.000001;
     return {
         position: float4(input.position.x + vertexBias, input.position.y, input.position.z, 1.0),
         uv: input.uv,
@@ -66,19 +66,19 @@ function VertexMain(input: VertexInput, builtins: VertexBuiltins): FogVaryings {
 
 @pixel
 function PixelMain(input: FogVaryings, resources: FogResources): FogOutput {
-    const sampleValue: f32 = Sample(resources.visibilityField, resources.linearSampler, input.uv).x;
-    const shapedField: f32 = Clamp(
+    let sampleValue: f32 = Sample(resources.visibilityField, resources.linearSampler, input.uv).x;
+    let shapedField: f32 = Clamp(
         ((sampleValue - 0.5) * resources.material.edgeSoftness) + 0.5,
         0.0,
         1.0);
-    const exploredMix: f32 = SmoothUnit(shapedField * 2.0);
-    const visibleMix: f32 = SmoothUnit((shapedField - 0.5) * 2.0);
-    const exploredOpacity: f32 = resources.material.unexploredOpacity
+    let exploredMix: f32 = SmoothUnit(shapedField * 2.0);
+    let visibleMix: f32 = SmoothUnit((shapedField - 0.5) * 2.0);
+    let exploredOpacity: f32 = resources.material.unexploredOpacity
         + (exploredMix * (resources.material.exploredOpacity - resources.material.unexploredOpacity));
-    const wave: f32 = (input.uv.x * 17.0) + (input.uv.y * 29.0) + resources.material.temporalPhase;
-    const triangleWave: f32 = Abs((wave - Floor(wave)) - 0.5) * 2.0;
-    const noise: f32 = (triangleWave - 0.5) * resources.material.noiseAmount;
-    const opacity: f32 = Clamp((exploredOpacity * (1.0 - visibleMix)) + noise, 0.0, 1.0);
+    let wave: f32 = (input.uv.x * 17.0) + (input.uv.y * 29.0) + resources.material.temporalPhase;
+    let triangleWave: f32 = Abs((wave - Floor(wave)) - 0.5) * 2.0;
+    let noise: f32 = (triangleWave - 0.5) * resources.material.noiseAmount;
+    let opacity: f32 = Clamp((exploredOpacity * (1.0 - visibleMix)) + noise, 0.0, 1.0);
     return {
         color: float4(
             resources.material.tint.x,

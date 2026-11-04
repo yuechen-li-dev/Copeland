@@ -46,19 +46,19 @@ stream Output {
 }
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
-    const count: f32 = resources.material.gridSize.x * resources.material.gridSize.y * resources.material.gridSize.z;
-    const row: f32 = Floor(input.uv.y * count * 8.0);
-    const probe: f32 = Floor(row / 8.0);
-    const generation: f32 = resources.material.parameters.w;
+    let count: f32 = resources.material.gridSize.x * resources.material.gridSize.y * resources.material.gridSize.z;
+    let row: f32 = Floor(input.uv.y * count * 8.0);
+    let probe: f32 = Floor(row / 8.0);
+    let generation: f32 = resources.material.parameters.w;
     if (probe < resources.material.batch.x || probe >= resources.material.batch.x + resources.material.batch.y) {
-        const old: float4 = Sample(resources.previous, resources.previousSampler, input.uv);
-        const oldVisibility: float4 = Sample(resources.previousVisibility, resources.previousVisibilitySampler, input.uv);
+        let old: float4 = Sample(resources.previous, resources.previousSampler, input.uv);
+        let oldVisibility: float4 = Sample(resources.previousVisibility, resources.previousVisibilitySampler, input.uv);
         if (old.w == generation) {
             return { irradiance: old, visibility: oldVisibility };
         }
         return { irradiance: float4(0.0, 0.0, 0.0, 0.0), visibility: float4(0.0, 0.0, 0.0, 0.0) };
     }
-    const normal: float3 = DecodeOcta(float2(input.uv.x, (row - probe * 8.0 + 0.5) / 8.0));
+    let normal: float3 = DecodeOcta(float2(input.uv.x, (row - probe * 8.0 + 0.5) / 8.0));
     var accumulated: float3 = float3(0.0, 0.0, 0.0);
     var mean: f32 = 0.0;
     var second: f32 = 0.0;
@@ -66,33 +66,33 @@ function PixelMain(input: Varyings, resources: Resources): Output {
     var valid: f32 = generation;
     for (var ray: u32 = 0; ray < 128; ray = ray + 1) {
         if (Convert<f32>(ray) < resources.material.gridSize.w) {
-            const direction: float4 = Sample(resources.directions, resources.directionsSampler,
+            let direction: float4 = Sample(resources.directions, resources.directionsSampler,
                 float2(0.5, (Convert<f32>(ray) + 0.5) / resources.material.gridSize.w));
-            const hitIndex: f32 = (probe - resources.material.batch.x) * resources.material.gridSize.w + Convert<f32>(ray);
-            const metadata: float4 = ReadRayHit(resources.hits, resources.hitsSampler, hitIndex, 0.0, resources.material.parameters.z);
-            const distanceBary: float4 = ReadRayHit(resources.hits, resources.hitsSampler, hitIndex, 1.0, resources.material.parameters.z);
+            let hitIndex: f32 = (probe - resources.material.batch.x) * resources.material.gridSize.w + Convert<f32>(ray);
+            let metadata: float4 = ReadRayHit(resources.hits, resources.hitsSampler, hitIndex, 0.0, resources.material.parameters.z);
+            let distanceBary: float4 = ReadRayHit(resources.hits, resources.hitsSampler, hitIndex, 1.0, resources.material.parameters.z);
             var radiance: float3 = float3(resources.material.sky.x, resources.material.sky.y, resources.material.sky.z);
             var distance: f32 = resources.material.sky.w;
             if (metadata.z > 0.5) {
-                const facing: float4 = ReadRayHit(resources.hits, resources.hitsSampler, hitIndex, 3.0, resources.material.parameters.z);
+                let facing: float4 = ReadRayHit(resources.hits, resources.hitsSampler, hitIndex, 3.0, resources.material.parameters.z);
                 if (facing.w < 0.0) {
                     // Interior/back-facing probes must not inject energy through solids.
                     valid = 0.0;
                 }
                 distance = distanceBary.x;
-                const size: f32 = resources.material.parameters.x;
-                const x: f32 = Clamp(distanceBary.y * (size - 1.0), 0.0, size - 1.0);
-                const y: f32 = Clamp(distanceBary.z * (size - 1.0), 0.0, size - 1.0);
-                const cached: float4 = Sample(resources.cache, resources.cacheSampler,
+                let size: f32 = resources.material.parameters.x;
+                let x: f32 = Clamp(distanceBary.y * (size - 1.0), 0.0, size - 1.0);
+                let y: f32 = Clamp(distanceBary.z * (size - 1.0), 0.0, size - 1.0);
+                let cached: float4 = Sample(resources.cache, resources.cacheSampler,
                     float2((x + 0.5) / size, (metadata.w * size + y + 0.5) / (size * resources.material.parameters.y)));
                 radiance = float3(cached.x, cached.y, cached.z);
                 if (cached.w != generation) {
                     valid = 0.0;
                 }
             }
-            const cosine: f32 = Max(Dot3(normal, float3(direction.x, direction.y, direction.z)), 0.0);
+            let cosine: f32 = Max(Dot3(normal, float3(direction.x, direction.y, direction.z)), 0.0);
             accumulated = Add3(accumulated, Scale3(radiance, cosine * 4.0 / resources.material.gridSize.w));
-            const weight: f32 = Pow(cosine, 16.0);
+            let weight: f32 = Pow(cosine, 16.0);
             momentWeight = momentWeight + weight;
             mean = mean + distance * weight;
             second = second + distance * distance * weight;

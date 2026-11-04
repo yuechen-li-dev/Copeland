@@ -7,7 +7,8 @@ param(
     [switch]$IncludeTlas,
     [switch]$IncludeRasterMotion,
     [switch]$IncludeArea,
-    [switch]$IncludeGi
+    [switch]$IncludeGi,
+    [string[]]$AdditionalSources = @()
 )
 
 $ErrorActionPreference = 'Stop'
@@ -165,6 +166,7 @@ try {
             'tools/aurelian-rendering-gi/Qualify.ps1'
         )
     }
+    $sourcePaths += $AdditionalSources
     $sourcePaths = @($sourcePaths | Select-Object -Unique)
     $initialHashes = @($sourcePaths | ForEach-Object { (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash })
 

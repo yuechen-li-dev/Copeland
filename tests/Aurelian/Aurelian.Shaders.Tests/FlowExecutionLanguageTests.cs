@@ -16,7 +16,7 @@ public sealed class FlowExecutionLanguageTests
             enum Choice { Empty, Value(value: u32) }
             @compute @numthreads(1, 1, 1)
             function Main(@binding(0) readwrite Output: StorageBuffer<f32>): void {
-                const value: u32 = {{spelling}} Choice.Value(7) {
+                let value: u32 = {{spelling}} Choice.Value(7) {
                     case Choice.Empty => 0,
                     case Choice.Value(payload) => payload.value,
                 };
@@ -66,7 +66,7 @@ public sealed class FlowExecutionLanguageTests
                 var frame = Parent.start(2);
                 frame = Parent.step(frame);
                 frame = Parent.step(frame);
-                const result: u32 = match frame.outcome {
+                let result: u32 = match frame.outcome {
                     case ParentOutcome.Active => 1000,
                     case ParentOutcome.Completed(payload) => payload.value,
                     case ParentOutcome.Fault(payload) => payload.code + 2000,

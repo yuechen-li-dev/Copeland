@@ -35,10 +35,10 @@ stream Resources {
 stream Output { @target(0) color: float4; }
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
-    const radiance: float4 = Sample(resources.captured, resources.capturedSampler, float2(0.25, input.uv.y));
-    const reference: float4 = Sample(resources.captured, resources.capturedSampler, float2(0.75, input.uv.y));
-    const current: float4 = Sample(resources.lighting, resources.lightingSampler, float2(0.5, input.uv.y));
-    const result: float3 = RefitProbeReflection(float3(radiance.x, radiance.y, radiance.z),
+    let radiance: float4 = Sample(resources.captured, resources.capturedSampler, float2(0.25, input.uv.y));
+    let reference: float4 = Sample(resources.captured, resources.capturedSampler, float2(0.75, input.uv.y));
+    let current: float4 = Sample(resources.lighting, resources.lightingSampler, float2(0.5, input.uv.y));
+    let result: float3 = RefitProbeReflection(float3(radiance.x, radiance.y, radiance.z),
         float3(reference.x, reference.y, reference.z), float3(current.x, current.y, current.z));
     return { color: float4(result.x, result.y, result.z, 1.0) };
 }

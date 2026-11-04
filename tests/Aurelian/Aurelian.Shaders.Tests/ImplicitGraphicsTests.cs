@@ -32,7 +32,7 @@ public sealed class ImplicitGraphicsTests
         function PixelMain(input: Varyings): Output {
             var t: f32 = 0.0;
             for (var i: u32 = 0; i < 128; i = i + 1) {
-                const d: f32 = Field(input.local.x, input.local.y, -3.0 + t);
+                let d: f32 = Field(input.local.x, input.local.y, -3.0 + t);
                 if (Abs(d) < 0.00001) {
                     return { color: float4(0.8, 0.6, 0.2, 1.0), depth: t / 6.0 };
                 }
@@ -78,7 +78,7 @@ public sealed class ImplicitGraphicsTests
     [Theory]
     [InlineData("i < 128", "i < 10000", "COPE-GPU-LOOP-0001")]
     [InlineData("t = t + Abs(d);", "i = i + 1;", "COPE-GPU-MUTATION-0001")]
-    [InlineData("var t: f32", "const t: f32", "COPE-GPU-MUTATION-0001")]
+    [InlineData("var t: f32", "let t: f32", "COPE-GPU-MUTATION-0001")]
     [InlineData("depth: f32;", "depth: float4;", "COPE-GPU-TARGET-0003")]
     [InlineData("i < 128", "i < input.local.x", "COPE-GPU-LOOP-0001")]
     [InlineData("i = i + 1)", "i = i + 2)", "COPE-GPU-LOOP-0001")]
@@ -102,7 +102,7 @@ public sealed class ImplicitGraphicsTests
     [Fact]
     public void BranchLocalsDoNotEscapeAndBreakRequiresALoop()
     {
-        string source = Source.Replace("t = t + Abs(d);", "if (d > 0.0) { const hidden: f32 = d; } t = hidden;", StringComparison.Ordinal);
+        string source = Source.Replace("t = t + Abs(d);", "if (d > 0.0) { let hidden: f32 = d; } t = hidden;", StringComparison.Ordinal);
         Assert.False(Bind(source).Success);
         source = Source.Replace("Discard();", "break;", StringComparison.Ordinal);
         Assert.False(Bind(source).Success);

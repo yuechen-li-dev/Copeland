@@ -23,19 +23,19 @@ export function EmitterSolidAngle(squared: f32, radius: f32): f32 {
     if (squared <= radius * radius) {
         return 0.0;
     }
-    const ratio: f32 = radius * radius / squared;
+    let ratio: f32 = radius * radius / squared;
     return 6.2831853 * ratio / (1.0 + Sqrt(Max(1.0 - ratio, 0.0)));
 }
 
 export function SampleLocalEmitter(point: float3, sphere: float4, cone: float4, config: float4, key: u32): EmitterSample3D {
-    const center: float3 = float3(sphere.x, sphere.y, sphere.z);
-    const delta: float3 = Sub3(center, point);
-    const squared: f32 = Dot3(delta, delta);
-    const axis: float3 = Unit(delta);
+    let center: float3 = float3(sphere.x, sphere.y, sphere.z);
+    let delta: float3 = Sub3(center, point);
+    let squared: f32 = Dot3(delta, delta);
+    let axis: float3 = Unit(delta);
     if (config.y < 1.5) {
         return { endpoint: center, direction: axis, attenuation: LocalAttenuation(axis, squared, sphere.w, cone, config) };
     }
-    const omega: f32 = EmitterSolidAngle(squared, config.w);
+    let omega: f32 = EmitterSolidAngle(squared, config.w);
     if (omega <= 0.0 || squared >= sphere.w * sphere.w) {
         return { endpoint: center, direction: axis, attenuation: 0.0 };
     }
@@ -43,15 +43,18 @@ export function SampleLocalEmitter(point: float3, sphere: float4, cone: float4, 
     if (Abs(axis.y) > 0.99) {
         up = float3(1.0, 0.0, 0.0);
     }
-    const tangent: float3 = Unit(EmitterCross(axis, up));
-    const side: float3 = EmitterCross(axis, tangent);
-    const cosine: f32 = 1.0 - EmitterRandom(key + 17) * omega / 6.2831853;
-    const sine: f32 = Sqrt(Max(1.0 - cosine * cosine, 0.0));
-    const angle: f32 = EmitterRandom(key + 29) * 6.2831853;
-    const direction: float3 = Unit(Add3(Add3(Scale3(axis, cosine), Scale3(tangent, Cos(angle) * sine)), Scale3(side, Sin(angle) * sine)));
-    const projection: f32 = Dot3(delta, direction);
-    const distance: f32 = projection - Sqrt(Max(config.w * config.w - squared + projection * projection, 0.0));
-    const ratio: f32 = squared / (sphere.w * sphere.w);
-    const fade: f32 = Max(1.0 - ratio * ratio, 0.0);
+    let tangent: float3 = Unit(EmitterCross(axis, up));
+    let side: float3 = EmitterCross(axis, tangent);
+    let cosine: f32 = 1.0 - EmitterRandom(key + 17) * omega / 6.2831853;
+    let sine: f32 = Sqrt(Max(1.0 - cosine * cosine, 0.0));
+    let angle: f32 = EmitterRandom(key + 29) * 6.2831853;
+    let axial: float3 = Scale3(axis, cosine);
+    let tangential: float3 = Scale3(tangent, Cos(angle) * sine);
+    let bitangential: float3 = Scale3(side, Sin(angle) * sine);
+    let direction: float3 = Unit(Add3(Add3(axial, tangential), bitangential));
+    let projection: f32 = Dot3(delta, direction);
+    let distance: f32 = projection - Sqrt(Max(config.w * config.w - squared + projection * projection, 0.0));
+    let ratio: f32 = squared / (sphere.w * sphere.w);
+    let fade: f32 = Max(1.0 - ratio * ratio, 0.0);
     return { endpoint: Add3(point, Scale3(direction, distance)), direction: direction, attenuation: omega * fade * fade };
 }
