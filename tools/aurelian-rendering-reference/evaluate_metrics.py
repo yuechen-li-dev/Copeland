@@ -101,6 +101,13 @@ def evaluate(manifest_path):
                                 ("gi-emissive", "direct-emissive")]:
             if means[result] >= means[control]:
                 raise ValueError(f"Dynamic diffuse did not improve native FLIP: {result}")
+    elif manifest.get("Qualification") == "beacon-diffuse":
+        for view in range(3):
+            if means[f"view-{view}-full-128"] >= means[f"view-{view}-off"]:
+                raise ValueError(f"Whole Beacon GI did not improve native FLIP: view {view}")
+        for mode in ["full-128", "fixed-32", "regional"]:
+            if means[f"motion-{mode}"] >= means["motion-compiled"]:
+                raise ValueError(f"Whole Beacon dynamic updates did not improve stale-compiled FLIP: {mode}")
     elif manifest.get("Qualification") == "regional-diffuse":
         for control in ["compiled-0", "fixed-32-0"]:
             if means["regional-0"] >= means[control]:

@@ -11,9 +11,14 @@ using Aurelian.Rendering.Contracts.Models;
 namespace Aurelian.Beacon3D;
 
 /// <summary>Beacon's rules and presentation hosted by the common application shell.</summary>
-public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, string? lighting = null) : IGame
+public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, string? lighting = null, bool regionalGi = false, bool dynamicGi = false) : IGame
 {
+    private BeaconResidentScene3D resident = new();
+    private GameView? currentView;
+    private bool diffuseReady;
+    private readonly bool useGi = regionalGi || dynamicGi;
     private BeaconGame game = new(humanoid: humanoid);
+    private NativeGameGraphics? attachedGraphics;
     private HumanoidGamePresenter? character;
     private VulkanSpatialRayQueries3D? rays;
 
@@ -38,7 +43,7 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
         Tagline = "SURVIVE THREE WAVES. COLLECT THREE BEACONS. ESCAPE.",
         ControlsHint = "WASD MOVE   MOUSE AIM   CLICK FIRE   R RELOAD   V VIEW   ESC PAUSE",
         // Published transfer assets are compiled for Lambert; ordinary play uses PathDiffuse.
-        Graphics = Graphics3DSettings.Default with
+        Graphics = regionalGi || dynamicGi ? BeaconDiffuseLighting3D.Settings : Graphics3DSettings.Default with
         {
             DirectDiffuseModel = lighting is null ? DirectDiffuseModel3D.PathDiffuse : DirectDiffuseModel3D.Lambert,
         },
@@ -49,6 +54,8 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
     public void NewGame()
     {
         game.Dispose();
+        resident = new();
+        diffuseReady = false;
         game = new BeaconGame(humanoid: humanoid);
         if (rays is not null)
         {
@@ -70,8 +77,12 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
             input.WasPressed("reload"), input.WasPressed("view"), input.IsDown("sprint")), tick.Seconds);
     }
 
-    public GameView View(GameViewRequest request) => new(new Native3DScene(BeaconScene.Build(game), []),
-        game.Camera(request.Aspect), game.CameraEye);
+    public GameView View(GameViewRequest request)
+    {
+        Native3DScene scene = useGi ? resident.Build(game) : new(BeaconScene.Build(game), []);
+        currentView = new(scene, game.Camera(request.Aspect), game.CameraEye);
+        return currentView;
+    }
 
     public void BuildHud(GameHud hud)
     {
@@ -88,6 +99,9 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
 
     public void Observe(GameFacts facts)
     {
+        facts.Set("gi.mode", attachedGraphics?.Renderer.DynamicDiffuse.Mode.ToString() ?? "Off");
+        facts.Set("gi.probes", attachedGraphics?.Renderer.DynamicDiffuse.Grid?.Count ?? 0);
+        facts.Set("gi.environment", attachedGraphics?.Renderer.EnvironmentSource is not null);
         facts.Set("hash", game.SemanticHash());
         facts.Set("time", game.Time);
         facts.Set("health", game.Health);
@@ -107,7 +121,23 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
 
     public void AttachGraphics(NativeGameGraphics graphics)
     {
+        attachedGraphics = graphics;
         graphics.Clear = new(.055f, .095f, .15f, 1);
+        if (useGi)
+        {
+            if (humanoid is not null || lighting is not null)
+                throw new NotSupportedException("BEACON-GI-003: The GI profile uses rigid resident geometry and its own probe field.");
+            if (!graphics.Plant.Facts.EnabledDeviceExtensions.Contains("VK_KHR_ray_query", StringComparer.Ordinal))
+                throw new NotSupportedException("BEACON-GI-003: The GI research profile requires hardware ray queries.");
+            graphics.Settings = BeaconDiffuseLighting3D.Settings;
+            graphics.Renderer.EnvironmentSource = BeaconDiffuseLighting3D.Source;
+            graphics.Renderer.Environment = VulkanEnvironmentCompiler.Compile(graphics.Plant,
+                new GameAssets().Shader("EnvironmentCompile3D.v.ts"), BeaconDiffuseLighting3D.Source);
+            graphics.Renderer.LocalLights = BeaconDiffuseLighting3D.Lights;
+            graphics.Renderer.EnableVisibilityBuffer = true;
+            graphics.Renderer.EnableRayShadows = true;
+            graphics.DiffusePolicy = regionalGi ? BeaconDiffuseLighting3D.Policy() : null;
+        }
         if (lighting is not null && !graphics.LoadLighting(lighting, BeaconLighting.Recipe().ContentKey))
         {
             throw new InvalidDataException(graphics.LightingDiagnostic);
@@ -123,11 +153,33 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
         }
     }
 
-    public NativeGpuGeometry3D? PrepareGpuGeometry(NativeGameGraphics graphics) =>
-        character?.Present(game.CharacterPose!, game.CharacterWorld, game.View == CameraView.ThirdPerson);
+    public NativeGpuGeometry3D? PrepareGpuGeometry(NativeGameGraphics graphics)
+    {
+        if (useGi && !diffuseReady)
+        {
+            graphics.Renderer.DynamicDiffuse = BeaconDiffuseLighting3D.Runtime;
+            if (regionalGi)
+            {
+                var view = currentView ?? throw new InvalidOperationException("Beacon view must be projected before GI preparation.");
+                graphics.Renderer.Render(view.Scene, view.Camera, view.Eye, graphics.Clear);
+                graphics.SetCompiledDiffuseProbes(graphics.Renderer.CaptureCompiledDiffuseProbes());
+                graphics.Renderer.DynamicDiffuse = BeaconDiffuseLighting3D.Runtime with
+                {
+                    Mode = Aurelian.Rendering.Contracts.Lighting.DynamicDiffuseMode3D.CompiledResidual,
+                    RaysPerProbePerFrame = 32,
+                };
+                graphics.DiffusePolicy = BeaconDiffuseLighting3D.Policy();
+            }
+            diffuseReady = true;
+        }
+        return character?.Present(game.CharacterPose!, game.CharacterWorld, game.View == CameraView.ThirdPerson);
+    }
 
     public void DetachGraphics()
     {
+        attachedGraphics = null;
+        diffuseReady = false;
+        resident = new();
         character?.Dispose();
         character = null;
         rays?.Dispose();

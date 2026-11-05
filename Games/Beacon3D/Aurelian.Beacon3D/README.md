@@ -140,3 +140,11 @@ tool can be installed with:
 cargo install naga-cli --version 30.0.1 --locked --root artifacts/aurelian-beacon3d/toolchain
 $env:AURELIAN_NAGA = (Resolve-Path artifacts/aurelian-beacon3d/toolchain/bin/naga.exe).Path
 ```
+
+## Whole-arena GI research profile
+
+Run with `--gi --quality high` for the selected full-runtime diffuse probe path,
+or `--regional-gi --quality high` for the compiled plus Dominatus comparison.
+Both automatically request GPU ray queries. See
+[whole-Beacon GI qualification](../../../docs/Aurelian/rendering-r4-beacon.md)
+for image quality, frame cost, resize/restart behavior and rigid-geometry scope.

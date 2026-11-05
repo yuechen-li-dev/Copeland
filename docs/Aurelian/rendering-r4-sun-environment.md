@@ -196,5 +196,6 @@ was 0.69 ms, with 100 probes and 16 updated directions per probe per frame.
 These are full-frame, workload/device-specific measurements, including current
 receiver connectivity. This is a quality gain with a substantial GI cost, not a
 claim of a universal speedup. The subsequent [regional-policy experiment](rendering-r4-regional-policy.md)
-adds Dominatus selection and bounded regional updates. Whole-Beacon qualification
-and arena-scale default selection remain open.
+adds Dominatus selection and bounded regional updates. The later
+[whole-Beacon report](rendering-r4-beacon.md) records arena-scale measurements
+and the Beacon-specific selection; no unconditional engine-wide default is promoted.

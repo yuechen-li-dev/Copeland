@@ -9,13 +9,15 @@ namespace Aurelian.Beacon3D;
 
 internal static class BeaconLighting
 {
+    public static Vector3 EmitterRadiance { get; } = new(12, 7, 3);
+
     public static StaticDiffuseLightingRecipe Recipe()
     {
         var scene = SceneCompiler.Compile(BeaconScene.Arena());
         string floor = scene.Meshes.Single().Id;
         string lamp = scene.Boxes.Single(box => box.Id == "lamp").Id;
         return SceneDiffuseLighting.Describe(scene, floor, new(-11, -11, 22, 22), Graphics3DSettings.Default.SunDirection,
-            new Dictionary<string, Vector3> { [lamp] = new(12, 7, 3) });
+            new Dictionary<string, Vector3> { [lamp] = EmitterRadiance });
     }
 
     public static string Build(string output, string blender) =>

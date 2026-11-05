@@ -52,7 +52,11 @@ if (locomotionPath is not null)
 Directory.CreateDirectory(output);
 if (!proof && !args.Contains("--build-lighting", StringComparer.Ordinal))
 {
-    GameApp.Run(new BeaconShellGame(humanoid, GetOption(args, "--lighting")), args);
+    bool regionalGi = args.Contains("--regional-gi", StringComparer.Ordinal);
+    bool dynamicGi = args.Contains("--gi", StringComparer.Ordinal) || regionalGi;
+    string[] shellArguments = args;
+    if (dynamicGi && !args.Contains("--gpu-rays", StringComparer.Ordinal)) shellArguments = [.. args, "--gpu-rays"];
+    GameApp.Run(new BeaconShellGame(humanoid, GetOption(args, "--lighting"), regionalGi, dynamicGi), shellArguments);
     return;
 }
 if (args.Contains("--build-lighting", StringComparer.Ordinal))

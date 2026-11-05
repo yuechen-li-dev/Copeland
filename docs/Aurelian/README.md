@@ -38,6 +38,7 @@ The docs above describe current code paths and contracts. For exact signatures a
 - [R3 retained TLAS updates](rendering-r3-tlas-updates.md): frame-ordered rigid-motion refits, retained scratch and input slots, rebuild controls, queued-frame correctness and moving-frame cost comparisons.
 - [R3 raster motion admission](rendering-r3-raster-motion.md): retained material/visibility resources, frame-slot transform and bounds streams, and moving-frame cost comparisons.
 - [R3 area lights and tail reconstruction](rendering-r3-area-tail.md): spherical solid-angle sampling, preserved exact punctual heads, tail-only temporal/spatial reconstruction and native reference/FLIP controls.
+- [R4 whole-Beacon GI](rendering-r4-beacon.md): resident game-scene projection, authored emissive transport, three-view reference/FLIP controls, native resize/restart and 720p/1080p cost.
 - [R4 regional GI policy](rendering-r4-regional-policy.md): Dominatus hysteresis/minCommit, delayed change feedback, fair directional budgets and real-path recovery qualification.
 - [R4 sun and environment bounce](rendering-r4-sun-environment.md): shared sky sampling, signed occlusion updates, coverage fallback, energy checks and HDR/FLIP qualification.
 - [R4 textured and smooth-normal secondary hits](rendering-r4-secondary-materials.md): shared GPU materials, typed compute sampling, imported GLB and moving-instance material-oracle qualification.

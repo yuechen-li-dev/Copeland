@@ -57,6 +57,16 @@ public sealed class NativeGameGraphics : IDisposable
 
     public ParticleBudget3D? ParticleBudget => Renderer.ParticleSystem?.Inspection;
     public bool EnableAdaptiveVisibility { get; set; } = true;
+    public NativeDiffuseRegionalPolicy3D? DiffusePolicy { get; set; }
+    private CompiledDiffuseProbeField3D? diffuseField;
+
+    public void SetCompiledDiffuseProbes(CompiledDiffuseProbeField3D field)
+    {
+        field.Validate();
+        diffuseField = field with { Data = (float[])field.Data.Clone() };
+        Renderer.SetCompiledDiffuseProbes(diffuseField);
+    }
+
     public NativeVisibilityPolicy3D VisibilityPolicy { get; private set; } = null!;
     private long visibilityTick = System.Diagnostics.Stopwatch.GetTimestamp();
 
@@ -288,7 +298,9 @@ public sealed class NativeGameGraphics : IDisposable
         visibilityTick = now;
         if (EnableAdaptiveVisibility)
             VisibilityPolicy.BeforeFrame(Renderer, scene, camera, TimeSpan.FromSeconds(Math.Min(elapsed.TotalSeconds, 1)));
+        DiffusePolicy?.BeforeFrame(Renderer, scene, TimeSpan.FromSeconds(Math.Min(elapsed.TotalSeconds, 1)));
         var result = Renderer.Render(scene, camera, eye, Clear, capture, gpuGeometry);
+        DiffusePolicy?.AfterFrame(result);
         if (EnableAdaptiveVisibility) VisibilityPolicy.AfterFrame(result);
         return result;
     }
@@ -319,6 +331,10 @@ public sealed class NativeGameGraphics : IDisposable
     private sealed record RenderState(
         Aurelian.Rendering.Contracts.Models.Graphics3DSettings Settings,
         EnvironmentLighting? Environment,
+        EnvironmentRadiance3D? EnvironmentSource,
+        DynamicDiffuseLighting3D DynamicDiffuse,
+        bool VisibilityBuffer,
+        bool RayShadows,
         ReflectionProbe3D? ReflectionProbe,
         IReadOnlyList<LocalLight3D> LocalLights,
         VulkanParticles3D? ParticleSystem,
@@ -327,7 +343,7 @@ public sealed class NativeGameGraphics : IDisposable
 
     private RenderState CaptureRenderState()
     {
-        return new RenderState(Renderer.Settings, Renderer.Environment, Renderer.ReflectionProbe, Renderer.LocalLights,
+        return new RenderState(Renderer.Settings, Renderer.Environment, Renderer.EnvironmentSource, Renderer.DynamicDiffuse, Renderer.EnableVisibilityBuffer, Renderer.EnableRayShadows, Renderer.ReflectionProbe, Renderer.LocalLights,
             Renderer.ParticleSystem, Renderer.ParticleEmitters, Renderer.StaticEmissionIntensity);
     }
 
@@ -335,6 +351,11 @@ public sealed class NativeGameGraphics : IDisposable
     {
         Renderer.Settings = state.Settings;
         Renderer.Environment = state.Environment;
+        Renderer.EnvironmentSource = state.EnvironmentSource;
+        Renderer.DynamicDiffuse = state.DynamicDiffuse;
+        Renderer.EnableVisibilityBuffer = state.VisibilityBuffer;
+        Renderer.EnableRayShadows = state.RayShadows;
+        if (diffuseField is not null) Renderer.SetCompiledDiffuseProbes(diffuseField);
         Renderer.ReflectionProbe = state.ReflectionProbe;
         Renderer.LocalLights = state.LocalLights;
         Renderer.ParticleSystem = state.ParticleSystem;
@@ -381,6 +402,10 @@ public sealed class NativeGameGraphics : IDisposable
                 surfacePrograms: new(assets.Shader("SurfaceResolve3D.v.ts"), assets.Shader("AmbientOcclusion3D.v.ts"),
                     assets.Shader("AmbientDenoise3D.v.ts"), assets.Shader("LightTiles3D.v.ts"))
                 {
+                    LocalRayShadows = Plant.Facts.EnabledDeviceExtensions.Contains("VK_KHR_ray_query", StringComparer.Ordinal)
+                        ? assets.ComputeShader("LocalShadows3D.v.ts") : null,
+                    DynamicDiffuse = Plant.Facts.EnabledDeviceExtensions.Contains("VK_KHR_ray_query", StringComparer.Ordinal)
+                        ? assets.ComputeShader("DynamicDiffuse3D.v.ts") : null,
                     HeightFog = assets.Shader("HeightFog3D.v.ts"),
                     VolumeInject = assets.Shader("VolumeInject3D.v.ts"),
                     VolumeIntegrate = assets.Shader("VolumeIntegrate3D.v.ts"),

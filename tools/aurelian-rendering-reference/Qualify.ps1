@@ -11,10 +11,12 @@ param(
     [switch]$IncludeSecondary,
     [switch]$IncludeSky,
     [switch]$IncludeRegional,
+    [switch]$IncludeBeacon,
     [string[]]$AdditionalSources = @()
 )
 
 $ErrorActionPreference = 'Stop'
+if ($IncludeBeacon) { $IncludeRegional = $true }
 if ($IncludeRegional) { $IncludeSky = $true }
 if ($IncludeSky) { $IncludeSecondary = $true }
 if ($IncludeSecondary) { $IncludeGi = $true }
@@ -214,6 +216,17 @@ try {
             'tools/aurelian-rendering-regional/Qualify.ps1'
         )
     }
+    if ($IncludeBeacon) {
+        $sourcePaths += @(
+            'src/Integrations/Aurelian.Games/NativeGameGraphics.cs',
+            'src/Aurelian/Aurelian.Rendering.Contracts/Lighting/DiffuseProbeGrid.cs',
+            'tests/Aurelian/Aurelian.Rendering.Contracts.Tests/DiffuseProbeGridTests.cs',
+            'tools/Aurelian.GraphicsProof/RenderingR3Proof.Beacon.cs',
+            'tools/Aurelian.GraphicsProof/RenderingR3Proof.BeaconMotion.cs',
+            'tools/aurelian-rendering-beacon/Qualify.ps1',
+            'Games/Beacon3D/Aurelian.Beacon3D/Playtests/gi-native.json'
+        )
+    }
     $sourcePaths += $AdditionalSources
     $sourcePaths = @($sourcePaths | Select-Object -Unique)
     $initialHashes = @($sourcePaths | ForEach-Object { (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash })
@@ -359,6 +372,30 @@ try {
         $regionalFlip = Get-Content -LiteralPath (Join-Path $outputPath 'regional/flip-evidence.json') -Raw | ConvertFrom-Json
         if (-not $regional.Accepted -or -not $regionalFlip.Accepted) { throw 'Regional GI native and FLIP qualification did not accept.' }
     }
+    $beacon = $null
+    $beaconFlip = $null
+    if ($IncludeBeacon) {
+        Invoke-QualificationCommand 'beacon' @($proof, '--rendering-beacon', '--output', (Join-Path $outputPath 'beacon'))
+        Invoke-QualificationCommand 'beacon-flip' @((Join-Path $repository 'tools/aurelian-rendering-reference/evaluate_metrics.py'),
+            (Join-Path $outputPath 'beacon/metrics-manifest.json')) $metricsPython
+        $beacon = Get-Content -LiteralPath (Join-Path $outputPath 'beacon/evidence.json') -Raw | ConvertFrom-Json
+        $beaconFlip = Get-Content -LiteralPath (Join-Path $outputPath 'beacon/flip-evidence.json') -Raw | ConvertFrom-Json
+        if (-not $beacon.Accepted -or -not $beaconFlip.Accepted) { throw 'Whole Beacon native and FLIP qualification did not accept.' }
+        foreach ($mode in @('gi', 'regional-gi')) {
+            Invoke-QualificationCommand ('beacon-app-' + $mode) @(
+                (Join-Path $repository 'Games/Beacon3D/Aurelian.Beacon3D/bin/Release/net10.0/Aurelian.Beacon3D.dll'),
+                ('--' + $mode), '--quality', 'high', '--resolution', '960x600', '--windowed',
+                '--playtest-script', (Join-Path $repository 'Games/Beacon3D/Aurelian.Beacon3D/Playtests/gi-native.json'),
+                '--output', (Join-Path $outputPath ('beacon-app-' + $mode)),
+                '--save-root', (Join-Path $outputPath ('beacon-app-' + $mode + '-saves')))
+            $appFacts = Get-Content -LiteralPath (Join-Path $outputPath ('beacon-app-' + $mode + '/final.json')) -Raw | ConvertFrom-Json
+            $expectedMode = if ($mode -eq 'gi') { 'Runtime' } else { 'CompiledResidual' }
+            if ($appFacts.'gi.mode' -ne $expectedMode -or $appFacts.'gi.probes' -ne $beacon.ProbeCount.ToString() -or
+                $appFacts.'gi.environment' -ne 'true' -or $appFacts.'display.resolution' -ne '1280x720') {
+                throw "Beacon app did not retain the qualified GI profile after resize/restart: $mode"
+            }
+        }
+    }
     $hashes = @($sourcePaths | ForEach-Object {
         @{ Path = $_; Sha256 = (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash }
     })
@@ -380,8 +417,9 @@ try {
         RuntimeSha256 = (Get-FileHash -LiteralPath (Join-Path (Split-Path $proof) 'Aurelian.Runtime.dll') -Algorithm SHA256).Hash;
         GamesSha256 = (Get-FileHash -LiteralPath (Join-Path (Split-Path $proof) 'Aurelian.Games.dll') -Algorithm SHA256).Hash;
         DominatusSha256 = (Get-FileHash -LiteralPath (Join-Path (Split-Path $proof) 'Dominatus.Core.dll') -Algorithm SHA256).Hash;
+        BeaconSha256 = (Get-FileHash -LiteralPath (Join-Path (Split-Path $proof) 'Aurelian.Beacon3D.dll') -Algorithm SHA256).Hash;
         LightingFixture = $fixturePath; Reference = $reference; Affine = $affine;
-        LightingTemporal = $lighting; Flip = $flip; R3 = $r3; R3Flip = $r3Flip; Sampling = $sampling; SamplingFlip = $samplingFlip; Restir = $restir; RestirFlip = $restirFlip; Tlas = $tlas; RasterMotion = $rasterMotion; Area = $area; AreaFlip = $areaFlip; Gi = $gi; GiFlip = $giFlip; Secondary = $secondary; SecondaryFlip = $secondaryFlip; Sky = $sky; SkyFlip = $skyFlip; Regional = $regional; RegionalFlip = $regionalFlip; FullR4Complete = $false; FullR3Complete = $false } | ConvertTo-Json -Depth 30 |
+        LightingTemporal = $lighting; Flip = $flip; R3 = $r3; R3Flip = $r3Flip; Sampling = $sampling; SamplingFlip = $samplingFlip; Restir = $restir; RestirFlip = $restirFlip; Tlas = $tlas; RasterMotion = $rasterMotion; Area = $area; AreaFlip = $areaFlip; Gi = $gi; GiFlip = $giFlip; Secondary = $secondary; SecondaryFlip = $secondaryFlip; Sky = $sky; SkyFlip = $skyFlip; Regional = $regional; RegionalFlip = $regionalFlip; Beacon = $beacon; BeaconFlip = $beaconFlip; FullR4Complete = $false; FullR3Complete = $false } | ConvertTo-Json -Depth 30 |
         Set-Content -LiteralPath $evidencePath
     Write-Output "AURELIAN_REFERENCE_QUALIFIED: $evidencePath"
 }

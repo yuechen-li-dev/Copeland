@@ -11,7 +11,7 @@ public sealed record DiffuseProbeGrid(Vector3 Minimum, Vector3 Maximum, int X = 
     public void Validate()
     {
         if (!Finite(Minimum) || !Finite(Maximum) || Maximum.X <= Minimum.X || Maximum.Y <= Minimum.Y
-            || Maximum.Z <= Minimum.Z || X is < 2 or > 8 || Y is < 2 or > 8 || Z is < 2 or > 8
+            || Maximum.Z <= Minimum.Z || X is < 2 or > 16 || Y is < 2 or > 16 || Z is < 2 or > 16 || Count > 512
             || RaysPerProbe is < 16 or > 128 || SurfaceResolution is < 2 or > 32)
         {
             throw new ArgumentException("AUR-PROBE-001: Invalid bounded probe grid or sampling budget.");

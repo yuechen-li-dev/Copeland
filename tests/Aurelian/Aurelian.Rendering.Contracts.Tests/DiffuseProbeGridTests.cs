@@ -19,9 +19,21 @@ public sealed class DiffuseProbeGridTests
         Assert.Equal(new Vector3(3), grid.Position(63));
     }
 
+    [Fact]
+    public void WideShallowGridsReuseTheSame512ProbeStorageLimit()
+    {
+        var wide = new DiffuseProbeGrid(Vector3.Zero, Vector3.One, 12, 3, 12, 128);
+        wide.Validate();
+        Assert.Equal(432, wide.Count);
+        Assert.Equal(Vector3.One, wide.Position(431));
+        Assert.All(wide.Corners(new(.999f), Vector3.UnitY), index => Assert.InRange(index, 0, 431));
+        new DiffuseProbeGrid(Vector3.Zero, Vector3.One, 16, 2, 16, 128).Validate();
+        Assert.Throws<ArgumentException>(() => new DiffuseProbeGrid(Vector3.Zero, Vector3.One, 16, 3, 16).Validate());
+    }
+
     [Theory]
     [InlineData(1, 64, 8)]
-    [InlineData(9, 64, 8)]
+    [InlineData(17, 64, 8)]
     [InlineData(4, 15, 8)]
     [InlineData(4, 129, 8)]
     [InlineData(4, 64, 1)]

@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    {
+      "kind": "click-action",
+      "text": "start"
+    },
+    {
+      "kind": "wait",
+      "seconds": 1.6
+    },
+    {
+      "kind": "capture",
+      "path": "playing.png"
+    },
+    {
+      "kind": "command",
+      "command": "assert gi.probes 432"
+    },
+    {
+      "kind": "command",
+      "command": "assert gi.environment true"
+    },
+    {
+      "kind": "command",
+      "command": "assert wave 1"
+    },
+    {
+      "kind": "mouse-delta",
+      "x": 80,
+      "y": -10
+    },
+    {
+      "kind": "mouse-hold",
+      "text": "primary",
+      "seconds": 0.2
+    },
+    {
+      "kind": "resize",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "kind": "wait",
+      "seconds": 0.2
+    },
+    {
+      "kind": "capture",
+      "path": "resized.png"
+    },
+    {
+      "kind": "tap",
+      "keys": [
+        "escape"
+      ]
+    },
+    {
+      "kind": "capture",
+      "path": "paused.png"
+    },
+    {
+      "kind": "click-action",
+      "text": "resume"
+    },
+    {
+      "kind": "wait",
+      "seconds": 0.2
+    },
+    {
+      "kind": "capture",
+      "path": "resumed.png"
+    },
+    {
+      "kind": "command",
+      "command": "assert gi.probes 432"
+    },
+    {
+      "kind": "command",
+      "command": "assert gi.environment true"
+    },
+    {
+      "kind": "tap",
+      "keys": [
+        "escape"
+      ]
+    },
+    {
+      "kind": "click-action",
+      "text": "title"
+    },
+    {
+      "kind": "click-action",
+      "text": "start"
+    },
+    {
+      "kind": "wait",
+      "seconds": 0.1
+    },
+    {
+      "kind": "capture",
+      "path": "restarted.png"
+    },
+    {
+      "kind": "command",
+      "command": "assert shots 0"
+    }
+  ]
+}

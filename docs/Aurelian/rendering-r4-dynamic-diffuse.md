@@ -13,8 +13,12 @@ extends that profile through shared resident geometry/material tables, including
 an imported GLB witness. Local and emissive sources, a bounded prepared grid and
 diffuse receivers describe that original scope. The subsequent
 [sun/environment pass](rendering-r4-sun-environment.md) adds source-radiance
-sampling, sky visibility and coverage fallback, with HDR/FLIP qualification. Recursive bounces,
-sparse allocation, region policy and whole-Beacon qualification remain open. Dynamic diffuse lighting defaults off.
+sampling, sky visibility and coverage fallback, with HDR/FLIP qualification.
+The [regional policy](rendering-r4-regional-policy.md) and
+[whole-Beacon report](rendering-r4-beacon.md) document subsequent selection and
+arena-scale work. Recursive bounces and sparse allocation remain open. Dynamic
+diffuse lighting defaults off globally; Beacon's explicit GI option selects
+full-runtime updates from its measured controls.
 The GI-specific transport specimens cover point lights and emissive geometry;
 spot/area GI qualification remains outstanding.
 
@@ -115,7 +119,8 @@ can remain stale for one update cycle; this does not implement an unbiased
 Monte Carlo residual estimator or recursive transport. The finite directional
 basis also retains quadrature and one-sample local-light errors after warm-up.
 
-The admitted grid has 2..8 probes per axis and 16..128 directions per probe, with
+The original admitted grid had 2..8 probes per axis. The whole-Beacon profile
+now admits 2..16 per axis with an explicit 512-total-probe cap, and 16..128 directions per probe, with
 an 8x8 convolution tile. The proof uses 100 probes, 128 directions and 16 updates
 per probe per frame: 1,600 primary queries, at most 1,600 secondary-light shadow
 queries, and at most eight connectivity queries per covered screen pixel.
@@ -203,3 +208,6 @@ textured and smooth-normal payload through the existing material owner.
 The subsequent [regional-policy qualification](rendering-r4-regional-policy.md)
 adds Dominatus hysteresis/minCommit, per-region directional cursors and delayed
 GPU change feedback on this same retained cache. Whole-Beacon remains open.
+
+[Whole-Beacon qualification](rendering-r4-beacon.md) now exercises the complete
+rigid game scene and records the runtime-versus-regional selection.

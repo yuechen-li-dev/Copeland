@@ -20,6 +20,12 @@ using Silk.NET.Maths;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
 
+if (args.Contains("--rendering-beacon", StringComparer.Ordinal))
+{
+    RenderingR3Proof.RunBeaconGi(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-beacon"));
+    return;
+}
+
 if (args.Contains("--rendering-regional", StringComparer.Ordinal))
 {
     RenderingR3Proof.RunRegional(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-regional"));

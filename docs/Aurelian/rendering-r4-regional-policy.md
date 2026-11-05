@@ -147,5 +147,6 @@ update cap. This stable timing window uses a five-second audit interval;
 periodic-audit behavior is separately covered by the controller tests.
 
 The interrupted `final/` attempt and failed preflights remain unaccepted.
-No Tier R default is promoted. Whole-Beacon image quality, motion, influence
-bounds and frame cost are the next qualification target.
+No Tier R default is promoted by this localized-change result. The subsequent
+[whole-Beacon report](rendering-r4-beacon.md) measures image quality, motion,
+influence bounds and frame cost in the continuously animated open arena.
