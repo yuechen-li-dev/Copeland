@@ -6,7 +6,8 @@ using Marionette.Skyrim;
 namespace Marionette.Skyrim.App;
 
 /// <summary>Logical character identity; never an engine handle, load-order prefix, or live control lease.</summary>
-public sealed record EmbodiedCharacter(Guid CharacterId, string PluginName, uint LocalFormId)
+public sealed record EmbodiedCharacter(Guid CharacterId, string PluginName, uint LocalFormId,
+    string Name = "", string LocationName = "", SkyrimCharacterLocation? LastLocation = null)
 {
     [JsonIgnore]
     public SkyrimPlacedActorOrigin Origin => new(PluginName, LocalFormId);
@@ -16,7 +17,7 @@ public sealed record EmbodimentState(int Version, Guid? SelectedCharacterId, Emb
 {
     public void Validate()
     {
-        if (Version != 1 || Characters is null)
+        if (Version is not (1 or 2) || Characters is null)
         {
             throw new InvalidDataException("embodiment_schema_invalid");
         }
@@ -28,6 +29,11 @@ public sealed record EmbodimentState(int Version, Guid? SelectedCharacterId, Emb
                 !origins.Add(character.Origin.StableKey))
             {
                 throw new InvalidDataException("embodiment_character_identity_invalid");
+            }
+            character.LastLocation?.Validate();
+            if (character.Name is null || character.LocationName is null || character.Name.Length > 256 || character.LocationName.Length > 256)
+            {
+                throw new InvalidDataException("embodiment_character_label_invalid");
             }
         }
         if (SelectedCharacterId.HasValue && !ids.Contains(SelectedCharacterId.Value))
@@ -82,8 +88,34 @@ public sealed partial class SkyrimWorldOwnerRuntime
         world.Bb.Set(EmbodimentKey, JsonSerializer.Serialize(state, EmbodimentJsonContext.Default.EmbodimentState));
     }
 
+    public EmbodiedCharacter RegisterCharacter(BodyCharacterInfo info)
+    {
+        if (info.UnavailableReason.Length != 0 || info.Location is null)
+        {
+            throw new ArgumentException("character_cannot_be_registered");
+        }
+        var origin = new SkyrimPlacedActorOrigin(info.PluginName, info.LocalFormId);
+        var state = ReadEmbodiment() ?? new EmbodimentState(2, null, []);
+        EmbodiedCharacter? old = state.Characters.FirstOrDefault(character => character.Origin == origin);
+        var updated = new EmbodiedCharacter(old?.CharacterId ?? Guid.NewGuid(), origin.PluginName, origin.LocalFormId,
+            info.Name, info.LocationName, info.Location);
+        if (state.Version == 2 && old == updated) return updated;
+        EmbodiedCharacter[] characters = old is null ? [.. state.Characters, updated]
+            : state.Characters.Select(character => character.CharacterId == old.CharacterId ? updated : character).ToArray();
+        WriteEmbodiment(state with { Version = 2, Characters = characters });
+        return updated;
+    }
+
     internal void RecordEmbodiment(BodyControlObservation body)
     {
+        if (body.Character is { UnavailableReason.Length: 0, Location: not null, PluginName.Length: > 0, LocalFormId: > 0 } info && body.Loaded)
+        {
+            EmbodiedCharacter registered = RegisterCharacter(info);
+            EmbodimentState roster = ReadEmbodiment()!;
+            if (roster.SelectedCharacterId != registered.CharacterId)
+                WriteEmbodiment(roster with { SelectedCharacterId = registered.CharacterId });
+            return;
+        }
         var state = ReadEmbodiment() ?? new EmbodimentState(1, null, []);
         if (string.IsNullOrEmpty(body.PluginName) || body.LocalFormId == 0)
         {

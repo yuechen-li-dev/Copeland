@@ -10,7 +10,7 @@ public sealed record WorldNpcRequest(
     ulong ExpectedOwnedLeaseId = 0, string NpcBaseKey = "",
     float TargetPositionX = 0, float TargetPositionY = 0, float TargetPositionZ = 0,
     float StoppingDistance = 48, uint MovementDurationMilliseconds = 10000, ulong ExpectedMovementId = 0,
-    string QuestAction = "query", string QuestText = "", ulong QuestPrompt = 0);
+    string QuestAction = "query", string QuestText = "", ulong QuestPrompt = 0, string QuestChoices = "");
 
 public sealed record OwnedNpcIdentity(ulong WorldGeneration, ulong LeaseId, uint FormId, uint BaseFormId);
 
@@ -51,17 +51,19 @@ public sealed class SkyrimHostContext
     private WorldNpcResult? observation;
 
     internal SkyrimHostContext(Stream pipe, SkyrimStateResult state, SkyrimWorldOwnerRuntime? worldOwner = null,
-        SkyrimBodyControl? bodies = null)
+        SkyrimBodyControl? bodies = null, SkyrimCharacterSwitchController? characters = null)
     {
         this.pipe = pipe;
         State = state;
         WorldOwner = worldOwner;
         Bodies = bodies;
+        Characters = bodies is null ? null : characters;
     }
 
     public SkyrimStateResult State { get; }
     public SkyrimWorldOwnerRuntime? WorldOwner { get; }
     public SkyrimBodyControl? Bodies { get; }
+    public SkyrimCharacterSwitchController? Characters { get; }
 
     public async ValueTask<BodyControlObservation> AcquireBodyAsync(LoadedActorBody body,
         bool switching = false, CancellationToken cancellationToken = default)
@@ -111,11 +113,11 @@ public sealed class SkyrimHostContext
     }
 
     public ValueTask<WorldNpcResult> QuestUiAsync(string action, CancellationToken cancellationToken,
-        string text = "", ulong prompt = 0)
+        string text = "", ulong prompt = 0, string choices = "")
     {
         return SendAsync(new WorldNpcRequest(1, "quest_ui", Guid.NewGuid().ToString("N"), 2000,
             ExpectedWorldGeneration: State.WorldGeneration, QuestAction: action, QuestText: text,
-            QuestPrompt: prompt), cancellationToken);
+            QuestPrompt: prompt, QuestChoices: choices), cancellationToken);
     }
 
     public ValueTask<WorldNpcResult> MoveOwnedNpcAsync(WorldNpcResult source, OwnedNpcIdentity identity,
@@ -207,6 +209,7 @@ public sealed class SkyrimHostContext
         string? expectedFailure = null)
     {
         if ((!State.WorldReady || State.WorldPaused)
+            && !(request.MessageKind == "quest_ui" && request.QuestAction == "query")
             && request.MessageKind is not ("query_owned_npc" or "release_owned_npc" or "cancel_owned_npc_movement"))
         {
             throw new SkyrimWorldCommandDeferredException("world_not_command_ready");
@@ -228,6 +231,11 @@ public sealed class SkyrimHostContext
         }
         if (result.Status != "completed")
         {
+            if (request.MessageKind == "quest_ui" && result.FailureReason is
+                "dispatch_timeout" or "dispatch_unavailable" or "queue_full" or "quest_world_not_ready" or "quest_prompt_busy")
+            {
+                throw new SkyrimWorldCommandDeferredException(result.FailureReason);
+            }
             if (expectedFailure is not null && result.FailureReason == expectedFailure)
             {
                 return result;

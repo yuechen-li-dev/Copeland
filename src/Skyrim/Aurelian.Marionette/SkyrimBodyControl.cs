@@ -23,6 +23,7 @@ public enum SkyrimBodyAction
     Melee,
     Activate,
     Inventory,
+    CharacterMenu,
 }
 
 public sealed record BodyControlRequest(
@@ -31,7 +32,9 @@ public sealed record BodyControlRequest(
     uint InputButtons = 0, float InputMouseX = 0, float InputMouseY = 0,
     string BodyPluginName = "", uint BodyLocalFormId = 0,
     uint BodyItemFormId = 0, uint BodyExpectedItemCount = 0, uint BodyItemCount = 0,
-    uint BodyActorValue = 0, float BodyDamage = 0);
+    uint BodyActorValue = 0, float BodyDamage = 0,
+    string BodyCellPlugin = "", uint BodyCellLocalFormId = 0,
+    float TargetPositionX = 0, float TargetPositionY = 0, float TargetPositionZ = 0);
 
 public sealed record BodyControlObservation(
     ulong LeaseId = 0, ulong WorldGeneration = 0, uint FormId = 0, uint CellFormId = 0,
@@ -40,12 +43,13 @@ public sealed record BodyControlObservation(
     float PositionX = 0, float PositionY = 0, float PositionZ = 0, float Heading = 0,
     float Health = 0, float AnimationSpeed = 0, uint CameraTarget = 0,
     uint HitCause = 0, uint HitTarget = 0, uint HitCount = 0, bool ThirdPersonCamera = false,
-    string PluginName = "", uint LocalFormId = 0);
+    string PluginName = "", uint LocalFormId = 0,
+    ulong MenuRequestSequence = 0, BodyCharacterInfo? Character = null);
 
 public sealed record BodyControlResult(
     int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence,
     string Status, string FailureReason, ulong WorldGeneration, BodyControlObservation BodyControl,
-    uint ResolvedBodyFormId = 0, BodyGameplayObservation? Gameplay = null);
+    uint ResolvedBodyFormId = 0, BodyGameplayObservation? Gameplay = null, BodyCharacterInfo? Character = null);
 
 public sealed class SkyrimBodyControlException(string reason, BodyControlObservation observation) : Exception(reason)
 {
@@ -154,6 +158,7 @@ public sealed partial class SkyrimBodyControl
             SkyrimBodyAction.Melee => "melee",
             SkyrimBodyAction.Activate => "activate",
             SkyrimBodyAction.Inventory => "inventory",
+            SkyrimBodyAction.CharacterMenu => "menu",
             _ => throw new ArgumentOutOfRangeException(nameof(action)),
         };
         SkyrimBodyLease current = RequireLease();
@@ -250,6 +255,10 @@ public sealed partial class SkyrimBodyControl
             throw new SkyrimBodyControlException(result.FailureReason, Observation);
         }
         if (request.BodyAction == "release") released?.Invoke();
+        if (request.BodyAction == "renew" && Lease is not null && Observation.Loaded && Observation.Character is not null)
+        {
+            selected?.Invoke(Observation);
+        }
         return result;
     }
 }

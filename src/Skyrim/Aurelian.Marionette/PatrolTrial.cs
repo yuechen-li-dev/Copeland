@@ -6,7 +6,7 @@ using Dominatus.Core.Blackboard;
 namespace Marionette.Skyrim.App;
 
 public sealed record QuestUiObservation(ulong PromptId, int Choice, bool RewardPaid, int Gold,
-    uint CellFormId, float PlayerX, float PlayerY, float PlayerZ)
+    uint CellFormId, float PlayerX, float PlayerY, float PlayerZ, bool? PromptOpen = null)
 {
     [JsonIgnore]
     public Vector3 Position => new(PlayerX, PlayerY, PlayerZ);

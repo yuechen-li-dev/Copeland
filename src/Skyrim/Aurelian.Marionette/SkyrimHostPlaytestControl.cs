@@ -27,14 +27,17 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
     private OwnedNpcIdentity? ownedNpc;
     private ulong ownedMovementId;
     private readonly OwnedNpcAgentBehavior? ownedAgent;
+    private readonly SkyrimCharacterSwitchController? characters;
     private bool bodyInputPending;
     private long bodyReleaseAt;
 
     public SkyrimHostPlaytestControl(Stream pipe, TextReader commandInput, CancellationToken cancellationToken,
-        OwnedNpcAgentBehavior? ownedAgent = null)
+        OwnedNpcAgentBehavior? ownedAgent = null, SkyrimCharacterSwitchController? characters = null)
     {
         input = new PlaytestSession(pipe, ownsPipe: false);
         this.ownedAgent = ownedAgent;
+        this.characters = characters;
+        Console.Error.WriteLine("SKYRIM_HOST_CHARACTER_CONTROL_READY characters | character-add <plugin> <local-ref> | character-visit <plugin> <local-ref> <cell-plugin> <local-cell> <x> <y> <z> | body-select <character-guid>");
         shutdown = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         reader = Task.Run(() => ReadCommandsAsync(commandInput));
         Console.Error.WriteLine("SKYRIM_HOST_CONTROL_READY inspect | input <buttons> <seconds> | look <x> <y> | release | save | load | npc-change | stale | owned-spawn | owned-inspect | owned-tune | owned-release | body-list | body-acquire <form> | body-switch <form> | body-roster | body-select <character-guid> | body-input <movement> <seconds> | body-action <action> | body-inspect | body-gameplay | body-equip <item> | body-unequip <item> | body-drop <item> | body-damage <vital> <amount> | body-release | quest-inspect | quest-reward");
@@ -64,6 +67,13 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
         string? command = null;
         try
         {
+            if (active && context.Bodies?.Lease is not null && !context.State.WorldPaused)
+            {
+                // Gameplay input belongs to the body heartbeat; the shell
+                // renews independent held buttons only during menus.
+                active = false;
+                held = PlaytestButtons.None;
+            }
             if (bodyInputPending && Stopwatch.GetTimestamp() >= bodyReleaseAt)
             {
                 if (context.Bodies?.Lease is not null)
@@ -72,7 +82,7 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
                 }
                 bodyInputPending = false;
             }
-            if (active && context.Bodies?.Lease is null)
+            if (active)
             {
                 PlaytestObservation state = await input.ObserveAsync(cancellationToken).ConfigureAwait(false);
                 active = state.Active;
@@ -102,6 +112,50 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
             if (command.Length > 512) throw new ArgumentException("command_too_long");
             string[] parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length == 0) return false;
+            if (parts is ["characters"])
+            {
+                (characters ?? throw new NotSupportedException("character_menu_unavailable")).RequestMenu();
+                Emit(command, "completed", "", null, context, behaviorsAllowed, readySeconds, readyTicks);
+                return false;
+            }
+            if (characters?.IsSwitching == true && parts[0] is not ("inspect" or "body-inspect" or "body-gameplay" or "body-roster"))
+            {
+                throw new ArgumentException("character_switch_in_progress");
+            }
+            if (parts is ["body-drive", var driveMask, var driveX, var driveY] &&
+                uint.TryParse(driveMask, NumberStyles.None, CultureInfo.InvariantCulture, out uint driveButtons) &&
+                float.TryParse(driveX, NumberStyles.Float, CultureInfo.InvariantCulture, out float driveLookX) &&
+                float.TryParse(driveY, NumberStyles.Float, CultureInfo.InvariantCulture, out float driveLookY))
+            {
+                await context.Bodies!.UpdateAsync((BodyMovement)driveButtons, driveLookX, driveLookY, cancellationToken);
+                bodyInputPending = true;
+                bodyReleaseAt = Stopwatch.GetTimestamp() + Stopwatch.Frequency / 3;
+                return false;
+            }
+            if (parts is ["character-visit", var visitPlugin, var visitLocal, var cellPlugin, var cellLocal, var visitX, var visitY, var visitZ] &&
+                uint.TryParse(visitLocal, NumberStyles.None, CultureInfo.InvariantCulture, out uint visitReference) &&
+                uint.TryParse(cellLocal, NumberStyles.None, CultureInfo.InvariantCulture, out uint visitCell) &&
+                float.TryParse(visitX, NumberStyles.Float, CultureInfo.InvariantCulture, out float destinationX) &&
+                float.TryParse(visitY, NumberStyles.Float, CultureInfo.InvariantCulture, out float destinationY) &&
+                float.TryParse(visitZ, NumberStyles.Float, CultureInfo.InvariantCulture, out float destinationZ))
+            {
+                if (!behaviorsAllowed) throw new ArgumentException("gameplay_lifecycle_gate_closed");
+                var origin = new Marionette.Skyrim.SkyrimPlacedActorOrigin(visitPlugin, visitReference);
+                var hint = new SkyrimCharacterLocation(cellPlugin, visitCell, destinationX, destinationY, destinationZ);
+                (characters ?? throw new NotSupportedException("character_menu_unavailable")).Visit(context, origin, hint);
+                Emit(command, "completed", "scheduled", null, context, behaviorsAllowed, readySeconds, readyTicks);
+                return false;
+            }
+            if (parts is ["character-add", var plugin, var local] && uint.TryParse(local, out uint reference))
+            {
+                if (!behaviorsAllowed) throw new ArgumentException("gameplay_lifecycle_gate_closed");
+                BodyCharacterInfo info = await context.Bodies!.DescribeCharacterAsync(
+                    new(plugin, reference), context.State.WorldGeneration, cancellationToken);
+                EmbodiedCharacter added = context.WorldOwner!.RegisterCharacter(info);
+                Console.WriteLine($"SKYRIM_CHARACTER_REGISTERED character={added.CharacterId} origin={added.Origin.StableKey} name={added.Name} location={added.LocationName}");
+                Emit(command, "completed", "", null, context, behaviorsAllowed, readySeconds, readyTicks);
+                return false;
+            }
             PlaytestObservation? observation = null;
             bool transition = false;
             if (parts.Length > 0 && parts[0].StartsWith("body-", StringComparison.Ordinal))
@@ -168,6 +222,12 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
                 else if (parts is ["body-select", var characterText] && Guid.TryParse(characterText, out Guid characterId))
                 {
                     if (!behaviorsAllowed) throw new ArgumentException("gameplay_lifecycle_gate_closed");
+                    if (characters is not null)
+                    {
+                        characters.Select(context, characterId);
+                        Emit(command, "completed", "scheduled", null, context, behaviorsAllowed, readySeconds, readyTicks);
+                        return false;
+                    }
                     var character = context.WorldOwner?.ReadEmbodiment()?.Characters.SingleOrDefault(item => item.CharacterId == characterId)
                         ?? throw new ArgumentException("embodiment_character_unknown");
                     LoadedActorBody target = await bodies.ResolveAsync(character.Origin, context.State.WorldGeneration, cancellationToken);
@@ -241,6 +301,7 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
                     active = true;
                 }
                 observation = await input.UpdateAsync(buttons, cancellationToken: cancellationToken).ConfigureAwait(false);
+                active = true;
                 held = buttons;
                 releaseAt = Stopwatch.GetTimestamp() + (long)(seconds * Stopwatch.Frequency);
                 transition = ((uint)buttons & ~127U) != 0;

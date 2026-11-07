@@ -23,7 +23,7 @@ public sealed partial class MarionetteTransportClient
 
     public async ValueTask<LiveSaveCorrelationReport> RunWorldHostAsync(
         IReadOnlyList<ISkyrimWorldBehavior> behaviors, CancellationToken cancellationToken,
-        TextReader? playtestCommands = null)
+        TextReader? playtestCommands = null, Action<SkyrimHostPresentation>? presentation = null)
     {
         if (string.IsNullOrWhiteSpace(_config.CheckpointDirectory))
         {
@@ -79,8 +79,9 @@ public sealed partial class MarionetteTransportClient
                 body => coordinator.CurrentWorld.RecordEmbodiment(body),
                 () => coordinator.CurrentWorld.ClearEmbodimentSelection()) : null;
         var embodiment = new SkyrimEmbodimentController();
+        var characters = new SkyrimCharacterSwitchController();
         await using SkyrimHostPlaytestControl? control = _config.EnablePlaytestShell
-            ? new SkyrimHostPlaytestControl(pipe, playtestCommands ?? Console.In, cancellationToken, ownedAgent) : null;
+            ? new SkyrimHostPlaytestControl(pipe, playtestCommands ?? Console.In, cancellationToken, ownedAgent, characters) : null;
         var uptime = System.Diagnostics.Stopwatch.StartNew();
         double lastTickSeconds = 0;
         double nextHeartbeat = 0;
@@ -191,7 +192,7 @@ public sealed partial class MarionetteTransportClient
                 }
                 try
                 {
-                    var context = new SkyrimHostContext(pipe, state, current, bodies);
+                    var context = new SkyrimHostContext(pipe, state, current, bodies, characters);
                     bodies?.ObserveWorld(state.WorldGeneration);
                     if (bodies?.Lease is not null)
                     {
@@ -208,11 +209,15 @@ public sealed partial class MarionetteTransportClient
                         canRun, readySeconds, readyTicks, cancellationToken).ConfigureAwait(false);
                     if (!transition)
                     {
-                        await embodiment.TickAsync(context, canRun, cancellationToken).ConfigureAwait(false);
-                        await SkyrimWorldBehaviorGate.TickAsync(coordinator, state,
-                            context, behaviors, cancellationToken).ConfigureAwait(false);
+                        bool characterTransition = await characters.TickAsync(context, canRun, cancellationToken).ConfigureAwait(false);
+                        if (!characterTransition)
+                        {
+                            await embodiment.TickAsync(context, canRun, cancellationToken).ConfigureAwait(false);
+                            await SkyrimWorldBehaviorGate.TickAsync(coordinator, state,
+                                context, behaviors, cancellationToken).ConfigureAwait(false);
+                        }
                     }
-                    if (embedded && canRun && !transition)
+                    if (embedded && canRun && !transition && !characters.IsSwitching)
                     {
                         string snapshot = store.ExportEmbedded(current);
                         var published = await ExchangeCheckpointAsync(pipe, new WorldCheckpointRequest(1,
@@ -221,6 +226,8 @@ public sealed partial class MarionetteTransportClient
                         if (published.Status != "completed")
                             Console.Error.WriteLine("SKYRIM_HOST checkpoint_publication_deferred=boundary_changed");
                     }
+                    presentation?.Invoke(new SkyrimHostPresentation(state, bodies?.Observation,
+                        current.ReadEmbodiment(), characters.IsSwitching));
                 }
                 catch (SkyrimWorldCommandDeferredException exception)
                 {
