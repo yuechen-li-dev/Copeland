@@ -51,6 +51,7 @@ public sealed class SkyrimLiveLifecycleCoordinator
         {
             CurrentWorld.ClearOwnedAgentState();
             CurrentWorld.ClearPatrolTrial();
+            CurrentWorld.ClearEmbodiment();
             CurrentWorld.CompleteUntrackedLoad();
             return new SkyrimLifecycleProcessingResult(true, "load_completed_without_checkpoint");
         }
@@ -222,6 +223,7 @@ public sealed class SkyrimLiveLifecycleCoordinator
             // baseline load has no managed history to restore and remains command-ready.
             CurrentWorld.ClearOwnedAgentState();
             CurrentWorld.CompleteUntrackedLoad();
+            CurrentWorld.ClearEmbodiment();
             return new SkyrimLifecycleProcessingResult(true, "load_completed_without_checkpoint", restored);
         }
         if (!restored.Completed || restored.RestoredWorld is null || restored.Entry is null)
@@ -274,6 +276,7 @@ public sealed class SkyrimLiveLifecycleCoordinator
         loads.Clear();
         CurrentWorld.ClearOwnedAgentState();
         CurrentWorld.ClearPatrolTrial();
+        CurrentWorld.ClearEmbodiment();
         return new SkyrimLifecycleProcessingResult(true, "new_game_started");
     }
 

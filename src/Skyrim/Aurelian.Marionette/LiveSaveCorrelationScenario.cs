@@ -75,7 +75,10 @@ public sealed partial class MarionetteTransportClient
         bool embedded = hello.Capabilities.Contains("query_world_checkpoint", StringComparer.Ordinal);
         OwnedNpcAgentBehavior? ownedAgent = behaviors.OfType<OwnedNpcAgentBehavior>().SingleOrDefault();
         SkyrimBodyControl? bodies = hello.Capabilities.Contains("body_control", StringComparer.Ordinal)
-            ? new SkyrimBodyControl((request, token) => BodyControlTransport.ExchangeAsync(pipe, request, token)) : null;
+            ? new SkyrimBodyControl((request, token) => BodyControlTransport.ExchangeAsync(pipe, request, token),
+                body => coordinator.CurrentWorld.RecordEmbodiment(body),
+                () => coordinator.CurrentWorld.ClearEmbodimentSelection()) : null;
+        var embodiment = new SkyrimEmbodimentController();
         await using SkyrimHostPlaytestControl? control = _config.EnablePlaytestShell
             ? new SkyrimHostPlaytestControl(pipe, playtestCommands ?? Console.In, cancellationToken, ownedAgent) : null;
         var uptime = System.Diagnostics.Stopwatch.StartNew();
@@ -205,6 +208,7 @@ public sealed partial class MarionetteTransportClient
                         canRun, readySeconds, readyTicks, cancellationToken).ConfigureAwait(false);
                     if (!transition)
                     {
+                        await embodiment.TickAsync(context, canRun, cancellationToken).ConfigureAwait(false);
                         await SkyrimWorldBehaviorGate.TickAsync(coordinator, state,
                             context, behaviors, cancellationToken).ConfigureAwait(false);
                     }

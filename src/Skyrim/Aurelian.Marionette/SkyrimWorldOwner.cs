@@ -285,8 +285,7 @@ public sealed partial class SkyrimWorldOwnerRuntime
     {
         Timeline = save.Timeline;
         CurrentSave = save;
-        state = SkyrimWorldOwnerState.WorldReady;
-        routedState = SkyrimWorldOwnerState.WorldReady;
+        ReenterLifecycleState(SkyrimWorldOwnerState.WorldReady);
         owner.Events.Publish(new SkyrimWorldRestored(save, checkpointArtifactId));
         if (rollback)
         {
@@ -296,8 +295,16 @@ public sealed partial class SkyrimWorldOwnerRuntime
 
     internal void CompleteUntrackedLoad()
     {
-        state = SkyrimWorldOwnerState.WorldReady;
-        routedState = SkyrimWorldOwnerState.WorldReady;
+        ReenterLifecycleState(SkyrimWorldOwnerState.WorldReady);
+    }
+
+    private void ReenterLifecycleState(SkyrimWorldOwnerState next)
+    {
+        // DOM1 restores the saved HFSM path as well as blackboard state. Rebase
+        // the lifecycle flow itself so its next entry cannot reinstate SaveLoading.
+        routedState = next;
+        owner.Brain.RestoreActivePath(world, owner, [RouteState().ToString()]);
+        Enter(next);
     }
 
     internal void RequireRestoration(string reason)

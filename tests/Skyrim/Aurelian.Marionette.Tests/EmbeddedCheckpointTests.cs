@@ -9,6 +9,36 @@ namespace Marionette.Skyrim.App.Tests;
 public sealed class EmbeddedCheckpointTests
 {
     [Fact]
+    public void RestoredLifecycleFlowCannotReenterTheSavedLoadingState()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "skyrim-loading-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var source = new SkyrimWorldOwnerRuntime("before-save");
+            var session = new SkyrimSessionId(Guid.NewGuid());
+            var save = new SkyrimSaveIdentity("Selected", new SkyrimTimelineStamp(session,
+                new SkyrimGameTimestamp(10), 1), 1);
+            source.Post(new SkyrimWorldFact(SkyrimWorldFactKind.SaveLoading, 1, Save: save));
+            for (int index = 0; index < 6; index++) source.Tick();
+            Assert.Equal(SkyrimWorldOwnerState.SaveLoading, source.State);
+            var store = new SkyrimCheckpointStore(path);
+            string snapshot = store.ExportEmbedded(source);
+            var coordinator = new SkyrimLiveLifecycleCoordinator(session, new SkyrimWorldOwnerRuntime("new-process"),
+                store, new BodyBindingRegistry(), "restored");
+            coordinator.EmbeddedCheckpoint = new(1, "world_checkpoint_result", "load", 1,
+                "completed", 1, "ready", snapshot);
+            Assert.True(coordinator.RestoreEmbedded(save).Accepted);
+            for (int index = 0; index < 32; index++) coordinator.CurrentWorld.Tick();
+            Assert.Equal(SkyrimWorldOwnerState.WorldReady, coordinator.CurrentWorld.State);
+            Assert.True(coordinator.CanRunBehaviors);
+        }
+        finally
+        {
+            if (Directory.Exists(path)) Directory.Delete(path, true);
+        }
+    }
+
+    [Fact]
     public void CanonicalBytesCarryStateWithoutHistoricalIndexAcrossRestart()
     {
         string path = Path.Combine(Path.GetTempPath(), "skyrim-embedded-" + Guid.NewGuid().ToString("N"));

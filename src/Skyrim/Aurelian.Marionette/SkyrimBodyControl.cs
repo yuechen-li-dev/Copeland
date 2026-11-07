@@ -1,3 +1,5 @@
+using Marionette.Skyrim;
+
 namespace Marionette.Skyrim.App;
 
 /// <summary>A loaded reference in one world generation. Persistent roster identity is separate.</summary>
@@ -20,12 +22,16 @@ public enum SkyrimBodyAction
     DrawWeapon,
     Melee,
     Activate,
+    Inventory,
 }
 
 public sealed record BodyControlRequest(
     int ProtocolVersion, string MessageKind, string RequestId, int TimeoutMilliseconds,
     ulong ExpectedWorldGeneration, ulong ExpectedBodyLeaseId, uint TargetFormId, string BodyAction,
-    uint InputButtons = 0, float InputMouseX = 0, float InputMouseY = 0);
+    uint InputButtons = 0, float InputMouseX = 0, float InputMouseY = 0,
+    string BodyPluginName = "", uint BodyLocalFormId = 0,
+    uint BodyItemFormId = 0, uint BodyExpectedItemCount = 0, uint BodyItemCount = 0,
+    uint BodyActorValue = 0, float BodyDamage = 0);
 
 public sealed record BodyControlObservation(
     ulong LeaseId = 0, ulong WorldGeneration = 0, uint FormId = 0, uint CellFormId = 0,
@@ -33,11 +39,13 @@ public sealed record BodyControlObservation(
     bool AiEnabled = false, bool ControlsDriven = false, bool WeaponDrawn = false, bool Midair = false,
     float PositionX = 0, float PositionY = 0, float PositionZ = 0, float Heading = 0,
     float Health = 0, float AnimationSpeed = 0, uint CameraTarget = 0,
-    uint HitCause = 0, uint HitTarget = 0, uint HitCount = 0, bool ThirdPersonCamera = false);
+    uint HitCause = 0, uint HitTarget = 0, uint HitCount = 0, bool ThirdPersonCamera = false,
+    string PluginName = "", uint LocalFormId = 0);
 
 public sealed record BodyControlResult(
     int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence,
-    string Status, string FailureReason, ulong WorldGeneration, BodyControlObservation BodyControl);
+    string Status, string FailureReason, ulong WorldGeneration, BodyControlObservation BodyControl,
+    uint ResolvedBodyFormId = 0, BodyGameplayObservation? Gameplay = null);
 
 public sealed class SkyrimBodyControlException(string reason, BodyControlObservation observation) : Exception(reason)
 {
@@ -55,15 +63,20 @@ public sealed class SkyrimBodyControlException(string reason, BodyControlObserva
 /// Serial C# owner of a native body lease. The host calls HeartbeatAsync; no background worker is installed.
 /// Refused switches preserve the previous lease. Unknown native leases are never adopted.
 /// </summary>
-public sealed class SkyrimBodyControl
+public sealed partial class SkyrimBodyControl
 {
     private readonly Func<BodyControlRequest, CancellationToken, ValueTask<BodyControlResult>> exchange;
     private BodyMovement movement;
     private ulong lastSequence;
+    private readonly Action<BodyControlObservation>? selected;
+    private readonly Action? released;
 
-    internal SkyrimBodyControl(Func<BodyControlRequest, CancellationToken, ValueTask<BodyControlResult>> exchange)
+    internal SkyrimBodyControl(Func<BodyControlRequest, CancellationToken, ValueTask<BodyControlResult>> exchange,
+        Action<BodyControlObservation>? selected = null, Action? released = null)
     {
         this.exchange = exchange;
+        this.selected = selected;
+        this.released = released;
     }
 
     public SkyrimBodyLease? Lease { get; private set; }
@@ -100,6 +113,19 @@ public sealed class SkyrimBodyControl
         return SendAsync("observe", worldGeneration, 0, 0, BodyMovement.None, 0, 0, cancellationToken);
     }
 
+    public async ValueTask<LoadedActorBody> ResolveAsync(SkyrimPlacedActorOrigin origin, ulong worldGeneration,
+        CancellationToken cancellationToken = default)
+    {
+        if (worldGeneration == 0) throw new ArgumentOutOfRangeException(nameof(worldGeneration));
+        origin = new SkyrimPlacedActorOrigin(origin.PluginName, origin.LocalFormId);
+        var request = new BodyControlRequest(1, "body_control", Guid.NewGuid().ToString("N"), 2000,
+            worldGeneration, 0, 0, "resolve", BodyPluginName: origin.PluginName, BodyLocalFormId: origin.LocalFormId);
+        BodyControlResult result = await SendResultAsync(request, cancellationToken).ConfigureAwait(false);
+        if (result.ResolvedBodyFormId is 0 or 20 || result.WorldGeneration != worldGeneration)
+            throw new InvalidDataException("body_reference_receipt_invalid");
+        return new LoadedActorBody(worldGeneration, result.ResolvedBodyFormId);
+    }
+
     public async ValueTask<BodyControlObservation> UpdateAsync(BodyMovement input, float lookX = 0, float lookY = 0,
         CancellationToken cancellationToken = default)
     {
@@ -127,6 +153,7 @@ public sealed class SkyrimBodyControl
             SkyrimBodyAction.DrawWeapon => "draw",
             SkyrimBodyAction.Melee => "melee",
             SkyrimBodyAction.Activate => "activate",
+            SkyrimBodyAction.Inventory => "inventory",
             _ => throw new ArgumentOutOfRangeException(nameof(action)),
         };
         SkyrimBodyLease current = RequireLease();
@@ -137,6 +164,7 @@ public sealed class SkyrimBodyControl
     {
         if (Lease is null)
         {
+            released?.Invoke();
             return ValueTask.FromResult(Observation);
         }
         return SendAsync("release", Lease.WorldGeneration, Lease.LeaseId, 0, BodyMovement.None, 0, 0, cancellationToken);
@@ -180,6 +208,11 @@ public sealed class SkyrimBodyControl
     {
         var request = new BodyControlRequest(1, "body_control", Guid.NewGuid().ToString("N"), 2000,
             generation, leaseId, target, action, (uint)input, lookX, lookY);
+        return (await SendResultAsync(request, cancellationToken).ConfigureAwait(false)).BodyControl;
+    }
+
+    private async ValueTask<BodyControlResult> SendResultAsync(BodyControlRequest request, CancellationToken cancellationToken)
+    {
         BodyControlResult result = await exchange(request, cancellationToken).ConfigureAwait(false);
         if (result.ProtocolVersion != 1 || result.MessageKind != "body_control_result" ||
             result.RequestId != request.RequestId || result.ServerSequence <= lastSequence)
@@ -196,14 +229,16 @@ public sealed class SkyrimBodyControl
             throw new SkyrimBodyControlException(result.FailureReason, Observation);
         }
         Observation = result.BodyControl;
-        if (result.Status == "completed" && (action is "acquire" or "switch"))
+        if (result.Status == "completed" && (request.BodyAction is "acquire" or "switch"))
         {
-            if (Observation.LeaseId == 0 || Observation.FormId != target || Observation.WorldGeneration != generation)
+            if (Observation.LeaseId == 0 || Observation.FormId != request.TargetFormId ||
+                Observation.WorldGeneration != request.ExpectedWorldGeneration)
             {
                 throw new InvalidDataException("body_acquisition_receipt_invalid");
             }
-            Lease = new(generation, Observation.LeaseId, target);
+            Lease = new(request.ExpectedWorldGeneration, Observation.LeaseId, request.TargetFormId);
             movement = BodyMovement.None;
+            selected?.Invoke(Observation);
         }
         else if (Lease is not null && (Observation.LeaseId != Lease.LeaseId || Observation.WorldGeneration != Lease.WorldGeneration))
         {
@@ -214,7 +249,8 @@ public sealed class SkyrimBodyControl
         {
             throw new SkyrimBodyControlException(result.FailureReason, Observation);
         }
-        return Observation;
+        if (request.BodyAction == "release") released?.Invoke();
+        return result;
     }
 }
 

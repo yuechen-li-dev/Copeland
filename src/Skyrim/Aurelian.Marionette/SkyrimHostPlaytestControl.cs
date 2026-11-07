@@ -37,7 +37,7 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
         this.ownedAgent = ownedAgent;
         shutdown = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         reader = Task.Run(() => ReadCommandsAsync(commandInput));
-        Console.Error.WriteLine("SKYRIM_HOST_CONTROL_READY inspect | input <buttons> <seconds> | look <x> <y> | release | save | load | npc-change | stale | owned-spawn | owned-inspect | owned-tune | owned-release | body-list | body-acquire <form> | body-switch <form> | body-input <movement> <seconds> | body-action <action> | body-inspect | body-release");
+        Console.Error.WriteLine("SKYRIM_HOST_CONTROL_READY inspect | input <buttons> <seconds> | look <x> <y> | release | save | load | npc-change | stale | owned-spawn | owned-inspect | owned-tune | owned-release | body-list | body-acquire <form> | body-switch <form> | body-roster | body-select <character-guid> | body-input <movement> <seconds> | body-action <action> | body-inspect | body-gameplay | body-equip <item> | body-unequip <item> | body-drop <item> | body-damage <vital> <amount> | body-release | quest-inspect | quest-reward");
     }
 
     private async Task ReadCommandsAsync(TextReader commandInput)
@@ -115,7 +115,45 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
                     Emit(command, "completed", "", null, context, behaviorsAllowed, readySeconds, readyTicks);
                     return false;
                 }
+                if (parts is ["body-roster"])
+                {
+                    Console.WriteLine("SKYRIM_EMBODIMENT_ROSTER " + JsonSerializer.Serialize(
+                        context.WorldOwner?.ReadEmbodiment(), EmbodimentJsonContext.Default.EmbodimentState));
+                    Emit(command, "completed", "", null, context, behaviorsAllowed, readySeconds, readyTicks);
+                    return false;
+                }
                 BodyControlObservation body;
+                if (parts is ["body-gameplay"])
+                {
+                    await EmitGameplayAsync(bodies, cancellationToken);
+                    Emit(command, "completed", "", null, context, behaviorsAllowed, readySeconds, readyTicks);
+                    return false;
+                }
+                if (parts is [var inventoryAction, var itemText] && inventoryAction is "body-equip" or "body-unequip" or "body-drop"
+                    && uint.TryParse(itemText, out uint itemForm))
+                {
+                    BodyGameplaySnapshot source = await bodies.ObserveGameplayAsync(cancellationToken);
+                    if (inventoryAction == "body-drop")
+                    {
+                        await bodies.DropAsync(source, itemForm, cancellationToken: cancellationToken);
+                    }
+                    else
+                    {
+                        await bodies.EquipAsync(source, itemForm, inventoryAction == "body-unequip", cancellationToken);
+                    }
+                    await EmitGameplayAsync(bodies, cancellationToken);
+                    Emit(command, "completed", "", null, context, behaviorsAllowed, readySeconds, readyTicks);
+                    return false;
+                }
+                if (parts is ["body-damage", var vitalText, var amountText] &&
+                    Enum.TryParse(vitalText, true, out SkyrimVital vital) &&
+                    float.TryParse(amountText, NumberStyles.Float, CultureInfo.InvariantCulture, out float amount))
+                {
+                    await bodies.DamageVitalAsync(vital, amount, cancellationToken);
+                    await EmitGameplayAsync(bodies, cancellationToken);
+                    Emit(command, "completed", "", null, context, behaviorsAllowed, readySeconds, readyTicks);
+                    return false;
+                }
                 if (parts is ["body-inspect"])
                 {
                     body = await bodies.ObserveAsync(context.State.WorldGeneration, cancellationToken).ConfigureAwait(false);
@@ -126,6 +164,17 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
                     bodyInputPending = false;
                     active = false;
                     held = PlaytestButtons.None;
+                }
+                else if (parts is ["body-select", var characterText] && Guid.TryParse(characterText, out Guid characterId))
+                {
+                    if (!behaviorsAllowed) throw new ArgumentException("gameplay_lifecycle_gate_closed");
+                    var character = context.WorldOwner?.ReadEmbodiment()?.Characters.SingleOrDefault(item => item.CharacterId == characterId)
+                        ?? throw new ArgumentException("embodiment_character_unknown");
+                    LoadedActorBody target = await bodies.ResolveAsync(character.Origin, context.State.WorldGeneration, cancellationToken);
+                    body = await context.AcquireBodyAsync(target, bodies.Lease is not null, cancellationToken);
+                    active = false;
+                    held = PlaytestButtons.None;
+                    bodyInputPending = false;
                 }
                 else if (parts is [var operation, var actorText] && operation is "body-acquire" or "body-switch"
                     && uint.TryParse(actorText, NumberStyles.Integer, CultureInfo.InvariantCulture, out uint actor))
@@ -160,9 +209,13 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
             {
                 observation = await input.ObserveAsync(cancellationToken).ConfigureAwait(false);
             }
-            else if (parts is ["quest-inspect"])
+            else if (parts is ["quest-inspect"] or ["quest-reward"])
             {
-                var result = await context.QuestUiAsync("query", cancellationToken).ConfigureAwait(false);
+                if (parts[0] == "quest-reward" && !behaviorsAllowed)
+                {
+                    throw new ArgumentException("gameplay_lifecycle_gate_closed");
+                }
+                var result = await context.QuestUiAsync(parts[0] == "quest-reward" ? "reward" : "query", cancellationToken).ConfigureAwait(false);
                 Console.WriteLine("SKYRIM_HOST_QUEST " + JsonSerializer.Serialize(result.QuestUi,
                     MarionetteWireJsonContext.Default.QuestUiObservation));
             }
@@ -341,6 +394,13 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
             Emit(command ?? "renew", "rejected", exception.Message, null, context, behaviorsAllowed, readySeconds, readyTicks);
             return true;
         }
+    }
+
+    private static async ValueTask EmitGameplayAsync(SkyrimBodyControl bodies, CancellationToken cancellationToken)
+    {
+        BodyGameplaySnapshot snapshot = await bodies.ObserveGameplayAsync(cancellationToken);
+        Console.WriteLine("SKYRIM_BODY_GAMEPLAY " + JsonSerializer.Serialize(snapshot.Observation,
+            MarionetteWireJsonContext.Default.BodyGameplayObservation));
     }
 
     private static void Emit(string command, string status, string reason, PlaytestObservation? observation,

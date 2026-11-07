@@ -69,6 +69,7 @@ public sealed partial class SkyrimCheckpointStore
         restored.RestoreSemanticStateFromBlackboards();
         _ = restored.ReadOwnedAgentState();
         _ = restored.ReadPatrolTrial();
+        _ = restored.ReadEmbodiment();
         return restored;
     }
 }

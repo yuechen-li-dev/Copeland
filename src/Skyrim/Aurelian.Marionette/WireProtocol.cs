@@ -208,6 +208,7 @@ public sealed record DisconnectRestorationReport(int ProtocolVersion, string Ses
 [JsonSerializable(typeof(BodyControlRequest))]
 [JsonSerializable(typeof(BodyControlResult))]
 [JsonSerializable(typeof(BodyControlObservation))]
+[JsonSerializable(typeof(BodyGameplayObservation))]
 [JsonSerializable(typeof(SkyrimBodyLease))]
 [JsonSerializable(typeof(LoadedActorBody))]
 internal sealed partial class MarionetteWireJsonContext : JsonSerializerContext;
