@@ -74,6 +74,8 @@ public sealed partial class MarionetteTransportClient
         bool firstTick = true;
         bool embedded = hello.Capabilities.Contains("query_world_checkpoint", StringComparer.Ordinal);
         OwnedNpcAgentBehavior? ownedAgent = behaviors.OfType<OwnedNpcAgentBehavior>().SingleOrDefault();
+        SkyrimBodyControl? bodies = hello.Capabilities.Contains("body_control", StringComparer.Ordinal)
+            ? new SkyrimBodyControl((request, token) => BodyControlTransport.ExchangeAsync(pipe, request, token)) : null;
         await using SkyrimHostPlaytestControl? control = _config.EnablePlaytestShell
             ? new SkyrimHostPlaytestControl(pipe, playtestCommands ?? Console.In, cancellationToken, ownedAgent) : null;
         var uptime = System.Diagnostics.Stopwatch.StartNew();
@@ -186,7 +188,19 @@ public sealed partial class MarionetteTransportClient
                 }
                 try
                 {
-                    var context = new SkyrimHostContext(pipe, state, current);
+                    var context = new SkyrimHostContext(pipe, state, current, bodies);
+                    bodies?.ObserveWorld(state.WorldGeneration);
+                    if (bodies?.Lease is not null)
+                    {
+                        try
+                        {
+                            await bodies.HeartbeatAsync(cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (SkyrimBodyControlException exception) when (bodies.Lease is null)
+                        {
+                            Console.Error.WriteLine("SKYRIM_HOST body_control_ended=" + exception.Observation.Reason);
+                        }
+                    }
                     bool transition = control is not null && await control.TickAsync(context,
                         canRun, readySeconds, readyTicks, cancellationToken).ConfigureAwait(false);
                     if (!transition)
@@ -207,6 +221,10 @@ public sealed partial class MarionetteTransportClient
                 catch (SkyrimWorldCommandDeferredException exception)
                 {
                     Console.Error.WriteLine($"SKYRIM_HOST behavior_deferred={exception.Message}");
+                }
+                catch (SkyrimBodyControlException exception) when (exception.IsDeferred)
+                {
+                    Console.Error.WriteLine($"SKYRIM_HOST body_control_deferred={exception.Reason}");
                 }
                 await Task.Delay(control is null ? 200 : 80, cancellationToken).ConfigureAwait(false);
             }

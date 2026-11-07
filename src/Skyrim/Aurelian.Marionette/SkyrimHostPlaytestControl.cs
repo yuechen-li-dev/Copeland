@@ -27,6 +27,8 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
     private OwnedNpcIdentity? ownedNpc;
     private ulong ownedMovementId;
     private readonly OwnedNpcAgentBehavior? ownedAgent;
+    private bool bodyInputPending;
+    private long bodyReleaseAt;
 
     public SkyrimHostPlaytestControl(Stream pipe, TextReader commandInput, CancellationToken cancellationToken,
         OwnedNpcAgentBehavior? ownedAgent = null)
@@ -35,7 +37,7 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
         this.ownedAgent = ownedAgent;
         shutdown = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         reader = Task.Run(() => ReadCommandsAsync(commandInput));
-        Console.Error.WriteLine("SKYRIM_HOST_CONTROL_READY inspect | input <buttons> <seconds> | look <x> <y> | release | save | load | npc-change | stale | owned-spawn | owned-inspect | owned-tune | owned-release");
+        Console.Error.WriteLine("SKYRIM_HOST_CONTROL_READY inspect | input <buttons> <seconds> | look <x> <y> | release | save | load | npc-change | stale | owned-spawn | owned-inspect | owned-tune | owned-release | body-list | body-acquire <form> | body-switch <form> | body-input <movement> <seconds> | body-action <action> | body-inspect | body-release");
     }
 
     private async Task ReadCommandsAsync(TextReader commandInput)
@@ -62,7 +64,15 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
         string? command = null;
         try
         {
-            if (active)
+            if (bodyInputPending && Stopwatch.GetTimestamp() >= bodyReleaseAt)
+            {
+                if (context.Bodies?.Lease is not null)
+                {
+                    await context.Bodies.UpdateAsync(BodyMovement.None, cancellationToken: cancellationToken).ConfigureAwait(false);
+                }
+                bodyInputPending = false;
+            }
+            if (active && context.Bodies?.Lease is null)
             {
                 PlaytestObservation state = await input.ObserveAsync(cancellationToken).ConfigureAwait(false);
                 active = state.Active;
@@ -94,7 +104,59 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
             if (parts.Length == 0) return false;
             PlaytestObservation? observation = null;
             bool transition = false;
-            if (parts is ["inspect"])
+            if (parts.Length > 0 && parts[0].StartsWith("body-", StringComparison.Ordinal))
+            {
+                SkyrimBodyControl bodies = context.Bodies ?? throw new ArgumentException("body_control_capability_missing");
+                if (parts is ["body-list"])
+                {
+                    WorldNpcResult candidates = await context.ObserveNpcsAsync(cancellationToken, refresh: true).ConfigureAwait(false);
+                    Console.WriteLine("SKYRIM_HOST_BODIES " + JsonSerializer.Serialize(candidates,
+                        MarionetteWireJsonContext.Default.WorldNpcResult));
+                    Emit(command, "completed", "", null, context, behaviorsAllowed, readySeconds, readyTicks);
+                    return false;
+                }
+                BodyControlObservation body;
+                if (parts is ["body-inspect"])
+                {
+                    body = await bodies.ObserveAsync(context.State.WorldGeneration, cancellationToken).ConfigureAwait(false);
+                }
+                else if (parts is ["body-release"])
+                {
+                    body = await bodies.ReleaseAsync(cancellationToken).ConfigureAwait(false);
+                    bodyInputPending = false;
+                    active = false;
+                    held = PlaytestButtons.None;
+                }
+                else if (parts is [var operation, var actorText] && operation is "body-acquire" or "body-switch"
+                    && uint.TryParse(actorText, NumberStyles.Integer, CultureInfo.InvariantCulture, out uint actor))
+                {
+                    if (!behaviorsAllowed) throw new ArgumentException("gameplay_lifecycle_gate_closed");
+                    body = await context.AcquireBodyAsync(new(context.State.WorldGeneration, actor),
+                        operation == "body-switch", cancellationToken).ConfigureAwait(false);
+                    active = false;
+                    held = PlaytestButtons.None;
+                }
+                else if (parts is ["body-action", var actionText] && Enum.TryParse(actionText, true, out SkyrimBodyAction action))
+                {
+                    body = await bodies.ActAsync(action, cancellationToken).ConfigureAwait(false);
+                }
+                else if (parts is ["body-input", var movementText, var timeText]
+                    && Enum.TryParse(movementText, true, out BodyMovement movement)
+                    && double.TryParse(timeText, NumberStyles.Float, CultureInfo.InvariantCulture, out double seconds)
+                    && double.IsFinite(seconds) && seconds is > 0 and <= 10)
+                {
+                    body = await bodies.UpdateAsync(movement, cancellationToken: cancellationToken).ConfigureAwait(false);
+                    bodyInputPending = true;
+                    bodyReleaseAt = Stopwatch.GetTimestamp() + (long)(seconds * Stopwatch.Frequency);
+                }
+                else
+                {
+                    throw new ArgumentException("body_command_invalid");
+                }
+                Console.WriteLine("SKYRIM_HOST_BODY " + JsonSerializer.Serialize(body,
+                    MarionetteWireJsonContext.Default.BodyControlObservation));
+            }
+            else if (parts is ["inspect"])
             {
                 observation = await input.ObserveAsync(cancellationToken).ConfigureAwait(false);
             }
@@ -120,7 +182,7 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
                 {
                     throw new ArgumentException("gameplay_lifecycle_gate_closed");
                 }
-                if (!active)
+                if (!active && context.Bodies?.Lease is null)
                 {
                     await input.BeginForMenusAsync(cancellationToken).ConfigureAwait(false);
                     active = true;
@@ -134,7 +196,7 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
                 && float.TryParse(pointerX, NumberStyles.Float, CultureInfo.InvariantCulture, out float px)
                 && float.TryParse(pointerY, NumberStyles.Float, CultureInfo.InvariantCulture, out float py))
             {
-                if (!active)
+                if (!active && context.Bodies?.Lease is null)
                 {
                     await input.BeginForMenusAsync(cancellationToken).ConfigureAwait(false);
                     active = true;
@@ -147,6 +209,15 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
                 && float.TryParse(yText, NumberStyles.Float, CultureInfo.InvariantCulture, out float y))
             {
                 if (!behaviorsAllowed) throw new ArgumentException("gameplay_lifecycle_gate_closed");
+                if (context.Bodies?.Lease is not null)
+                {
+                    BodyControlObservation body = await context.Bodies.UpdateAsync(BodyMovement.None, x, y,
+                        cancellationToken).ConfigureAwait(false);
+                    Console.WriteLine("SKYRIM_HOST_BODY " + JsonSerializer.Serialize(body,
+                        MarionetteWireJsonContext.Default.BodyControlObservation));
+                    Emit(command, "completed", "", null, context, behaviorsAllowed, readySeconds, readyTicks);
+                    return false;
+                }
                 if (!active)
                 {
                     await input.BeginAsync(cancellationToken).ConfigureAwait(false);
@@ -245,6 +316,18 @@ internal sealed class SkyrimHostPlaytestControl : IAsyncDisposable
             else throw new ArgumentException("unknown_or_out_of_range_command");
             Emit(command, "completed", "", observation, context, behaviorsAllowed, readySeconds, readyTicks);
             return transition;
+        }
+        catch (SkyrimBodyControlException exception)
+        {
+            bodyInputPending = false;
+            Emit(command ?? "body-renew", "rejected", exception.Reason, null, context, behaviorsAllowed, readySeconds, readyTicks);
+            return true;
+        }
+        catch (InvalidOperationException exception) when (exception.Message.StartsWith("body_", StringComparison.Ordinal))
+        {
+            bodyInputPending = false;
+            Emit(command ?? "body-renew", "rejected", exception.Message, null, context, behaviorsAllowed, readySeconds, readyTicks);
+            return true;
         }
         catch (Exception exception) when (exception is ArgumentException or SkyrimWorldCommandDeferredException
             || exception is InvalidDataException && (exception.Message.StartsWith("playtest_failed:", StringComparison.Ordinal)

@@ -31,7 +31,7 @@ public sealed record WorldNpcResult(
     OwnedNpcIdentity? OwnedNpc = null, string OwnedNpcState = "none",
     ulong OwnedCreatedCount = 0, ulong OwnedRetiredCount = 0, uint OwnedActiveCount = 0,
     uint OwnedBaseLiveCount = 0, bool OwnedBaseCountComplete = false, OwnedNpcMovement? OwnedMovement = null,
-    QuestUiObservation? QuestUi = null);
+    QuestUiObservation? QuestUi = null, BodyControlObservation? BodyControl = null);
 
 public sealed record NpcNumberProof(
     ulong WorldGeneration, uint FormId, uint BaseFormId, string Name,
@@ -50,15 +50,65 @@ public sealed class SkyrimHostContext
     private readonly Stream pipe;
     private WorldNpcResult? observation;
 
-    internal SkyrimHostContext(Stream pipe, SkyrimStateResult state, SkyrimWorldOwnerRuntime? worldOwner = null)
+    internal SkyrimHostContext(Stream pipe, SkyrimStateResult state, SkyrimWorldOwnerRuntime? worldOwner = null,
+        SkyrimBodyControl? bodies = null)
     {
         this.pipe = pipe;
         State = state;
         WorldOwner = worldOwner;
+        Bodies = bodies;
     }
 
     public SkyrimStateResult State { get; }
     public SkyrimWorldOwnerRuntime? WorldOwner { get; }
+    public SkyrimBodyControl? Bodies { get; }
+
+    public async ValueTask<BodyControlObservation> AcquireBodyAsync(LoadedActorBody body,
+        bool switching = false, CancellationToken cancellationToken = default)
+    {
+        SkyrimBodyControl control = Bodies ?? throw new NotSupportedException("body_control_capability_missing");
+        if (body.WorldGeneration != State.WorldGeneration)
+        {
+            throw new SkyrimWorldCommandDeferredException("body_world_generation_changed");
+        }
+        WorldNpcResult source = await ObserveOwnedNpcAsync(cancellationToken).ConfigureAwait(false);
+        if (source.OwnedNpc?.FormId == body.FormId && source.OwnedMovement is { State: "walking" or "stopping" } movement)
+        {
+            await CancelOwnedMovementAsync(source.OwnedNpc, movement.MovementId, cancellationToken).ConfigureAwait(false);
+            if (control.Lease is not null)
+            {
+                await control.UpdateAsync(BodyMovement.None, cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+            long started = System.Diagnostics.Stopwatch.GetTimestamp();
+            do
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                source = await ObserveOwnedNpcAsync(cancellationToken).ConfigureAwait(false);
+                if (source.OwnedMovement?.State == "stop_failed")
+                {
+                    throw new SkyrimWorldCommandDeferredException("body_agent_stop_failed");
+                }
+                if (source.OwnedMovement?.State is not ("walking" or "stopping"))
+                {
+                    break;
+                }
+                if (System.Diagnostics.Stopwatch.GetElapsedTime(started) > TimeSpan.FromSeconds(4))
+                {
+                    throw new SkyrimWorldCommandDeferredException("body_agent_stop_pending");
+                }
+                if (control.Lease is not null)
+                {
+                    await control.HeartbeatAsync(cancellationToken).ConfigureAwait(false);
+                }
+                await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+            } while (true);
+        }
+        if (switching)
+        {
+            return await control.SwitchAsync(body, cancellationToken).ConfigureAwait(false);
+        }
+        return await control.AcquireAsync(body, cancellationToken).ConfigureAwait(false);
+    }
 
     public ValueTask<WorldNpcResult> QuestUiAsync(string action, CancellationToken cancellationToken,
         string text = "", ulong prompt = 0)
@@ -188,7 +238,7 @@ public sealed class SkyrimHostContext
                 throw new SkyrimWorldCommandDeferredException(result.FailureReason);
             }
             if (result.FailureReason is "world_not_command_ready" or "stale_npc_observation"
-                or "npc_identity_or_load_changed")
+                or "npc_identity_or_load_changed" or "owned_movement_region_unavailable" or "body_control_owned")
             {
                 throw new SkyrimWorldCommandDeferredException(result.FailureReason);
             }

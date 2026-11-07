@@ -23,6 +23,9 @@ public sealed class OwnedNpcAgentBehavior(TimeSpan? startupDelay = null) : ISkyr
     public bool SavePrepared { get; private set; }
 
     public OwnedNpcAgentStatus? Status => runtime?.Status;
+    public bool HumanControlled { get; private set; }
+    private bool bodyOutsideRoute;
+    private OwnedNpcAgentSaveState? bodyResume;
 
     public async ValueTask PrepareSaveAsync(SkyrimHostContext context, CancellationToken cancellationToken)
     {
@@ -76,6 +79,9 @@ public sealed class OwnedNpcAgentBehavior(TimeSpan? startupDelay = null) : ISkyr
 
     private void ResumeAfterSave()
     {
+        bodyResume = null;
+        HumanControlled = false;
+        bodyOutsideRoute = false;
         restorePlan = frozenSave;
         frozenSave = null;
         preparingSave = false;
@@ -111,6 +117,9 @@ public sealed class OwnedNpcAgentBehavior(TimeSpan? startupDelay = null) : ISkyr
             // Only committed semantic state selected by the lifecycle owner can
             // cross worlds. Native identities and in-flight work never do.
             generation = context.State.WorldGeneration;
+            HumanControlled = false;
+            bodyOutsideRoute = false;
+            bodyResume = null;
             runtime = null;
             identity = null;
             restorePlan = restoredCheckpoint;
@@ -161,7 +170,65 @@ public sealed class OwnedNpcAgentBehavior(TimeSpan? startupDelay = null) : ISkyr
             throw new InvalidDataException("owned_agent_body_identity_changed");
         }
         WorldNpcObservation? actor = source.Npcs.SingleOrDefault();
+        if (runtime is not null && actor is not null && actor.CellFormId != cellFormId)
+        {
+            bodyOutsideRoute = true;
+        }
+        bool wasHumanControlled = HumanControlled;
+        HumanControlled = source.BodyControl is { LeaseId: not 0 } control && control.FormId == identity.FormId;
+        if (HumanControlled)
+        {
+            if (!wasHumanControlled && runtime is not null)
+            {
+                bodyResume ??= runtime.Capture(cellFormId);
+            }
+            return;
+        }
+        if (actor is { Dead: true })
+        {
+            // A confirmed death revokes route dormancy as well as human ownership.
+            // Let the existing BodyLost/release flow retire the owned reference.
+            bodyOutsideRoute = false;
+            bodyResume = null;
+        }
+        // The native patrol adapter is qualified only in the player's current cell.
+        // Body switching can move that authority away without moving this agent.
+        bool playerOutsideRegion = actor is { Dead: false } && context.State.PlayerCellFormId != 0
+            && actor.CellFormId != context.State.PlayerCellFormId;
+        bool actorOutsideRoute = runtime is not null && actor is { Loaded: true, Dead: false }
+            && !runtime.Capture(cellFormId).CanMaterialize(actor.CellFormId, Position(actor));
+        if (playerOutsideRegion || actorOutsideRoute)
+        {
+            if (lastReportedState != "dormant")
+            {
+                Console.WriteLine("SKYRIM_AGENT_DORMANT reason=outside_live_route_region");
+                lastReportedState = "dormant";
+            }
+            return;
+        }
+        if (bodyOutsideRoute)
+        {
+            if (actor is not { Loaded: true } || actor.CellFormId != cellFormId)
+            {
+                if (lastReportedState != "dormant")
+                {
+                    Console.WriteLine("SKYRIM_AGENT_DORMANT reason=body_outside_route_cell");
+                    lastReportedState = "dormant";
+                }
+                return;
+            }
+            bodyOutsideRoute = false;
+        }
         bool available = source.OwnedNpcState == "live" && actor is { Loaded: true, Dead: false };
+        if (bodyResume is not null && available)
+        {
+            // Human preemption invalidates the old movement operation, not the
+            // agent's intent or retry budget. Resume through the existing semantic checkpoint.
+            restorePlan = bodyResume;
+            bodyResume = null;
+            runtime = null;
+            Console.WriteLine("SKYRIM_AGENT_BODY_RESUMED semantic=" + restorePlan.AgentId);
+        }
         if (runtime is null)
         {
             if (!available)

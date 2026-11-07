@@ -104,6 +104,47 @@ public sealed class PlaytestSession : IAsyncDisposable
     {
         this.pipe = pipe;
         this.ownsPipe = ownsPipe;
+        Bodies = new SkyrimBodyControl(SendBodyAsync);
+    }
+
+    public SkyrimBodyControl Bodies { get; }
+
+    public Task<SkyrimStateResult> ReadWorldAsync(CancellationToken cancellationToken = default)
+    {
+        return ExchangeAsync<SkyrimStateRequest, SkyrimStateResult>(new(1, "query_skyrim_state",
+            Guid.NewGuid().ToString("N"), 2000), cancellationToken);
+    }
+
+    public Task<WorldNpcResult> ReadNpcsAsync(CancellationToken cancellationToken = default)
+    {
+        return ExchangeWorldAsync(new(1, "query_world_npcs", Guid.NewGuid().ToString("N"), 2000,
+            Radius: 4096, MaxResults: 8), cancellationToken);
+    }
+
+    internal Task<WorldNpcResult> ExchangeWorldAsync(WorldNpcRequest request, CancellationToken cancellationToken)
+    {
+        return ExchangeAsync<WorldNpcRequest, WorldNpcResult>(request, cancellationToken);
+    }
+
+    private async ValueTask<BodyControlResult> SendBodyAsync(BodyControlRequest request, CancellationToken cancellationToken)
+    {
+        return await ExchangeAsync<BodyControlRequest, BodyControlResult>(request, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<TResponse> ExchangeAsync<TRequest, TResponse>(TRequest request, CancellationToken cancellationToken)
+    {
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            deadline.CancelAfter(TimeSpan.FromSeconds(4));
+            await MarionetteWireProtocol.WriteAsync(pipe, request, deadline.Token).ConfigureAwait(false);
+            return await MarionetteWireProtocol.ReadAsync<TResponse>(pipe, deadline.Token).ConfigureAwait(false);
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
     public Task<PlaytestObservation> BeginForMenusAsync(CancellationToken cancellationToken = default)
@@ -174,6 +215,7 @@ public sealed class PlaytestSession : IAsyncDisposable
     public void AbortConnection()
     {
         active = false;
+        Bodies.ForgetOwnership("transport_aborted");
         pipe.Dispose();
     }
 
@@ -181,6 +223,10 @@ public sealed class PlaytestSession : IAsyncDisposable
     {
         try
         {
+            if (Bodies.Lease is not null)
+            {
+                await Bodies.ReleaseAsync().ConfigureAwait(false);
+            }
             if (active)
             {
                 await EndAsync().ConfigureAwait(false);
