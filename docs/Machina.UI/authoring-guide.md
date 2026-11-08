@@ -109,8 +109,37 @@ For markup, use `MachinaTextLayoutEngine.Measure(spec, width, measurer)` and pas
 both the resulting height and the same measurer to `StandardUI.TextBlock`.
 
 TinyFarm's HUD, journal, dialogue and menus, and Aurelian's `GameMenuTemplate` use
-this surface. This authoring convenience does not provide automatic screen cache
-invalidation, widget-state lifetime management, or subtree reconciliation.
+this surface.
+
+## Preparation caching and widget lifetimes
+
+Use `MachinaPresentationCache.Prepare(declaration, width, height)` to reuse layout,
+text presentation and hit testing for an unchanged declaration. Reconstruct the pure
+declaration on each request; the cache compares values, including ordered children,
+geometry, styles, semantics, actions, and standard rich-text metadata. Dimensions
+and lowering options also participate. No separately maintained change key is needed.
+Unknown rich-text payloads conservatively rebuild. This is whole-view caching.
+
+Use a `Machina.Runtime.State.UiStateScope` for one screen or modal entry:
+
+```csharp
+using var scope = new Machina.Runtime.State.UiStateScope();
+var search = scope.GetOrCreate("search", () => new Machina.Runtime.State.UiState<string>(""));
+search.Value = "query";
+```
+
+Use stable `NodeId` values for slots. `UiStateLifetime.Scope` values survive
+suspension; `UiStateLifetime.Activation` values are forgotten by `Suspend()` and
+suit focus, presses, and scrollbar drags. Disposing a scope cancels its `Lifetime`
+token and releases all values. The host must connect these operations to actual
+screen transitions, including transitions between two render requests.
+
+TinyFarm uses Dominatus HFSM frames to own these scopes. Push suspends the parent;
+pop cancels the child and resumes the parent; a new entry gets new state. World
+restore and shutdown discard the complete UI workflow. UI state is transient and
+does not enter simulation saves or replay hashes. Machina itself has no Dominatus
+dependency. See [screen state and invalidation](architecture/machina-screen-state-and-invalidation.md)
+for the evaluation, lifetime policy, source paths and limits.
 
 ## Follow the real sample and test paths
 

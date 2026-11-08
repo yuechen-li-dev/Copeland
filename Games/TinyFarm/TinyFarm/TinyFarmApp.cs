@@ -250,6 +250,7 @@ public sealed class TinyFarmApp : IGame
         facts.Set("tinyfarm.water-disturbed", game.Host.Session.Field.RecentEvents.Any(item => item.Kind == "movement-disturbance"));
         facts.Set("tinyfarm.search", game.Menus.Search);
         facts.Set("tinyfarm.search-focused", game.Menus.SearchFocused);
+        facts.Set("tinyfarm.inspector-visible", game.Presentation.InspectorVisible);
         facts.Set("tinyfarm.stats-agent", game.Menus.StatsAgent.Value);
         facts.Set("tinyfarm.portrait-actor", TinyFarmPortrait.SelectedActor(game)?.Value ?? "none");
         facts.Set("tinyfarm.hotbar", state.SelectedHotbarSlot);
@@ -282,7 +283,7 @@ public sealed class TinyFarmApp : IGame
         ui.SetTextMeasurer(font);
         overlay = new TinyFarmNativeOverlay(new LayerId("tinyfarm-hud"), graphics.Plant,
             assets.Shader("AnalyticShape2D.v.ts"), assets.Shader("MsdfText.v.ts"),
-            font, () => ui.Resources(frame), game, () => layout, () => world.LastCamera);
+            font, () => ui.Resources(frame), ui.InspectorResource, game, () => layout, () => world.LastCamera);
         portrait = new TinyFarmPortrait(new LayerId("tinyfarm-portrait"), graphics.Plant,
             TinyFarmShaders.Compile(Path.Combine(assetDirectory, "Shaders", "ForwardTextured.v.ts")), game,
             new TinyFarmCharacterPortraits(assetDirectory), () => layout);
@@ -316,6 +317,7 @@ public sealed class TinyFarmApp : IGame
 
     public void Dispose()
     {
+        game.Dispose();
     }
 
     private void Resize(int width, int height)

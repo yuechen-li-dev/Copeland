@@ -22,7 +22,6 @@ using Copeland.TS.Gpu.VdMir;
 using Copeland.TS.Profiles;
 using Copeland.Profile;
 using Machina.Core.Styling;
-using Machina.Standard.Authoring;
 using Machina.Layout.Geometry;
 using Machina.Presentation;
 using TinyFarm.Core;
@@ -770,6 +769,7 @@ internal sealed class TinyFarmNativeOverlay(
     CompiledGraphicsProgram msdfProgram,
     TinyFarmNativeUiFont font,
     Func<TinyFarmUiResources> presentation,
+    Func<TinyFarmPresentationLayout, MachinaPresentationFrame> inspectorPresentation,
     TinyFarmGame game,
     Func<TinyFarmPresentationLayout> getLayout,
     Func<Camera2DSnapshot?> getCamera) : INativeLayerPresenter
@@ -777,7 +777,7 @@ internal sealed class TinyFarmNativeOverlay(
     private VulkanOrderedQuadRenderer shapes = null!;
     private VulkanOrderedQuadRenderer text = null!;
     private AurelianMsdfAtlasCache atlasCache = null!;
-    private string? inspectorKey;
+    private MachinaPresentationFrame? inspectorSource;
     private TinyFarmNativeUiSegments inspectorSegments = TinyFarmNativeUiSegments.Empty;
     private MachinaPresentationFrame? baseSource;
     private MachinaPresentationFrame? clockSource;
@@ -820,6 +820,7 @@ internal sealed class TinyFarmNativeOverlay(
         baseSource = null;
         clockSource = null;
         promptSource = null;
+        inspectorSource = null;
     }
 
     public void Present(NativeLayerFrameContext context)
@@ -867,29 +868,10 @@ internal sealed class TinyFarmNativeOverlay(
 
     private void PresentInspector(NativeLayerFrameContext context)
     {
-        TinyFarmPresentationLayout layout = getLayout();
-        string key = $"{layout.Width}x{layout.Height} | world {layout.WorldScale:0.0} px/m | HUD {game.Presentation.HudVisible}";
-        if (key != inspectorKey)
+        MachinaPresentationFrame prepared = inspectorPresentation(getLayout());
+        if (!ReferenceEquals(prepared, inspectorSource))
         {
-            inspectorKey = key;
-            var nodes = new List<Machina.Core.Nodes.UiNode>();
-            nodes.Add(StandardUI.Panel(0, 0, 760, 184, id: "inspector", style: TinyFarmUiTheme.Panel(0x102D25EE)));
-            nodes.Add(StandardUI.Label("OBLIVION / PRESENTATION / F10", 14, 10, 720,
-                id: "inspect-title", color: TinyFarmUiTheme.Text));
-            nodes.Add(StandardUI.Label(key, 14, 38, 720,
-                id: "inspect-viewport", color: TinyFarmUiTheme.Text));
-            nodes.Add(StandardUI.Label(game.LiveInspection.Presentation?.Sampling ?? "No sampler facts", 14, 66, 730,
-                id: "inspect-sampling", color: TinyFarmUiTheme.Text));
-            nodes.Add(StandardUI.Label("World projection independent of HUD / semantic state untouched", 14, 94, 730,
-                id: "inspect-authority", color: TinyFarmUiTheme.Text));
-            string[] detail = (game.LiveInspection.Presentation?.Detail ?? "No native detail facts").Split("; ");
-            for (int line = 0; line < detail.Length; line++)
-            {
-                nodes.Add(StandardUI.Label(detail[line], 14, 122 + line * 28, 730,
-                    id: "inspect-detail-" + line, color: TinyFarmUiTheme.Text));
-            }
-            var node = Machina.Core.Authoring.UI.Surface(id: "presentation-inspector", width: 760, height: 184, children: nodes);
-            var prepared = new Machina.Pipeline.MachinaPresentationPipeline().Prepare(node, 760, 184).PresentationFrame;
+            inspectorSource = prepared;
             inspectorSegments = Realize(prepared, 0, 0, splitOverlay: false);
         }
         PresentSegment(context, inspectorSegments.Base, offsetX: 16, offsetY: 16);

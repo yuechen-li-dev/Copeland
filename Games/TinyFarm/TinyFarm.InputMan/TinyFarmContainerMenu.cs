@@ -5,12 +5,43 @@ namespace TinyFarm.InputMan;
 
 public sealed partial class TinyFarmGame
 {
-    public ActorId? OpenContainer { get; private set; }
-    public bool ContainerMoveStack { get; private set; }
-    public bool ContainerDepositSide { get; private set; } = true;
-    public int ContainerPlayerOffset { get; private set; }
-    public int ContainerChestOffset { get; private set; }
-    public int ContainerSelection { get; private set; }
+    private TinyFarmContainerViewState ContainerState => UiScope.GetOrCreate("container.rows", () => new TinyFarmContainerViewState());
+    public ActorId? OpenContainer
+    {
+        get => ContainerState.Container;
+        private set => ContainerState.Container = value;
+    }
+
+    public bool ContainerMoveStack
+    {
+        get => ContainerState.MoveStack;
+        private set => ContainerState.MoveStack = value;
+    }
+
+    public bool ContainerDepositSide
+    {
+        get => ContainerState.DepositSide;
+        private set => ContainerState.DepositSide = value;
+    }
+
+    public int ContainerPlayerOffset
+    {
+        get => ContainerState.PlayerOffset;
+        private set => ContainerState.PlayerOffset = value;
+    }
+
+    public int ContainerChestOffset
+    {
+        get => ContainerState.ChestOffset;
+        private set => ContainerState.ChestOffset = value;
+    }
+
+    public int ContainerSelection
+    {
+        get => ContainerState.Selection;
+        private set => ContainerState.Selection = value;
+    }
+
     public const int ContainerPageSize = 7;
 
     public IReadOnlyList<TinyFarmInventoryRow> ContainerRows(bool deposit)
@@ -19,10 +50,6 @@ public sealed partial class TinyFarmGame
         return TinyFarmInventory.Project(State, Definitions, owner)
             .OrderBy(row => row.Name, StringComparer.Ordinal).ThenBy(row => row.Key, StringComparer.Ordinal).ToArray();
     }
-
-    public string ContainerCacheKey => OpenContainer + "|" + ContainerMoveStack + "|" + ContainerDepositSide
-        + "|" + ContainerPlayerOffset + "|" + ContainerChestOffset + "|" + ContainerSelection
-        + "|" + string.Join(";", ContainerRows(false).Select(row => row.Key + "=" + row.Quantity));
 
     public bool ContainerRowProtected(TinyFarmInventoryRow row)
     {
@@ -102,13 +129,10 @@ public sealed partial class TinyFarmGame
     private void RestoreContainerPresentation()
     {
         ActorState? chest = State.Actors.FirstOrDefault(actor => actor.Agent?.Container?.OpenedBy == TinyFarmIds.Player);
-        OpenContainer = chest?.Id;
         if (chest is not null)
         {
-            Screen = TinyFarmScreen.Container;
-            ContainerPlayerOffset = 0;
-            ContainerChestOffset = 0;
-            ContainerSelection = 0;
+            uiFlow.Push(TinyFarmScreen.Container);
+            OpenContainer = chest.Id;
         }
     }
 
@@ -117,12 +141,9 @@ public sealed partial class TinyFarmGame
         GameEvent? opened = result.Events.FirstOrDefault(value => value.Kind == GameEventKind.ContainerOpened);
         if (opened?.Target is ActorId chest)
         {
+            uiFlow.ReturnTo(TinyFarmScreen.Playing);
+            uiFlow.Push(TinyFarmScreen.Container);
             OpenContainer = chest;
-            Screen = TinyFarmScreen.Container;
-            ContainerDepositSide = true;
-            ContainerPlayerOffset = 0;
-            ContainerChestOffset = 0;
-            ContainerSelection = 0;
             bool shipping = State.Actor(chest).Agent!.Container!.Shipping;
             Status = shipping
                 ? "Click a row to transfer. Key items stay with you. Shipping pickup: 09:00 daily."
@@ -130,8 +151,7 @@ public sealed partial class TinyFarmGame
         }
         else if (result.Events.Any(value => value.Kind == GameEventKind.ContainerClosed))
         {
-            OpenContainer = null;
-            Screen = TinyFarmScreen.Playing;
+            uiFlow.ReturnTo(TinyFarmScreen.Playing);
             Status = State.Actor(result.Events.First(value => value.Kind == GameEventKind.ContainerClosed).Target!.Value).Agent!.Container!.Shipping
                 ? "Chest closed. Shipping pickup is at 09:00; later deposits wait until tomorrow."
                 : "Chest closed. Your items remain in storage.";

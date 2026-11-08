@@ -5,6 +5,7 @@ using Machina.Core.Styling;
 using Machina.Pipeline;
 using Machina.Presentation;
 using Machina.Runtime.Input;
+using Machina.Runtime.State;
 using Machina.Standard.Authoring;
 using Machina.Standard.Text;
 using TinyFarm.Core;
@@ -15,80 +16,70 @@ namespace TinyFarm.Native;
 internal sealed class TinyFarmNativeUi(TinyFarmGame game)
 {
     private IMachinaTextMeasurer textMeasurer = MachinaTextMeasurers.Deterministic;
-    private TinyFarmUiKey? key;
-    private MachinaPresentationFrame? resource;
-    private MachinaPreparedPresentation? prepared;
-    private string? pressedAction;
-    private ScrollbarInteractionState statsScroll = ScrollbarInteractionState.Default;
-    private TinyFarmScreen pressedScreen;
-    private string? clockKey;
-    private MachinaPresentationFrame? clockResource;
-    private string? promptKey;
-    private MachinaPresentationFrame? promptResource;
     public int Rebuilds { get; private set; }
+
+    private UiPointerActivation PressState => game.UiScope.GetOrCreate("input.pointer",
+        () => new UiPointerActivation(), UiStateLifetime.Activation);
+    private UiState<ScrollbarInteractionState> StatsDrag => game.UiScope.GetOrCreate("agent-properties.scrollbar",
+        () => new UiState<ScrollbarInteractionState>(ScrollbarInteractionState.Default), UiStateLifetime.Activation);
 
     public void SetTextMeasurer(IMachinaTextMeasurer measurer)
     {
         ArgumentNullException.ThrowIfNull(measurer);
         textMeasurer = measurer;
-        key = null;
-        resource = null;
-        prepared = null;
+        Cache("presentation.base").Invalidate();
     }
 
     public MachinaPresentationFrame Resource(TinyFarmFrame frame)
     {
-        if (game.Screen == TinyFarmScreen.Inventory)
-        {
-            game.Menus.Rows(game.State, game.Definitions);
-        }
-        TinyFarmUiKey next = CreateKey(frame);
-        if (key == next && resource is not null)
-        {
-            return resource;
-        }
-        key = next;
-        Rebuilds++;
-        prepared = new MachinaPresentationPipeline().Prepare(Build(frame), 1280, 720);
-        resource = prepared.PresentationFrame;
-        return resource;
+        return PrepareBase(frame).PresentationFrame;
+    }
+
+    private MachinaPreparedPresentation PrepareBase(TinyFarmFrame frame)
+    {
+        MachinaPresentationCache cache = Cache("presentation.base");
+        int before = cache.Preparations;
+        MachinaPreparedPresentation prepared = cache.Prepare(Build(frame), 1280, 720);
+        Rebuilds += cache.Preparations - before;
+        return prepared;
+    }
+
+    private MachinaPresentationCache Cache(string id)
+    {
+        return game.UiScope.GetOrCreate(id, () => new MachinaPresentationCache());
     }
 
     public void Pointer(TinyFarmFrame frame, PointerPoint point, bool down)
     {
         if (ScrollStats(new UiPointerButtonChanged(point, UiPointerButton.Primary, down, UiModifiers.None)))
         {
-            pressedAction = null;
+            PressState.Reset();
             return;
         }
-        Resource(frame);
-        UiHitTestResult? hit = prepared!.HitTest.HitTest(point);
-        string? action = hit?.Semantics?.Disabled == true ? null : hit?.Action.Name;
+        MachinaPreparedPresentation prepared = PrepareBase(frame);
+        UiHitTestResult? hit = prepared.HitTest.HitTest(point);
+        UiPointerActivation press = PressState;
         if (down)
         {
-            pressedAction = action;
-            pressedScreen = game.Screen;
+            press.Press(hit);
             return;
         }
-        string? pressed = pressedAction;
-        pressedAction = null;
-        if (pressed is not null && action == pressed && game.Screen == pressedScreen)
+        if (press.Release(hit) is { } action)
         {
-            game.DispatchMenu(action);
+            game.DispatchMenu(action.Name);
         }
     }
 
     public void ResetPointer()
     {
-        pressedAction = null;
-        statsScroll = ScrollbarInteractionState.Default;
+        PressState.Reset();
+        StatsDrag.Value = ScrollbarInteractionState.Default;
     }
 
     internal bool ScrollStats(UiInputEvent input)
     {
         if (game.Screen != TinyFarmScreen.Stats)
         {
-            statsScroll = ScrollbarInteractionState.Default;
             return false;
         }
         int count = game.Menus.PropertyRows(game.State, game.Definitions).Count;
@@ -111,10 +102,10 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
                 hit = ScrollbarHitPart.Viewport;
             }
         }
-        ScrollbarInteractionResult result = ScrollbarInteraction.Reduce(statsScroll,
+        ScrollbarInteractionResult result = ScrollbarInteraction.Reduce(StatsDrag.Value,
             new ScrollbarInteractionContext(new ScrollbarInteractionTarget("agent-properties"), interaction,
                 TinyFarmStatsScrollbar.ViewportHeight, WheelMultiplier: TinyFarmStatsScrollbar.RowHeight * 3), hit, input);
-        statsScroll = result.State;
+        StatsDrag.Value = result.State;
         if (result.RequestedScrollOffset is double requested)
         {
             int row = (int)Math.Round(requested / TinyFarmStatsScrollbar.RowHeight);
@@ -131,16 +122,15 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
 
     public PointerPoint ActionCenter(TinyFarmFrame frame, string action)
     {
-        Resource(frame);
-        var entry = prepared!.Lowering.Actions.First(pair => pair.Value.Name == action);
+        MachinaPreparedPresentation prepared = PrepareBase(frame);
+        var entry = prepared.Lowering.Actions.First(pair => pair.Value.Name == action);
         var rect = prepared.Resolved.Nodes[entry.Key].Rect;
         return new PointerPoint(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
     }
 
     public string[] ActionNames(TinyFarmFrame frame)
     {
-        Resource(frame);
-        return prepared!.Lowering.Actions.Values.Select(action => action.Name).Distinct().ToArray();
+        return PrepareBase(frame).Lowering.Actions.Values.Select(action => action.Name).Distinct().ToArray();
     }
 
     public TinyFarmUiResources Resources(TinyFarmFrame frame)
@@ -148,19 +138,36 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
         return new TinyFarmUiResources(Resource(frame), ClockResource(frame), PromptResource(frame));
     }
 
+    public MachinaPresentationFrame InspectorResource(TinyFarmPresentationLayout layout)
+    {
+        string viewportText = $"{layout.Width}x{layout.Height} | world {layout.WorldScale:0.0} px/m | HUD {game.Presentation.HudVisible}";
+        var nodes = new List<UiNode>();
+        nodes.Add(StandardUI.Panel(0, 0, 760, 184, id: "inspector", style: TinyFarmUiTheme.Panel(0x102D25EE)));
+        nodes.Add(StandardUI.Label("OBLIVION / PRESENTATION / F10", 14, 10, 720,
+            id: "inspect-title", color: TinyFarmUiTheme.Text));
+        nodes.Add(StandardUI.Label(viewportText, 14, 38, 720,
+            id: "inspect-viewport", color: TinyFarmUiTheme.Text));
+        nodes.Add(StandardUI.Label(game.LiveInspection.Presentation?.Sampling ?? "No sampler facts", 14, 66, 730,
+            id: "inspect-sampling", color: TinyFarmUiTheme.Text));
+        nodes.Add(StandardUI.Label("World projection independent of HUD / semantic state untouched", 14, 94, 730,
+            id: "inspect-authority", color: TinyFarmUiTheme.Text));
+        string[] detail = (game.LiveInspection.Presentation?.Detail ?? "No native detail facts").Split("; ");
+        for (int line = 0; line < detail.Length; line++)
+        {
+            nodes.Add(StandardUI.Label(detail[line], 14, 122 + line * 28, 730,
+                id: "inspect-detail-" + line, color: TinyFarmUiTheme.Text));
+        }
+        var node = UI.Surface(id: "presentation-inspector", width: 760, height: 184, children: nodes);
+        return Cache("presentation.inspector").Prepare(node, 760, 184).PresentationFrame;
+    }
+
     private MachinaPresentationFrame ClockResource(TinyFarmFrame frame)
     {
-        string next = frame.CurrentLocationName + "\n" + frame.Time;
-        if (clockKey == next && clockResource is not null)
-        {
-            return clockResource;
-        }
-        clockKey = next;
         var nodes = new List<UiNode>();
         nodes.Add(StandardUI.Label($"{frame.CurrentLocationName}  /  {frame.Time}", 0, 0, 400,
             id: "clock", color: TinyFarmUiTheme.Text));
-        clockResource = Prepare(UI.Surface(id: "clock-surface", width: 400, height: 34, children: nodes), 400, 34);
-        return clockResource;
+        return Cache("presentation.clock").Prepare(
+            UI.Surface(id: "clock-surface", width: 400, height: 34, children: nodes), 400, 34).PresentationFrame;
     }
 
     private MachinaPresentationFrame? PromptResource(TinyFarmFrame frame)
@@ -189,23 +196,13 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
         {
             return null;
         }
-        if (promptKey == prompt && promptResource is not null)
-        {
-            return promptResource;
-        }
-        promptKey = prompt;
         var nodes = new List<UiNode>();
         int width = Math.Clamp(prompt.Length * 10 + 24, 100, 460);
         nodes.Add(StandardUI.Panel(0, 0, width, 32, id: "prompt", style: TinyFarmUiTheme.Panel(0x203D32EE)));
         nodes.Add(StandardUI.Label(prompt, 12, 6, width - 24,
             id: "prompt-text", color: ColorToken.Hex(0xFFF0BEFF)));
-        promptResource = Prepare(UI.Surface(id: "prompt-surface", width: 710, height: 38, children: nodes), 710, 38);
-        return promptResource;
-    }
-
-    private static MachinaPresentationFrame Prepare(UiNode node, int width, int height)
-    {
-        return new MachinaPresentationPipeline().Prepare(node, width, height).PresentationFrame;
+        return Cache("presentation.prompt").Prepare(
+            UI.Surface(id: "prompt-surface", width: 710, height: 38, children: nodes), 710, 38).PresentationFrame;
     }
 
     private string PlotPrompt(InteractionTarget target)
@@ -232,34 +229,6 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
                 : "Unfinished road / closed in this slice";
         }
         return "E  " + route.InteractionLabel;
-    }
-
-    private TinyFarmUiKey CreateKey(TinyFarmFrame frame)
-    {
-        int objectives = game.JournalProgress;
-
-        var inventoryHash = new HashCode();
-        foreach (TinyFarmInventoryView item in frame.Inventory)
-        {
-            inventoryHash.Add(item.Id, StringComparer.Ordinal);
-            inventoryHash.Add(item.Count);
-        }
-
-        return new TinyFarmUiKey(
-            game.Screen,
-            game.Status,
-            frame.ActiveScene,
-            game.State.SelectedHotbarSlot,
-            objectives,
-            game.Dialogue.Presentation?.OperationId,
-            game.Dialogue.SelectedChoiceIndex,
-            inventoryHash.ToHashCode(),
-            game.State.Slice?.Health ?? 0,
-            game.State.Slice?.LoopComplete ?? false,
-            game.Menus.CacheKey + game.CraftCacheKey + game.ContainerCacheKey + "|" + game.TitleSelection,
-            game.State.Equipment,
-            game.SaveInProgress || game.LoadInProgress,
-            game.MenuSaveAvailable);
     }
 
     private UiNode Build(TinyFarmFrame frame)
@@ -358,22 +327,6 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
     }
 
 }
-
-internal readonly record struct TinyFarmUiKey(
-    TinyFarmScreen Screen,
-    string Status,
-    SceneId? ActiveScene,
-    int SelectedHotbarSlot,
-    int Objectives,
-    string? DialogueOperationId,
-    int DialogueSelectedChoiceIndex,
-    int InventoryHash,
-    int Health,
-    bool LoopComplete,
-    string MenuState,
-    TinyFarmEquipment? Equipment,
-    bool PersistenceBusy,
-    bool SaveAvailable);
 
 internal readonly record struct TinyFarmUiResources(
     MachinaPresentationFrame Base,

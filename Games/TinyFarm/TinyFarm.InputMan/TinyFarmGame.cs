@@ -3,6 +3,7 @@ using Aurelian.Effects2D;
 using Deliverance.Core;
 using Deliverance.Core.Storage;
 using InputMan.Core;
+using Machina.Runtime.State;
 using TinyFarm.Core;
 using TinyFarm.Runtime;
 using TinyFarm.Oblivion;
@@ -40,9 +41,10 @@ public enum TinyFarmChapter
 }
 
 /// <summary>Small-game application policy; all world changes go through the simulation host.</summary>
-public sealed partial class TinyFarmGame
+public sealed partial class TinyFarmGame : IDisposable
 {
     private readonly TinyFarmInputController controls = new();
+    private readonly TinyFarmUiFlow uiFlow = new();
     private readonly TinyFarmAudioProjector audioProjector = new();
     private readonly TinyFarmVisualEffectProjector effectProjector = new();
     private readonly ISaveStore store;
@@ -65,6 +67,7 @@ public sealed partial class TinyFarmGame
         Persistence = new TinyFarmDeliverancePersistence(Host, Definitions, store, dialogue: Dialogue);
         LiveInspection = new TinyFarmOblivionLiveSurfaces(Host);
         MenuSaveAvailable = HasSave;
+        Menus = new TinyFarmMenus(() => UiScope);
     }
 
     public TinyFarmChapter Chapter { get; }
@@ -74,11 +77,13 @@ public sealed partial class TinyFarmGame
     public TinyFarmDeliverancePersistence Persistence { get; }
     public TinyFarmOblivionLiveSurfaces LiveInspection { get; }
     public TinyFarmState State => Host.Session.State;
-    public TinyFarmScreen Screen { get; private set; } = TinyFarmScreen.Title;
+    public TinyFarmScreen Screen => uiFlow.Screen;
+    public UiStateScope UiScope => uiFlow.Scope;
+    public IReadOnlyList<TinyFarmScreen> UiPath => uiFlow.Path;
     public string Status { get; private set; } = "A note from Mara: let us make this place feel like home.";
     public bool ShouldQuit { get; private set; }
     public TinyFarmPresentationPreferences Presentation { get; } = new();
-    public TinyFarmMenus Menus { get; } = new();
+    public TinyFarmMenus Menus { get; }
     public bool CapturesGameplay => Screen != TinyFarmScreen.Playing || Dialogue.IsActive;
     public EffectRuntime Effects { get; private set; } = NewEffects();
     public Queue<AudioCue> PendingAudio { get; } = new();
@@ -127,7 +132,7 @@ public sealed partial class TinyFarmGame
         {
             ShowOpeningStatus();
         }
-        Screen = TinyFarmScreen.Playing;
+        uiFlow.ReturnTo(TinyFarmScreen.Playing);
     }
 
     /// <summary>The first hint of a fresh game.</summary>
@@ -139,7 +144,12 @@ public sealed partial class TinyFarmGame
     /// <summary>Show the title backdrop again (for example after the host returns to its title menu).</summary>
     public void ShowTitle()
     {
-        Screen = TinyFarmScreen.Title;
+        uiFlow.Reset(TinyFarmScreen.Title);
+    }
+
+    public void Dispose()
+    {
+        uiFlow.Dispose();
     }
 
     public void Handle(InputFrame input)
@@ -518,7 +528,7 @@ public sealed partial class TinyFarmGame
     /// <summary>Reset presentation after the world was replaced by a save (TinyFarm's own or the shell's).</summary>
     public void AfterRestore()
     {
-        Screen = TinyFarmScreen.Playing;
+        uiFlow.Reset(TinyFarmScreen.Playing);
         completionShown = State.Slice?.LoopComplete == true;
         supperShown = TinyFarmSupper.IsComplete(State);
         effectsScene = null;
@@ -534,32 +544,6 @@ public sealed partial class TinyFarmGame
     public string JournalTitle => SupperInProgress ? "SUPPER WITH MARA" : "THE SLEEPING SPRING";
 
     private bool SupperInProgress => TinyFarmSupper.IsRequested(State) && !TinyFarmSupper.IsComplete(State);
-
-    /// <summary>A cheap change key for the journal (which list, and which entries are done).</summary>
-    public int JournalProgress
-    {
-        get
-        {
-            if (SupperInProgress)
-            {
-                return 32
-                    | (TinyFarmSupper.SeedPlanted(State) ? 1 : 0)
-                    | (TinyFarmSupper.HasCookedMushrooms(State) ? 2 : 0)
-                    | (TinyFarmSupper.HasMint(State) ? 4 : 0)
-                    | (TinyFarmSupper.BurrowCleared(State) ? 8 : 0);
-            }
-            if (State.Slice is not TinyFarmSliceState slice)
-            {
-                return 0;
-            }
-            return 64
-                | (slice.CookedBroth ? 1 : 0)
-                | (slice.Defeats > 0 ? 2 : 0)
-                | (slice.ReturnedHome ? 4 : 0)
-                | (slice.Slept ? 8 : 0)
-                | (slice.OwnHarvest ? 16 : 0);
-        }
-    }
 
     /// <summary>The current journal: the opening loop, or Mara's supper while it is under way.</summary>
     public string[] Objectives()

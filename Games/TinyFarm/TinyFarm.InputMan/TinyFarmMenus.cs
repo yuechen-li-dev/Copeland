@@ -1,4 +1,5 @@
 using TinyFarm.Core;
+using Machina.Runtime.State;
 
 namespace TinyFarm.InputMan;
 
@@ -12,26 +13,94 @@ public enum InventorySort
 }
 
 /// <summary>Transient CRUD view state. Never serialized, hashed or replayed.</summary>
-public sealed class TinyFarmMenus
+public sealed class TinyFarmMenus(Func<UiStateScope> scope)
 {
     public const int PageSize = 10;
-    public InventoryCategory Category { get; private set; }
-    public InventorySort Sort { get; private set; }
-    public bool Descending { get; private set; }
-    public bool EquipmentOnly { get; private set; }
-    public string Search { get; private set; } = "";
-    public bool SearchFocused { get; set; }
-    public string? SelectedKey { get; private set; }
-    public int Offset { get; private set; }
-    public int PauseSelection { get; private set; }
-    public bool InventoryFromPause { get; set; }
-    public bool StatsFromPause { get; set; }
-    public ActorId StatsAgent { get; private set; } = TinyFarmIds.Player;
-    public string StatsGroup { get; private set; } = "Stats";
-    public int StatsOffset { get; private set; }
-    public string? Confirmation { get; set; }
+    private TinyFarmInventoryViewState Inventory => scope().GetOrCreate("inventory.rows", () => new TinyFarmInventoryViewState());
+    private TinyFarmStatsViewState Stats => scope().GetOrCreate("agent-properties", () => new TinyFarmStatsViewState());
+    private TinyFarmSearchViewState SearchState => scope().GetOrCreate("menu.search", () => new TinyFarmSearchViewState());
+    private TinyFarmPauseViewState Pause => scope().GetOrCreate("pause.menu", () => new TinyFarmPauseViewState());
 
-    public string CacheKey => $"{Category}|{Sort}|{Descending}|{EquipmentOnly}|{Search}|{SearchFocused}|{SelectedKey}|{Offset}|{PauseSelection}|{Confirmation}|{StatsAgent}|{StatsGroup}|{StatsOffset}";
+    public InventoryCategory Category
+    {
+        get => Inventory.Category;
+        private set => Inventory.Category = value;
+    }
+
+    public InventorySort Sort
+    {
+        get => Inventory.Sort;
+        private set => Inventory.Sort = value;
+    }
+
+    public bool Descending
+    {
+        get => Inventory.Descending;
+        private set => Inventory.Descending = value;
+    }
+
+    public bool EquipmentOnly
+    {
+        get => Inventory.EquipmentOnly;
+        private set => Inventory.EquipmentOnly = value;
+    }
+
+    public string Search
+    {
+        get => SearchState.Text;
+        private set => SearchState.Text = value;
+    }
+
+    public bool SearchFocused
+    {
+        get => SearchFocus.Value;
+        set => SearchFocus.Value = value;
+    }
+
+    private UiState<bool> SearchFocus => scope().GetOrCreate("menu.search.focus",
+        () => new UiState<bool>(false), UiStateLifetime.Activation);
+
+    public string? SelectedKey
+    {
+        get => Inventory.SelectedKey;
+        private set => Inventory.SelectedKey = value;
+    }
+
+    public int Offset
+    {
+        get => Inventory.Offset;
+        private set => Inventory.Offset = value;
+    }
+
+    public int PauseSelection
+    {
+        get => Pause.Selection;
+        private set => Pause.Selection = value;
+    }
+
+    public ActorId StatsAgent
+    {
+        get => Stats.Agent;
+        private set => Stats.Agent = value;
+    }
+
+    public string StatsGroup
+    {
+        get => Stats.Group;
+        private set => Stats.Group = value;
+    }
+
+    public int StatsOffset
+    {
+        get => Stats.Offset;
+        private set => Stats.Offset = value;
+    }
+
+    public string? Confirmation
+    {
+        get => Pause.Confirmation;
+        set => Pause.Confirmation = value;
+    }
 
     public IReadOnlyList<TinyFarmAgentProperty> PropertyRows(TinyFarmState state, TinyFarmDefinitions definitions)
     {

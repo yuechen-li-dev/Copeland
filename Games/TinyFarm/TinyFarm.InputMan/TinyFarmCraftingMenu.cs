@@ -5,13 +5,20 @@ namespace TinyFarm.InputMan;
 /// <summary>Staging is a transient preview, never a second inventory.</summary>
 public sealed partial class TinyFarmGame
 {
-    private readonly Dictionary<ProductId, int> craftInputs = new();
-    public SceneObjectId? CraftStation { get; private set; }
-    public CookingRecipeId? SelectedCraftRecipe { get; private set; }
-    public IReadOnlyList<CookingRecipeInput> CraftInputs => craftInputs.OrderBy(pair => pair.Key.Value, StringComparer.Ordinal)
+    private TinyFarmCraftingViewState CraftingState => UiScope.GetOrCreate("craft.inputs", () => new TinyFarmCraftingViewState());
+    private Dictionary<ProductId, int> CraftInputCounts => CraftingState.Inputs;
+    public SceneObjectId? CraftStation
+    {
+        get => CraftingState.Station;
+        private set => CraftingState.Station = value;
+    }
+    public CookingRecipeId? SelectedCraftRecipe
+    {
+        get => CraftingState.SelectedRecipe;
+        private set => CraftingState.SelectedRecipe = value;
+    }
+    public IReadOnlyList<CookingRecipeInput> CraftInputs => CraftInputCounts.OrderBy(pair => pair.Key.Value, StringComparer.Ordinal)
         .Select(pair => new CookingRecipeInput(pair.Key, pair.Value)).ToArray();
-    public string CraftCacheKey => string.Join(";", CraftInputs.Select(input => input.Product.Value + "=" + input.Count))
-        + "|" + SelectedCraftRecipe;
     public TinyFarmCraftQuote CraftQuote => TinyFarmCrafting.Quote(State, Definitions, TinyFarmIds.Player, CraftInputs);
 
     public void HandleCraftAction(string action)
@@ -19,7 +26,7 @@ public sealed partial class TinyFarmGame
         if (action == "experiment")
         {
             SelectedCraftRecipe = null;
-            craftInputs.Clear();
+            CraftInputCounts.Clear();
         }
         else if (action == "recipe" || action.StartsWith("recipe:", StringComparison.Ordinal))
         {
@@ -31,10 +38,10 @@ public sealed partial class TinyFarmGame
             if (recipe is not null)
             {
                 SelectedCraftRecipe = recipe.Id;
-                craftInputs.Clear();
+                CraftInputCounts.Clear();
                 foreach (CookingRecipeInput input in recipe.Inputs)
                 {
-                    craftInputs[input.Product] = input.Count;
+                    CraftInputCounts[input.Product] = input.Count;
                 }
             }
         }
@@ -47,14 +54,14 @@ public sealed partial class TinyFarmGame
                 return;
             }
             int available = TinyFarmCrafting.IsSupplied(Definitions, product) ? 99 : State.ProductCount(TinyFarmIds.Player, product);
-            int count = Math.Clamp(craftInputs.GetValueOrDefault(product) + (add ? 1 : -1), 0, Math.Min(99, available));
+            int count = Math.Clamp(CraftInputCounts.GetValueOrDefault(product) + (add ? 1 : -1), 0, Math.Min(99, available));
             if (count == 0)
             {
-                craftInputs.Remove(product);
+                CraftInputCounts.Remove(product);
             }
             else
             {
-                craftInputs[product] = count;
+                CraftInputCounts[product] = count;
             }
         }
         else if (action == "craft" && CraftStation is SceneObjectId station)
@@ -76,11 +83,9 @@ public sealed partial class TinyFarmGame
         GameEvent? opened = result.Events.FirstOrDefault(item => item.Kind == GameEventKind.CraftingStationOpened);
         if (opened?.SceneObject is SceneObjectId station)
         {
+            uiFlow.ReturnTo(TinyFarmScreen.Playing);
+            uiFlow.Push(TinyFarmScreen.Crafting);
             CraftStation = station;
-            SelectedCraftRecipe = null;
-            craftInputs.Clear();
-            Menus.SearchFocused = false;
-            Screen = TinyFarmScreen.Crafting;
             Status = "Choose a learned recipe or experiment with ingredients. Water is supplied by the stove.";
         }
         else if (result.Events.Any(item => item.Kind == GameEventKind.ItemTaken))

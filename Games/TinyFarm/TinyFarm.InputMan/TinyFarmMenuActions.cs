@@ -13,33 +13,33 @@ public sealed partial class TinyFarmGame
 
     public static readonly string[] PauseActions = ["resume", "inventory", "stats", "save", "load", "quit"];
     public static readonly string[] StatsGroups = ["All", "Identity", "Resources", "Stats", "Skills", "Traits", "Conditions", "Equipment", "Inventory", "Presentation"];
-    public int TitleSelection { get; private set; }
+    public int TitleSelection
+    {
+        get => TitleState.Selection;
+        private set => TitleState.Selection = value;
+    }
+    private TinyFarmTitleViewState TitleState => UiScope.GetOrCreate("title.selection", () => new TinyFarmTitleViewState());
     public static readonly string[] TitleActions = ["new-game", "load", "quit"];
     public bool MenuSaveAvailable { get; private set; }
 
     public void OpenPause()
     {
-        Screen = TinyFarmScreen.Paused;
-        Menus.Confirmation = null;
+        uiFlow.ReturnTo(TinyFarmScreen.Playing);
+        uiFlow.Push(TinyFarmScreen.Paused);
         MenuSaveAvailable = HasSave;
     }
 
     public void OpenInventory(bool fromPause)
     {
-        Menus.InventoryFromPause = fromPause;
-        Menus.SearchFocused = false;
-        Menus.Confirmation = null;
-        Screen = TinyFarmScreen.Inventory;
+        uiFlow.ReturnTo(fromPause ? TinyFarmScreen.Paused : TinyFarmScreen.Playing);
+        uiFlow.Push(TinyFarmScreen.Inventory);
         Menus.Rows(State, Definitions);
     }
 
     public void OpenStats(bool fromPause)
     {
-        Menus.StatsFromPause = fromPause;
-        Menus.SearchFocused = false;
-        Menus.SetSearch("");
-        Menus.Confirmation = null;
-        Screen = TinyFarmScreen.Stats;
+        uiFlow.ReturnTo(fromPause ? TinyFarmScreen.Paused : TinyFarmScreen.Playing);
+        uiFlow.Push(TinyFarmScreen.Stats);
     }
 
     private void HandleMenuInput(InputFrame input)
@@ -161,14 +161,9 @@ public sealed partial class TinyFarmGame
         {
             Execute(new CloseContainerIntent(chest));
         }
-        else if (Screen == TinyFarmScreen.Stats)
+        else if (Screen is TinyFarmScreen.Stats or TinyFarmScreen.Inventory)
         {
-            Screen = Menus.StatsFromPause ? TinyFarmScreen.Paused : TinyFarmScreen.Playing;
-        }
-        else if (Screen == TinyFarmScreen.Inventory)
-        {
-            Menus.SearchFocused = false;
-            Screen = Menus.InventoryFromPause ? TinyFarmScreen.Paused : TinyFarmScreen.Playing;
+            uiFlow.Back();
         }
         else if (Screen != TinyFarmScreen.Title && !LoadInProgress)
         {

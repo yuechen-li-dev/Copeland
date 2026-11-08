@@ -40,8 +40,20 @@ internal sealed class TinyFarmNativeUiFont : IMachinaTextMeasurer
     {
         ArgumentNullException.ThrowIfNull(text);
         int size = variant == MachinaTextVariant.Title ? HeadingSize : MediumSize;
-        DistanceFieldTextLayoutResult layout = Layout(atlases[size], text, 0, 0);
-        return new MachinaTextSize(layout.Width, size);
+        TinyFarmFontAtlas atlas = atlases[size];
+        double width = 0;
+        // This host realizes unkerned atlas advances. Measuring needs only those
+        // metrics, not a temporary positioned glyph run for every word each frame.
+        foreach (Rune rune in text.EnumerateRunes())
+        {
+            GlyphKey key = GlyphKey.FromRune(atlas.Face, rune, size, MachinaFontWeight.Regular, MachinaFontSlant.Upright);
+            if (!atlas.Metrics.TryGetValue(key, out GlyphMetrics? metrics))
+            {
+                throw new InvalidOperationException($"TinyFarm text measurement has no metrics for U+{rune.Value:X4}.");
+            }
+            width += metrics.Advance;
+        }
+        return new MachinaTextSize(width, size);
     }
 
     public static TinyFarmNativeUiFont Create(string fontPath)

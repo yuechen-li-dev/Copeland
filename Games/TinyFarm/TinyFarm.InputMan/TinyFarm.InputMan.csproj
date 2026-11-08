@@ -7,6 +7,11 @@
     <ProjectReference Include="../TinyFarm.Oblivion/TinyFarm.Oblivion.csproj" />
     <ProjectReference Include="../TinyFarm.Core/TinyFarm.Core.csproj" />
     <ProjectReference Include="../TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Runtime/Machina.Runtime.csproj" />
+    <ProjectReference Include="../../../../Dominatus/src/Dominatus.Core/Dominatus.Core.csproj" />
     <ProjectReference Include="../../../../InputMan/src/InputMan.Core/InputMan.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="TinyFarm.Core.Tests" />
   </ItemGroup>
 </Project>
