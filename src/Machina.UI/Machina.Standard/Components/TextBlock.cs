@@ -1,4 +1,3 @@
-using Machina.Core.Authoring;
 using Machina.Core.Nodes;
 using Machina.Core.Styling;
 using Machina.Layout.Rows;
@@ -9,14 +8,15 @@ namespace Machina.Standard.Components;
 
 public static class TextBlock
 {
-    public static UiNode Create(
+    public static RectNode Create(
         MachinaTextSpec text,
         NodeId? id = null,
         StandardTheme? theme = null,
         ColorToken? foreground = null,
         ColorToken? linkForeground = null,
         double? width = null,
-        double? height = null)
+        double? height = null,
+        IMachinaTextMeasurer? measurer = null)
     {
         ArgumentNullException.ThrowIfNull(text);
 
@@ -24,16 +24,20 @@ public static class TextBlock
         var metadata = new StandardTextBlockMetadata(
             text,
             foreground ?? effectiveTheme.Colors.Foreground,
-            linkForeground ?? effectiveTheme.Colors.Primary);
+            linkForeground ?? effectiveTheme.Colors.Primary,
+            measurer);
 
-        return UI.Rect(
-            child: new RichTextNode(metadata)
+        return new RectNode(
+            Child: new RichTextNode(metadata)
             {
                 Id = CreateChildId(id, "content"),
             },
-            id: id,
-            width: width,
-            height: height);
+            Width: width,
+            Height: height,
+            Style: new UiStyle())
+        {
+            Id = id,
+        };
     }
 
     private static NodeId? CreateChildId(NodeId? id, string suffix)

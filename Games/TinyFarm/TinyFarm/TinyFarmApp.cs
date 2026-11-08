@@ -279,6 +279,7 @@ public sealed class TinyFarmApp : IGame
             TinyFarmShaders.Compile(Path.Combine(assetDirectory, "Shaders", "PainterlyTerrainWater.v.ts")),
             atlas, painterly, artSlots, game, () => frame, () => layout, terrain);
         TinyFarmNativeUiFont font = TinyFarmNativeUiFont.Create(Path.Combine(assetDirectory, "SpaceMono-Regular.ttf"));
+        ui.SetTextMeasurer(font);
         overlay = new TinyFarmNativeOverlay(new LayerId("tinyfarm-hud"), graphics.Plant,
             assets.Shader("AnalyticShape2D.v.ts"), assets.Shader("MsdfText.v.ts"),
             font, () => ui.Resources(frame), game, () => layout, () => world.LastCamera);

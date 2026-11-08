@@ -5,6 +5,24 @@ public static class MachinaTextLayoutEngine
     private const string BulletMarkerText = "\u2022 ";
     private const double BulletIndentStep = 16;
 
+    /// <summary>Measures wrapped content at a fixed width, independently of vertical alignment.</summary>
+    public static MachinaTextSize Measure(
+        MachinaTextSpec spec,
+        double width,
+        IMachinaTextMeasurer? measurer = null)
+    {
+        ArgumentNullException.ThrowIfNull(spec);
+        if (!double.IsFinite(width) || width <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(width), width, "Width must be finite and positive.");
+        }
+
+        var topAligned = new MachinaTextSpec(spec.Source, spec.Variant, spec.Wrap, spec.Overflow,
+            spec.Align, spec.Leading, spec.BlockGap, spec.ListGap, MachinaTextVerticalAlign.Top);
+        var layout = Layout(topAligned, new MachinaTextBox(0, 0, width, double.MaxValue), measurer);
+        return new MachinaTextSize(layout.ContentBounds.Width, layout.ContentBounds.Height);
+    }
+
     public static MachinaTextLayoutResult Layout(
         MachinaTextSpec spec,
         MachinaTextBox box,
@@ -60,6 +78,13 @@ public static class MachinaTextLayoutEngine
         var diagnostics = new List<MachinaTextLayoutDiagnostic>();
         var variantMetrics = ResolveVariantMetrics(policy.Variant);
         var lineHeight = variantMetrics.FontSize * ResolveLeading(policy.Leading, variantMetrics.DefaultLeading);
+        var runStyle = new MachinaTextRunStyle(policy.Variant, false, false, false, null);
+        double measuredHeight = measurer.Measure("Mg", policy.Variant, runStyle).Height;
+        if (!double.IsFinite(measuredHeight) || measuredHeight < 0)
+        {
+            throw new InvalidOperationException("Text metrics must report a finite, non-negative height.");
+        }
+        lineHeight = Math.Max(lineHeight, measuredHeight);
 
         if (policy.Overflow is MachinaTextOverflow.Ellipsis or MachinaTextOverflow.Scroll)
         {

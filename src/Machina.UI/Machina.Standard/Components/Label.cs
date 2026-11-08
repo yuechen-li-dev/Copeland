@@ -12,18 +12,21 @@ public static class Label
     public static UiNode Create(
         string text,
         NodeId? id = null,
-        StandardTheme? theme = null)
+        StandardTheme? theme = null,
+        TextSize size = TextSize.Md,
+        ColorToken? color = null)
     {
         ArgumentNullException.ThrowIfNull(text);
 
         var effectiveTheme = theme ?? StandardTheme.Default;
         var style = new TextStyle(
-            Color: effectiveTheme.Colors.Foreground,
-            Size: TextSize.Sm);
+            Color: color ?? effectiveTheme.Colors.Foreground,
+            Size: size);
 
         return UI.Text(
             text,
             id,
+            size: size,
             style: style) with
         {
             Semantics = new UiSemantics(UiRole.Label, text),

@@ -4,6 +4,7 @@ using Machina.Core.Authoring;
 using Machina.Core.Nodes;
 using Machina.Core.Styling;
 using Machina.Standard.Authoring;
+using Machina.Standard.Text;
 using Machina.Standard.Theme;
 using TinyFarm.Core;
 using TinyFarm.InputMan;
@@ -12,7 +13,7 @@ namespace TinyFarm.Native;
 
 internal static partial class TinyFarmMenuPresentation
 {
-    private const uint Gold = 0xF5DDB5FF;
+    private const uint Gold = TinyFarmUiTheme.Gold;
     private static readonly StandardColors TableColors = StandardTheme.Default.Colors with
     {
         Background = ColorToken.Hex(0x233C33FF),
@@ -23,16 +24,16 @@ internal static partial class TinyFarmMenuPresentation
         Border = ColorToken.Hex(0x83978440)
     };
 
-    public static UiNode Build(TinyFarmGame game)
+    public static UiNode Build(TinyFarmGame game, IMachinaTextMeasurer? measurer = null)
     {
         var nodes = new List<UiNode>();
         if (game.Screen == TinyFarmScreen.Title)
         {
-            Title(nodes, game);
+            Title(nodes, game, measurer);
         }
         else if (game.Screen == TinyFarmScreen.Inventory)
         {
-            Inventory(nodes, game);
+            Inventory(nodes, game, measurer);
         }
         else if (game.Screen == TinyFarmScreen.Stats)
         {
@@ -40,7 +41,7 @@ internal static partial class TinyFarmMenuPresentation
         }
         else if (game.Screen == TinyFarmScreen.Container)
         {
-            Container(nodes, game);
+            Container(nodes, game, measurer);
         }
         else if (game.Screen == TinyFarmScreen.Crafting)
         {
@@ -48,7 +49,7 @@ internal static partial class TinyFarmMenuPresentation
         }
         else
         {
-            Pause(nodes, game);
+            Pause(nodes, game, measurer);
         }
         return UI.Surface(id: "tinyfarm-menu", width: 1280, height: 720, children: nodes);
     }
@@ -58,24 +59,38 @@ internal static partial class TinyFarmMenuPresentation
         TinyFarmMenus menu = game.Menus;
         IReadOnlyList<TinyFarmAgentProperty> rows = menu.PropertyRows(game.State, game.Definitions);
         ActorState agent = game.State.Actor(menu.StatsAgent);
-        TinyFarmNativeUi.Panel(nodes, "stats-panel", 44, 56, 1192, 612, 0x19362BFC);
+        nodes.Add(StandardUI.Panel(44, 56, 1192, 612, id: "stats-panel", style: TinyFarmUiTheme.Panel(TinyFarmUiTheme.MenuBackground)));
         // The native portrait occupies the square at (908, 60), before the Close button.
-        Label(nodes, "stats-title", "AGENT / " + agent.Name.ToUpperInvariant(), 66, 78, 820, TextSize.H1, Gold);
-        Label(nodes, "stats-summary", "Live properties + authored RPG foundation  /  world paused", 68, 120, 820);
-        Button(nodes, "close", "Close / C or ESC", 1022, 80, 190);
-        Button(nodes, "agent:previous", "< Agent", 66, 162, 110);
-        Button(nodes, "agent:next", "Agent >", 184, 162, 110);
+        nodes.Add(StandardUI.Label("AGENT / " + agent.Name.ToUpperInvariant(), 66, 78, 820, id: "stats-title",
+            size: TextSize.H1, color: TinyFarmUiTheme.Accent));
+        nodes.Add(StandardUI.Label("Live properties + authored RPG foundation  /  world paused", 68, 120, 820, id: "stats-summary",
+            size: TextSize.Md, color: TinyFarmUiTheme.Text));
+        nodes.Add(StandardUI.Button("Close / C or ESC", 1022, 80, 190, id: "menu.close",
+            action: UiAction.Named("close"),
+            style: TinyFarmUiTheme.Button()));
+        nodes.Add(StandardUI.Button("< Agent", 66, 162, 110, id: "menu.agent:previous",
+            action: UiAction.Named("agent:previous"),
+            style: TinyFarmUiTheme.Button()));
+        nodes.Add(StandardUI.Button("Agent >", 184, 162, 110, id: "menu.agent:next",
+            action: UiAction.Named("agent:next"),
+            style: TinyFarmUiTheme.Button()));
         string search = menu.Search.Length == 0 ? "Click to filter properties..." : menu.Search;
         if (menu.SearchFocused)
         {
             search += " |";
         }
-        Button(nodes, "search", search, 308, 162, 818, selected: menu.SearchFocused);
-        Button(nodes, "clear", "Clear", 1134, 162, 78);
+        nodes.Add(StandardUI.Button(search, 308, 162, 818, id: "menu.search",
+            action: UiAction.Named("search"),
+            style: TinyFarmUiTheme.Button(selected: menu.SearchFocused)));
+        nodes.Add(StandardUI.Button("Clear", 1134, 162, 78, id: "menu.clear",
+            action: UiAction.Named("clear"),
+            style: TinyFarmUiTheme.Button()));
         for (int index = 0; index < TinyFarmGame.StatsGroups.Length; index++)
         {
             string group = TinyFarmGame.StatsGroups[index];
-            Button(nodes, "group:" + group, group, 66, 218 + index * 38, 152, selected: group == menu.StatsGroup);
+            nodes.Add(StandardUI.Button(group, 66, 218 + index * 38, 152, id: "menu.group:" + group,
+                action: UiAction.Named("group:" + group),
+                style: TinyFarmUiTheme.Button(selected: group == menu.StatsGroup)));
         }
         UiTableColumn[] columns = [new("Property", 225), new("Value", 275), new("Source / status", 430)];
         UiTableRow[] visible = rows.Skip(menu.StatsOffset).Take(TinyFarmMenus.PageSize)
@@ -85,49 +100,69 @@ internal static partial class TinyFarmMenuPresentation
             left: 234, top: 218, width: 930, height: 376));
         if (rows.Count == 0)
         {
-            Label(nodes, "stats-empty", "No properties match. Clear the filter or choose All.", 250, 275, 870, color: Gold);
+            nodes.Add(StandardUI.Label("No properties match. Clear the filter or choose All.", 250, 275, 870, id: "stats-empty",
+                size: TextSize.Md, color: TinyFarmUiTheme.Accent));
         }
         var bar = TinyFarmStatsScrollbar.Geometry(rows.Count, menu.StatsOffset);
-        TinyFarmNativeUi.Panel(nodes, "stats-scroll-track", 1180, 254, 24, 340, 0x102A21FF);
+        nodes.Add(StandardUI.Panel(1180, 254, 24, 340, id: "stats-scroll-track", style: TinyFarmUiTheme.Panel(0x102A21FF)));
         if (bar.IsVisible)
         {
-            TinyFarmNativeUi.Panel(nodes, "stats-scroll-thumb", 1180, (int)bar.ThumbRect.Y, 24,
-                (int)bar.ThumbRect.Height, 0x839784FF);
+            nodes.Add(StandardUI.Panel(1180, (int)bar.ThumbRect.Y, 24, (int)bar.ThumbRect.Height, id: "stats-scroll-thumb", style: TinyFarmUiTheme.Panel(0x839784FF)));
         }
-        Button(nodes, "previous", "Previous", 234, 600, 128, disabled: menu.StatsOffset == 0);
-        Button(nodes, "next", "Next", 1036, 600, 128, disabled: menu.StatsOffset + TinyFarmMenus.PageSize >= rows.Count);
+        nodes.Add(StandardUI.Button("Previous", 234, 600, 128, id: "menu.previous",
+            action: UiAction.Named("previous"), disabled: menu.StatsOffset == 0,
+            style: TinyFarmUiTheme.Button(disabled: menu.StatsOffset == 0)));
+        nodes.Add(StandardUI.Button("Next", 1036, 600, 128, id: "menu.next",
+            action: UiAction.Named("next"), disabled: menu.StatsOffset + TinyFarmMenus.PageSize >= rows.Count,
+            style: TinyFarmUiTheme.Button(disabled: menu.StatsOffset + TinyFarmMenus.PageSize >= rows.Count)));
         int first = rows.Count == 0 ? 0 : menu.StatsOffset + 1;
-        Label(nodes, "stats-range", $"{first}-{Math.Min(rows.Count, menu.StatsOffset + TinyFarmMenus.PageSize)} / {rows.Count}", 430, 609, 500);
-        Label(nodes, "stats-footer", "Wheel / drag scroll  UP/DOWN scroll  LEFT/RIGHT agent  TAB filter  ENTER/ESC finish typing", 66, 642, 1140, TextSize.Sm);
-        Label(nodes, "stats-boundary", game.State.Version >= TinyFarmState.CraftingSaveVersion
+        nodes.Add(StandardUI.Label($"{first}-{Math.Min(rows.Count, menu.StatsOffset + TinyFarmMenus.PageSize)} / {rows.Count}", 430, 609, 500, id: "stats-range",
+            size: TextSize.Md, color: TinyFarmUiTheme.Text));
+        nodes.Add(StandardUI.Label("Wheel / drag scroll  UP/DOWN scroll  LEFT/RIGHT agent  TAB filter  ENTER/ESC finish typing", 66, 642, 1140, id: "stats-footer",
+            size: TextSize.Sm, color: TinyFarmUiTheme.Text));
+        nodes.Add(StandardUI.Label(game.State.Version >= TinyFarmState.CraftingSaveVersion
             ? "A2: Cooking / Fire practice is live; general ability and trait modifiers remain pending."
-            : "A1: skill practice and trait/condition modifiers are pending; combat retains its existing rules.", 66, 686, 1140, TextSize.Sm, Gold);
+            : "A1: skill practice and trait/condition modifiers are pending; combat retains its existing rules.", 66, 686, 1140, id: "stats-boundary",
+            size: TextSize.Sm, color: TinyFarmUiTheme.Accent));
     }
 
-    private static void Inventory(List<UiNode> nodes, TinyFarmGame game)
+    private static void Inventory(List<UiNode> nodes, TinyFarmGame game, IMachinaTextMeasurer? measurer)
     {
         TinyFarmMenus menu = game.Menus;
         IReadOnlyList<TinyFarmInventoryRow> rows = menu.Rows(game.State, game.Definitions);
         TinyFarmInventoryRow? selected = rows.SingleOrDefault(row => row.Key == menu.SelectedKey);
-        TinyFarmNativeUi.Panel(nodes, "bag-panel", 44, 56, 1192, 612, 0x19362BFC);
-        Label(nodes, "bag-title", "POCKETS & EQUIPMENT", 66, 78, 650, TextSize.H1, Gold);
-        Label(nodes, "bag-summary", $"{game.State.Actor(TinyFarmIds.Player).Money} coins  /  {rows.Count} matching items  /  world paused", 68, 120, 790);
-        Button(nodes, "close", "Close / I or ESC", 1022, 80, 190);
-        Button(nodes, "bag", "Inventory", 234, 162, 138, selected: !menu.EquipmentOnly);
-        Button(nodes, "equipment", "Equipment", 380, 162, 140, selected: menu.EquipmentOnly);
+        nodes.Add(StandardUI.Panel(44, 56, 1192, 612, id: "bag-panel", style: TinyFarmUiTheme.Panel(TinyFarmUiTheme.MenuBackground)));
+        nodes.Add(StandardUI.Label("POCKETS & EQUIPMENT", 66, 78, 650, id: "bag-title",
+            size: TextSize.H1, color: TinyFarmUiTheme.Accent));
+        nodes.Add(StandardUI.Label($"{game.State.Actor(TinyFarmIds.Player).Money} coins  /  {rows.Count} matching items  /  world paused", 68, 120, 790, id: "bag-summary",
+            size: TextSize.Md, color: TinyFarmUiTheme.Text));
+        nodes.Add(StandardUI.Button("Close / I or ESC", 1022, 80, 190, id: "menu.close",
+            action: UiAction.Named("close"),
+            style: TinyFarmUiTheme.Button()));
+        nodes.Add(StandardUI.Button("Inventory", 234, 162, 138, id: "menu.bag",
+            action: UiAction.Named("bag"),
+            style: TinyFarmUiTheme.Button(selected: !menu.EquipmentOnly)));
+        nodes.Add(StandardUI.Button("Equipment", 380, 162, 140, id: "menu.equipment",
+            action: UiAction.Named("equipment"),
+            style: TinyFarmUiTheme.Button(selected: menu.EquipmentOnly)));
         string search = menu.Search.Length == 0 ? "Click to search..." : menu.Search;
         if (menu.SearchFocused)
         {
             search += " |";
         }
-        Button(nodes, "search", search, 536, 162, 590, selected: menu.SearchFocused);
-        Button(nodes, "clear", "Clear", 1134, 162, 78);
+        nodes.Add(StandardUI.Button(search, 536, 162, 590, id: "menu.search",
+            action: UiAction.Named("search"),
+            style: TinyFarmUiTheme.Button(selected: menu.SearchFocused)));
+        nodes.Add(StandardUI.Button("Clear", 1134, 162, 78, id: "menu.clear",
+            action: UiAction.Named("clear"),
+            style: TinyFarmUiTheme.Button()));
 
         for (int index = 0; index < TinyFarmGame.MenuCategories.Length; index++)
         {
             InventoryCategory category = TinyFarmGame.MenuCategories[index];
-            Button(nodes, "category:" + category, category.ToString(), 66, 218 + index * 39, 152,
-                selected: menu.Category == category);
+            nodes.Add(StandardUI.Button(category.ToString(), 66, 218 + index * 39, 152, id: "menu.category:" + category,
+                action: UiAction.Named("category:" + category),
+                style: TinyFarmUiTheme.Button(selected: menu.Category == category)));
         }
 
         UiTableColumn[] columns =
@@ -145,65 +180,94 @@ internal static partial class TinyFarmMenuPresentation
             left: 234, top: 218, width: 620, height: 376));
         if (rows.Count == 0)
         {
-            Label(nodes, "empty", "No items match. Try All or Clear.", 250, 279, 590, color: Gold);
+            nodes.Add(StandardUI.Label("No items match. Try All or Clear.", 250, 279, 590, id: "empty",
+                size: TextSize.Md, color: TinyFarmUiTheme.Accent));
         }
-        Button(nodes, "previous", "Previous", 234, 600, 128, disabled: menu.Offset == 0);
-        Button(nodes, "next", "Next", 726, 600, 128, disabled: menu.Offset + TinyFarmMenus.PageSize >= rows.Count);
+        nodes.Add(StandardUI.Button("Previous", 234, 600, 128, id: "menu.previous",
+            action: UiAction.Named("previous"), disabled: menu.Offset == 0,
+            style: TinyFarmUiTheme.Button(disabled: menu.Offset == 0)));
+        nodes.Add(StandardUI.Button("Next", 726, 600, 128, id: "menu.next",
+            action: UiAction.Named("next"), disabled: menu.Offset + TinyFarmMenus.PageSize >= rows.Count,
+            style: TinyFarmUiTheme.Button(disabled: menu.Offset + TinyFarmMenus.PageSize >= rows.Count)));
         int first = rows.Count == 0 ? 0 : menu.Offset + 1;
-        Label(nodes, "range", $"{first}-{Math.Min(rows.Count, menu.Offset + TinyFarmMenus.PageSize)} / {rows.Count}", 400, 609, 300);
+        nodes.Add(StandardUI.Label($"{first}-{Math.Min(rows.Count, menu.Offset + TinyFarmMenus.PageSize)} / {rows.Count}", 400, 609, 300, id: "range",
+            size: TextSize.Md, color: TinyFarmUiTheme.Text));
 
-        TinyFarmNativeUi.Panel(nodes, "item-details", 878, 218, 334, 376, 0x233D31FF);
+        nodes.Add(StandardUI.Panel(878, 218, 334, 376, id: "item-details", style: TinyFarmUiTheme.Panel(0x233D31FF)));
         if (selected is not null)
         {
-            Wrap(nodes, "item-name", selected.Name, 898, 236, 30, Gold);
-            Label(nodes, "item-category", selected.Category.ToString().ToUpperInvariant(), 898, 301, 294, color: Gold);
-            Label(nodes, "item-quantity", $"Quantity: {selected.Quantity}  /  Value: {selected.Value}", 898, 337, 294);
-            Wrap(nodes, "description", selected.Description, 898, 377, 30);
+            nodes.Add(StandardUI.Place(StandardUI.Paragraph(selected.Name, 300, id: "item-name",
+                foreground: TinyFarmUiTheme.Accent, measurer: measurer), 898, 236));
+            nodes.Add(StandardUI.Label(selected.Category.ToString().ToUpperInvariant(), 898, 301, 294, id: "item-category",
+                size: TextSize.Md, color: TinyFarmUiTheme.Accent));
+            nodes.Add(StandardUI.Label($"Quantity: {selected.Quantity}  /  Value: {selected.Value}", 898, 337, 294, id: "item-quantity",
+                size: TextSize.Md, color: TinyFarmUiTheme.Text));
+            nodes.Add(StandardUI.Place(StandardUI.Paragraph(selected.Description, 300, id: "description",
+                foreground: TinyFarmUiTheme.Text, measurer: measurer), 898, 377));
             if (selected.Slot is EquipmentSlot slot)
             {
-                Label(nodes, "item-slot", "Slot: " + slot, 898, 491, 294);
-                Button(nodes, "primary", selected.Equipped ? "Unequip / ENTER" : "Equip / ENTER", 898, 544, 294,
-                    disabled: game.State.Slice is { SwordTicks: > 0 } or { DodgeTicks: > 0 });
+                nodes.Add(StandardUI.Label("Slot: " + slot, 898, 491, 294, id: "item-slot",
+                    size: TextSize.Md, color: TinyFarmUiTheme.Text));
+                nodes.Add(StandardUI.Button(selected.Equipped ? "Unequip / ENTER" : "Equip / ENTER", 898, 544, 294, id: "menu.primary",
+                    action: UiAction.Named("primary"), disabled: game.State.Slice is { SwordTicks: > 0 } or { DodgeTicks: > 0 },
+                    style: TinyFarmUiTheme.Button(disabled: game.State.Slice is { SwordTicks: > 0 } or { DodgeTicks: > 0 })));
             }
             else if (selected.Item is ItemId card && game.State.Item(card).TeachesRecipe is not null)
             {
-                Button(nodes, "primary", "Read recipe / ENTER", 898, 544, 294);
+                nodes.Add(StandardUI.Button("Read recipe / ENTER", 898, 544, 294, id: "menu.primary",
+                    action: UiAction.Named("primary"),
+                    style: TinyFarmUiTheme.Button()));
             }
             else if (selected.Product is ProductId food && game.Definitions.Items.Any(item => item.Id == food && item.Food is not null))
             {
-                Button(nodes, "primary", "Eat / ENTER", 898, 544, 294);
+                nodes.Add(StandardUI.Button("Eat / ENTER", 898, 544, 294, id: "menu.primary",
+                    action: UiAction.Named("primary"),
+                    style: TinyFarmUiTheme.Button()));
             }
             else if (selected.Product?.Value == "turnip-broth" && game.State.Slice is not null)
             {
-                Button(nodes, "primary", "Eat broth / ENTER", 898, 544, 294, disabled: game.State.Slice.Health >= 12);
+                nodes.Add(StandardUI.Button("Eat broth / ENTER", 898, 544, 294, id: "menu.primary",
+                    action: UiAction.Named("primary"), disabled: game.State.Slice.Health >= 12,
+                    style: TinyFarmUiTheme.Button(disabled: game.State.Slice.Health >= 12)));
             }
             else
             {
-                Label(nodes, "item-use", "Use it in the world with E / K.", 898, 548, 294);
+                nodes.Add(StandardUI.Label("Use it in the world with E / K.", 898, 548, 294, id: "item-use",
+                    size: TextSize.Md, color: TinyFarmUiTheme.Text));
             }
         }
         else
         {
-            Label(nodes, "no-selection", "Select an item to inspect it.", 898, 246, 294);
+            nodes.Add(StandardUI.Label("Select an item to inspect it.", 898, 246, 294, id: "no-selection",
+                size: TextSize.Md, color: TinyFarmUiTheme.Text));
         }
-        Label(nodes, "bag-footer", "UP/DOWN select  LEFT/RIGHT category  ENTER use  /  Value is per item; stacks are not unique gear.", 66, 638, 1140, TextSize.Sm);
-        Label(nodes, "bag-status", Short(game.Status, 100), 66, 686, 1150, color: Gold);
+        nodes.Add(StandardUI.Label("UP/DOWN select  LEFT/RIGHT category  ENTER use  /  Value is per item; stacks are not unique gear.", 66, 638, 1140, id: "bag-footer",
+            size: TextSize.Sm, color: TinyFarmUiTheme.Text));
+        nodes.Add(StandardUI.Label(Short(game.Status, 100), 66, 686, 1150, id: "bag-status",
+            size: TextSize.Md, color: TinyFarmUiTheme.Accent));
     }
 
-    private static void Pause(List<UiNode> nodes, TinyFarmGame game)
+    private static void Pause(List<UiNode> nodes, TinyFarmGame game, IMachinaTextMeasurer? measurer)
     {
-        TinyFarmNativeUi.Panel(nodes, "pause-panel", 300, 100, 680, 520, 0x19362BFC);
-        Label(nodes, "pause-title", "A MOMENT AT HOME", 336, 129, 590, TextSize.H1, Gold);
-        Label(nodes, "pause-subtitle", "The world waits while you are here.", 338, 175, 590);
+        nodes.Add(StandardUI.Panel(300, 100, 680, 520, id: "pause-panel", style: TinyFarmUiTheme.Panel(TinyFarmUiTheme.MenuBackground)));
+        nodes.Add(StandardUI.Label("A MOMENT AT HOME", 336, 129, 590, id: "pause-title",
+            size: TextSize.H1, color: TinyFarmUiTheme.Accent));
+        nodes.Add(StandardUI.Label("The world waits while you are here.", 338, 175, 590, id: "pause-subtitle",
+            size: TextSize.Md, color: TinyFarmUiTheme.Text));
         bool busy = game.SaveInProgress || game.LoadInProgress;
         if (game.Menus.Confirmation is string confirmation)
         {
             string text = confirmation == "load"
                 ? "Load your checkpoint? Unsaved progress will be replaced."
                 : "Quit TinyFarm? Save first to keep your latest progress.";
-            Wrap(nodes, "confirmation", text, 338, 250, 58, Gold);
-            Button(nodes, "confirm", confirmation == "load" ? "Load checkpoint / ENTER" : "Quit / ENTER", 338, 356, 604, disabled: busy);
-            Button(nodes, "close", "Cancel / ESC", 338, 407, 604);
+            nodes.Add(StandardUI.Place(StandardUI.Paragraph(text, 580, id: "confirmation",
+                foreground: TinyFarmUiTheme.Accent, measurer: measurer), 338, 250));
+            nodes.Add(StandardUI.Button(confirmation == "load" ? "Load checkpoint / ENTER" : "Quit / ENTER", 338, 356, 604, id: "menu.confirm",
+                action: UiAction.Named("confirm"), disabled: busy,
+                style: TinyFarmUiTheme.Button(disabled: busy)));
+            nodes.Add(StandardUI.Button("Cancel / ESC", 338, 407, 604, id: "menu.close",
+                action: UiAction.Named("close"),
+                style: TinyFarmUiTheme.Button()));
         }
         else
         {
@@ -221,10 +285,13 @@ internal static partial class TinyFarmMenuPresentation
                     SelectedBorder: 0x83978480, SelectedBorderWidth: 1, CornerRadius: 0,
                     HorizontalPadding: 0, Alignment: TextAlignX.Center));
             string checkpoint = game.MenuSaveAvailable ? "Checkpoint available" : "No checkpoint yet / Save to create one";
-            Label(nodes, "checkpoint", checkpoint + "  /  one local save slot", 338, 496, 604);
+            nodes.Add(StandardUI.Label(checkpoint + "  /  one local save slot", 338, 496, 604, id: "checkpoint",
+                size: TextSize.Md, color: TinyFarmUiTheme.Text));
         }
-        Wrap(nodes, "pause-status", game.Status, 338, 535, 60, Gold);
-        Label(nodes, "pause-hint", "UP/DOWN choose  ENTER confirm  ESC return", 338, 594, 604, TextSize.Sm);
+        nodes.Add(StandardUI.Place(StandardUI.Paragraph(game.Status, 600, id: "pause-status",
+            foreground: TinyFarmUiTheme.Accent, measurer: measurer), 338, 535));
+        nodes.Add(StandardUI.Label("UP/DOWN choose  ENTER confirm  ESC return", 338, 594, 604, id: "pause-hint",
+            size: TextSize.Sm, color: TinyFarmUiTheme.Text));
     }
 
     private static string Header(string label, InventorySort sort, TinyFarmMenus menu)
@@ -234,42 +301,6 @@ internal static partial class TinyFarmMenuPresentation
             return label;
         }
         return label + (menu.Descending ? " v" : " ^");
-    }
-
-    private static void Button(List<UiNode> nodes, string action, string label, int x, int y, int width,
-        bool selected = false, bool disabled = false)
-    {
-        uint color = selected ? 0x4A6655FFu : 0x29473FFFu;
-        uint foreground = disabled ? 0x8A9B8EFFu : Gold;
-        nodes.Add(UI.Anchor(StandardUI.Button(label, id: "menu." + action, action: UiAction.Named(action), disabled: disabled,
-            style: new StandardButtonStyle(ColorToken.Hex(color), ColorToken.Hex(foreground),
-                ColorToken.Hex(0x83978480), 1,
-                new TextStyle(ColorToken.Hex(foreground), TextSize.Md, TextAlignX.Center, TextAlignY.Center), width, 34)),
-            left: x, top: y, width: width, height: 34));
-    }
-
-    private static void Label(List<UiNode> nodes, string id, string text, int x, int y, int width,
-        TextSize size = TextSize.Md, uint color = 0xE7EBDDFF)
-    {
-        TinyFarmNativeUi.Text(nodes, id, text, x, y, width, size, color);
-    }
-
-    private static void Wrap(List<UiNode> nodes, string id, string text, int x, int y, int characters,
-        uint color = 0xE7EBDDFF)
-    {
-        string line = "";
-        int row = 0;
-        foreach (string word in text.Split(' '))
-        {
-            if (line.Length + word.Length + 1 > characters && line.Length > 0)
-            {
-                Label(nodes, id + row, line, x, y + row * 23, characters * 10, color: color);
-                line = "";
-                row++;
-            }
-            line += (line.Length == 0 ? "" : " ") + word;
-        }
-        Label(nodes, id + row, line, x, y + row * 23, characters * 10, color: color);
     }
 
     private static string Short(string text, int limit)

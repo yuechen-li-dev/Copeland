@@ -71,6 +71,47 @@ Use Standard rich text (`Text.Plain`, `Text.Markup`, and related builders) throu
 
 Sources: [StandardUI.cs](../../src/Machina.UI/Machina.Standard/Authoring/StandardUI.cs), [StandardView.cs](../../src/Machina.UI/Machina.Standard/Authoring/StandardView.cs), [StandardTheme.cs](../../src/Machina.UI/Machina.Standard/Theme/StandardTheme.cs), and [MachinaTextLayoutEngine.cs](../../src/Machina.UI/Machina.Standard/Text/MachinaTextLayoutEngine.cs). Tests: [Standard tests](../../tests/Machina.UI/Machina.Standard.Tests/).
 
+### Positioned controls and measured text
+
+Use the positioned `StandardUI.Button` and `StandardUI.Label` overloads for explicit
+screen layouts. They own the placement wrapper, standard semantics, and control
+internals. `StandardUI.Place` positions any other component, including cards,
+checkboxes, and stacks. Keep IDs tied to semantic identity, independently of position.
+
+`StandardUI.Frame` groups children in parent-relative coordinates. `StandardUI.Panel`
+adds a themed background and border to that frame; child positions start at its
+top-left corner with no implicit padding. Use `Card` when its inset and stack
+composition are appropriate. Define product colors and component styles once in a
+product-owned palette built on `StandardTheme` and the standard style records.
+
+```csharp
+var body = StandardUI.Paragraph("Text wraps at the measured width.", 300, id: "body");
+UiNode screen = UI.Surface(children:
+[
+    StandardUI.Panel(250, 150, 340, 200, id: "dialogue", children:
+    [
+        StandardUI.Label("Speaker", 20, 16, 300, id: "speaker"),
+        StandardUI.Place(body, 20, 50),
+        StandardUI.Button("Continue", 20, 140, 160, id: "continue",
+            action: Machina.Core.Actions.UiAction.Named("continue")),
+    ]),
+]);
+```
+
+`Paragraph` is plain text with a fixed width and a measured height. Its returned
+`RectNode.Width` and `Height` can size an enclosing panel or place subsequent content;
+`Place(paragraph, x, y)` uses those dimensions directly. Paragraphs also work as
+auto-sized children in a `UI.Column`. By default they use deterministic bitmap metrics.
+Native font hosts should pass their `IMachinaTextMeasurer` to `Paragraph`; the same
+measurer is retained for rich-text presentation, so wrapping, run positions and
+content height match the renderer. TinyFarm supplies its MSDF atlas metrics here.
+For markup, use `MachinaTextLayoutEngine.Measure(spec, width, measurer)` and pass
+both the resulting height and the same measurer to `StandardUI.TextBlock`.
+
+TinyFarm's HUD, journal, dialogue and menus, and Aurelian's `GameMenuTemplate` use
+this surface. This authoring convenience does not provide automatic screen cache
+invalidation, widget-state lifetime management, or subtree reconciliation.
+
 ## Follow the real sample and test paths
 
 - The [Presenter sample](../../samples/Integrations/Machina.Presenter.Sample/) demonstrates a host with screen composition and presentation. Related presentation contracts are covered by [Machina.Presentation.Tests](../../tests/Machina.UI/Machina.Presentation.Tests/) and host integration tests under [Aurelian.Machina.Tests](../../tests/Integrations/Aurelian.Machina.Tests/).

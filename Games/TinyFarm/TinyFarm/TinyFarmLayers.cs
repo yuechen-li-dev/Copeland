@@ -22,6 +22,7 @@ using Copeland.TS.Gpu.VdMir;
 using Copeland.TS.Profiles;
 using Copeland.Profile;
 using Machina.Core.Styling;
+using Machina.Standard.Authoring;
 using Machina.Layout.Geometry;
 using Machina.Presentation;
 using TinyFarm.Core;
@@ -872,15 +873,20 @@ internal sealed class TinyFarmNativeOverlay(
         {
             inspectorKey = key;
             var nodes = new List<Machina.Core.Nodes.UiNode>();
-            TinyFarmNativeUi.Panel(nodes, "inspector", 0, 0, 760, 184, 0x102D25EE);
-            TinyFarmNativeUi.Text(nodes, "inspect-title", "OBLIVION / PRESENTATION / F10", 14, 10, 720, Machina.Core.Styling.TextSize.Md);
-            TinyFarmNativeUi.Text(nodes, "inspect-viewport", key, 14, 38, 720, Machina.Core.Styling.TextSize.Md);
-            TinyFarmNativeUi.Text(nodes, "inspect-sampling", game.LiveInspection.Presentation?.Sampling ?? "No sampler facts", 14, 66, 730, Machina.Core.Styling.TextSize.Md);
-            TinyFarmNativeUi.Text(nodes, "inspect-authority", "World projection independent of HUD / semantic state untouched", 14, 94, 730, Machina.Core.Styling.TextSize.Md);
+            nodes.Add(StandardUI.Panel(0, 0, 760, 184, id: "inspector", style: TinyFarmUiTheme.Panel(0x102D25EE)));
+            nodes.Add(StandardUI.Label("OBLIVION / PRESENTATION / F10", 14, 10, 720,
+                id: "inspect-title", color: TinyFarmUiTheme.Text));
+            nodes.Add(StandardUI.Label(key, 14, 38, 720,
+                id: "inspect-viewport", color: TinyFarmUiTheme.Text));
+            nodes.Add(StandardUI.Label(game.LiveInspection.Presentation?.Sampling ?? "No sampler facts", 14, 66, 730,
+                id: "inspect-sampling", color: TinyFarmUiTheme.Text));
+            nodes.Add(StandardUI.Label("World projection independent of HUD / semantic state untouched", 14, 94, 730,
+                id: "inspect-authority", color: TinyFarmUiTheme.Text));
             string[] detail = (game.LiveInspection.Presentation?.Detail ?? "No native detail facts").Split("; ");
             for (int line = 0; line < detail.Length; line++)
             {
-                TinyFarmNativeUi.Text(nodes, "inspect-detail-" + line, detail[line], 14, 122 + line * 28, 730, Machina.Core.Styling.TextSize.Md);
+                nodes.Add(StandardUI.Label(detail[line], 14, 122 + line * 28, 730,
+                    id: "inspect-detail-" + line, color: TinyFarmUiTheme.Text));
             }
             var node = Machina.Core.Authoring.UI.Surface(id: "presentation-inspector", width: 760, height: 184, children: nodes);
             var prepared = new Machina.Pipeline.MachinaPresentationPipeline().Prepare(node, 760, 184).PresentationFrame;

@@ -10,7 +10,17 @@ namespace Machina.Standard.Components;
 
 public static class StandardButton
 {
-    public static UiNode Create(string text, NodeId? id = null, UiAction? action = null, ButtonVariant variant = ButtonVariant.Default, ButtonSize size = ButtonSize.Medium, bool disabled = false, StandardTheme? theme = null, StandardButtonStyle? style = null)
+    public static UiNode Create(
+        string text,
+        NodeId? id = null,
+        UiAction? action = null,
+        ButtonVariant variant = ButtonVariant.Default,
+        ButtonSize size = ButtonSize.Medium,
+        bool disabled = false,
+        StandardTheme? theme = null,
+        StandardButtonStyle? style = null,
+        double? width = null,
+        double? height = null)
     {
         var effectiveTheme = theme ?? StandardTheme.Default;
         var variantStyle = effectiveTheme.Button.ForVariant(variant);
@@ -41,9 +51,9 @@ public static class StandardButton
             Shape: effectiveStyle.CornerRadius > 0 ? UiShapeKind.RoundedRect : null,
             CornerRadius: effectiveStyle.CornerRadius);
 
-        var width = size == ButtonSize.Icon ? effectiveStyle.Height : effectiveStyle.Width;
+        var effectiveWidth = width ?? (size == ButtonSize.Icon ? effectiveStyle.Height : effectiveStyle.Width);
 
-        return UI.Rect(labelNode, id: id, width: width, height: effectiveStyle.Height, style: shellStyle) with
+        return UI.Rect(labelNode, id: id, width: effectiveWidth, height: height ?? effectiveStyle.Height, style: shellStyle) with
         {
             Semantics = new UiSemantics(UiRole.Button, text, Disabled: disabled, Focusable: !disabled),
             DeclaredAction = disabled ? null : action,

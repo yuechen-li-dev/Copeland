@@ -2,7 +2,6 @@ using Machina.Core.Actions;
 using Machina.Core.Authoring;
 using Machina.Core.Nodes;
 using Machina.Core.Styling;
-using Machina.Layout.Geometry;
 using Machina.Standard.Authoring;
 using Machina.Standard.Theme;
 
@@ -75,12 +74,15 @@ public static class GameMenuTemplate
                 left: 0, top: 0, width: width, height: height),
             UI.Anchor(UI.Rect(id: page.Id + ".panel", style: new UiStyle(Background: ColorToken.Hex(0x102532F4))),
                 left: left, top: 40, width: panelWidth, height: height - 80),
-            Label(page.Id + ".title", page.Title, new Rect(left + 36, 72, panelWidth - 72, 50), TextSize.H1, 0xF5DDB5FF),
-            Label(page.Id + ".subtitle", page.Subtitle, new Rect(left + 36, 128, panelWidth - 72, 34), TextSize.Sm, 0xD7E0E7FF),
+            StandardUI.Label(page.Title, left + 36, 72, panelWidth - 72, 50,
+                id: page.Id + ".title", size: TextSize.H1, color: ColorToken.Hex(0xF5DDB5FF)),
+            StandardUI.Label(page.Subtitle, left + 36, 128, panelWidth - 72, 34,
+                id: page.Id + ".subtitle", size: TextSize.Sm, color: ColorToken.Hex(0xD7E0E7FF)),
         };
         AddButtons(nodes, page.Entries, selectedIndex,
             new GameMenuButtonLayout(left + 36, 190, panelWidth - 72, rowHeight, rowSpacing), new());
-        nodes.Add(Label(page.Id + ".footer", page.Footer, new Rect(left + 36, height - 106, panelWidth - 72, 28), TextSize.Sm, 0xD7E0E7FF));
+        nodes.Add(StandardUI.Label(page.Footer, left + 36, height - 106, panelWidth - 72, 28,
+            id: page.Id + ".footer", size: TextSize.Sm, color: ColorToken.Hex(0xD7E0E7FF)));
         return UI.Surface(id: page.Id, width: width, height: height, children: nodes);
     }
 
@@ -103,6 +105,7 @@ public static class GameMenuTemplate
             }
             uint foreground = entry.Disabled ? style.DisabledForeground : style.Foreground;
             UiNode button = StandardUI.Button(label,
+                layout.X, layout.Y + index * layout.RowSpacing, layout.Width, layout.Height,
                 id: layout.ButtonIdPrefix + entry.Id,
                 action: UiAction.Named(layout.ActionPrefix + entry.Id),
                 disabled: entry.Disabled,
@@ -113,8 +116,7 @@ public static class GameMenuTemplate
                     selected ? style.SelectedBorderWidth : style.BorderWidth,
                     new TextStyle(ColorToken.Hex(foreground), TextSize.Md, style.Alignment, TextAlignY.Center),
                     layout.Width, layout.Height, CornerRadius: style.CornerRadius, HorizontalPadding: style.HorizontalPadding));
-            nodes.Add(UI.Anchor(button, left: layout.X, top: layout.Y + index * layout.RowSpacing,
-                width: layout.Width, height: layout.Height));
+            nodes.Add(button);
         }
     }
 
@@ -131,9 +133,4 @@ public static class GameMenuTemplate
         }
     }
 
-    private static UiNode Label(string id, string text, Rect rect, TextSize size, uint color)
-    {
-        return UI.Anchor(UI.Text(text, id: id, color: ColorToken.Hex(color), size: size),
-            left: rect.X, top: rect.Y, width: rect.Width, height: rect.Height);
-    }
 }

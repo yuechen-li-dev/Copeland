@@ -8,11 +8,12 @@ using Machina.Fonts.Generation.MsdfSharp;
 using Machina.Fonts.Generation.Typography;
 using Machina.Fonts.ReferenceRendering;
 using Machina.Presentation;
+using Machina.Standard.Text;
 using FontRgba = Machina.Fonts.ReferenceRendering.Rgba32;
 
 namespace TinyFarm.Native;
 
-internal sealed class TinyFarmNativeUiFont
+internal sealed class TinyFarmNativeUiFont : IMachinaTextMeasurer
 {
     private const int MediumSize = 16;
     private const int HeadingSize = 24;
@@ -34,6 +35,14 @@ internal sealed class TinyFarmNativeUiFont
 
     public int CachedTextRunCount => textGeometry.Count;
     public int CachedTextRunCapacity => TextGeometryCapacity;
+
+    public MachinaTextSize Measure(string text, MachinaTextVariant variant, MachinaTextRunStyle style)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        int size = variant == MachinaTextVariant.Title ? HeadingSize : MediumSize;
+        DistanceFieldTextLayoutResult layout = Layout(atlases[size], text, 0, 0);
+        return new MachinaTextSize(layout.Width, size);
+    }
 
     public static TinyFarmNativeUiFont Create(string fontPath)
     {

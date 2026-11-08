@@ -6,4 +6,5 @@ namespace Machina.Standard.Components;
 public sealed record StandardTextBlockMetadata(
     MachinaTextSpec Text,
     ColorToken Foreground,
-    ColorToken? LinkForeground);
+    ColorToken? LinkForeground,
+    IMachinaTextMeasurer? Measurer = null);

@@ -1,11 +1,12 @@
 using Aurelian.GameWorld2D;
 using Machina.Core.Authoring;
 using Machina.Core.Nodes;
-using Machina.Core.Semantics;
 using Machina.Core.Styling;
 using Machina.Pipeline;
 using Machina.Presentation;
 using Machina.Runtime.Input;
+using Machina.Standard.Authoring;
+using Machina.Standard.Text;
 using TinyFarm.Core;
 using TinyFarm.InputMan;
 
@@ -13,6 +14,7 @@ namespace TinyFarm.Native;
 
 internal sealed class TinyFarmNativeUi(TinyFarmGame game)
 {
+    private IMachinaTextMeasurer textMeasurer = MachinaTextMeasurers.Deterministic;
     private TinyFarmUiKey? key;
     private MachinaPresentationFrame? resource;
     private MachinaPreparedPresentation? prepared;
@@ -24,6 +26,15 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
     private string? promptKey;
     private MachinaPresentationFrame? promptResource;
     public int Rebuilds { get; private set; }
+
+    public void SetTextMeasurer(IMachinaTextMeasurer measurer)
+    {
+        ArgumentNullException.ThrowIfNull(measurer);
+        textMeasurer = measurer;
+        key = null;
+        resource = null;
+        prepared = null;
+    }
 
     public MachinaPresentationFrame Resource(TinyFarmFrame frame)
     {
@@ -146,7 +157,8 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
         }
         clockKey = next;
         var nodes = new List<UiNode>();
-        Text(nodes, "clock", $"{frame.CurrentLocationName}  /  {frame.Time}", 0, 0, 400, TextSize.Md);
+        nodes.Add(StandardUI.Label($"{frame.CurrentLocationName}  /  {frame.Time}", 0, 0, 400,
+            id: "clock", color: TinyFarmUiTheme.Text));
         clockResource = Prepare(UI.Surface(id: "clock-surface", width: 400, height: 34, children: nodes), 400, 34);
         return clockResource;
     }
@@ -184,8 +196,9 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
         promptKey = prompt;
         var nodes = new List<UiNode>();
         int width = Math.Clamp(prompt.Length * 10 + 24, 100, 460);
-        Panel(nodes, "prompt", 0, 0, width, 32, 0x203D32EE);
-        Text(nodes, "prompt-text", prompt, 12, 6, width - 24, TextSize.Md, 0xFFF0BEFF);
+        nodes.Add(StandardUI.Panel(0, 0, width, 32, id: "prompt", style: TinyFarmUiTheme.Panel(0x203D32EE)));
+        nodes.Add(StandardUI.Label(prompt, 12, 6, width - 24,
+            id: "prompt-text", color: ColorToken.Hex(0xFFF0BEFF)));
         promptResource = Prepare(UI.Surface(id: "prompt-surface", width: 710, height: 38, children: nodes), 710, 38);
         return promptResource;
     }
@@ -253,7 +266,7 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
     {
         if (game.Screen is TinyFarmScreen.Inventory or TinyFarmScreen.Stats or TinyFarmScreen.Crafting or TinyFarmScreen.Container or TinyFarmScreen.Paused or TinyFarmScreen.Title)
         {
-            return TinyFarmMenuPresentation.Build(game);
+            return TinyFarmMenuPresentation.Build(game, textMeasurer);
         }
         return BuildHud();
     }
@@ -264,9 +277,11 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
         var nodes = new List<UiNode>();
         int health = game.State.Slice?.Health ?? 0;
         ActorState player = game.State.Actor(TinyFarmIds.Player);
-        Panel(nodes, "health", 24, 72, 225, 40, 0x19362BD9);
-        Text(nodes, "health-text", $"HP {health}/12  SP {player.Rpg?.SpiritCurrent ?? 0}/{player.Rpg?.SpiritMaximum ?? 0}",
-            36, 82, 210, TextSize.Md, 0xF5DDB5FF);
+        nodes.Add(StandardUI.Panel(24, 72, 225, 40, id: "health", style: TinyFarmUiTheme.Panel(), children:
+        [
+            StandardUI.Label($"HP {health}/12  SP {player.Rpg?.SpiritCurrent ?? 0}/{player.Rpg?.SpiritMaximum ?? 0}",
+                12, 10, 210, id: "health-text", color: TinyFarmUiTheme.Accent),
+        ]));
         string tool = game.State.SelectedHotbarSlot switch
         {
             1 => "TOOL: SEEDS / 1 + K",
@@ -274,24 +289,40 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
             4 => "SWORD / J",
             _ => "TOOL: TURNIP / 2 + K"
         };
-        Text(nodes, "selected-tool", tool, 36, 122, 210, TextSize.Md, 0xF5DDB5FF);
+        nodes.Add(StandardUI.Label(tool, 36, 122, 210, id: "selected-tool",
+            color: TinyFarmUiTheme.Accent));
         Journal(nodes);
-        Panel(nodes, "slice-status", 24, 662, 910, 36, 0x19362BD9);
-        Text(nodes, "slice-status-text", game.Status, 36, 672, 890, TextSize.Md);
+        nodes.Add(StandardUI.Panel(24, 662, 910, 36, id: "slice-status", style: TinyFarmUiTheme.Panel(), children:
+        [
+            StandardUI.Label(game.Status, 12, 10, 890, id: "slice-status-text",
+                color: TinyFarmUiTheme.Text),
+        ]));
         if (game.Dialogue.Presentation is { } dialogue)
         {
-            // The portrait layer draws the speaking character at the panel's left.
-            Panel(nodes, "dialogue", 250, 450, 850, 172, 0x19362BF5);
+            // Keep the panel's bottom fixed; measured body and choices determine its height.
             string speaker = game.Dialogue.SpeakingActor is ActorId actor ? game.State.Actor(actor).Name : string.Empty;
-            Text(nodes, "speaker", speaker.ToUpperInvariant(), 278, 466, 780, TextSize.Md, 0xF5DDB5FF);
-            Lines(nodes, "dialogue-body", dialogue.Text, 278, 498, 790, 76, TextSize.Md);
+            RectNode body = StandardUI.Paragraph(dialogue.Text, 790, id: "dialogue-body",
+                foreground: TinyFarmUiTheme.Text, measurer: textMeasurer);
+            var children = new List<UiNode>
+            {
+                StandardUI.Label(speaker.ToUpperInvariant(), 28, 16, 780, id: "speaker",
+                    color: TinyFarmUiTheme.Accent),
+                StandardUI.Place(body, 28, 48),
+            };
+            double nextY = 48 + body.Height!.Value + 8;
             for (int index = 0; index < dialogue.Choices.Count; index++)
             {
                 bool selected = dialogue.SelectedChoiceIndex == index;
-                Text(nodes, "choice-" + index, (selected ? ">  " : "    ") + dialogue.Choices[index].Text,
-                    296, 530 + index * 28, 760, TextSize.Md, selected ? 0xFFF0BEFF : 0xCEDCCFFF);
+                children.Add(StandardUI.Label((selected ? ">  " : "    ") + dialogue.Choices[index].Text,
+                    46, nextY, 760, height: 28, id: "choice-" + index,
+                    color: ColorToken.Hex(selected ? 0xFFF0BEFFu : 0xCEDCCFFFu)));
+                nextY += 28;
             }
-            Text(nodes, "dialogue-hint", "CLICK or SPACE next   /   UP-DOWN choose   /   ESC leave", 278, 590, 790, TextSize.Md);
+            double panelHeight = Math.Max(172, nextY + 48);
+            children.Add(StandardUI.Label("CLICK or SPACE next   /   UP-DOWN choose   /   ESC leave",
+                28, panelHeight - 32, 790, id: "dialogue-hint", color: TinyFarmUiTheme.Text));
+            nodes.Add(StandardUI.Panel(250, 622 - panelHeight, 850, panelHeight,
+                id: "dialogue", children: children, style: TinyFarmUiTheme.Panel(0x19362BF5)));
         }
         return UI.Surface(id: "opening-slice", width: 1280, height: 720, children: nodes);
     }
@@ -309,51 +340,23 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
         {
             return;
         }
-        int panelIndex = nodes.Count;
-        Text(nodes, "journal-title", game.JournalTitle, 930, 106, 310, TextSize.Md, 0xF5DDB5FF);
-        int y = 140;
-        foreach (string objective in objectives)
+        var children = new List<UiNode>
         {
-            int rows = Lines(nodes, "objective-" + y, objective, 930, y, 316, 30, TextSize.Sm);
-            y += rows * 25 + 6;
-        }
-        // The panel goes underneath the text, sized to what was written.
-        var panel = new List<UiNode>();
-        Panel(panel, "journal", 912, 96, 344, y - 96 + 8, 0x19362BD9);
-        nodes.InsertRange(panelIndex, panel);
-    }
-
-    internal static void Panel(List<UiNode> nodes, string id, int x, int y, int width, int height, uint color = 0x163D31F5)
-    {
-        nodes.Add(UI.Anchor(UI.Rect(id: id, style: new UiStyle(Background: ColorToken.Hex(color),
-            BorderColor: ColorToken.Hex(0x8DA48180), BorderThickness: 1, Shape: UiShapeKind.RoundedRect, CornerRadius: 12)),
-            id: id + "-anchor", left: x, top: y, width: width, height: height));
-    }
-
-    internal static void Text(List<UiNode> nodes, string id, string text, int x, int y, int width, TextSize size, uint color = 0xE7EBDDFF)
-    {
-        nodes.Add(UI.Anchor(UI.Text(text, id: id, color: ColorToken.Hex(color), size: size),
-            id: id + "-anchor", left: x, top: y, width: width, height: 34));
-    }
-
-    /// <summary>Word-wrapped text, 25 pixels per row. Returns the number of rows written.</summary>
-    private static int Lines(List<UiNode> nodes, string id, string text, int x, int y, int width, int characters, TextSize size)
-    {
-        string line = "";
-        int row = 0;
-        foreach (string word in text.Split(' '))
+            StandardUI.Label(game.JournalTitle, 18, 10, 310, id: "journal-title",
+                color: TinyFarmUiTheme.Accent),
+        };
+        double nextY = 44;
+        for (int index = 0; index < objectives.Length; index++)
         {
-            if (line.Length + word.Length > characters && line.Length > 0)
-            {
-                Text(nodes, id + row, line, x, y + row * 25, width, size);
-                row++;
-                line = "";
-            }
-            line += (line.Length == 0 ? "" : " ") + word;
+            RectNode paragraph = StandardUI.Paragraph(objectives[index], 316, id: "objective-" + index,
+                variant: MachinaTextVariant.Caption, foreground: TinyFarmUiTheme.Text, measurer: textMeasurer);
+            children.Add(StandardUI.Place(paragraph, 18, nextY));
+            nextY += paragraph.Height!.Value + 6;
         }
-        Text(nodes, id + row, line, x, y + row * 25, width, size);
-        return row + 1;
+        nodes.Add(StandardUI.Panel(912, 96, 344, nextY + 8,
+            id: "journal", children: children, style: TinyFarmUiTheme.Panel()));
     }
+
 }
 
 internal readonly record struct TinyFarmUiKey(

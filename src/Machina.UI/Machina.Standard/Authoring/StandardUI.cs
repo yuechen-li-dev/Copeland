@@ -9,7 +9,7 @@ using Machina.Standard.Theme;
 
 namespace Machina.Standard.Authoring;
 
-public static class StandardUI
+public static partial class StandardUI
 {
     public static UiNode Button(
         string text,
@@ -69,9 +69,10 @@ public static class StandardUI
         ColorToken? foreground = null,
         ColorToken? linkForeground = null,
         double? width = null,
-        double? height = null)
+        double? height = null,
+        IMachinaTextMeasurer? measurer = null)
     {
-        return Components.TextBlock.Create(text, id, theme, foreground, linkForeground, width, height);
+        return Components.TextBlock.Create(text, id, theme, foreground, linkForeground, width, height, measurer);
     }
 
     public static UiNode Field(UiNode control, NodeId? id = null, string? label = null, string? description = null, string? error = null, StandardTheme? theme = null)

@@ -154,7 +154,7 @@ public static class MachinaPresentationFrameBuilder
         MachinaTextLayoutResult layout = MachinaTextLayoutEngine.Layout(
             metadata.Text,
             new MachinaTextBox(node.Rect.X, node.Rect.Y, node.Rect.Width, node.Rect.Height),
-            MachinaTextMeasurers.Deterministic);
+            metadata.Measurer ?? MachinaTextMeasurers.Deterministic);
 
         var textStyle = new MachinaTextPresentationStyle(
             new TextStyle(
