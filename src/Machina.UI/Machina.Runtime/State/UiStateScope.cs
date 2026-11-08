@@ -32,9 +32,15 @@ public sealed class UiStateScope : IDisposable
     public int Count => values.Count;
     public CancellationToken Lifetime { get; }
 
+    public T GetOrCreate<T>(UiStateKey<T> key, Func<T> create) where T : class
+    {
+        return GetOrCreate(key.Id, create, key.Lifetime);
+    }
+
     public T GetOrCreate<T>(NodeId id, Func<T> create, UiStateLifetime lifetime = UiStateLifetime.Scope) where T : class
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
+        ArgumentException.ThrowIfNullOrWhiteSpace(id.Value);
         ArgumentNullException.ThrowIfNull(create);
         if (values.TryGetValue(id, out object? value))
         {

@@ -40,6 +40,6 @@ public static class Card
             return null;
         }
 
-        return new NodeId($"{value.Value}.{suffix}");
+        return value.Child(suffix);
     }
 }

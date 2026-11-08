@@ -113,6 +113,15 @@ this surface.
 
 ## Preparation caching and widget lifetimes
 
+For stable identity and action dispatch, use `UiIdFamily<TKey>`,
+`UiAction<TMessage>`, and `UiActionFamily<TKey, TMessage>` from Machina.Core.
+Compose child IDs with `NodeId.Child`; put domain IDs in immutable action messages
+instead of concatenating them into command strings. `StandardUI.Button(text,
+action, x, y, width, ...)` supplies an action-derived node ID by default, and
+`UiTableRow.Id` accepts a typed `NodeId`. Declare typed widget slots with
+`UiStateKey<T>`. See [typed identity and actions](architecture/machina-typed-identity-and-actions.md)
+for examples, migration details and the external playtest lookup boundary.
+
 Use `MachinaPresentationCache.Prepare(declaration, width, height)` to reuse layout,
 text presentation and hit testing for an unchanged declaration. Reconstruct the pure
 declaration on each request; the cache compares values, including ordered children,

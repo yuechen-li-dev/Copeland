@@ -221,12 +221,11 @@ public sealed class TinyFarmApp : IGame
 
     public (double X, double Y)? ActionPoint(string action, GameViewRequest surface)
     {
-        if (!game.IsModalMenu || !ui.ActionNames(frame).Contains(action, StringComparer.Ordinal))
+        if (!game.IsModalMenu || !ui.TryActionCenter(frame, action, out PointerPoint point))
         {
             return null;
         }
         var target = layout with { Width = surface.Width, Height = surface.Height };
-        PointerPoint point = ui.ActionCenter(frame, action);
         double x = target.UiLeft + point.X * target.UiScale;
         double y = target.UiTop + point.Y * target.UiScale;
         return (x / surface.Width, y / surface.Height);

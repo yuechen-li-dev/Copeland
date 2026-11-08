@@ -2,20 +2,21 @@ using Machina.Core.Actions;
 using Machina.Core.Authoring;
 using Machina.Core.Nodes;
 using Machina.Core.Styling;
+using Machina.Layout.Rows;
 using Machina.Standard.Theme;
 
 namespace Machina.Standard.Authoring;
 
 public sealed record UiTableColumn(string Label, double Width, UiAction? SortAction = null);
-public sealed record UiTableRow(string Id, IReadOnlyList<string> Cells, UiAction? SelectAction, bool Selected = false);
+public sealed record UiTableRow(NodeId Id, IReadOnlyList<string> Cells, UiAction? SelectAction, bool Selected = false);
 
 /// <summary>A bounded visible table window. Hosts own querying and scroll/selection state.</summary>
 public static class UiDataTable
 {
-    public static UiNode Build(string id, IReadOnlyList<UiTableColumn> columns,
+    public static UiNode Build(NodeId id, IReadOnlyList<UiTableColumn> columns,
         IReadOnlyList<UiTableRow> rows, double headerHeight = 36, StandardColors? colors = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(id.Value);
         ArgumentNullException.ThrowIfNull(columns);
         ArgumentNullException.ThrowIfNull(rows);
         if (columns.Count == 0 || !double.IsFinite(headerHeight) || headerHeight <= 0
@@ -30,14 +31,19 @@ public static class UiDataTable
         for (int column = 0; column < columns.Count; column++)
         {
             UiTableColumn definition = columns[column];
-            nodes.Add(UI.Anchor(Cell(definition.Label, $"{id}.header.{column}",
+            nodes.Add(UI.Anchor(Cell(definition.Label, id.Child("header").Child(column),
                 definition.SortAction, palette.Secondary, palette, definition.Width, headerHeight),
                 left: x, top: 0, width: definition.Width, height: headerHeight));
             x += definition.Width;
         }
+        var rowIds = new HashSet<NodeId>();
         for (int row = 0; row < rows.Count; row++)
         {
             UiTableRow data = rows[row];
+            if (!rowIds.Add(data.Id))
+            {
+                throw new ArgumentException($"Duplicate table row identity '{data.Id}'.", nameof(rows));
+            }
             if (data.Cells.Count != columns.Count)
             {
                 throw new ArgumentException("Table rows must match the column count.", nameof(rows));
@@ -50,7 +56,7 @@ public static class UiDataTable
             }
             for (int column = 0; column < columns.Count; column++)
             {
-                nodes.Add(UI.Anchor(Cell(data.Cells[column], $"{id}.row.{data.Id}.{column}",
+                nodes.Add(UI.Anchor(Cell(data.Cells[column], id.Child("row").Child(data.Id.Value).Child(column),
                     data.SelectAction, background, palette, columns[column].Width, UiTableLayout.RowHeight),
                     left: x, top: headerHeight + row * UiTableLayout.RowHeight,
                     width: columns[column].Width, height: UiTableLayout.RowHeight));
@@ -59,10 +65,10 @@ public static class UiDataTable
         }
         return UI.Rect(id: id, width: width,
             height: headerHeight + Math.Max(1, rows.Count) * UiTableLayout.RowHeight,
-            child: UI.Layer(id: id + ".cells", children: nodes));
+            child: UI.Layer(id: id.Child("cells"), children: nodes));
     }
 
-    private static UiNode Cell(string text, string id, UiAction? action, ColorToken background,
+    private static UiNode Cell(string text, NodeId id, UiAction? action, ColorToken background,
         StandardColors colors, double width, double height)
     {
         UiNode button = StandardUI.Button(text, id: id, action: action,

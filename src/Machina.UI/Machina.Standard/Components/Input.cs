@@ -47,6 +47,6 @@ public static class Input
             return null;
         }
 
-        return new NodeId($"{value.Value}.{suffix}");
+        return value.Child(suffix);
     }
 }

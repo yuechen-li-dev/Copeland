@@ -1,11 +1,12 @@
 using InputMan.Core;
 using TinyFarm.Core;
+using static TinyFarm.InputMan.TinyFarmMenuMessage;
 
 namespace TinyFarm.InputMan;
 
 public sealed partial class TinyFarmGame
 {
-    private TinyFarmContainerViewState ContainerState => UiScope.GetOrCreate("container.rows", () => new TinyFarmContainerViewState());
+    private TinyFarmContainerViewState ContainerState => UiScope.GetOrCreate(TinyFarmUiStateKeys.Container, () => new TinyFarmContainerViewState());
     public ActorId? OpenContainer
     {
         get => ContainerState.Container;
@@ -48,7 +49,10 @@ public sealed partial class TinyFarmGame
     {
         ActorId owner = deposit ? TinyFarmIds.Player : OpenContainer ?? TinyFarmIds.Player;
         return TinyFarmInventory.Project(State, Definitions, owner)
-            .OrderBy(row => row.Name, StringComparer.Ordinal).ThenBy(row => row.Key, StringComparer.Ordinal).ToArray();
+            .OrderBy(row => row.Name, StringComparer.Ordinal)
+            .ThenBy(row => row.Key is TinyFarmInventoryKey.Product)
+            .ThenBy(row => row.Key.Value, StringComparer.Ordinal)
+            .ToArray();
     }
 
     public bool ContainerRowProtected(TinyFarmInventoryRow row)
@@ -57,17 +61,16 @@ public sealed partial class TinyFarmGame
             || row.Product is ProductId product && Definitions.Item(product).IsKeyItem;
     }
 
-    public void HandleContainerAction(string action)
+    private void HandleContainerAction(TinyFarmMenuMessage action)
     {
-        if (action == "quantity:one" || action == "quantity:stack")
+        if (action is MoveStack(var moveStack))
         {
-            ContainerMoveStack = action == "quantity:stack";
+            ContainerMoveStack = moveStack;
             return;
         }
-        if (action.StartsWith("page:", StringComparison.Ordinal))
+        if (action is ContainerPage(var side, var direction) && Enum.IsDefined(side) && direction is -1 or 1)
         {
-            bool deposit = action.StartsWith("page:bag:", StringComparison.Ordinal);
-            int direction = action.EndsWith("next", StringComparison.Ordinal) ? 1 : -1;
+            bool deposit = side == TinyFarmContainerSide.Bag;
             int offset = deposit ? ContainerPlayerOffset : ContainerChestOffset;
             int maximum = Math.Max(0, (ContainerRows(deposit).Count - 1) / ContainerPageSize * ContainerPageSize);
             offset = Math.Clamp(offset + direction * ContainerPageSize, 0, maximum);
@@ -82,13 +85,11 @@ public sealed partial class TinyFarmGame
             ContainerSelection = 0;
             return;
         }
-        bool put = action.StartsWith("deposit:", StringComparison.Ordinal);
-        bool take = action.StartsWith("withdraw:", StringComparison.Ordinal);
-        if ((!put && !take) || OpenContainer is not ActorId chest)
+        if (action is not Transfer(var source, var key) || !Enum.IsDefined(source) || OpenContainer is not ActorId chest)
         {
             return;
         }
-        string key = action[(put ? 8 : 9)..];
+        bool put = source == TinyFarmContainerSide.Bag;
         TinyFarmInventoryRow? row = ContainerRows(put).FirstOrDefault(value => value.Key == key);
         if (row is null)
         {
@@ -121,8 +122,8 @@ public sealed partial class TinyFarmGame
         }
         if (input.WasPressed(GameControls.UiConfirm) && ContainerSelection < rows.Length)
         {
-            string prefix = ContainerDepositSide ? "deposit:" : "withdraw:";
-            HandleContainerAction(prefix + rows[ContainerSelection].Key);
+            TinyFarmContainerSide side = ContainerDepositSide ? TinyFarmContainerSide.Bag : TinyFarmContainerSide.Chest;
+            DispatchMenu(TinyFarmUiActions.Transfer(side, rows[ContainerSelection].Key));
         }
     }
 

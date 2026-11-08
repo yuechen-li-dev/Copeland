@@ -99,6 +99,6 @@ public static class StandardButton
             return null;
         }
 
-        return new NodeId($"{value.Value}.{suffix}");
+        return value.Child(suffix);
     }
 }

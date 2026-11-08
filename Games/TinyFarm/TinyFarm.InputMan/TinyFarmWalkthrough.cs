@@ -126,7 +126,7 @@ public sealed class TinyFarmWalkthrough(TinyFarmGame game)
         Act(new InteractIntent());
         Act(new CraftIntent(stove.ObjectId, [new CookingRecipeInput(TinyFarmIds.HenOfTheWoods, 1)],
             TinyFarmIds.SauteedHenOfTheWoodsRecipe));
-        game.DispatchMenu("close");
+        game.DispatchMenu(TinyFarmUiActions.Close);
         Portal("residence-exit");
     }
 

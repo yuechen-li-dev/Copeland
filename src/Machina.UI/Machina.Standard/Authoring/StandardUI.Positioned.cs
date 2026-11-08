@@ -13,6 +13,26 @@ namespace Machina.Standard.Authoring;
 
 public static partial class StandardUI
 {
+    /// <summary>A positioned action button with stable identity derived from its action ID.</summary>
+    public static UiNode Button(
+        string text,
+        UiAction action,
+        double x,
+        double y,
+        double width,
+        double height = 34,
+        NodeId? id = null,
+        ButtonVariant variant = ButtonVariant.Default,
+        ButtonSize size = ButtonSize.Medium,
+        bool disabled = false,
+        StandardTheme? theme = null,
+        StandardButtonStyle? style = null)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        return Button(text, x, y, width, height, id ?? action.Id.ToNodeId(), action,
+            variant, size, disabled, theme, style);
+    }
+
     /// <summary>Places any component in coordinates relative to its parent.</summary>
     public static UiNode Place(UiNode child, double x, double y, double width, double height)
     {

@@ -185,15 +185,15 @@ public sealed class TinyFarmCraftingA2Tests
         game.Execute(new InteractIntent());
         Assert.Equal(TinyFarmScreen.Crafting, game.Screen);
         Assert.DoesNotContain(GameControls.Gameplay, game.Contexts);
-        game.DispatchMenu("add:turnip");
-        game.DispatchMenu("add:water");
+        game.DispatchMenu(TinyFarmUiActions.AddIngredients[TinyFarmIds.Turnip]);
+        game.DispatchMenu(TinyFarmUiActions.AddIngredients[TinyFarmCraftingContent.Water]);
         var engine = new InputManEngine(GameControls.CreateProfile());
         engine.SetMaps(game.Contexts);
         engine.Tick(new InputSnapshot(new Dictionary<ControlKey, bool> { [Controls.Key(KeyboardKey.W)] = true }, new Dictionary<ControlKey, float>()), .016f, 0);
         game.Handle(engine.CurrentFrame);
         game.Advance(TimeSpan.FromSeconds(2), engine.CurrentFrame, true);
         Assert.Equal(hash, TinyFarmSemanticHash.Compute(game.State));
-        game.DispatchMenu("craft");
+        game.DispatchMenu(TinyFarmUiActions.Craft);
         Assert.Equal(1, game.State.ProductCount(TinyFarmIds.Player, TinyFarmCraftingContent.Soup));
         game.BackFromMenu();
         Assert.Equal(TinyFarmScreen.Playing, game.Screen);

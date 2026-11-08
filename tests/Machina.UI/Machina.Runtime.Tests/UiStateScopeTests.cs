@@ -6,6 +6,19 @@ namespace Machina.Runtime.Tests;
 public sealed class UiStateScopeTests
 {
     [Fact]
+    public void TypedStateKeyCarriesTheValueTypeAndActivationLifetime()
+    {
+        var key = new UiStateKey<UiState<string>>("search", UiStateLifetime.Activation);
+        using var scope = new UiStateScope();
+        UiState<string> state = scope.GetOrCreate(key, () => new UiState<string>("query"));
+        Assert.Same(state, scope.GetOrCreate(key, () => new UiState<string>("other")));
+        scope.Suspend();
+        Assert.NotSame(state, scope.GetOrCreate(key, () => new UiState<string>("fresh")));
+        Assert.Throws<ArgumentNullException>(() => scope.GetOrCreate(default(UiStateKey<UiState<string>>),
+            () => new UiState<string>("invalid")));
+    }
+
+    [Fact]
     public void SuspensionForgetsInputCaptureAndPreservesScreenValues()
     {
         using var scope = new UiStateScope();

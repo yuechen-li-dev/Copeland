@@ -2,6 +2,7 @@ using Machina.Core.Actions;
 using Machina.Core.Authoring;
 using Machina.Core.Nodes;
 using Machina.Core.Styling;
+using Machina.Layout.Rows;
 using Machina.Standard.Authoring;
 using Machina.Standard.Theme;
 
@@ -10,7 +11,14 @@ namespace Aurelian.GameMenus;
 /// <summary>
 /// A menu row. <paramref name="Value"/> renders after the label; adjustable rows step their value with left/right.
 /// </summary>
-public sealed record GameMenuEntry(string Id, string Label, bool Disabled = false, string? Value = null, bool Adjustable = false)
+public sealed record GameMenuEntry(
+    string Id,
+    string Label,
+    bool Disabled = false,
+    string? Value = null,
+    bool Adjustable = false,
+    UiAction? Action = null,
+    NodeId? NodeId = null)
 {
     public string DisplayText => Value is null
         ? Label
@@ -104,10 +112,23 @@ public static class GameMenuTemplate
                 label = (selected ? "*" : " ") + " " + label;
             }
             uint foreground = entry.Disabled ? style.DisabledForeground : style.Foreground;
+            NodeId buttonId;
+            if (entry.NodeId is { } explicitId)
+            {
+                buttonId = explicitId;
+            }
+            else if (entry.Action is { } typedAction)
+            {
+                buttonId = typedAction.Id.ToNodeId();
+            }
+            else
+            {
+                buttonId = new NodeId(layout.ButtonIdPrefix + entry.Id);
+            }
             UiNode button = StandardUI.Button(label,
                 layout.X, layout.Y + index * layout.RowSpacing, layout.Width, layout.Height,
-                id: layout.ButtonIdPrefix + entry.Id,
-                action: UiAction.Named(layout.ActionPrefix + entry.Id),
+                id: buttonId,
+                action: entry.Action ?? UiAction.Named(layout.ActionPrefix + entry.Id),
                 disabled: entry.Disabled,
                 style: new StandardButtonStyle(
                     ColorToken.Hex(selected ? style.SelectedBackground : style.Background),

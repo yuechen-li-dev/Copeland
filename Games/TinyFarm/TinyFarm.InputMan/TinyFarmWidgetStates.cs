@@ -18,7 +18,7 @@ internal sealed class TinyFarmInventoryViewState
     public InventorySort Sort { get; set; }
     public bool Descending { get; set; }
     public bool EquipmentOnly { get; set; }
-    public string? SelectedKey { get; set; }
+    public TinyFarmInventoryKey? SelectedKey { get; set; }
     public int Offset { get; set; }
 }
 
@@ -32,7 +32,7 @@ internal sealed class TinyFarmStatsViewState
 internal sealed class TinyFarmPauseViewState
 {
     public int Selection { get; set; }
-    public string? Confirmation { get; set; }
+    public TinyFarmConfirmation? Confirmation { get; set; }
 }
 
 internal sealed class TinyFarmCraftingViewState

@@ -1029,11 +1029,15 @@ internal sealed class TinyFarmNativeOverlay(
             PositionedTextOperation positionedText => positionedText.SourceId,
             _ => null,
         };
-        return sourceId is not null
-            && (sourceId.StartsWith("dialogue", StringComparison.Ordinal)
-                || sourceId.StartsWith("speaker", StringComparison.Ordinal)
-                || sourceId.StartsWith("choice-", StringComparison.Ordinal)
-                || sourceId.StartsWith("modal", StringComparison.Ordinal));
+        if (sourceId is null)
+        {
+            return false;
+        }
+        var node = new Machina.Layout.Rows.NodeId(sourceId);
+        return node.IsWithin(TinyFarmUiIds.Nodes[TinyFarmUiNode.Dialogue])
+            || node.IsWithin(TinyFarmUiIds.Nodes[TinyFarmUiNode.DialogueBody])
+            || node.IsWithin(TinyFarmUiIds.Nodes[TinyFarmUiNode.Speaker])
+            || node.IsWithin(TinyFarmUiIds.Nodes[TinyFarmUiNode.DialogueHint]);
     }
 
     private static MachinaAnalyticShapePrimitive Offset(

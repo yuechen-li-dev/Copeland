@@ -1,5 +1,6 @@
 using Aurelian.GameWorld2D;
 using Machina.Core.Authoring;
+using Machina.Core.Actions;
 using Machina.Core.Nodes;
 using Machina.Core.Styling;
 using Machina.Pipeline;
@@ -15,19 +16,31 @@ namespace TinyFarm.Native;
 
 internal sealed class TinyFarmNativeUi(TinyFarmGame game)
 {
+    private enum ViewLayer
+    {
+        Base,
+        Clock,
+        Prompt,
+        Inspector,
+    }
+
+    private static readonly UiIdFamily<ViewLayer> CacheIds = new("presentation", value => value.ToString());
+    private static readonly UiStateKey<UiPointerActivation> PointerKey = new("input.pointer", UiStateLifetime.Activation);
+    private static readonly UiStateKey<UiState<ScrollbarInteractionState>> DragKey = new("input.stats-drag", UiStateLifetime.Activation);
+
     private IMachinaTextMeasurer textMeasurer = MachinaTextMeasurers.Deterministic;
     public int Rebuilds { get; private set; }
 
-    private UiPointerActivation PressState => game.UiScope.GetOrCreate("input.pointer",
-        () => new UiPointerActivation(), UiStateLifetime.Activation);
-    private UiState<ScrollbarInteractionState> StatsDrag => game.UiScope.GetOrCreate("agent-properties.scrollbar",
-        () => new UiState<ScrollbarInteractionState>(ScrollbarInteractionState.Default), UiStateLifetime.Activation);
+    private UiPointerActivation PressState => game.UiScope.GetOrCreate(PointerKey,
+        () => new UiPointerActivation());
+    private UiState<ScrollbarInteractionState> StatsDrag => game.UiScope.GetOrCreate(DragKey,
+        () => new UiState<ScrollbarInteractionState>(ScrollbarInteractionState.Default));
 
     public void SetTextMeasurer(IMachinaTextMeasurer measurer)
     {
         ArgumentNullException.ThrowIfNull(measurer);
         textMeasurer = measurer;
-        Cache("presentation.base").Invalidate();
+        Cache(ViewLayer.Base).Invalidate();
     }
 
     public MachinaPresentationFrame Resource(TinyFarmFrame frame)
@@ -37,16 +50,16 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
 
     private MachinaPreparedPresentation PrepareBase(TinyFarmFrame frame)
     {
-        MachinaPresentationCache cache = Cache("presentation.base");
+        MachinaPresentationCache cache = Cache(ViewLayer.Base);
         int before = cache.Preparations;
         MachinaPreparedPresentation prepared = cache.Prepare(Build(frame), 1280, 720);
         Rebuilds += cache.Preparations - before;
         return prepared;
     }
 
-    private MachinaPresentationCache Cache(string id)
+    private MachinaPresentationCache Cache(ViewLayer layer)
     {
-        return game.UiScope.GetOrCreate(id, () => new MachinaPresentationCache());
+        return game.UiScope.GetOrCreate(new UiStateKey<MachinaPresentationCache>(CacheIds[layer]), () => new MachinaPresentationCache());
     }
 
     public void Pointer(TinyFarmFrame frame, PointerPoint point, bool down)
@@ -66,7 +79,7 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
         }
         if (press.Release(hit) is { } action)
         {
-            game.DispatchMenu(action.Name);
+            game.TryDispatchMenu(action);
         }
     }
 
@@ -120,17 +133,24 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
             && point.Y >= rect.Y && point.Y < rect.Y + rect.Height;
     }
 
-    public PointerPoint ActionCenter(TinyFarmFrame frame, string action)
+    public PointerPoint ActionCenter(TinyFarmFrame frame, UiAction action)
     {
         MachinaPreparedPresentation prepared = PrepareBase(frame);
-        var entry = prepared.Lowering.Actions.First(pair => pair.Value.Name == action);
-        var rect = prepared.Resolved.Nodes[entry.Key].Rect;
-        return new PointerPoint(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
+        if (prepared.TryGetActionCenter(action, out PointerPoint point))
+        {
+            return point;
+        }
+        throw new ArgumentException($"No visible action '{action.Name}'.", nameof(action));
     }
 
-    public string[] ActionNames(TinyFarmFrame frame)
+    public bool TryActionCenter(TinyFarmFrame frame, string alias, out PointerPoint point)
     {
-        return PrepareBase(frame).Lowering.Actions.Values.Select(action => action.Name).Distinct().ToArray();
+        if (string.IsNullOrWhiteSpace(alias))
+        {
+            point = default;
+            return false;
+        }
+        return PrepareBase(frame).TryGetActionCenter(new UiActionId(alias), out point);
     }
 
     public TinyFarmUiResources Resources(TinyFarmFrame frame)
@@ -142,32 +162,32 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
     {
         string viewportText = $"{layout.Width}x{layout.Height} | world {layout.WorldScale:0.0} px/m | HUD {game.Presentation.HudVisible}";
         var nodes = new List<UiNode>();
-        nodes.Add(StandardUI.Panel(0, 0, 760, 184, id: "inspector", style: TinyFarmUiTheme.Panel(0x102D25EE)));
+        nodes.Add(StandardUI.Panel(0, 0, 760, 184, id: TinyFarmUiIds.Nodes[TinyFarmUiNode.Inspector], style: TinyFarmUiTheme.Panel(0x102D25EE)));
         nodes.Add(StandardUI.Label("OBLIVION / PRESENTATION / F10", 14, 10, 720,
-            id: "inspect-title", color: TinyFarmUiTheme.Text));
+            id: TinyFarmUiIds.Nodes[TinyFarmUiNode.InspectTitle], color: TinyFarmUiTheme.Text));
         nodes.Add(StandardUI.Label(viewportText, 14, 38, 720,
-            id: "inspect-viewport", color: TinyFarmUiTheme.Text));
+            id: TinyFarmUiIds.Nodes[TinyFarmUiNode.InspectViewport], color: TinyFarmUiTheme.Text));
         nodes.Add(StandardUI.Label(game.LiveInspection.Presentation?.Sampling ?? "No sampler facts", 14, 66, 730,
-            id: "inspect-sampling", color: TinyFarmUiTheme.Text));
+            id: TinyFarmUiIds.Nodes[TinyFarmUiNode.InspectSampling], color: TinyFarmUiTheme.Text));
         nodes.Add(StandardUI.Label("World projection independent of HUD / semantic state untouched", 14, 94, 730,
-            id: "inspect-authority", color: TinyFarmUiTheme.Text));
+            id: TinyFarmUiIds.Nodes[TinyFarmUiNode.InspectAuthority], color: TinyFarmUiTheme.Text));
         string[] detail = (game.LiveInspection.Presentation?.Detail ?? "No native detail facts").Split("; ");
         for (int line = 0; line < detail.Length; line++)
         {
             nodes.Add(StandardUI.Label(detail[line], 14, 122 + line * 28, 730,
-                id: "inspect-detail-" + line, color: TinyFarmUiTheme.Text));
+                id: TinyFarmUiIds.InspectorDetails[line], color: TinyFarmUiTheme.Text));
         }
-        var node = UI.Surface(id: "presentation-inspector", width: 760, height: 184, children: nodes);
-        return Cache("presentation.inspector").Prepare(node, 760, 184).PresentationFrame;
+        var node = UI.Surface(id: TinyFarmUiIds.Nodes[TinyFarmUiNode.PresentationInspector], width: 760, height: 184, children: nodes);
+        return Cache(ViewLayer.Inspector).Prepare(node, 760, 184).PresentationFrame;
     }
 
     private MachinaPresentationFrame ClockResource(TinyFarmFrame frame)
     {
         var nodes = new List<UiNode>();
         nodes.Add(StandardUI.Label($"{frame.CurrentLocationName}  /  {frame.Time}", 0, 0, 400,
-            id: "clock", color: TinyFarmUiTheme.Text));
-        return Cache("presentation.clock").Prepare(
-            UI.Surface(id: "clock-surface", width: 400, height: 34, children: nodes), 400, 34).PresentationFrame;
+            id: TinyFarmUiIds.Nodes[TinyFarmUiNode.Clock], color: TinyFarmUiTheme.Text));
+        return Cache(ViewLayer.Clock).Prepare(
+            UI.Surface(id: TinyFarmUiIds.Nodes[TinyFarmUiNode.ClockSurface], width: 400, height: 34, children: nodes), 400, 34).PresentationFrame;
     }
 
     private MachinaPresentationFrame? PromptResource(TinyFarmFrame frame)
@@ -198,11 +218,11 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
         }
         var nodes = new List<UiNode>();
         int width = Math.Clamp(prompt.Length * 10 + 24, 100, 460);
-        nodes.Add(StandardUI.Panel(0, 0, width, 32, id: "prompt", style: TinyFarmUiTheme.Panel(0x203D32EE)));
+        nodes.Add(StandardUI.Panel(0, 0, width, 32, id: TinyFarmUiIds.Nodes[TinyFarmUiNode.Prompt], style: TinyFarmUiTheme.Panel(0x203D32EE)));
         nodes.Add(StandardUI.Label(prompt, 12, 6, width - 24,
-            id: "prompt-text", color: ColorToken.Hex(0xFFF0BEFF)));
-        return Cache("presentation.prompt").Prepare(
-            UI.Surface(id: "prompt-surface", width: 710, height: 38, children: nodes), 710, 38).PresentationFrame;
+            id: TinyFarmUiIds.Nodes[TinyFarmUiNode.PromptText], color: ColorToken.Hex(0xFFF0BEFF)));
+        return Cache(ViewLayer.Prompt).Prepare(
+            UI.Surface(id: TinyFarmUiIds.Nodes[TinyFarmUiNode.PromptSurface], width: 710, height: 38, children: nodes), 710, 38).PresentationFrame;
     }
 
     private string PlotPrompt(InteractionTarget target)
@@ -246,10 +266,10 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
         var nodes = new List<UiNode>();
         int health = game.State.Slice?.Health ?? 0;
         ActorState player = game.State.Actor(TinyFarmIds.Player);
-        nodes.Add(StandardUI.Panel(24, 72, 225, 40, id: "health", style: TinyFarmUiTheme.Panel(), children:
+        nodes.Add(StandardUI.Panel(24, 72, 225, 40, id: TinyFarmUiIds.Nodes[TinyFarmUiNode.Health], style: TinyFarmUiTheme.Panel(), children:
         [
             StandardUI.Label($"HP {health}/12  SP {player.Rpg?.SpiritCurrent ?? 0}/{player.Rpg?.SpiritMaximum ?? 0}",
-                12, 10, 210, id: "health-text", color: TinyFarmUiTheme.Accent),
+                12, 10, 210, id: TinyFarmUiIds.Nodes[TinyFarmUiNode.HealthText], color: TinyFarmUiTheme.Accent),
         ]));
         string tool = game.State.SelectedHotbarSlot switch
         {
@@ -258,23 +278,23 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
             4 => "SWORD / J",
             _ => "TOOL: TURNIP / 2 + K"
         };
-        nodes.Add(StandardUI.Label(tool, 36, 122, 210, id: "selected-tool",
+        nodes.Add(StandardUI.Label(tool, 36, 122, 210, id: TinyFarmUiIds.Nodes[TinyFarmUiNode.SelectedTool],
             color: TinyFarmUiTheme.Accent));
         Journal(nodes);
-        nodes.Add(StandardUI.Panel(24, 662, 910, 36, id: "slice-status", style: TinyFarmUiTheme.Panel(), children:
+        nodes.Add(StandardUI.Panel(24, 662, 910, 36, id: TinyFarmUiIds.Nodes[TinyFarmUiNode.SliceStatus], style: TinyFarmUiTheme.Panel(), children:
         [
-            StandardUI.Label(game.Status, 12, 10, 890, id: "slice-status-text",
+            StandardUI.Label(game.Status, 12, 10, 890, id: TinyFarmUiIds.Nodes[TinyFarmUiNode.SliceStatusText],
                 color: TinyFarmUiTheme.Text),
         ]));
         if (game.Dialogue.Presentation is { } dialogue)
         {
             // Keep the panel's bottom fixed; measured body and choices determine its height.
             string speaker = game.Dialogue.SpeakingActor is ActorId actor ? game.State.Actor(actor).Name : string.Empty;
-            RectNode body = StandardUI.Paragraph(dialogue.Text, 790, id: "dialogue-body",
+            RectNode body = StandardUI.Paragraph(dialogue.Text, 790, id: TinyFarmUiIds.Nodes[TinyFarmUiNode.DialogueBody],
                 foreground: TinyFarmUiTheme.Text, measurer: textMeasurer);
             var children = new List<UiNode>
             {
-                StandardUI.Label(speaker.ToUpperInvariant(), 28, 16, 780, id: "speaker",
+                StandardUI.Label(speaker.ToUpperInvariant(), 28, 16, 780, id: TinyFarmUiIds.Nodes[TinyFarmUiNode.Speaker],
                     color: TinyFarmUiTheme.Accent),
                 StandardUI.Place(body, 28, 48),
             };
@@ -283,17 +303,17 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
             {
                 bool selected = dialogue.SelectedChoiceIndex == index;
                 children.Add(StandardUI.Label((selected ? ">  " : "    ") + dialogue.Choices[index].Text,
-                    46, nextY, 760, height: 28, id: "choice-" + index,
+                    46, nextY, 760, height: 28, id: TinyFarmUiIds.Choices[dialogue.Choices[index].Id],
                     color: ColorToken.Hex(selected ? 0xFFF0BEFFu : 0xCEDCCFFFu)));
                 nextY += 28;
             }
             double panelHeight = Math.Max(172, nextY + 48);
             children.Add(StandardUI.Label("CLICK or SPACE next   /   UP-DOWN choose   /   ESC leave",
-                28, panelHeight - 32, 790, id: "dialogue-hint", color: TinyFarmUiTheme.Text));
+                28, panelHeight - 32, 790, id: TinyFarmUiIds.Nodes[TinyFarmUiNode.DialogueHint], color: TinyFarmUiTheme.Text));
             nodes.Add(StandardUI.Panel(250, 622 - panelHeight, 850, panelHeight,
-                id: "dialogue", children: children, style: TinyFarmUiTheme.Panel(0x19362BF5)));
+                id: TinyFarmUiIds.Nodes[TinyFarmUiNode.Dialogue], children: children, style: TinyFarmUiTheme.Panel(0x19362BF5)));
         }
-        return UI.Surface(id: "opening-slice", width: 1280, height: 720, children: nodes);
+        return UI.Surface(id: TinyFarmUiIds.Nodes[TinyFarmUiNode.OpeningSlice], width: 1280, height: 720, children: nodes);
     }
 
     /// <summary>The prototype's supper journal, now the journal for whichever chapter is under way.</summary>
@@ -311,19 +331,19 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
         }
         var children = new List<UiNode>
         {
-            StandardUI.Label(game.JournalTitle, 18, 10, 310, id: "journal-title",
+            StandardUI.Label(game.JournalTitle, 18, 10, 310, id: TinyFarmUiIds.Nodes[TinyFarmUiNode.JournalTitle],
                 color: TinyFarmUiTheme.Accent),
         };
         double nextY = 44;
         for (int index = 0; index < objectives.Length; index++)
         {
-            RectNode paragraph = StandardUI.Paragraph(objectives[index], 316, id: "objective-" + index,
+            RectNode paragraph = StandardUI.Paragraph(objectives[index], 316, id: TinyFarmUiIds.Objectives[index],
                 variant: MachinaTextVariant.Caption, foreground: TinyFarmUiTheme.Text, measurer: textMeasurer);
             children.Add(StandardUI.Place(paragraph, 18, nextY));
             nextY += paragraph.Height!.Value + 6;
         }
         nodes.Add(StandardUI.Panel(912, 96, 344, nextY + 8,
-            id: "journal", children: children, style: TinyFarmUiTheme.Panel()));
+            id: TinyFarmUiIds.Nodes[TinyFarmUiNode.Journal], children: children, style: TinyFarmUiTheme.Panel()));
     }
 
 }

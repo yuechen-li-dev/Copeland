@@ -25,7 +25,7 @@ public sealed class TinyFarmRpgA1Tests
         {
             game.OpenStats(false);
         }
-        game.DispatchMenu("search");
+        game.DispatchMenu(TinyFarmUiActions.Search);
         Assert.Equal([GameControls.System, GameControls.TextEntry], game.Contexts);
         var engine = new InputManEngine(GameControls.CreateProfile());
         engine.SetMaps(game.Contexts);
@@ -66,7 +66,7 @@ public sealed class TinyFarmRpgA1Tests
         game.BackFromMenu();
         Assert.Equal(TinyFarmScreen.Playing, game.Screen);
         Press(game, engine, KeyboardKey.Escape);
-        game.DispatchMenu("stats");
+        game.DispatchMenu(TinyFarmUiActions.Stats);
         game.BackFromMenu();
         Assert.Equal(TinyFarmScreen.Paused, game.Screen);
     }
@@ -77,7 +77,7 @@ public sealed class TinyFarmRpgA1Tests
         var game = NewGame();
         game.Start();
         game.OpenStats(false);
-        game.DispatchMenu("search");
+        game.DispatchMenu(TinyFarmUiActions.Search);
         var engine = new InputManEngine(GameControls.CreateProfile());
         engine.SetMaps(game.Contexts);
         engine.Tick(Snapshot(KeyboardKey.J), .016f, 0);
@@ -103,7 +103,7 @@ public sealed class TinyFarmRpgA1Tests
         var game = NewGame();
         game.Start();
         game.OpenStats(false);
-        game.DispatchMenu("search");
+        game.DispatchMenu(TinyFarmUiActions.Search);
         var engine = new InputManEngine(GameControls.CreateProfile());
         Press(game, engine, KeyboardKey.F9);
         Assert.False(game.Presentation.HudVisible);

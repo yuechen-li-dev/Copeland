@@ -16,10 +16,10 @@ public enum InventorySort
 public sealed class TinyFarmMenus(Func<UiStateScope> scope)
 {
     public const int PageSize = 10;
-    private TinyFarmInventoryViewState Inventory => scope().GetOrCreate("inventory.rows", () => new TinyFarmInventoryViewState());
-    private TinyFarmStatsViewState Stats => scope().GetOrCreate("agent-properties", () => new TinyFarmStatsViewState());
-    private TinyFarmSearchViewState SearchState => scope().GetOrCreate("menu.search", () => new TinyFarmSearchViewState());
-    private TinyFarmPauseViewState Pause => scope().GetOrCreate("pause.menu", () => new TinyFarmPauseViewState());
+    private TinyFarmInventoryViewState Inventory => scope().GetOrCreate(TinyFarmUiStateKeys.Inventory, () => new TinyFarmInventoryViewState());
+    private TinyFarmStatsViewState Stats => scope().GetOrCreate(TinyFarmUiStateKeys.Stats, () => new TinyFarmStatsViewState());
+    private TinyFarmSearchViewState SearchState => scope().GetOrCreate(TinyFarmUiStateKeys.Search, () => new TinyFarmSearchViewState());
+    private TinyFarmPauseViewState Pause => scope().GetOrCreate(TinyFarmUiStateKeys.Pause, () => new TinyFarmPauseViewState());
 
     public InventoryCategory Category
     {
@@ -57,10 +57,10 @@ public sealed class TinyFarmMenus(Func<UiStateScope> scope)
         set => SearchFocus.Value = value;
     }
 
-    private UiState<bool> SearchFocus => scope().GetOrCreate("menu.search.focus",
-        () => new UiState<bool>(false), UiStateLifetime.Activation);
+    private UiState<bool> SearchFocus => scope().GetOrCreate(TinyFarmUiStateKeys.SearchFocus,
+        () => new UiState<bool>(false));
 
-    public string? SelectedKey
+    public TinyFarmInventoryKey? SelectedKey
     {
         get => Inventory.SelectedKey;
         private set => Inventory.SelectedKey = value;
@@ -96,7 +96,7 @@ public sealed class TinyFarmMenus(Func<UiStateScope> scope)
         private set => Stats.Offset = value;
     }
 
-    public string? Confirmation
+    public TinyFarmConfirmation? Confirmation
     {
         get => Pause.Confirmation;
         set => Pause.Confirmation = value;
@@ -156,7 +156,10 @@ public sealed class TinyFarmMenus(Func<UiStateScope> scope)
                 ? rows.OrderByDescending(row => row.Name, StringComparer.OrdinalIgnoreCase)
                 : rows.OrderBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
         };
-        TinyFarmInventoryRow[] result = ordered.ThenBy(row => row.Key, StringComparer.Ordinal).ToArray();
+        TinyFarmInventoryRow[] result = ordered
+            .ThenBy(row => row.Key is TinyFarmInventoryKey.Product)
+            .ThenBy(row => row.Key.Value, StringComparer.Ordinal)
+            .ToArray();
         if (!result.Any(row => row.Key == SelectedKey))
         {
             SelectedKey = result.FirstOrDefault()?.Key;
@@ -193,7 +196,7 @@ public sealed class TinyFarmMenus(Func<UiStateScope> scope)
         Offset = 0;
     }
 
-    public void Select(string key, IReadOnlyList<TinyFarmInventoryRow> rows)
+    public void Select(TinyFarmInventoryKey key, IReadOnlyList<TinyFarmInventoryRow> rows)
     {
         if (rows.Any(row => row.Key == key))
         {

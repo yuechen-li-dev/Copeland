@@ -12,7 +12,7 @@ public enum InventoryCategory
     Keepsakes
 }
 
-public sealed record TinyFarmInventoryRow(string Key, string Name, InventoryCategory Category,
+public sealed record TinyFarmInventoryRow(TinyFarmInventoryKey Key, string Name, InventoryCategory Category,
     int Quantity, int Value, string Description, ItemId? Item, ProductId? Product,
     EquipmentSlot? Slot, bool Equipped);
 
@@ -75,7 +75,7 @@ public static class TinyFarmInventory
             {
                 description = "Read to learn a cooking recipe. The card is retained.";
             }
-            rows.Add(new TinyFarmInventoryRow("item:" + id.Value, item.Name, category, 1, Math.Max(1, item.Price / 2),
+            rows.Add(new TinyFarmInventoryRow(new TinyFarmInventoryKey.Item(id), item.Name, category, 1, Math.Max(1, item.Price / 2),
                 owner == TinyFarmIds.Player ? description : "Owned by " + actor.Name + ".",
                 id, null, slot, equipped));
         }
@@ -96,7 +96,7 @@ public static class TinyFarmInventory
             {
                 description = $"Restores {food.HealthRestore} HP and {food.SpiritRestore} SP. Consumed only when either is needed.";
             }
-            rows.Add(new TinyFarmInventoryRow("product:" + stack.Product.Value, definition.Name, category,
+            rows.Add(new TinyFarmInventoryRow(new TinyFarmInventoryKey.Product(stack.Product), definition.Name, category,
                 stack.Count, definition.SellPrice, description, null, stack.Product, null, false));
         }
         return rows;

@@ -25,12 +25,12 @@ public sealed class TinyFarmStandardAuthoringTests
         ui.SetTextMeasurer(font);
         MachinaPresentationFrame resource = ui.Resource(frame);
         var panel = Assert.Single(resource.Operations.OfType<MachinaAnalyticShapePrimitive>(),
-            operation => operation.SourceId == "journal");
+            operation => operation.SourceId == TinyFarmUiIds.Nodes[TinyFarmUiNode.Journal].Value);
         string[] objectives = game.Objectives();
         Assert.NotEmpty(objectives);
         for (int index = 0; index < objectives.Length; index++)
         {
-            string prefix = "objective-" + index + ".content.";
+            string prefix = TinyFarmUiIds.Objectives[index].Child("content").Value;
             var text = resource.Operations.OfType<PositionedTextOperation>()
                 .Where(operation => operation.SourceId.StartsWith(prefix, StringComparison.Ordinal)).ToArray();
             Assert.NotEmpty(text);
@@ -82,13 +82,13 @@ public sealed class TinyFarmStandardAuthoringTests
         var ui = new TinyFarmNativeUi(game);
         MachinaPresentationFrame resource = ui.Resource(TinyFarmFrameProjector.Project(game.State, definitions));
         var panel = Assert.Single(resource.Operations.OfType<MachinaAnalyticShapePrimitive>(),
-            operation => operation.SourceId == "dialogue");
+            operation => operation.SourceId == TinyFarmUiIds.Nodes[TinyFarmUiNode.Dialogue].Value);
         var body = resource.Operations.OfType<PositionedTextOperation>()
-            .Where(operation => operation.SourceId.StartsWith("dialogue-body.content.", StringComparison.Ordinal)).ToArray();
+            .Where(operation => new Machina.Layout.Rows.NodeId(operation.SourceId).IsWithin(TinyFarmUiIds.Nodes[TinyFarmUiNode.DialogueBody])).ToArray();
         Assert.NotEmpty(body);
         double bodyBottom = body.Max(operation => operation.Rect.Y + operation.Rect.Height);
         var choices = resource.Operations.OfType<PositionedTextOperation>()
-            .Where(operation => operation.SourceId.StartsWith("choice-", StringComparison.Ordinal)).ToArray();
+            .Where(operation => new Machina.Layout.Rows.NodeId(operation.SourceId).IsWithin(TinyFarmUiIds.Nodes[TinyFarmUiNode.Dialogue].Child("choices"))).ToArray();
         Assert.Equal(game.Dialogue.Presentation.Choices.Count, choices.Length);
         foreach (var choice in choices)
         {
@@ -96,7 +96,7 @@ public sealed class TinyFarmStandardAuthoringTests
             AssertInside(choice.Rect, panel.DestinationRect);
         }
         var hint = Assert.Single(resource.Operations.OfType<PositionedTextOperation>(),
-            operation => operation.SourceId == "dialogue-hint");
+            operation => operation.SourceId == TinyFarmUiIds.Nodes[TinyFarmUiNode.DialogueHint].Value);
         Assert.True(hint.Rect.Y >= choices.Max(operation => operation.Rect.Y + operation.Rect.Height));
         AssertInside(hint.Rect, panel.DestinationRect);
     }

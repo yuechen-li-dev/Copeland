@@ -1,11 +1,13 @@
 using TinyFarm.Core;
+using static TinyFarm.InputMan.TinyFarmMenuMessage;
+using Kind = TinyFarm.InputMan.TinyFarmMenuCommand;
 
 namespace TinyFarm.InputMan;
 
 /// <summary>Staging is a transient preview, never a second inventory.</summary>
 public sealed partial class TinyFarmGame
 {
-    private TinyFarmCraftingViewState CraftingState => UiScope.GetOrCreate("craft.inputs", () => new TinyFarmCraftingViewState());
+    private TinyFarmCraftingViewState CraftingState => UiScope.GetOrCreate(TinyFarmUiStateKeys.Crafting, () => new TinyFarmCraftingViewState());
     private Dictionary<ProductId, int> CraftInputCounts => CraftingState.Inputs;
     public SceneObjectId? CraftStation
     {
@@ -21,56 +23,59 @@ public sealed partial class TinyFarmGame
         .Select(pair => new CookingRecipeInput(pair.Key, pair.Value)).ToArray();
     public TinyFarmCraftQuote CraftQuote => TinyFarmCrafting.Quote(State, Definitions, TinyFarmIds.Player, CraftInputs);
 
-    public void HandleCraftAction(string action)
+    private void HandleCraftAction(TinyFarmMenuMessage action)
     {
-        if (action == "experiment")
+        switch (action)
         {
-            SelectedCraftRecipe = null;
-            CraftInputCounts.Clear();
-        }
-        else if (action == "recipe" || action.StartsWith("recipe:", StringComparison.Ordinal))
-        {
-            // "recipe" picks the first learned recipe (keyboard); "recipe:<id>" picks one by name (its button).
-            string? wanted = action == "recipe" ? null : action["recipe:".Length..];
-            CookingRecipeDefinition? recipe = Definitions.CookingRecipes.FirstOrDefault(candidate =>
-                (wanted is null || candidate.Id.Value == wanted)
-                && State.Actor(TinyFarmIds.Player).Rpg?.Crafting?.Knows(candidate.Id) == true);
-            if (recipe is not null)
-            {
-                SelectedCraftRecipe = recipe.Id;
+            case Command(Kind.Experiment):
+                SelectedCraftRecipe = null;
                 CraftInputCounts.Clear();
-                foreach (CookingRecipeInput input in recipe.Inputs)
+                break;
+            case Command(Kind.FirstLearnedRecipe):
+                StageCraftRecipe(null);
+                break;
+            case Recipe(var recipe):
+                StageCraftRecipe(recipe);
+                break;
+            case Ingredient(var product, var delta) when delta is -1 or 1:
+                if (!Definitions.Items.Any(item => item.Id == product))
                 {
-                    CraftInputCounts[input.Product] = input.Count;
+                    return;
                 }
-            }
+                int available = TinyFarmCrafting.IsSupplied(Definitions, product) ? 99 : State.ProductCount(TinyFarmIds.Player, product);
+                int count = Math.Clamp(CraftInputCounts.GetValueOrDefault(product) + delta, 0, Math.Min(99, available));
+                if (count == 0)
+                {
+                    CraftInputCounts.Remove(product);
+                }
+                else
+                {
+                    CraftInputCounts[product] = count;
+                }
+                break;
+            case Command(Kind.Craft) when CraftStation is SceneObjectId station:
+                Execute(new CraftIntent(station, CraftInputs, SelectedCraftRecipe));
+                break;
+            case Command(Kind.Eat):
+                Execute(new EatIntent(Product: CraftQuote.Output));
+                break;
         }
-        else if (action.StartsWith("add:", StringComparison.Ordinal) || action.StartsWith("remove:", StringComparison.Ordinal))
+    }
+
+    private void StageCraftRecipe(CookingRecipeId? wanted)
+    {
+        CookingRecipeDefinition? recipe = Definitions.CookingRecipes.FirstOrDefault(candidate =>
+            (wanted is null || candidate.Id == wanted)
+            && State.Actor(TinyFarmIds.Player).Rpg?.Crafting?.Knows(candidate.Id) == true);
+        if (recipe is null)
         {
-            bool add = action.StartsWith("add:", StringComparison.Ordinal);
-            var product = new ProductId(action[(add ? 4 : 7)..]);
-            if (!Definitions.Items.Any(item => item.Id == product))
-            {
-                return;
-            }
-            int available = TinyFarmCrafting.IsSupplied(Definitions, product) ? 99 : State.ProductCount(TinyFarmIds.Player, product);
-            int count = Math.Clamp(CraftInputCounts.GetValueOrDefault(product) + (add ? 1 : -1), 0, Math.Min(99, available));
-            if (count == 0)
-            {
-                CraftInputCounts.Remove(product);
-            }
-            else
-            {
-                CraftInputCounts[product] = count;
-            }
+            return;
         }
-        else if (action == "craft" && CraftStation is SceneObjectId station)
+        SelectedCraftRecipe = recipe.Id;
+        CraftInputCounts.Clear();
+        foreach (CookingRecipeInput input in recipe.Inputs)
         {
-            Execute(new CraftIntent(station, CraftInputs, SelectedCraftRecipe));
-        }
-        else if (action == "eat")
-        {
-            Execute(new EatIntent(Product: CraftQuote.Output));
+            CraftInputCounts[input.Product] = input.Count;
         }
     }
 

@@ -86,7 +86,7 @@ public sealed class TinyFarmUiInvalidationTests(ITestOutputHelper output)
         game.OpenInventory(false);
         var ui = new TinyFarmNativeUi(game);
         TinyFarmFrame frame = TinyFarmFrameProjector.Project(game.State, game.Definitions);
-        var point = ui.ActionCenter(frame, "equipment");
+        var point = ui.ActionCenter(frame, TinyFarmUiActions.Equipment);
         ui.Pointer(frame, point, true);
         game.BackFromMenu();
         game.OpenInventory(false);
@@ -104,7 +104,7 @@ public sealed class TinyFarmUiInvalidationTests(ITestOutputHelper output)
         var parent = game.UiScope;
         var ui = new TinyFarmNativeUi(game);
         TinyFarmFrame frame = TinyFarmFrameProjector.Project(game.State, game.Definitions);
-        var quit = ui.ActionCenter(frame, "quit");
+        var quit = ui.ActionCenter(frame, TinyFarmUiActions.Quit);
         ui.Pointer(frame, quit, true);
         game.OpenInventory(true);
         game.BackFromMenu();

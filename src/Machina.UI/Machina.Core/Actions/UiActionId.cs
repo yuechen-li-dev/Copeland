@@ -1,3 +1,5 @@
+using Machina.Layout.Rows;
+
 namespace Machina.Core.Actions;
 
 public readonly record struct UiActionId
@@ -13,6 +15,17 @@ public readonly record struct UiActionId
     }
 
     public string Value { get; }
+
+    public UiActionId Child(string segment)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(Value);
+        return new UiActionId(Value + ":" + IdSegment.Encode(segment));
+    }
+
+    public NodeId ToNodeId()
+    {
+        return new NodeId("action").Child(Value);
+    }
 
     public UiAction ToAction()
     {

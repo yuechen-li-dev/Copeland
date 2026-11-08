@@ -58,6 +58,6 @@ public static class Switch
             return null;
         }
 
-        return new NodeId($"{value.Value}.{suffix}");
+        return value.Child(suffix);
     }
 }
