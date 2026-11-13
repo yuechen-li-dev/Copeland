@@ -2,7 +2,7 @@ import { WaterDifferential, WindWave, AddWave, ImpactWave, WaterNormal, DetailNo
 import { EnvironmentSurfaceResponse, BoxReflection, ConeAttenuation, WorldAt, PrefilteredEnvironment, EncodeOcta } from "./SurfaceLighting";
 import { VolumeAt, ComposeVolume } from "./VolumeLighting";
 import { Fogged } from "./HeightFog";
-import { Unit, Sub3, ShadowVisibility, PlaneShadowVisibility, Dot3, Scale3, Mul3, DirectLightResponseModel, HemisphereResponse, Add3, Cross3, LimitRadiance } from "./Lighting3D";
+import { FilterNormalRoughness, Unit, Sub3, ShadowVisibility, PlaneShadowVisibility, Dot3, Scale3, Mul3, DirectLightResponseModel, HemisphereResponse, Add3, Cross3, LimitRadiance } from "./Lighting3D";
 
 @space(world.position)
 type WorldPosition3 = float3;
@@ -241,7 +241,7 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
     }
     let mr: float4 = Sample(resources.metalMap, resources.metalSampler, input.uv);
     let metallic: f32 = Clamp(mr.z * uniforms.material.factors.x, 0.0, 1.0);
-    let roughness: f32 = Clamp(mr.y * uniforms.material.factors.y, 0.045, 1.0);
+    let roughness: f32 = FilterNormalRoughness(Clamp(mr.y * uniforms.material.factors.y, 0.045, 1.0), nt, uniforms.material.flags.w * Min(1.0, uniforms.material.factors.z * uniforms.material.factors.z));
     let ao: float4 = Sample(resources.occlusionMap, resources.occlusionSampler, input.uv);
     var occlusion: f32 = 1.0 - uniforms.material.factors.w + ao.x * uniforms.material.factors.w;
     if (uniforms.material.flags.x > 0.5) {

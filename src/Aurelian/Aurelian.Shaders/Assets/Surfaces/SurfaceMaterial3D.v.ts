@@ -1,4 +1,4 @@
-import { Unit, Mul3, Scale3, Add3, Cross3, LimitRadiance } from "./Lighting3D";
+import { FilterNormalRoughness, Unit, Mul3, Scale3, Add3, Cross3, LimitRadiance } from "./Lighting3D";
 
 export record SurfaceMaterial {
     baseColor: float4;
@@ -32,7 +32,7 @@ export function EvaluateSurfaceSamples(surfaceNormal: float3, surfaceTangent: fl
         normal = Scale3(normal, -1.0);
     }
     let metallic: f32 = Clamp(mr.z * material.factors.x, 0.0, 1.0);
-    let roughness: f32 = Clamp(mr.y * material.factors.y, 0.045, 1.0);
+    let roughness: f32 = FilterNormalRoughness(Clamp(mr.y * material.factors.y, 0.045, 1.0), nt, material.flags.w * Min(1.0, material.factors.z * material.factors.z));
     var occlusion: f32 = 1.0 - material.factors.w + ao.x * material.factors.w;
     if (material.flags.x > 0.5) {
         occlusion = -1.0;

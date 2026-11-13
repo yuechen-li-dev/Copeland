@@ -317,7 +317,7 @@ internal static class RainNightDemo
         ];
     }
 
-    private static Native3DScene AtTime(Native3DScene scene, float time)
+    private static Native3DScene AtTime(Native3DScene scene, float time, float wetness = .85f)
     {
         var impacts = ImmutableArray.CreateBuilder<WaterImpulse3D>(8);
         for (int index = 0; index < 8; index++)
@@ -329,7 +329,14 @@ internal static class RainNightDemo
             centre += new Vector2((index % 4 - 1.5f) * .45f, (index % 2 - .5f) * .65f);
             impacts.Add(new(centre, Math.Max(0, started), .007f, .20f, .65f, 1.1f));
         }
-        return scene with { WaterFrame = new(time) { Impulses = impacts.MoveToImmutable() } };
+        var response = new WetSurface3D();
+        return scene with
+        {
+            WaterFrame = new(time) { Impulses = impacts.MoveToImmutable() },
+            Models = scene.Models.Select(batch => batch.Material.Slot == "wet-asphalt"
+                ? batch with { Material = response.Apply(batch.Material, wetness) }
+                : batch).ToArray(),
+        };
     }
 
     private static SceneGroup CreateStreet(out IReadOnlyDictionary<string, SurfaceMapSet> surfaceMaps)
@@ -482,7 +489,7 @@ internal static class RainNightDemo
     {
         return new Dictionary<string, SurfaceMapSet>
         {
-            ["asphalt"] = ProceduralSurfaceMaps.Asphalt("rain-asphalt", wetness: .85f, seed: 733),
+            ["asphalt"] = ProceduralSurfaceMaps.Asphalt("rain-asphalt", wetness: 0, seed: 733),
             ["masonry"] = ProceduralSurfaceMaps.Masonry("rain-masonry", seed: 53),
             ["pavers"] = ProceduralSurfaceMaps.Pavers("rain-pavers", seed: 71),
         };
@@ -502,7 +509,7 @@ internal static class RainNightDemo
     {
         var options = WindowOptions.DefaultVulkan;
         options.Size = new Vector2D<int>(Width, Height);
-        options.Title = "Rain After Dark | R rain, N normals, P puddles, Space pause, Esc close";
+        options.Title = "Rain After Dark | R rain, W wet surface, N normals, P puddles, Space pause, Esc close";
         options.IsVisible = !smoke;
         using var window = Window.Create(options);
         window.Initialize();
@@ -514,6 +521,7 @@ internal static class RainNightDemo
         graphics.Settings = graphics.Settings with { AntiAliasing = AntiAliasing3D.Temporal };
         graphics.Clear = Clear;
         bool raining = true;
+        bool wetSurface = true;
         bool normalMaps = true;
         bool puddles = true;
         bool paused = false;
@@ -523,6 +531,11 @@ internal static class RainNightDemo
             {
                 if (key == Key.Escape) { window.Close(); }
                 if (key == Key.R) { raining = !raining; }
+                if (key == Key.W)
+                {
+                    wetSurface = !wetSurface;
+                    graphics.Renderer.ResetTemporalHistory();
+                }
                 if (key == Key.N)
                 {
                     normalMaps = !normalMaps;
@@ -550,7 +563,7 @@ internal static class RainNightDemo
             if (time > 3500) { time = 3; }
             graphics.Resize(window.FramebufferSize.X, window.FramebufferSize.Y);
             graphics.Renderer.ParticleEmitters = raining ? Rain(time) : [];
-            Native3DScene current = AtTime(scene, time);
+            Native3DScene current = AtTime(scene, time, wetSurface ? .85f : 0);
             if (!normalMaps)
             {
                 current = current with

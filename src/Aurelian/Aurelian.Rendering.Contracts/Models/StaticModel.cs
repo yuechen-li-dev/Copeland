@@ -23,6 +23,7 @@ public sealed record ModelMaterial(string Slot)
     public float Metallic { get; init; } = 1;
     public float Roughness { get; init; } = 1;
     public Vector3 Emissive { get; init; }
+    public bool SpecularAntiAliasing { get; init; }
     public float NormalScale { get; init; } = 1;
     public float OcclusionStrength { get; init; } = 1;
     public bool Unlit { get; init; }

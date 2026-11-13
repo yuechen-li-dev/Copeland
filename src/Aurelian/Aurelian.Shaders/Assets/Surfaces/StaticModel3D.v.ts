@@ -1,5 +1,5 @@
 import { TemporalProjection } from "./TemporalGeometry";
-import { Unit, Sub3, ShadowVisibility, Dot3, Scale3, Mul3, DirectLightModel, HemisphereLight, Add3, Cross3, LimitRadiance } from "./Lighting3D";
+import { FilterNormalRoughness, Unit, Sub3, ShadowVisibility, Dot3, Scale3, Mul3, DirectLightModel, HemisphereLight, Add3, Cross3, LimitRadiance } from "./Lighting3D";
 
 @space(world.position)
 type WorldPosition3 = float3;
@@ -117,7 +117,7 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
     let view: float3 = Unit(Sub3(float3(uniforms.material.eye.x, uniforms.material.eye.y, uniforms.material.eye.z), input.world));
     let mr: float4 = Sample(resources.metalMap, resources.metalSampler, input.uv);
     let metallic: f32 = Clamp(mr.z * uniforms.material.factors.x, 0.0, 1.0);
-    let roughness: f32 = Clamp(mr.y * uniforms.material.factors.y, 0.045, 1.0);
+    let roughness: f32 = FilterNormalRoughness(Clamp(mr.y * uniforms.material.factors.y, 0.045, 1.0), nt, uniforms.material.flags.w * Min(1.0, uniforms.material.factors.z * uniforms.material.factors.z));
     let p: WorldPosition3 = float3(input.world.x, input.world.y, input.world.z);
     let projected: float3 = float3(Row(uniforms.material.shadowX, p), Row(uniforms.material.shadowY, p), Row(uniforms.material.shadowZ, p));
     let visibility: f32 = ShadowVisibility(resources.shadowMap, resources.shadowSampler, projected,

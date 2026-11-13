@@ -71,7 +71,7 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
                 Vector4[] values = [material.BaseColor,
                     new(material.Metallic, material.Roughness, material.NormalTexture is null ? 0 : material.NormalScale, material.OcclusionStrength),
                     new(material.Emissive, material.AlphaCutoff),
-                    new(material.Unlit ? 1 : 0, material.AlphaMask ? 1 : 0, material.DoubleSided ? 1 : 0, 0),
+                    new(material.Unlit ? 1 : 0, material.AlphaMask ? 1 : 0, material.DoubleSided ? 1 : 0, material.SpecularAntiAliasing ? 1 : 0),
                     new(material.SubsurfaceColor * material.SubsurfaceStrength, material.SubsurfaceStrength > 0 ? material.SubsurfaceRadius : 0)];
                 MemoryMarshal.AsBytes(values.AsSpan()).CopyTo(record);
                 Span<uint> indices = MemoryMarshal.Cast<byte, uint>(record[80..]);

@@ -288,3 +288,14 @@ export function LimitRadiance(color: float4): float4 {
     return float4(Clamp(color.x, 0.0, 60000.0), Clamp(color.y, 0.0, 60000.0),
         Clamp(color.z, 0.0, 60000.0), color.w);
 }
+
+// Filtered normal length estimates lost fine-scale variance before normalization.
+// Explicitly opt in; zero strength preserves the original roughness response.
+export function FilterNormalRoughness(roughness: f32, sample: float4, strength: f32): f32 {
+    if (strength <= 0.0) {
+        return roughness;
+    }
+    let n: float3 = float3(sample.x * 2.0 - 1.0, sample.y * 2.0 - 1.0, sample.z * 2.0 - 1.0);
+    let variance: f32 = Clamp(1.0 - Sqrt(Dot3(n, n)), 0.0, 1.0);
+    return Clamp(Sqrt(roughness * roughness + variance * strength * 0.6), 0.045, 1.0);
+}
