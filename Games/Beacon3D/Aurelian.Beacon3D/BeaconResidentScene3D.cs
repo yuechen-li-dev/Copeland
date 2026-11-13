@@ -1,3 +1,4 @@
+using Aurelian.Runtime;
 using System.Numerics;
 using Aurelian.Graphics.Vulkan.Native3D;
 using Aurelian.NativeComposition;
@@ -54,10 +55,10 @@ public sealed class BeaconResidentScene3D
     private readonly ResidentGeometry geometry = new();
     private NativeInstanceSet3D? previous;
 
-    public Native3DScene Build(BeaconGame game)
+    public Native3DScene Build(BeaconGame game, FirstPersonPose3D? pose = null)
     {
         geometry.Items.Clear();
-        BeaconScene.Describe(game, geometry);
+        BeaconScene.Describe(game, geometry, pose);
         var items = geometry.Items;
         bool continues = previous is not null && previous.Count == items.Count;
         if (continues)

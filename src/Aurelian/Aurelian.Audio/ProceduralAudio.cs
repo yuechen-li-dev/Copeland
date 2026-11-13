@@ -10,6 +10,7 @@ public enum ProceduralSoundKind
     Rain,
     ShelteredRain,
     WaterStep,
+    Wind,
 }
 
 /// <summary>Bounded, seeded PCM preparation. Generate on a loading/worker thread, never a device callback.</summary>
@@ -71,6 +72,10 @@ public sealed record ProceduralSoundRecipe(ProceduralSoundKind Kind, uint Seed =
             {
                 value = low;
             }
+            else if (Kind == ProceduralSoundKind.Wind)
+            {
+                value = low * (.65 + .35 * Math.Sin(Math.Tau * time / DurationSeconds));
+            }
             else
             {
                 value = .65 * noise + .35 * low;
@@ -88,6 +93,6 @@ public sealed record ProceduralSoundRecipe(ProceduralSoundKind Kind, uint Seed =
         }
         string hash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
         return new(id, hash, SampleRateHz, 1, frames, samples,
-            Kind is ProceduralSoundKind.Rain or ProceduralSoundKind.ShelteredRain);
+            Kind is ProceduralSoundKind.Rain or ProceduralSoundKind.ShelteredRain or ProceduralSoundKind.Wind);
     }
 }

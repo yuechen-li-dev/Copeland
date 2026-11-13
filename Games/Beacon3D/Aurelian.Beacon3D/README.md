@@ -14,6 +14,9 @@ a Vulkan-capable GPU/driver, and the repository's existing DXC shader toolchain.
 | Up / Down arrows | Look up / down |
 | Mouse movement | Aim (captured during play) |
 | Left mouse button | Fire bolts while held |
+| Right mouse button | Aim down sights |
+| Shift | Sprint |
+| B | Toggle first-person presentation motion |
 | Space | Jump on press |
 | R | Reload the 12-bolt magazine |
 | V | Switch first / third-person camera |
@@ -25,6 +28,8 @@ a Vulkan-capable GPU/driver, and the repository's existing DXC shader toolchain.
 The normal application uses `BeaconShellGame : IGame` and the common `GameApp` shell: a resizable window, title/pause menus, persisted display/audio/controls settings and key rebinding. Focus loss pauses the run and clears input. The HUD displays the objective and the win/loss result; press Enter after a result to restart. Beacon does not yet define a world-save schema.
 
 Historical `--proof` and `--lighting-proof` retain the dedicated renderer qualification path below. Normal playtests use the shared sorted-fact observation/command format; `Games/Playtests/common-shell.json` checks the common application lifecycle.
+
+Normal play also demonstrates [first-person motion and environmental audio](../../../docs/Aurelian/beacon-first-person.md): recoil, sway, bob, landing response, aim/sprint FOV, surface footsteps, water impacts and a covered-spawn ambience transition. Walk north out of the canopy, then left toward the puddle near X = -5, Z = 5. `Playtests/presentation.json` exercises this ordinary shell path and captures its native frames; the historical proof does not qualify these additions.
 
 Ordinary shaded play uses Aurelian PathDiffuse. Supplying `--lighting` explicitly selects Lambert to match the published transfer asset's contract. The finite lighting proof disables temporal AA for byte-identical still comparisons.
 

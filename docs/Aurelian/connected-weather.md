@@ -39,9 +39,9 @@ Ground height and wetness vary at the authored grid resolution. Fine texture rel
 
 ## Audio follows the environment
 
-`EnvironmentalAmbience` in `Aurelian.Audio` owns two ordinary looping voices on identity-specific buses. Explicit rain, shelter, elapsed time, and pause inputs drive exponential smoothing and an authored exterior/interior blend. The interior layer is quieter; `ProceduralSoundKind.ShelteredRain` supplies filtered noise, and `WaterStep` supplies a bounded transient splash. Existing voice capacity, resource preparation, mixer output, and disposal remain authoritative.
+`EnvironmentalAmbience` in `Aurelian.Audio` owns two ordinary looping voices on the existing Ambient bus. Explicit rain, shelter, elapsed time, and pause inputs drive exponential smoothing and an authored exterior/interior blend. Per-voice gain and pause preserve the application's Effects volume and focus policy without creating scene-specific buses. The interior layer is quieter; `ProceduralSoundKind.ShelteredRain` supplies filtered noise, and `WaterStep` supplies a bounded transient splash. Existing voice capacity, resource preparation, mixer output, and disposal remain authoritative.
 
-The application supplies a unique projection identity and owns its controller for the scene lifetime. Prepare resources during loading, dispose ambience before its runtime, and project focus loss into its pause input. No wall clock, physics query, or rendering dependency enters the audio module.
+The application supplies a unique projection identity and owns its controller for the scene lifetime. Prepare resources during loading, dispose ambience before its runtime, and project focus loss into its pause input. `Reset` clears blend history and owned gains for a new run while retaining the two loops. No wall clock, physics query, or rendering dependency enters the audio module. [Beacon's first-person integration](beacon-first-person.md) now consumes the same environmental contracts in ordinary FPS play.
 
 The gallery's `RainStreetAudio` maps accepted camera movement distance to a 1.3-metre stride. It queries the same ground field for dry, wet, and standing-water footsteps, and projects the shelter volume into ambience. This is an inspection gallery with ground-height following, not a new FPS collision controller.
 

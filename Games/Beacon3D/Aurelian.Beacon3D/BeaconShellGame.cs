@@ -13,6 +13,7 @@ namespace Aurelian.Beacon3D;
 /// <summary>Beacon's rules and presentation hosted by the common application shell.</summary>
 public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, string? lighting = null, bool regionalGi = false, bool dynamicGi = false) : IGame
 {
+    public BeaconPresentation Presentation { get; } = new();
     private BeaconResidentScene3D resident = new();
     private GameView? currentView;
     private bool diffuseReady;
@@ -33,6 +34,8 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
         new("look.up", "Look up", GameControl.Key(KeyboardKey.ArrowUp)),
         new("look.down", "Look down", GameControl.Key(KeyboardKey.ArrowDown)),
         new("jump", "Jump", GameControl.Key(KeyboardKey.Space)),
+        new("aim", "Aim down sights", GameControl.Mouse(MouseButton.Secondary)),
+        new("motion", "Toggle presentation motion", GameControl.Key(KeyboardKey.B)),
         new("fire", "Fire", GameControl.Mouse(MouseButton.Primary)),
         new("reload", "Reload", GameControl.Key(KeyboardKey.R)),
         new("view", "Switch view", GameControl.Key(KeyboardKey.V)),
@@ -41,7 +44,7 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
     ], GameLookMode.CapturedMouse))
     {
         Tagline = "SURVIVE THREE WAVES. COLLECT THREE BEACONS. ESCAPE.",
-        ControlsHint = "WASD MOVE   MOUSE AIM   CLICK FIRE   R RELOAD   V VIEW   ESC PAUSE",
+        ControlsHint = "WASD MOVE   MOUSE AIM   CLICK FIRE   RMB AIM   R RELOAD   B MOTION   V VIEW   ESC PAUSE",
         // Published transfer assets are compiled for Lambert; ordinary play uses PathDiffuse.
         Graphics = regionalGi || dynamicGi ? BeaconDiffuseLighting3D.Settings : Graphics3DSettings.Default with
         {
@@ -51,12 +54,22 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
 
     public BeaconGame World => game;
 
+    public void Start(GameContext context)
+    {
+        Presentation.GroundWeather = !useGi && lighting is null;
+        Presentation.Start(context);
+        Presentation.Reset(game);
+    }
+
+    public void OnFrame(GameFrame frame) => Presentation.Frame(game, frame);
+
     public void NewGame()
     {
         game.Dispose();
         resident = new();
         diffuseReady = false;
         game = new BeaconGame(humanoid: humanoid);
+        Presentation.Reset(game);
         if (rays is not null)
         {
             game.UseRayQueries(rays);
@@ -71,16 +84,30 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
             NewGame();
             return;
         }
+        if (input.WasPressed("motion"))
+        {
+            Presentation.Enabled = !Presentation.Enabled;
+        }
+        int oldShots = game.Shots;
+        bool wasReloading = game.Reloading;
         game.Step(new BeaconInput(input.Axis("back", "forward"), input.Axis("left", "right"),
             input.Axis("turn.left", "turn.right"), input.Axis("look.down", "look.up"),
             input.WasPressed("jump"), input.Look.X, input.Look.Y, input.IsDown("fire"),
             input.WasPressed("reload"), input.WasPressed("view"), input.IsDown("sprint")), tick.Seconds);
+        Presentation.Step(game, input.IsDown("aim"), input.IsDown("sprint"), tick.Seconds, oldShots, wasReloading);
     }
 
     public GameView View(GameViewRequest request)
     {
-        Native3DScene scene = useGi ? resident.Build(game) : new(BeaconScene.Build(game), []);
-        currentView = new(scene, game.Camera(request.Aspect), game.CameraEye);
+        FirstPersonPose3D pose = game.View == CameraView.FirstPerson ? Presentation.Pose : FirstPersonPose3D.Neutral;
+        Native3DScene scene = useGi ? resident.Build(game, pose) : new(BeaconScene.Build(game, pose), []);
+        if (!useGi && lighting is null)
+        {
+            scene = BeaconEnvironment.Present(scene, game.Time, Presentation.Impacts);
+        }
+        currentView = game.View == CameraView.FirstPerson
+            ? new(scene, pose.Camera(game.CameraEye, game.Direction, request.Aspect), pose.Eye(game.CameraEye, game.Direction))
+            : new(scene, game.Camera(request.Aspect), game.CameraEye);
         return currentView;
     }
 
@@ -88,6 +115,7 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
     {
         hud.StatusBar($"WAVE {game.Wave}/3   KILLS {game.Kills}/9   BEACONS {game.CollectedCount}/3   HEALTH {game.Health}   AMMO {game.Ammo}/12");
         hud.Crosshair();
+        hud.Text("RMB AIM   SHIFT SPRINT   B MOTION   V VIEW", 20, 46, hud.Width - 40, 22);
         string objective = game.GateOpen ? "GATE OPEN - HEAD NORTH TO ESCAPE" : "SURVIVE THE STALKERS. COLLECT THE GOLD BEACONS.";
         if (game.Won || game.Dead)
         {
@@ -102,6 +130,19 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
         facts.Set("gi.mode", attachedGraphics?.Renderer.DynamicDiffuse.Mode.ToString() ?? "Off");
         facts.Set("gi.probes", attachedGraphics?.Renderer.DynamicDiffuse.Grid?.Count ?? 0);
         facts.Set("gi.environment", attachedGraphics?.Renderer.EnvironmentSource is not null);
+        facts.Set("presentation.enabled", Presentation.Enabled);
+        facts.Set("presentation.aim", Presentation.Pose.Aim);
+        facts.Set("presentation.fov", Presentation.Pose.FieldOfView * 180 / MathF.PI);
+        facts.Set("presentation.recoil", Presentation.Motion.Recoil);
+        facts.Set("presentation.steps", Presentation.Motion.Footsteps);
+        facts.Set("presentation.landings", Presentation.Motion.Landings);
+        facts.Set("audio.shelter", Presentation.AudioState.Shelter);
+        facts.Set("audio.outside", Presentation.AudioState.ExteriorGain);
+        facts.Set("audio.inside", Presentation.AudioState.InteriorGain);
+        foreach (string sound in new[] { "dry", "wet", "water", "shot", "reload", "land" })
+        {
+            facts.Set("audio." + sound, Presentation.Sounds.GetValueOrDefault(sound));
+        }
         facts.Set("hash", game.SemanticHash());
         facts.Set("time", game.Time);
         facts.Set("health", game.Health);
@@ -117,7 +158,15 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
         facts.Set("dead", game.Dead);
     }
 
-    public bool Command(string command) => command == "inspect brains";
+    public bool Command(string command)
+    {
+        if (command == "presentation on" || command == "presentation off")
+        {
+            Presentation.Enabled = command == "presentation on";
+            return true;
+        }
+        return command == "inspect brains";
+    }
 
     public void AttachGraphics(NativeGameGraphics graphics)
     {
@@ -186,5 +235,9 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
         rays = null;
     }
 
-    public void Dispose() => game.Dispose();
+    public void Dispose()
+    {
+        Presentation.Dispose();
+        game.Dispose();
+    }
 }

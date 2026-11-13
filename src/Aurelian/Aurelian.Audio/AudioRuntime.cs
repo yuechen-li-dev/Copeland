@@ -121,6 +121,32 @@ public sealed class AurelianAudioRuntime : IAurelianAudioRuntime
         return true;
     }
 
+    /// <summary>Presentation gain, multiplied by the cue and bus gains. Does not restart playback.</summary>
+    public bool SetVoiceGain(AudioVoiceId id, float gain)
+    {
+        ThrowIfDisposed();
+        ValidateUnit(gain, nameof(gain));
+        Voice? voice = voices.SingleOrDefault(item => item.Id == id);
+        if (voice is null)
+        {
+            return false;
+        }
+        voice.Gain = gain;
+        return true;
+    }
+
+    public bool SetVoicePaused(AudioVoiceId id, bool paused)
+    {
+        ThrowIfDisposed();
+        Voice? voice = voices.SingleOrDefault(item => item.Id == id);
+        if (voice is null)
+        {
+            return false;
+        }
+        voice.Paused = paused;
+        return true;
+    }
+
     public void StopBus(AudioBusId bus, TimeSpan fadeOut)
     {
         ThrowIfDisposed();
@@ -234,7 +260,7 @@ public sealed class AurelianAudioRuntime : IAurelianAudioRuntime
     private void MixVoice(Voice voice, Span<float> output, int outputFrames)
     {
         BusState bus = GetBus(voice.Cue.Bus);
-        if (bus.Paused)
+        if (bus.Paused || voice.Paused)
         {
             return;
         }
@@ -291,7 +317,7 @@ public sealed class AurelianAudioRuntime : IAurelianAudioRuntime
         {
             return 0f;
         }
-        return voice.Cue.Volume * voice.FadeGain * bus.Volume * master.Volume * attenuation;
+        return voice.Cue.Volume * voice.Gain * voice.FadeGain * bus.Volume * master.Volume * attenuation;
     }
 
     private (float Pan, float Attenuation) Spatial(Vector2? position)
@@ -421,6 +447,8 @@ public sealed class AurelianAudioRuntime : IAurelianAudioRuntime
 
     private sealed class Voice
     {
+        public float Gain { get; set; } = 1;
+        public bool Paused { get; set; }
         private double fadeElapsedSeconds;
         private double fadeDurationSeconds;
         private float fadeStart = 1f;

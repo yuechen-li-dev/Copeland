@@ -11,6 +11,7 @@ public sealed class ProceduralAudioTests
     [InlineData(ProceduralSoundKind.Rain)]
     [InlineData(ProceduralSoundKind.ShelteredRain)]
     [InlineData(ProceduralSoundKind.WaterStep)]
+    [InlineData(ProceduralSoundKind.Wind)]
     public void SeededRecipesProduceBoundedReplayablePcmThroughTheRealMixer(ProceduralSoundKind kind)
     {
         var recipe = new ProceduralSoundRecipe(kind, Seed: 73);
