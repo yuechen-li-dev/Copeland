@@ -1,4 +1,4 @@
-import { FilterNormalRoughness, Unit, Mul3, Scale3, Add3, Cross3, LimitRadiance } from "./Lighting3D";
+import { SurfaceWetness, SpecularFilterStrength, FilterNormalRoughness, Unit, Mul3, Scale3, Add3, Cross3, LimitRadiance } from "./Lighting3D";
 
 export record SurfaceMaterial {
     baseColor: float4;
@@ -23,22 +23,25 @@ export function EvaluateSurfaceSamples(surfaceNormal: float3, surfaceTangent: fl
     base: float4, emission: float4, nt: float4, mr: float4, ao: float4): SurfaceData {
     let emitted: float3 = Mul3(float3(emission.x, emission.y, emission.z),
         float3(material.emissiveAlpha.x, material.emissiveAlpha.y, material.emissiveAlpha.z));
+    let wetness: f32 = SurfaceWetness(base.w, material.flags.w);
+    let wetColor: float3 = Scale3(float3(base.x, base.y, base.z), 1.0 - 0.35 * wetness);
+    let normalStrength: f32 = material.factors.z * (1.0 - 0.45 * wetness);
     let tangent: float3 = Unit(float3(surfaceTangent.x, surfaceTangent.y, surfaceTangent.z));
     let geometric: float3 = Unit(surfaceNormal);
     let bitangent: float3 = Scale3(Cross3(geometric, tangent), surfaceTangent.w);
-    var normal: float3 = Unit(Add3(Add3(Scale3(tangent, (nt.x * 2.0 - 1.0) * material.factors.z),
-        Scale3(bitangent, (nt.y * 2.0 - 1.0) * material.factors.z)), Scale3(geometric, nt.z * 2.0 - 1.0)));
+    var normal: float3 = Unit(Add3(Add3(Scale3(tangent, (nt.x * 2.0 - 1.0) * normalStrength),
+        Scale3(bitangent, (nt.y * 2.0 - 1.0) * normalStrength)), Scale3(geometric, nt.z * 2.0 - 1.0)));
     if (!frontFace) {
         normal = Scale3(normal, -1.0);
     }
     let metallic: f32 = Clamp(mr.z * material.factors.x, 0.0, 1.0);
-    let roughness: f32 = FilterNormalRoughness(Clamp(mr.y * material.factors.y, 0.045, 1.0), nt, material.flags.w * Min(1.0, material.factors.z * material.factors.z));
+    let roughness: f32 = FilterNormalRoughness(Clamp(mr.y * material.factors.y * (1.0 - 0.7 * wetness), 0.045, 1.0), nt, SpecularFilterStrength(material.flags.w) * Min(1.0, normalStrength * normalStrength));
     var occlusion: f32 = 1.0 - material.factors.w + ao.x * material.factors.w;
     if (material.flags.x > 0.5) {
         occlusion = -1.0;
     }
     return {
-        color: float4(base.x, base.y, base.z, roughness),
+        color: float4(wetColor.x, wetColor.y, wetColor.z, roughness),
         normal: float4(normal.x, normal.y, normal.z, metallic),
         emission: float4(emitted.x, emitted.y, emitted.z, occlusion),
         subsurface: material.subsurfaceProfile,

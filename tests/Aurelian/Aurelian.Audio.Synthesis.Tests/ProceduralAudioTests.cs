@@ -9,6 +9,8 @@ public sealed class ProceduralAudioTests
     [InlineData(ProceduralSoundKind.Footstep)]
     [InlineData(ProceduralSoundKind.MetalImpact)]
     [InlineData(ProceduralSoundKind.Rain)]
+    [InlineData(ProceduralSoundKind.ShelteredRain)]
+    [InlineData(ProceduralSoundKind.WaterStep)]
     public void SeededRecipesProduceBoundedReplayablePcmThroughTheRealMixer(ProceduralSoundKind kind)
     {
         var recipe = new ProceduralSoundRecipe(kind, Seed: 73);
@@ -34,7 +36,7 @@ public sealed class ProceduralAudioTests
         Assert.True(output.SubmittedFrames > 0);
         Assert.Contains(output.Samples, value => Math.Abs(value) > .001f);
         Assert.Equal(1, mixer.Inspect().DuplicateEvents);
-        if (kind == ProceduralSoundKind.Rain)
+        if (clip.LoopByDefault)
         {
             Assert.Single(mixer.Inspect().ActiveVoices);
             mixer.Stop(voice);

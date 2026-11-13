@@ -24,6 +24,9 @@ public sealed record ModelMaterial(string Slot)
     public float Roughness { get; init; } = 1;
     public Vector3 Emissive { get; init; }
     public bool SpecularAntiAliasing { get; init; }
+    /// <summary>Opaque vertex alpha is an authored wetness amount. Base opacity must remain one.</summary>
+    public bool VertexWetness { get; init; }
+    public float PackedSurfaceFlags => (SpecularAntiAliasing ? 1 : 0) + (VertexWetness ? 2 : 0);
     public float NormalScale { get; init; } = 1;
     public float OcclusionStrength { get; init; } = 1;
     public bool Unlit { get; init; }
@@ -86,6 +89,29 @@ public sealed record ModelMaterial(string Slot)
                 || !Enum.IsDefined(binding.Sampler.WrapU) || !Enum.IsDefined(binding.Sampler.WrapV))
             {
                 throw new InvalidDataException($"Invalid texture in slot '{Slot}'.");
+            }
+        }
+        ValidateVertexWetness();
+    }
+
+    private void ValidateVertexWetness()
+    {
+        if (!VertexWetness)
+        {
+            return;
+        }
+        if (AlphaBlend || AlphaMask || Transmission > 0 || Unlit || BaseColor.W != 1)
+        {
+            throw new InvalidDataException("Vertex wetness requires a lit opaque material with unit base opacity.");
+        }
+        if (BaseColorTexture is { } color)
+        {
+            for (int index = 3; index < color.Texture.Rgba.Length; index += 4)
+            {
+                if (color.Texture.Rgba[index] != 255)
+                {
+                    throw new InvalidDataException("Vertex wetness requires an opaque base texture.");
+                }
             }
         }
     }

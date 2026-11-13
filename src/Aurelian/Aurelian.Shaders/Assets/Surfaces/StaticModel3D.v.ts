@@ -1,5 +1,5 @@
 import { TemporalProjection } from "./TemporalGeometry";
-import { FilterNormalRoughness, Unit, Sub3, ShadowVisibility, Dot3, Scale3, Mul3, DirectLightModel, HemisphereLight, Add3, Cross3, LimitRadiance } from "./Lighting3D";
+import { SurfaceWetness, SpecularFilterStrength, FilterNormalRoughness, Unit, Sub3, ShadowVisibility, Dot3, Scale3, Mul3, DirectLightModel, HemisphereLight, Add3, Cross3, LimitRadiance } from "./Lighting3D";
 
 @space(world.position)
 type WorldPosition3 = float3;
@@ -96,8 +96,12 @@ function VertexMain(input: VertexInput, uniforms: MaterialResources): ModelVaryi
 @pixel
 function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources: ModelResources, builtins: PixelBuiltins): ModelOutput {
     if (!builtins.frontFace && uniforms.material.flags.z < 0.5) { Discard(); }
-    let base: float4 = Sample(resources.baseMap, resources.baseSampler, input.uv) * uniforms.material.baseColor * input.color;
+    var base: float4 = Sample(resources.baseMap, resources.baseSampler, input.uv) * uniforms.material.baseColor * input.color;
     if (uniforms.material.flags.y > 0.5 && base.w < uniforms.material.emissiveAlpha.w) { Discard(); }
+    let wetness: f32 = SurfaceWetness(base.w, uniforms.material.flags.w);
+    let wetColor: float3 = Scale3(float3(base.x, base.y, base.z), 1.0 - 0.35 * wetness);
+    base = float4(wetColor.x, wetColor.y, wetColor.z, base.w);
+    let normalStrength: f32 = uniforms.material.factors.z * (1.0 - 0.45 * wetness);
     let emission: float4 = Sample(resources.emissiveMap, resources.emissiveSampler, input.uv);
     let emitted: float3 = Mul3(float3(emission.x, emission.y, emission.z),
         float3(uniforms.material.emissiveAlpha.x, uniforms.material.emissiveAlpha.y, uniforms.material.emissiveAlpha.z));
@@ -110,14 +114,14 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
     let tangent: float3 = Unit(float3(input.tangent.x, input.tangent.y, input.tangent.z));
     let geometric: float3 = Unit(input.normal);
     let bitangent: float3 = Scale3(Cross3(geometric, tangent), input.tangent.w);
-    var normal: float3 = Unit(Add3(Add3(Scale3(tangent, (nt.x * 2.0 - 1.0) * uniforms.material.factors.z),
-        Scale3(bitangent, (nt.y * 2.0 - 1.0) * uniforms.material.factors.z)), Scale3(geometric, nt.z * 2.0 - 1.0)));
+    var normal: float3 = Unit(Add3(Add3(Scale3(tangent, (nt.x * 2.0 - 1.0) * normalStrength),
+        Scale3(bitangent, (nt.y * 2.0 - 1.0) * normalStrength)), Scale3(geometric, nt.z * 2.0 - 1.0)));
     if (!builtins.frontFace) { normal = Scale3(normal, -1.0); }
     let light: float3 = Unit(float3(uniforms.material.light.x, uniforms.material.light.y, uniforms.material.light.z));
     let view: float3 = Unit(Sub3(float3(uniforms.material.eye.x, uniforms.material.eye.y, uniforms.material.eye.z), input.world));
     let mr: float4 = Sample(resources.metalMap, resources.metalSampler, input.uv);
     let metallic: f32 = Clamp(mr.z * uniforms.material.factors.x, 0.0, 1.0);
-    let roughness: f32 = FilterNormalRoughness(Clamp(mr.y * uniforms.material.factors.y, 0.045, 1.0), nt, uniforms.material.flags.w * Min(1.0, uniforms.material.factors.z * uniforms.material.factors.z));
+    let roughness: f32 = FilterNormalRoughness(Clamp(mr.y * uniforms.material.factors.y * (1.0 - 0.7 * wetness), 0.045, 1.0), nt, SpecularFilterStrength(uniforms.material.flags.w) * Min(1.0, normalStrength * normalStrength));
     let p: WorldPosition3 = float3(input.world.x, input.world.y, input.world.z);
     let projected: float3 = float3(Row(uniforms.material.shadowX, p), Row(uniforms.material.shadowY, p), Row(uniforms.material.shadowZ, p));
     let visibility: f32 = ShadowVisibility(resources.shadowMap, resources.shadowSampler, projected,

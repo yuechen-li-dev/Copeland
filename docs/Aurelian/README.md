@@ -52,6 +52,7 @@ The docs above describe current code paths and contracts. For exact signatures a
 - [Presentation graphics pack](presentation-graphics-pack.md) and [temporal graphics pack](temporal-graphics-pack.md).
 - [Water graphics pack](water-graphics-pack.md) and [transmission graphics pack](transmission-graphics-pack.md): bounded water/refraction and glass/volumetric contracts.
 - [Rain after dark](rain-night-research.md): native GPU rain/night/puddle demo, shader authoring, qualification and a paper survey.
+- [Connected weather](connected-weather.md): shared wet-ground queries and meshes, shelter exposure, surface footsteps, and environmental ambience.
 - [Rain art direction](rain-night-art-direction.md): generated 2D atmosphere target and the native scene's response.
 - [Procedural surfaces and primitives](procedural-surfaces-and-primitives.md): height-derived normal/PBR maps, textured local primitives and the Aetheris/Blender handoff.
 - [Shader library and VFX roadmap](shader-library-and-vfx-roadmap.md) and [GPU VFX foundation](gpu-vfx-foundation.md).

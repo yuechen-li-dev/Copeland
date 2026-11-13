@@ -299,3 +299,14 @@ export function FilterNormalRoughness(roughness: f32, sample: float4, strength: 
     let variance: f32 = Clamp(1.0 - Sqrt(Dot3(n, n)), 0.0, 1.0);
     return Clamp(Sqrt(roughness * roughness + variance * strength * 0.6), 0.045, 1.0);
 }
+
+// Surface flag bit 0 opts into specular filtering; bit 1 repurposes opaque alpha as wetness.
+export function SpecularFilterStrength(flags: f32): f32 {
+    return flags - Floor(flags * 0.5) * 2.0;
+}
+export function SurfaceWetness(alpha: f32, flags: f32): f32 {
+    if (flags < 2.0) {
+        return 0.0;
+    }
+    return Clamp(alpha, 0.0, 1.0);
+}

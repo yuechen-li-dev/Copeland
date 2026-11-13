@@ -26,6 +26,7 @@ if (!initialization.Success)
 using var plant = initialization.Plant!;
 var programs = new Dictionary<string, CompiledGraphicsProgram>();
 var results = new Dictionary<string, int>();
+var weatherErrors = new Dictionary<string, int>();
 foreach (bool shared in new[] { false, true })
 {
     using var target = new VulkanNativeFrameTarget(plant, 128, 128);
@@ -53,16 +54,30 @@ foreach (bool shared in new[] { false, true })
     }
     results.Add(shared + ":wet", Changed(reference, Capture(profile.Apply(dry, 1), "wet")));
     results.Add(shared + ":specular-aa", Changed(reference, Capture(dry with { SpecularAntiAliasing = true }, "filtered")));
+    foreach (float wetness in new[] { 0f, .5f, 1f })
+    {
+        foreach (bool filtering in new[] { false, true })
+        {
+            byte[] cpu = Capture(profile.Apply(dry, wetness) with { SpecularAntiAliasing = filtering }, "cpu-weather");
+            byte[] gpu = Capture(dry with { VertexWetness = true, SpecularAntiAliasing = filtering }, "vertex-weather", wetness);
+            int error = cpu.Zip(gpu, (a, b) => Math.Abs(a - b)).Max();
+            weatherErrors.Add($"{shared}:{filtering}:{wetness}", error);
+            if (error > 2)
+            {
+                throw new InvalidOperationException("Vertex weather disagrees with the CPU material response: " + error);
+            }
+        }
+    }
     var unmapped = dry with { NormalTexture = null };
     if (!Capture(unmapped, "unmapped").SequenceEqual(Capture(unmapped with { SpecularAntiAliasing = true }, "unmapped-filtered")))
     {
         throw new InvalidOperationException("Specular filtering changed a material without a normal map.");
     }
 
-    byte[] Capture(ModelMaterial material, string name)
+    byte[] Capture(ModelMaterial material, string name, float wetness = 1)
     {
         NativeModel3DVertex Vertex(float x, float y) => new(new(x, y, 0), Vector3.UnitZ,
-            Vector4.One, Vector2.Zero, new(1, 0, 0, 1));
+            new(1, 1, 1, wetness), Vector2.Zero, new(1, 0, 0, 1));
         NativeModel3DVertex[] vertices = [Vertex(-1, -1), Vertex(1, -1), Vertex(1, 1),
             Vertex(-1, -1), Vertex(1, 1), Vertex(-1, 1)];
         var eye = new Vector3(0, 0, 3);
@@ -102,7 +117,7 @@ foreach (var kind in Enum.GetValues<ProceduralSoundKind>())
 File.WriteAllText(evidence, JsonSerializer.Serialize(new
 {
     Accepted = true, Device = plant.Facts.PhysicalDeviceName, Width = 128, Height = 128,
-    ChangedPixels = results, PixelFormat = "RGBA8", Audio = "mono PCM16 WAV",
+    ChangedPixels = results, WeatherCpuGpuMaximumByteErrors = weatherErrors, PixelFormat = "RGBA8", Audio = "mono PCM16 WAV",
 }, new JsonSerializerOptions { WriteIndented = true }));
 Console.WriteLine(File.ReadAllText(evidence));
 

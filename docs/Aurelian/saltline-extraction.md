@@ -53,6 +53,8 @@ The [follow-up stabilization pass](stabilization.md) fixes the invalid-SPIR-V dr
 
 ## Remaining candidates
 
-Continuous wet-ground fields need a common CPU/GPU representation and a qualification scene for water boundaries before they can replace existing authored patches. Distance-aware fence coverage needs derivative/coverage behavior and moving-camera temporal tests. Adaptive resolution needs a proven GPU-bound consumer and resize/history qualification; an unattached controller would not improve the real renderer. Weapon motion and music stems need a playable/audio consumer with state projection and explicit clock ownership.
+The [connected-weather extension](connected-weather.md) now provides shared triangulated wet-ground data, clipped water boundaries, authored shelter exposure, surface footsteps, and environmental ambience. The rain gallery consumes these together and replaces its independent puddle outlines with the shared field.
+
+Distance-aware fence coverage still needs derivative/coverage behavior and moving-camera temporal tests. Adaptive resolution needs a proven GPU-bound consumer and resize/history qualification; an unattached controller would not improve the real renderer. Weapon motion and music stems need a playable/audio consumer with state projection and explicit clock ownership.
 
 These remain research candidates rather than claimed engine features. The current result provides three reusable facilities, real native image evidence, a launched rain gallery, and a qualified standalone engine test lane. Moving-camera specular filtering and interactive wetness toggles are the next visual qualification work.

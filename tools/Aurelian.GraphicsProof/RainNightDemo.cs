@@ -78,6 +78,12 @@ internal static class RainNightDemo
         Require(rainy.SequenceEqual(Capture("03-replay", still, rain)), "Identical rain commands did not replay exactly.");
         Require(vertices.SequenceEqual(particles.ReadVerticesForQualification()), "GPU rain vertices did not replay exactly.");
 
+        int wetGroundPixels = Changed(noRain, Capture("20-dry-ground", WithoutGroundWetness(still), []));
+        Require(wetGroundPixels > 1000, "The shared wet ground field did not change the native surface.");
+        var shelteredGround = RainStreetWeather.Ground.Sample(new(-3.4f, 11));
+        Require(shelteredGround.Wetness < .01f, "The authored awning did not shelter its ground field.");
+        object weatherAudio = RainStreetAudio.Qualify();
+
         Native3DScene flatNormals = still with
         {
             Models = still.Models.Select(batch => batch with { Material = batch.Material with { NormalTexture = null } }).ToArray(),
@@ -203,6 +209,7 @@ internal static class RainNightDemo
             ValidationLayers = plant.Facts.EnabledValidationLayers,
             Width, Height,
             RainChangedPixels = rainPixels,
+            WetGroundChangedPixels = wetGroundPixels, WeatherAudio = weatherAudio,
             AnimationChangedPixels = animatedPixels,
             ReflectionChangedPixels = reflectionPixels,
             ImpactChangedPixels = ripplePixels,
@@ -228,7 +235,7 @@ internal static class RainNightDemo
             MeasuredFrames = 32,
             GpuPasses = measurements.GroupBy(item => item.Pass).ToDictionary(group => group.Key,
                 group => Distribution(group.Select(item => item.Milliseconds))),
-            Limits = new[] { "authored open-air rain volumes", "horizontal floor; no roof collision",
+            Limits = new[] { "authored open-air rain volumes", "authored triangulated ground; no particle roof collision",
                 "authored incident rain lighting; no per-drop local-light query", "one coplanar opaque reflection",
                 "eight decorative authored water impacts; not particle collisions", "no glint-paper implementation" },
         }, new JsonSerializerOptions { WriteIndented = true }));
@@ -308,7 +315,7 @@ internal static class RainNightDemo
                 Color = new(.9f, .93f, 1, .55f),
                 RainIncidentRadiance = new(.45f, .23f, .075f),
             },
-            ParticleEmitter3D.Rain("shop-rain", new(-2.5f, 12, 6), 991) with
+            ParticleEmitter3D.Rain("shop-rain", new(-2.5f, 12, 3), 991) with
             {
                 ElapsedSeconds = time, Radius = 3.5f, Rate = 650, Size = .005f,
                 Color = new(.9f, .93f, 1, .45f),
@@ -317,7 +324,7 @@ internal static class RainNightDemo
         ];
     }
 
-    private static Native3DScene AtTime(Native3DScene scene, float time, float wetness = .85f)
+    private static Native3DScene AtTime(Native3DScene scene, float time)
     {
         var impacts = ImmutableArray.CreateBuilder<WaterImpulse3D>(8);
         for (int index = 0; index < 8; index++)
@@ -329,13 +336,20 @@ internal static class RainNightDemo
             centre += new Vector2((index % 4 - 1.5f) * .45f, (index % 2 - .5f) * .65f);
             impacts.Add(new(centre, Math.Max(0, started), .007f, .20f, .65f, 1.1f));
         }
-        var response = new WetSurface3D();
         return scene with
         {
             WaterFrame = new(time) { Impulses = impacts.MoveToImmutable() },
-            Models = scene.Models.Select(batch => batch.Material.Slot == "wet-asphalt"
-                ? batch with { Material = response.Apply(batch.Material, wetness) }
-                : batch).ToArray(),
+        };
+    }
+
+    private static Native3DScene WithoutGroundWetness(Native3DScene scene)
+    {
+        return scene with
+        {
+            Models = scene.Models.Select(batch => batch.Material.VertexWetness ? batch with
+            {
+                Vertices = batch.Vertices.Select(vertex => vertex with { Color = new(vertex.Color.X, vertex.Color.Y, vertex.Color.Z, 0) }).ToArray(),
+            } : batch).ToArray(),
         };
     }
 
@@ -353,7 +367,7 @@ internal static class RainNightDemo
             BaseColor = new(.11f, .105f, .095f, 1), Metallic = 0, Roughness = .68f,
         };
         ModelMaterial brick = maps["masonry"].Material("masonry") with { Metallic = 0 };
-        nodes.Add(Scene.Model("road", PrimitiveModels3D.Plane("road", new(13, 65), asphalt), new(0, -.04f, -15)));
+
         AddBox("left-walk", new(1.3f, .25f, 65), new(-4, .025f, -15), concrete, .025f);
         AddBox("right-walk", new(1.3f, .25f, 65), new(4, .025f, -15), concrete, .025f);
         for (int side = -1; side <= 1; side += 2)
@@ -431,15 +445,22 @@ internal static class RainNightDemo
         {
             Waves =
             [
-                new(new(1, .25f), .001f, .9f, .12f, .006f),
-                new(new(-.4f, 1), .0006f, .6f, .08f, .004f),
+                new(new(1, .25f), .001f, 1.2f, .12f, .006f),
+                new(new(-.4f, 1), .0006f, 1.6f, .08f, .004f),
             ],
             DetailAmplitude = .00075f, DetailWavelength = .14f,
             FoamStrength = 0, MaximumDepth = .1f, DeepColor = new(.012f, .018f, .026f),
         };
-        nodes.Add(Puddle("near-puddle", new(5.8f, 7.8f), new(.2f, PuddleHeight, 4.8f), water));
-        nodes.Add(Puddle("middle-puddle", new(3.1f, 4.8f), new(-1.6f, PuddleHeight, -2.4f), water));
-        nodes.Add(Puddle("far-puddle", new(2.8f, 5.8f), new(1.2f, PuddleHeight, -9), water));
+        var ground = WetGroundMesh3D.Create("street-ground", RainStreetWeather.Ground, asphalt, water);
+        nodes.Add(Scene.Model("road", ground.Ground, Vector3.Zero));
+        if (ground.Water is not null)
+        {
+            nodes.Add(Scene.Model("street-puddles", ground.Water, Vector3.Zero));
+        }
+        Vector3 roofSize = RainStreetWeather.Shelter.Maximum - RainStreetWeather.Shelter.Minimum;
+        Vector3 roofCenter = (RainStreetWeather.Shelter.Maximum + RainStreetWeather.Shelter.Minimum) * .5f;
+        AddBox("shelter-awning", new(roofSize.X, .12f, roofSize.Z),
+            new(roofCenter.X, RainStreetWeather.Shelter.Maximum.Y, roofCenter.Z), iron);
         return Scene.World("rain-after-dark", nodes);
 
         void AddBox(string id, Vector3 size, Vector3 position, ModelMaterial material, float bevel = 0)
@@ -459,25 +480,6 @@ internal static class RainNightDemo
             }
             nodes.Add(Scene.Model(id, asset, position));
         }
-    }
-
-    private static SceneMesh Puddle(string id, Vector2 size, Vector3 at, WaterSurface3D water)
-    {
-        SceneMesh patch = WaterSurfaceMesh3D.Create(id, new(2), water, 72, 72, at);
-        return patch with
-        {
-            Vertices = patch.Vertices.Select(vertex =>
-            {
-                float x = vertex.Position.X;
-                float z = vertex.Position.Z;
-                float diskX = x * MathF.Sqrt(1 - z * z * .5f);
-                float diskZ = z * MathF.Sqrt(1 - x * x * .5f);
-                float angle = MathF.Atan2(diskZ, diskX);
-                float edge = .91f + .06f * MathF.Sin(angle * 5) + .03f * MathF.Cos(angle * 9);
-                return vertex with { Position = new(diskX * size.X * .5f * edge, 0, diskZ * size.Y * .5f * edge) };
-            }).ToImmutableArray(),
-            Material = water.Material(id) with { Roughness = .075f, AttenuationColor = new(.85f, .9f, .95f) },
-        };
     }
 
     private static ModelMaterial Emissive(string name, Vector3 radiance)
@@ -509,7 +511,7 @@ internal static class RainNightDemo
     {
         var options = WindowOptions.DefaultVulkan;
         options.Size = new Vector2D<int>(Width, Height);
-        options.Title = "Rain After Dark | R rain, W wet surface, N normals, P puddles, Space pause, Esc close";
+        options.Title = "Rain After Dark | Arrows walk | R rain, W wet surface, N normals, P puddles, Space pause, Esc close";
         options.IsVisible = !smoke;
         using var window = Window.Create(options);
         window.Initialize();
@@ -520,6 +522,11 @@ internal static class RainNightDemo
         Configure(graphics.Renderer, particles);
         graphics.Settings = graphics.Settings with { AntiAliasing = AntiAliasing3D.Temporal };
         graphics.Clear = Clear;
+        using var audio = new RainStreetAudio(audible: !smoke);
+        Native3DScene dryScene = WithoutGroundWetness(scene);
+        Vector3 walkingEye = Eye;
+        bool focused = true;
+        window.FocusChanged += value => focused = value;
         bool raining = true;
         bool wetSurface = true;
         bool normalMaps = true;
@@ -554,16 +561,29 @@ internal static class RainNightDemo
             window.DoEvents();
             if (window.IsClosing) { break; }
             double now = clock.Elapsed.TotalSeconds;
-            if (!paused)
+            float elapsed = (float)Math.Clamp(now - previous, 0, .1);
+            if (!paused && (smoke || focused))
             {
-                time += (float)Math.Min(now - previous, .1);
+                time += elapsed;
+                Vector2 motion = Vector2.Zero;
+                foreach (var keyboard in input.Keyboards)
+                {
+                    if (keyboard.IsKeyPressed(Key.Left)) { motion.X -= 1; }
+                    if (keyboard.IsKeyPressed(Key.Right)) { motion.X += 1; }
+                    if (keyboard.IsKeyPressed(Key.Up)) { motion.Y -= 1; }
+                    if (keyboard.IsKeyPressed(Key.Down)) { motion.Y += 1; }
+                }
+                if (motion.LengthSquared() > 1) { motion = Vector2.Normalize(motion); }
+                walkingEye.X = Math.Clamp(walkingEye.X + motion.X * elapsed * 2.5f, -4.3f, 4.3f);
+                walkingEye.Z = Math.Clamp(walkingEye.Z + motion.Y * elapsed * 2.5f, -42, 15);
+                walkingEye.Y = RainStreetWeather.Ground.Sample(new(walkingEye.X, walkingEye.Z)).Height + 1.9f;
             }
             previous = now;
             // Presentation time wraps within the particle command's documented hour bound.
             if (time > 3500) { time = 3; }
             graphics.Resize(window.FramebufferSize.X, window.FramebufferSize.Y);
             graphics.Renderer.ParticleEmitters = raining ? Rain(time) : [];
-            Native3DScene current = AtTime(scene, time, wetSurface ? .85f : 0);
+            Native3DScene current = AtTime(wetSurface ? scene : dryScene, time);
             if (!normalMaps)
             {
                 current = current with
@@ -578,7 +598,8 @@ internal static class RainNightDemo
                     Models = current.Models.Where(batch => batch.Material.Water is null).ToArray(), WaterReflection = null,
                 };
             }
-            Vector3 eye = Eye + new Vector3(MathF.Sin(time * .13f) * .35f, 0, 0);
+            Vector3 eye = walkingEye;
+            audio.Update(TimeSpan.FromSeconds(elapsed), eye, raining, paused, smoke || focused, wetSurface, puddles);
             var rendered = graphics.Render(current, Camera(eye, graphics.Width, graphics.Height), eye, capture: smoke);
             graphics.Present(++frame);
             if (smoke && frame == 12)
@@ -587,7 +608,7 @@ internal static class RainNightDemo
                 File.WriteAllText(Path.Combine(output, "window-evidence.json"), JsonSerializer.Serialize(new
                 {
                     PresentedFrames = frame, Device = graphics.Plant.Facts.PhysicalDeviceName,
-                    rendered.PixelSha256, Budget = particles.Inspection,
+                    rendered.PixelSha256, Budget = particles.Inspection, WeatherAudio = audio.Ambience, audio.Footsteps,
                 }, new JsonSerializerOptions { WriteIndented = true }));
                 Console.WriteLine("AURELIAN_RAIN_NIGHT_WINDOW_PASSED frames=" + frame);
                 window.Close();

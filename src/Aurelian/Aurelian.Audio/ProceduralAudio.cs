@@ -8,6 +8,8 @@ public enum ProceduralSoundKind
     Footstep,
     MetalImpact,
     Rain,
+    ShelteredRain,
+    WaterStep,
 }
 
 /// <summary>Bounded, seeded PCM preparation. Generate on a loading/worker thread, never a device callback.</summary>
@@ -59,6 +61,16 @@ public sealed record ProceduralSoundRecipe(ProceduralSoundKind Kind, uint Seed =
             {
                 value = (.75 * low + .25 * Math.Sin(phase)) * Math.Exp(-time * 10 / DurationSeconds);
             }
+            else if (Kind == ProceduralSoundKind.WaterStep)
+            {
+                double splash = (noise - low) * Math.Exp(-time * 6 / DurationSeconds);
+                double body = Math.Sin(phase * .55) * Math.Exp(-time * 16 / DurationSeconds);
+                value = .4 * splash + .2 * body;
+            }
+            else if (Kind == ProceduralSoundKind.ShelteredRain)
+            {
+                value = low;
+            }
             else
             {
                 value = .65 * noise + .35 * low;
@@ -75,6 +87,7 @@ public sealed record ProceduralSoundRecipe(ProceduralSoundKind Kind, uint Seed =
             BinaryPrimitives.WriteSingleLittleEndian(bytes.AsSpan(sizeof(int) + frame * sizeof(float)), samples[frame]);
         }
         string hash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
-        return new(id, hash, SampleRateHz, 1, frames, samples, Kind == ProceduralSoundKind.Rain);
+        return new(id, hash, SampleRateHz, 1, frames, samples,
+            Kind is ProceduralSoundKind.Rain or ProceduralSoundKind.ShelteredRain);
     }
 }

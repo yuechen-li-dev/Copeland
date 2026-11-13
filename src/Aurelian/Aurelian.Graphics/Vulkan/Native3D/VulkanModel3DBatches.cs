@@ -174,7 +174,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
                 eye.X, eye.Y, eye.Z, 1, m.BaseColor.X, m.BaseColor.Y, m.BaseColor.Z, m.BaseColor.W,
                 m.Metallic, m.Roughness, m.NormalTexture is null ? 0 : m.NormalScale, m.OcclusionStrength,
                 m.Emissive.X, m.Emissive.Y, m.Emissive.Z, m.AlphaCutoff,
-                m.Unlit ? 1 : 0, m.AlphaMask ? 1 : 0, m.DoubleSided ? 1 : 0, m.SpecularAntiAliasing ? 1 : 0, .. lighting,
+                m.Unlit ? 1 : 0, m.AlphaMask ? 1 : 0, m.DoubleSided ? 1 : 0, m.PackedSurfaceFlags, .. lighting,
                 .. temporal ? Lighting3DUniforms.Rows(previousClip) : [],
                 .. refractive ? additionalUniforms[..108] : additionalUniforms,
                 .. refractive ? new float[] { m.Transmission, m.IndexOfRefraction, m.Thickness, 0,

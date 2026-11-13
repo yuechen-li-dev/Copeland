@@ -163,6 +163,10 @@ public sealed class ScenePlan
         {
             writer.Write("Aurelian.SpecularAntiAliasing.v1");
         }
+        if (material.VertexWetness)
+        {
+            writer.Write("Aurelian.VertexWetness.v1");
+        }
         foreach (ModelTextureBinding? binding in material.Textures())
         {
             writer.Write(binding is not null);
