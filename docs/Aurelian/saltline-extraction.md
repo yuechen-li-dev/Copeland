@@ -14,7 +14,7 @@ float exposed = WetSurface3D.RainExposure(Vector3.UnitY, shelter: .2f);
 
 The result uses existing forward, surface, retained, and bindless material upload paths. Changing explicit presentation state requires no texture rebake or new shader ABI. A zero response returns the original material. Rain exposure is an orientation approximation with explicitly supplied shelter; it does not trace roofs, simulate accumulation, or create a water layer.
 
-The rain gallery now bakes dry asphalt once and applies runtime wetness to each presentation snapshot. **W** toggles this substrate response independently of **R** rain and **P** puddles. The gallery edits have not been launched here: its project depends on absent sibling repositories. The independent native proof below qualifies the material response directly.
+The rain gallery now bakes dry asphalt once and applies runtime wetness to each presentation snapshot. **W** toggles this substrate response independently of **R** rain and **P** puddles. The follow-up stabilization pass restores the sibling workspace, builds the full solution, and launches the gallery for a twelve-frame native smoke test. The independent native proof below qualifies the material response directly; manual toggle behavior remains a separate interaction check.
 
 ## Specular filtering
 
@@ -49,12 +49,10 @@ The independent tool uses existing Vulkan rendering and built-in shader compilat
 
 On the AMD Radeon 780M, wetness changes **6,084 pixels** and specular filtering changes **5,616 pixels**, in both forward and shared-surface paths. The CPU/mixer suites pass **80 material-contract tests** and **4 synthesis tests**. The focused shader suites pass **51 tests**, including validated SPIR-V and unchanged resource contracts. Graphics and World projects build with zero warnings/errors.
 
-The wider graphics suite reports 118 passing tests before the host crashes in `VulkanCompiledGraphicsPipelineDescriptorFactory_CreatePipeline_WhenVulkanUnavailable_SkipsCleanly`. That existing fixture submits an eight-byte SPIR-V payload with only a magic/version prefix to the driver. The stack ends in `Vk.CreateShaderModule`; the suite is **aborted**, not passed. The World test assembly is blocked by Windows Application Control (`0x800711C7`); its project build passes, but those tests are not qualified.
-
-The full `Aurelian.slnx` baseline build fails before compilation because game projects outside this sparse checkout and sibling `Deliverance.Core` are absent. GraphicsProof also references Aetheris/Dominatus integrations. Full solution regression and the modified gallery therefore remain unqualified. The independent proof avoids those dependencies without changing their ownership or replacing them with stubs.
+The [follow-up stabilization pass](stabilization.md) fixes the invalid-SPIR-V driver submission, restores sibling dependencies and checkout fixtures, and adds standalone engine CI. The graphics suite now passes 351 tests, the core lane passes 1,379 tests, and the full solution builds successfully. Windows Application Control initially blocked several assemblies; the user disabled that block and the retry passed. The separate browser-toolchain test and full optional integration test matrix are outside that core result.
 
 ## Remaining candidates
 
 Continuous wet-ground fields need a common CPU/GPU representation and a qualification scene for water boundaries before they can replace existing authored patches. Distance-aware fence coverage needs derivative/coverage behavior and moving-camera temporal tests. Adaptive resolution needs a proven GPU-bound consumer and resize/history qualification; an unattached controller would not improve the real renderer. Weapon motion and music stems need a playable/audio consumer with state projection and explicit clock ownership.
 
-These remain research candidates rather than claimed engine features. The current result is meaningful progression: three reusable facilities, real native image evidence, and a narrowed full-integration blocker. Restoring the sibling workspace and running the modified rain gallery is the next integration gate.
+These remain research candidates rather than claimed engine features. The current result provides three reusable facilities, real native image evidence, a launched rain gallery, and a qualified standalone engine test lane. Moving-camera specular filtering and interactive wetness toggles are the next visual qualification work.

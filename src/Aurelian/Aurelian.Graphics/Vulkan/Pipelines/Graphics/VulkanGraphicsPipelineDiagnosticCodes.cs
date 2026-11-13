@@ -17,4 +17,5 @@ public static class VulkanGraphicsPipelineDiagnosticCodes
     public const string PipelineDisposed = "AGPIP1013";
     public const string PlantMismatch = "AGPIP1014";
     public const string AmbiguousBlendState = "AGPIP1015";
+    public const string InvalidSpirv = "AGPIP1016";
 }

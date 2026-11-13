@@ -1,0 +1,55 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Aurelian/Aurelian.Actuation/Aurelian.Actuation.csproj" />
+    <Project Path="src/Aurelian/Aurelian.AssetCompiler/Aurelian.AssetCompiler.csproj" />
+    <Project Path="src/Aurelian/Aurelian.AssetTool/Aurelian.AssetTool.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Assets/Aurelian.Assets.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Audio/Aurelian.Audio.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Cli/Aurelian.Cli.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Composition/Aurelian.Composition.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Core/Aurelian.Core.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Diagnostics/Aurelian.Diagnostics.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Effects2D/Aurelian.Effects2D.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Field2D/Aurelian.Field2D.csproj" />
+    <Project Path="src/Aurelian/Aurelian.GameHost/Aurelian.GameHost.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Inference/Aurelian.Inference.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Physics3D/Aurelian.Physics3D.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Rendering.Null/Aurelian.Rendering.Null.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Rendering.Raster/Aurelian.Rendering.Raster.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Runtime/Aurelian.Runtime.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Shaders.Builtins/Aurelian.Shaders.Builtins.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Simulation/Aurelian.Simulation.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Spatial2D/Aurelian.Spatial2D.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Spatial3D/Aurelian.Spatial3D.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Strategy/Aurelian.Strategy.csproj" />
+    <Project Path="src/Aurelian/Aurelian.World/Aurelian.World.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Aurelian/Aurelian.Actuation.Tests/Aurelian.Actuation.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.AssetTool.Tests/Aurelian.AssetTool.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Assets.Tests/Aurelian.Assets.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Audio.Synthesis.Tests/Aurelian.Audio.Synthesis.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Cli.Tests/Aurelian.Cli.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Composition.Tests/Aurelian.Composition.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Core.Tests/Aurelian.Core.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Effects2D.Tests/Aurelian.Effects2D.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Graphics.Tests/Aurelian.Graphics.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Inference.Tests/Aurelian.Inference.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Integration.Tests/Aurelian.Integration.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Rendering.Contracts.Tests/Aurelian.Rendering.Contracts.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Rendering.Null.Tests/Aurelian.Rendering.Null.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Rendering.Raster.Tests/Aurelian.Rendering.Raster.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Runtime.Tests/Aurelian.Runtime.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Shaders.Tests/Aurelian.Shaders.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Simulation.Tests/Aurelian.Simulation.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Spatial2D.Tests/Aurelian.Spatial2D.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Spatial3D.Tests/Aurelian.Spatial3D.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.World.Tests/Aurelian.World.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Aurelian.SurfaceResponseProof/Aurelian.SurfaceResponseProof.csproj" />
+  </Folder>
+</Solution>

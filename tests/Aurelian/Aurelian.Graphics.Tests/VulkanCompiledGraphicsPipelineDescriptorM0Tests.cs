@@ -212,7 +212,7 @@ public sealed class VulkanCompiledGraphicsPipelineDescriptorM0Tests
             Assert.NotEqual(VulkanCompiledGraphicsPipelineStatus.Created, result.Status);
             Assert.NotNull(result.Descriptor);
             Assert.NotEmpty(result.Diagnostics);
-            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == VulkanCompiledGraphicsPipelineDiagnosticCodes.NativePipelineCreationFailed);
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == VulkanCompiledGraphicsPipelineDiagnosticCodes.InvalidSpirvBytes);
         });
 
     private static CompiledShaderProgram Program(params CompiledShaderStage[] stages)

@@ -90,14 +90,20 @@ backends and experiments have their own qualification boundaries.
 
 - [Aurelian documentation](docs/Aurelian/README.md)
 - [Source](src/Aurelian) and [tests](tests/Aurelian)
-- [Runtime solution](Aurelian.slnx) and [inference solution](Aurelian.Inference.slnx)
+- [Standalone core solution](Aurelian.Core.slnx), [full integration solution](Aurelian.slnx), and [inference solution](Aurelian.Inference.slnx)
 - [Games and runnable applications](Games/README.md)
 - [Game starter](docs/Aurelian/game-starter.md) and [scene composition](docs/Aurelian/scene-composition.md)
 
 ```powershell
-dotnet build Aurelian.slnx -m:1
-dotnet test Aurelian.slnx --no-build -m:1
+./scripts/Test-AurelianCoreBoundary.ps1
+dotnet build Aurelian.Core.slnx -c Release -m:1
+./scripts/Invoke-AurelianCoreTests.ps1
 ```
+
+The core lane needs no sibling repositories or game projects. CI runs browser
+shader translation separately with pinned Naga tooling. `Aurelian.slnx` remains
+the larger integration lane, including games and optional Aetheris bridges;
+see [stabilization and dependency setup](docs/Aurelian/stabilization.md).
 
 The [topology and ownership doctrine](docs/architecture/jtf-m0-topology-and-ownership.md)
 and [semantic boundaries](docs/architecture/jtf-target-semantic-boundaries.md)

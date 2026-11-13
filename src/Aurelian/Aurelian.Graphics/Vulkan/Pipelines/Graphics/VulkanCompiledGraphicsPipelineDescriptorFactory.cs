@@ -280,6 +280,7 @@ public static class VulkanCompiledGraphicsPipelineDescriptorFactory
             VulkanGraphicsPipelineDiagnosticCodes.MissingFragmentShader => VulkanCompiledGraphicsPipelineDiagnosticCodes.MissingFragmentStage,
             VulkanGraphicsPipelineDiagnosticCodes.DuplicateShaderStage => VulkanCompiledGraphicsPipelineDiagnosticCodes.DuplicateStage,
             VulkanGraphicsPipelineDiagnosticCodes.EmptySpirv => VulkanCompiledGraphicsPipelineDiagnosticCodes.InvalidSpirvBytes,
+            VulkanGraphicsPipelineDiagnosticCodes.InvalidSpirv => VulkanCompiledGraphicsPipelineDiagnosticCodes.InvalidSpirvBytes,
             VulkanGraphicsPipelineDiagnosticCodes.InvalidVertexInput => VulkanCompiledGraphicsPipelineDiagnosticCodes.InvalidVertexInput,
             _ => VulkanCompiledGraphicsPipelineDiagnosticCodes.NativePipelineCreationFailed,
         };
