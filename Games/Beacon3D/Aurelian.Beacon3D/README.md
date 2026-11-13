@@ -33,6 +33,8 @@ Normal play also demonstrates [first-person motion and environmental audio](../.
 
 The geometric weapon now has [separate foreground depth and wall avoidance](../../../docs/Aurelian/beacon-viewmodel-and-quality.md). Approach a pillar to see it retract; **B** retains this clearance response while disabling cosmetic motion. **Settings → Display → Adaptive quality** enables measured LoD/HZB selection through the existing Dominatus policy. `Playtests/weapon-depth.json` exercises this path, settings, replay and resize.
 
+The [next gameplay extraction](../../../docs/Aurelian/gameplay-extraction.md) adds synchronized calm/combat score layers and safe spawn placement from eight authored points. Music follows encounter pressure and the Music volume setting; waves prefer cover and avoid nearby or recently reused points while retaining the existing creature brains and nine-creature objective.
+
 Ordinary shaded play uses Aurelian PathDiffuse. Supplying `--lighting` explicitly selects Lambert to match the published transfer asset's contract. The finite lighting proof disables temporal AA for byte-identical still comparisons.
 
 ## Optional humanoid player

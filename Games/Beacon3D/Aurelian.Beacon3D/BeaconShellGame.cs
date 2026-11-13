@@ -154,6 +154,8 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
         facts.Set("presentation.obstruction", Presentation.Pose.Obstruction);
         facts.Set("presentation.clearance", Presentation.WeaponClearance);
         facts.Set("presentation.viewmodel", game.View == CameraView.FirstPerson && humanoid is null && !game.Won && !game.Dead);
+        facts.Set("music.intensity", Presentation.MusicIntensity);
+        facts.Set("spawn.points", string.Join(',', game.LastSpawns.Select(choice => choice.Point.Id)));
         facts.Set("audio.shelter", Presentation.AudioState.Shelter);
         facts.Set("audio.outside", Presentation.AudioState.ExteriorGain);
         facts.Set("audio.inside", Presentation.AudioState.InteriorGain);

@@ -14,13 +14,13 @@ The [third trial](../../docs/Aurelian/semantic-look-calibration.md) keeps PathDi
 
 The live sky now uses a [clearer blue backdrop](../../docs/Aurelian/assets/cloudstep-clear-blue-sky.png) in both ordinary and calibrated launches. Palette, lighting, fog and the cloud sea retain their existing settings; frozen calibration captures preserve the previous sky for reproducibility.
 
-Movement feel (`PlayerTuning`): acceleration with separate air control, 0.1 s coyote time, 0.12 s jump buffer, variable jump height, platform momentum on jump, and 0.4 m step-up.
+Movement feel (`PlayerTuning`): acceleration with separate air control, 0.12 s coyote time, 0.15 s jump buffer, variable jump height, platform momentum on jump, and 0.4 m step-up. The implementation now lives in the reusable engine `PlatformerCharacter3D`; Cloudstep retains its tuning and save-format adapter. See the [controller guide](../../docs/Aurelian/platforming.md).
 
 | File | Role |
 | --- | --- |
 | `CloudstepCourse.cs` | Authored data: blocks, platforms, gems, checkpoints, hazards, goal |
 | `CloudstepWorld.cs` | Rules: platform poses, crumble timers, deaths, pickups, checkpoints, snapshots |
-| `CloudstepPlayer.cs` | Platformer controller on `CharacterMotor3D` and `KinematicSpatialWorld3D` |
+| `CloudstepPlayer.cs` | Tuning/save/event adapter over engine `PlatformerCharacter3D` |
 | `CloudstepGame.cs` | The `IGame`: input layout, camera boom, HUD, music, sound effects, saves |
 | `CloudstepVisuals.cs` | Procedural placeholder art |
 | `CloudstepAutopilot.cs` | A route runner that plays the course with ordinary inputs |

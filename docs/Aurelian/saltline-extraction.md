@@ -61,14 +61,15 @@ The [viewmodel/quality extension](beacon-viewmodel-and-quality.md) now adds sepa
 
 ## Remaining-source ledger
 
-A second bounded inspection of the embedded source confirms that the source is **not exhausted**. The following are distinct follow-ups, not capabilities implied by the completed surface/audio/FPS work:
+The embedded source is **not exhausted**. This ledger separates qualified extractions from distinct follow-ups; completed surface/audio/FPS work does not imply the remaining capabilities:
 
 | Idea | Current disposition | Useful acceptance case |
 | --- | --- | --- |
 | Distance-aware alpha coverage | Still useful. `SL_ACUT` adjusts cutoff/coverage as fence wires shrink; Aurelian's ordinary material cutoff remains fixed. | A fence consumer with distance and moving-camera coverage/shimmer comparisons in material raster and visibility resolve. |
-| Synchronized music layers | Still useful. Prepared sounds and ordinary music fades do not establish sample-aligned stems. | Beacon encounter layers started on one mixer clock, remaining aligned through pause, focus and restart; actual mixed PCM evidence. |
-| Jump forgiveness and crouch clearance | Still useful. The embedded player explicitly maintains coyote and jump-buffer timers. Aurelian's accepted character motor remains the collision authority. | A reusable input/motor adapter with ledge departure, early landing presses and obstructed stand-up tests. |
-| Visibility/recent-use spawn scoring | Potential Beacon gameplay improvement. Existing Dominatus agents remain authoritative; fixed arena spawn positions do not implement this policy. | Compare spawn distance, line of sight, recent reuse and alive-count scheduling without bypassing the game resolver. |
+| Synchronized music layers | Implemented by [LayeredMusic](gameplay-extraction.md): one mixer cursor and logical voice with sample ramps. Beacon consumes it. | Exact loop/channel PCM, pause/reset, Music volume, atomic admission, whole-group stealing and exported real score mixes pass. |
+| Jump forgiveness | Extracted from Cloudstep into [PlatformerCharacter3D](platforming.md), including air control, short hops, platform momentum and edge handling. | Full before/after tour traces are byte-identical; native course completion, mid-ride restore, coyote expiry and buffered landing pass. |
+| Crouch clearance | Remains a separate stance feature; Cloudstep's jump helper does not implement crouching. | A crouching consumer with obstructed stand-up and saved stance/body dimensions. |
+| Visibility/recent-use spawn scoring | Implemented by [SpawnSelector3D](gameplay-extraction.md), consumed by Beacon's existing resolver and brains. | Distance, cover, recent use, occupancy/fit, deterministic history and nine-creature fight completion pass. Staggered scheduling remains separate. |
 | Wet orientation, streaks and beads | Partial extraction. Shared wetness/normal damping and ground exposure exist; those extra procedural visual details were not ported. | One authored wet prop with sheltered/upward/vertical faces and close/distant captures, avoiding a parallel material system. |
 | Reverb/convolution routing | Distinct audio work. Saltline uses convolver nodes; the current shelter blend uses prepared filtered layers. | A bounded mixer-owned effect with dry/wet routing, lifecycle and offline audio qualification. |
 | Cooperative/prioritized audio preparation | No current demonstrated loading bottleneck in the small bounded recipes. | A measured boot/frame stall before adding a new scheduling/cache owner. |

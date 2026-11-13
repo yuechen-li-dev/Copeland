@@ -20,6 +20,12 @@ using Silk.NET.Maths;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
 
+if (args.Contains("--music-layers", StringComparer.Ordinal))
+{
+    MusicLayersProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/music-layers"));
+    return;
+}
+
 if (args.Contains("--viewmodel", StringComparer.Ordinal))
 {
     ViewmodelDepthProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/viewmodel-depth"));

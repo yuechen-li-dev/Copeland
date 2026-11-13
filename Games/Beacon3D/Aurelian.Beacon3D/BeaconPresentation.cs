@@ -13,6 +13,7 @@ public sealed class BeaconPresentation : IDisposable
     private readonly FirstPersonPresentation3D motion = new();
     private GameContext? context;
     private EnvironmentalAmbience? ambience;
+    private LayeredMusic? music;
     private readonly List<WaterImpulse3D> impacts = [];
     public bool Enabled { get; set; } = true;
     public bool GroundWeather { get; set; } = true;
@@ -22,6 +23,8 @@ public sealed class BeaconPresentation : IDisposable
     public EnvironmentalAmbienceState AudioState => ambience?.State ?? default;
     public Dictionary<string, int> Sounds { get; } = [];
     public float WeaponClearance { get; private set; } = 1.05f;
+    public float MusicIntensity { get; private set; }
+    public LayeredMusicFacts? MusicState => music?.Inspect();
 
     public void Start(GameContext services)
     {
@@ -35,6 +38,13 @@ public sealed class BeaconPresentation : IDisposable
         Add("reload", ProceduralSoundKind.MetalImpact, 450, .18f, .3f);
         Add("land", ProceduralSoundKind.Footstep, 70, .3f, .5f);
         ambience = new(services.Audio, "beacon-environment", new("beacon.outside"), new("beacon.inside"));
+        foreach (var clip in BeaconMusic.Prepare())
+        {
+            services.AudioResources.Add(clip);
+        }
+        music = services.Audio.PlayMusicLayers(new("beacon.score"),
+            [new(new("beacon.music.base"), .55f), new(new("beacon.music.combat"), 0)])
+            ?? throw new InvalidOperationException("Beacon score could not acquire a music voice.");
     }
 
     public void Reset(BeaconGame game)
@@ -46,6 +56,8 @@ public sealed class BeaconPresentation : IDisposable
         ambience?.Reset();
         impacts.Clear();
         Sounds.Clear();
+        MusicIntensity = 0;
+        music?.Reset();
         context?.Audio.StopBus(AudioBusId.Sfx, TimeSpan.Zero);
     }
 
@@ -56,6 +68,11 @@ public sealed class BeaconPresentation : IDisposable
         int steps = motion.Footsteps;
         int landings = motion.Landings;
         motion.Step(Input(game, aiming, sprinting), seconds);
+        var creatures = game.Creatures.Where(agent => agent.State.Health > 0).ToArray();
+        float nearest = creatures.Length == 0 ? 12 : creatures.Min(agent => Vector3.Distance(agent.State.Position, game.Eye));
+        MusicIntensity = Math.Clamp(creatures.Length / 4f * .5f + Math.Max(0, 1 - nearest / 12) * .5f
+            + (game.Hurt ? .25f : 0), 0, 1);
+        music?.SetGains([.55f, MusicIntensity * .65f], TimeSpan.FromSeconds(.4));
         if (game.Shots > oldShots)
         {
             Sound("shot");
@@ -101,9 +118,14 @@ public sealed class BeaconPresentation : IDisposable
         }
         context.Audio.Listener = new(game.Position, 10, 1, 22);
         ambience!.Update(frame.Elapsed, 1, BeaconEnvironment.Shelter.ShelterAt(game.Eye), !frame.Playing || game.Dead || game.Won);
+        music?.SetPaused(!frame.Playing || game.Dead || game.Won);
     }
 
-    public void Dispose() => ambience?.Dispose();
+    public void Dispose()
+    {
+        music?.Dispose();
+        ambience?.Dispose();
+    }
 
     private FirstPersonMotion3D Input(BeaconGame game, bool aiming, bool sprinting) => new(
         new(game.Position.X, game.Height, game.Position.Y), game.Yaw, game.Pitch,

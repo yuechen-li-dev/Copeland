@@ -94,6 +94,94 @@ public sealed class AurelianAudioRuntime : IAurelianAudioRuntime
         return Play(new AudioCue(eventId, asset, AudioBusId.Music, Loop: true, FadeIn: fadeIn));
     }
 
+    /// <summary>Admit aligned resident stems atomically as one ordinary Music voice.</summary>
+    public LayeredMusic? PlayMusicLayers(AudioEventId eventId, IReadOnlyList<MusicLayer> layers)
+    {
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(layers);
+        if (layers.Count is < 1 or > 8 || layers.Any(layer => layer is null)
+            || layers.Select(layer => layer.Asset).Distinct().Count() != layers.Count)
+        {
+            throw new ArgumentException("Music needs 1..8 distinct prepared layers.", nameof(layers));
+        }
+        var prepared = new MusicStem[layers.Count];
+        for (int index = 0; index < layers.Count; index++)
+        {
+            ValidateUnit(layers[index].Gain, nameof(layers));
+            AudioClipResource clip = resources.Get(layers[index].Asset);
+            if (index > 0 && (clip.SampleRateHz != prepared[0].Resource.SampleRateHz
+                || clip.FrameCount != prepared[0].Resource.FrameCount))
+            {
+                throw new ArgumentException("Synchronized music layers must share sample rate and frame count.", nameof(layers));
+            }
+            prepared[index] = new(clip, layers[index].Gain);
+        }
+        AudioVoiceId? id = Play(new(eventId, layers[0].Asset, AudioBusId.Music, Loop: true, Priority: 10));
+        if (id is null)
+        {
+            return null;
+        }
+        voices.Single(voice => voice.Id == id.Value).MusicLayers = prepared;
+        return new(this, id.Value);
+    }
+
+    internal LayeredMusicFacts InspectMusicLayers(AudioVoiceId id)
+    {
+        ThrowIfDisposed();
+        var voice = voices.SingleOrDefault(item => item.Id == id);
+        if (voice?.MusicLayers is not { } layers)
+        {
+            return new(false, 0, []);
+        }
+        return new(true, voice.SourceFrame, layers.Select(layer =>
+            new MusicLayerGain(layer.Resource.Id, layer.Gain, layer.Target)).ToArray());
+    }
+
+    internal bool SetMusicLayerGains(AudioVoiceId id, IReadOnlyList<float> gains, TimeSpan transition)
+    {
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(gains);
+        if (transition < TimeSpan.Zero || transition > TimeSpan.FromSeconds(10))
+        {
+            throw new ArgumentOutOfRangeException(nameof(transition));
+        }
+        var layers = voices.SingleOrDefault(voice => voice.Id == id)?.MusicLayers;
+        if (layers is null)
+        {
+            return false;
+        }
+        if (gains.Count != layers.Length)
+        {
+            throw new ArgumentException("Supply one gain per music layer.", nameof(gains));
+        }
+        foreach (float gain in gains)
+        {
+            ValidateUnit(gain, nameof(gains));
+        }
+        int frames = checked((int)Math.Round(transition.TotalSeconds * sampleRateHz));
+        for (int index = 0; index < layers.Length; index++)
+        {
+            layers[index].SetGain(gains[index], frames);
+        }
+        return true;
+    }
+
+    internal bool ResetMusicLayers(AudioVoiceId id)
+    {
+        ThrowIfDisposed();
+        var voice = voices.SingleOrDefault(item => item.Id == id);
+        if (voice?.MusicLayers is not { } layers)
+        {
+            return false;
+        }
+        voice.ResetPlayback();
+        foreach (var layer in layers)
+        {
+            layer.SetGain(layer.InitialGain, 0);
+        }
+        return true;
+    }
+
     public AudioVoiceId? CrossfadeMusic(AudioEventId eventId, AudioAssetId asset, TimeSpan duration)
     {
         ValidateDuration(duration);
@@ -293,6 +381,17 @@ public sealed class AurelianAudioRuntime : IAurelianAudioRuntime
             int sourceIndex = sourceFrame * voice.Resource.Channels;
             float left = voice.Resource.Samples[sourceIndex];
             float right = voice.Resource.Channels == 2 ? voice.Resource.Samples[sourceIndex + 1] : left;
+            if (voice.MusicLayers is { } layers)
+            {
+                left = right = 0;
+                foreach (var layer in layers)
+                {
+                    layer.AdvanceGain();
+                    int index = sourceFrame * layer.Resource.Channels;
+                    left += layer.Resource.Samples[index] * layer.Gain;
+                    right += layer.Resource.Samples[index + layer.Resource.Channels - 1] * layer.Gain;
+                }
+            }
             output[outputFrame * 2] += left * gain * leftPan;
             output[outputFrame * 2 + 1] += right * gain * rightPan;
             voice.SourceFrame += (double)voice.Resource.SampleRateHz / sampleRateHz;
@@ -447,6 +546,7 @@ public sealed class AurelianAudioRuntime : IAurelianAudioRuntime
 
     private sealed class Voice
     {
+        public MusicStem[]? MusicLayers { get; set; }
         public float Gain { get; set; } = 1;
         public bool Paused { get; set; }
         private double fadeElapsedSeconds;
@@ -477,6 +577,16 @@ public sealed class AurelianAudioRuntime : IAurelianAudioRuntime
         public bool StopAtFadeEnd { get; private set; }
         public bool FadeComplete => fadeDurationSeconds > 0d && fadeElapsedSeconds + 1e-9 >= fadeDurationSeconds;
 
+        public void ResetPlayback()
+        {
+            SourceFrame = 0;
+            Age = TimeSpan.Zero;
+            Paused = false;
+            FadeGain = 1;
+            StopAtFadeEnd = false;
+            fadeElapsedSeconds = fadeDurationSeconds = 0;
+        }
+
         public void BeginFade(float start, float end, TimeSpan duration, bool stopAtEnd)
         {
             fadeStart = start;
@@ -496,6 +606,42 @@ public sealed class AurelianAudioRuntime : IAurelianAudioRuntime
             fadeElapsedSeconds += elapsedSeconds;
             float progress = Math.Clamp((float)(fadeElapsedSeconds / fadeDurationSeconds), 0f, 1f);
             FadeGain = fadeStart + ((fadeEnd - fadeStart) * progress);
+        }
+    }
+
+    private sealed class MusicStem(AudioClipResource resource, float gain)
+    {
+        public AudioClipResource Resource { get; } = resource;
+        public float InitialGain { get; } = gain;
+        public float Gain { get; private set; } = gain;
+        public float Target { get; private set; } = gain;
+        private int remaining;
+        private int duration;
+        private double start;
+
+        public void SetGain(float target, int frames)
+        {
+            if (frames == 0)
+            {
+                Gain = Target = target;
+                remaining = 0;
+            }
+            else if (target != Target)
+            {
+                Target = target;
+                remaining = duration = frames;
+                start = Gain;
+            }
+        }
+
+        public void AdvanceGain()
+        {
+            if (remaining > 0)
+            {
+                remaining--;
+                double blend = 1 - (double)remaining / duration;
+                Gain = remaining == 0 ? Target : (float)(start + (Target - start) * blend);
+            }
         }
     }
 }

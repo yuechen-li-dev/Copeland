@@ -9,6 +9,61 @@ namespace Aurelian.Beacon3D.Tests;
 public sealed class BeaconPresentationTests
 {
     [Fact]
+    public void EncounterScoreUsesOneMusicClockAndFollowsPauseVolumeAndRestart()
+    {
+        using var fixture = new Fixture();
+        fixture.Session.ApplySettings(fixture.Session.Settings with
+        {
+            Audio = fixture.Session.Settings.Audio with { Effects = 0, Music = 1 },
+        });
+        fixture.Advance(30);
+        fixture.Output.Peak = 0;
+        fixture.Advance(6);
+        Assert.True(fixture.Output.Peak > .001f);
+        var initial = fixture.Game.Presentation.MusicState!;
+        var voice = Assert.Single(fixture.Session.Audio.Inspect().ActiveVoices, item => item.Bus == AudioBusId.Music).Voice;
+        Assert.Equal(2, initial.Layers.Count);
+        Assert.Equal(0, fixture.Game.Presentation.MusicIntensity);
+        fixture.Session.OnFocusChanged(false);
+        fixture.Advance(30);
+        Assert.Equal(initial.SourceFrame, fixture.Game.Presentation.MusicState!.SourceFrame);
+        fixture.Session.OnFocusChanged(true);
+        fixture.Session.Activate("resume");
+        fixture.Advance(90);
+        Assert.True(fixture.Game.Presentation.MusicIntensity > 0);
+        Assert.True(fixture.Game.Presentation.MusicState!.Layers[1].Target > 0);
+        fixture.Session.ApplySettings(fixture.Session.Settings with
+        {
+            Audio = fixture.Session.Settings.Audio with { Music = 0 },
+        });
+        fixture.Output.Peak = 0;
+        fixture.Advance(12);
+        Assert.Equal(0, fixture.Output.Peak);
+        fixture.Session.NewGame();
+        var reset = fixture.Game.Presentation.MusicState!;
+        Assert.Equal(0, reset.SourceFrame);
+        Assert.Equal(0, reset.Layers[1].Gain);
+        Assert.Equal(0, fixture.Game.Presentation.MusicIntensity);
+        Assert.Equal(voice, Assert.Single(fixture.Session.Audio.Inspect().ActiveVoices, item => item.Bus == AudioBusId.Music).Voice);
+    }
+
+    [Fact]
+    public void EncounterPlacementIsSafeDeterministicAndRemainsResolverOwned()
+    {
+        using var first = new Fixture();
+        using var replay = new Fixture();
+        first.Advance(120);
+        replay.Advance(120);
+        var selected = first.Game.World.LastSpawns;
+        Assert.Equal(2, selected.Count);
+        Assert.All(selected, choice => Assert.True(choice.PlayerDistance >= 6));
+        Assert.True(System.Numerics.Vector3.Distance(selected[0].Point.Feet, selected[1].Point.Feet) >= 3);
+        Assert.Equal(selected, replay.Game.World.LastSpawns);
+        Assert.Equal(first.Game.World.SemanticHash(), replay.Game.World.SemanticHash());
+        Assert.Equal(2, first.Game.World.ActiveCreatureBrains);
+    }
+
+    [Fact]
     public void WallAvoidanceRetractsTheSeparateLayerWithoutPuttingItInTheWorldOrMovingTheAimRay()
     {
         using var fixture = new Fixture();
@@ -140,7 +195,7 @@ public sealed class BeaconPresentationTests
         Assert.Equal(0, fixture.Output.Peak);
         fixture.Session.ApplySettings(fixture.Session.Settings with
         {
-            Audio = fixture.Session.Settings.Audio with { Effects = 0 },
+            Audio = fixture.Session.Settings.Audio with { Effects = 0, Music = 0 },
         });
         Assert.All(fixture.Session.Audio.Inspect().ActiveVoices.Where(voice => voice.Bus == AudioBusId.Ambient),
             voice => Assert.Equal(0, voice.EffectiveGain));

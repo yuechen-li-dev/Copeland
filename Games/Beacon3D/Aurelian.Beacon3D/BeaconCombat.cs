@@ -21,6 +21,15 @@ public sealed partial class BeaconGame
     private readonly bool combat;
     private float nextWave = 1.5f;
     private readonly ReloadableGun gun = new();
+    private readonly SpawnSelector3D spawnSelector = new();
+    private static readonly SpawnPoint3D[] SpawnPoints =
+    [
+        new("north-west", new(-8, 0, -8)), new("north-east", new(8, 0, -8)),
+        new("south-west", new(-8, 0, 8)), new("south-east", new(8, 0, 8)),
+        new("west", new(-8, 0, 0)), new("east", new(8, 0, 0)),
+        new("north", new(0, 0, -8)), new("south", new(0, 0, 8)),
+    ];
+    public IReadOnlyList<SpawnChoice3D> LastSpawns { get; private set; } = [];
     private float hurtRemaining;
     public HumanoidPlayerOptions? HumanoidOptions { get; }
     public AurelianAgentRuntime? PresentationPolicies { get; }
@@ -122,8 +131,10 @@ public sealed partial class BeaconGame
             nextWave -= seconds;
             if (nextWave <= 0 && Wave < 3)
             {
-                SpawnWave();
-                creatures = Creatures.ToArray();
+                if (TrySpawnWave())
+                {
+                    creatures = Creatures.ToArray();
+                }
             }
         }
         foreach (var creature in creatures)
@@ -138,22 +149,36 @@ public sealed partial class BeaconGame
         }
     }
 
-    private void SpawnWave()
+    private bool TrySpawnWave()
     {
+        var planned = new List<SpawnChoice3D>();
+        var occupied = new List<Vector3>();
+        for (int index = 0; index < Wave + 2; index++)
+        {
+            var choice = spawnSelector.Select(SpatialWorld, SpawnPoints, Eye, Direction, Time, occupied);
+            if (choice is null)
+            {
+                return false;
+            }
+            planned.Add(choice);
+            occupied.Add(choice.Point.Feet);
+        }
         Wave++;
         foreach (string id in Creatures.Select(agent => agent.Id))
         {
             scene.Despawn(id);
             agents.Remove(id);
         }
-        Vector2[] points = [new(-8, -8), new(8, -8), new(-8, 8), new(8, 8)];
-        for (int index = 0; index < Wave + 1; index++)
+        for (int index = 0; index < planned.Count; index++)
         {
-            Vector2 point = points[index];
+            var choice = planned[index];
             string id = $"creature-{Wave}-{index}";
-            var agent = scene.Spawn(id, creatureDefinition, SceneTransform.At(new(point.X, 0, point.Y)), "Stalker");
+            var agent = scene.Spawn(id, creatureDefinition, SceneTransform.At(choice.Point.Feet), "Stalker");
             agents.Add(id, agent);
+            spawnSelector.RecordUse(choice.Point.Id, Time);
         }
+        LastSpawns = planned.ToArray();
+        return true;
     }
 
     private void ResolveCreature(GameAgent<BeaconAgentState> creature, CreatureIntent intent, float seconds)
