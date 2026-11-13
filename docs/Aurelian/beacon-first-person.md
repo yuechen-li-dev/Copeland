@@ -26,7 +26,7 @@ Beacon's presentation adapter maps accepted shots, reload starts, distance steps
 
 The wet ground is a visual overlay up to 4.5 cm above the existing flat collision floor; this does not add heightfield physics or evolving water. Shelter is authored, not inferred from arbitrary walls. The interior layer is filtered and quieter; there is no new propagation or reverb solver. Seeded loops have quiet endpoints, not a claim of seamless stationary recordings.
 
-The geometric weapon still shares the world's depth pass and .1 m near plane. A separate viewmodel depth pass and wall avoidance remain future work. The optional skeletal weapon keeps its existing animation presentation. Aim changes FOV and model placement, without adding accuracy or spread rules. Small camera translation can create near-field parallax, while the canonical shooting ray stays unchanged. Human comfort, mix quality and difficulty still need hands-on judgment.
+The [separate viewmodel and quality extension](beacon-viewmodel-and-quality.md) now gives the geometric weapon its own depth/near plane and collision-driven wall response. The optional skeletal weapon keeps its existing animation presentation. Aim changes FOV and model placement, without adding accuracy or spread rules. Small camera translation can create near-field parallax, while the canonical shooting ray stays unchanged. Human comfort, mix quality and difficulty still need hands-on judgment.
 
 ## Reproduce
 

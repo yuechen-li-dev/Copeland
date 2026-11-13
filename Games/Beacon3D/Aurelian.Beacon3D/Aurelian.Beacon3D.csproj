@@ -4,6 +4,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="Aurelian.Beacon3D.Tests" />
     <ProjectReference Include="../../../src/Integrations/Aurelian.Games.Humanoid/Aurelian.Games.Humanoid.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Runtime/Aurelian.Runtime.csproj" />
     <ProjectReference Include="../../../src/Integrations/Aurelian.Playtesting/Aurelian.Playtesting.csproj" />

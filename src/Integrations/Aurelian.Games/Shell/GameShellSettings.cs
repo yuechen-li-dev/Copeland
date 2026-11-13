@@ -34,7 +34,8 @@ public sealed record GameDisplaySettings(
     int Height = 720,
     GameWindowMode Mode = GameWindowMode.Windowed,
     bool VSync = true,
-    GameGraphicsQuality Quality = GameGraphicsQuality.High)
+    GameGraphicsQuality Quality = GameGraphicsQuality.High,
+    bool AdaptiveQuality = true)
 {
     [JsonIgnore]
     public GameResolution Resolution => new(Width, Height);

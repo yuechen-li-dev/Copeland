@@ -31,23 +31,26 @@ public sealed class GameMigrationTests
         session.Activate("settings");
         session.Activate("controls");
         session.Activate("bindings");
-        session.Activate("bindings.next");
+        for (int page = 0; page < 4 && !session.Menu!.Entries.Any(entry => entry.Id == "bind.view"); page++)
+        {
+            session.Activate("bindings.next");
+        }
         session.Activate("bind.view");
         target.Frame(TimeSpan.Zero);
-        target.Key(KeyboardKey.B, true);
+        target.Key(KeyboardKey.K, true);
         target.Frame(TimeSpan.Zero);
-        target.Key(KeyboardKey.B, false);
+        target.Key(KeyboardKey.K, false);
         target.Frame(TimeSpan.Zero);
-        Assert.Equal(GameControl.Key(KeyboardKey.B), session.Input.Binding("view"));
+        Assert.Equal(GameControl.Key(KeyboardKey.K), session.Input.Binding("view"));
         session.Activate("back");
         session.Activate("back");
         session.Activate("back");
         session.Activate("resume");
         Assert.Equal("playing", session.Screen);
-        target.Key(KeyboardKey.B, true);
+        target.Key(KeyboardKey.K, true);
         target.Frame(TimeSpan.FromSeconds(.02));
         Assert.Equal(Aurelian.Runtime.CameraView.ThirdPerson, game.World.View);
-        Assert.NotEmpty(game.View(new(960, 600)).Scene.Geometry);
+        Assert.NotEmpty(game.View(new(960, 600)).Scene.Instances);
     }
 
     [Fact]

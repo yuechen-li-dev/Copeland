@@ -13,6 +13,14 @@ public static class BeaconEnvironment
     public static readonly RainShelter3D Shelter = new(new(-2.75f, -.1f, 6.8f), new(2.75f, 3.25f, 11), .5f);
     public static readonly WetGroundField3D Ground = BuildGround();
     private static readonly Lazy<Native3DScene> Surface = new(BuildSurface);
+    private static readonly Lazy<SceneInstance3D> ResidentGround = new(() =>
+    {
+        var ground = Surface.Value.Models.Single(batch => batch.Material.Water is null);
+        var mesh = new NativeMesh3D("beacon-weather/ground", ground.Vertices,
+            Enumerable.Range(0, ground.Vertices.Length).Select(index => (uint)index));
+        return new("beacon-weather/ground", mesh, ground.Material, Matrix4x4.Identity);
+    });
+    public static SceneInstance3D GroundInstance => ResidentGround.Value;
 
     public static WetGroundSample3D SurfaceAt(Vector2 position)
     {
@@ -26,9 +34,11 @@ public static class BeaconEnvironment
 
     public static Native3DScene Present(Native3DScene arena, float time, IReadOnlyList<WaterImpulse3D> impacts)
     {
+        bool residentGround = arena.Instances.Any(instance => instance.Identity == "beacon-weather/ground");
+        var additions = Surface.Value.Models.Where(batch => !residentGround || batch.Material.Water is not null);
         return arena with
         {
-            Models = arena.Models.Concat(Surface.Value.Models).ToArray(),
+            Models = arena.Models.Concat(additions).ToArray(),
             WaterReflection = new(Ground.WaterLevel),
             WaterFrame = new(time) { Impulses = impacts.ToImmutableArray() },
         };

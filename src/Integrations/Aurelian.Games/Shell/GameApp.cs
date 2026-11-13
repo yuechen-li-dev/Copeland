@@ -307,6 +307,7 @@ public static class GameApp
             }
             window.DoEvents();
             graphics.Settings = settings.ApplyQuality(manifest.Graphics);
+            graphics.EnableAdaptiveVisibility = settings.AdaptiveQuality;
             native.RequestVSync(settings.VSync);
             native.SyncSurface();
         }
@@ -315,7 +316,7 @@ public static class GameApp
     /// <summary>Connects the session to the native host, Vulkan graphics and pointer input.</summary>
     private sealed class NativeGameSession : IAurelianGameApplication, IAurelianHostCompositor, IAurelianHostInput, IGamePlaytestSurface
     {
-        public string DescribeRendering() => graphics.Renderer.CurrentFramePlan?.Describe() ?? "No 3D frame has rendered.";
+        public string DescribeRendering() => graphics.DescribeRendering();
         private const double ReferenceWidth = 960;
         private const double ReferenceHeight = 600;
         private readonly GameSession session;
@@ -506,6 +507,10 @@ public static class GameApp
             {
                 NativeGpuGeometry3D? gpu = session.Game.PrepareGpuGeometry(graphics);
                 graphics.Render(view.Scene, view.Camera, view.Eye, gpuGeometry: gpu);
+                if (view.Viewmodel is not null)
+                {
+                    graphics.RenderViewmodel(view.Viewmodel);
+                }
             }
             else
             {

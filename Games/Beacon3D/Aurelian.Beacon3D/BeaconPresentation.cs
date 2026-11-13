@@ -3,6 +3,7 @@ using Aurelian.Audio;
 using Aurelian.Games;
 using Aurelian.Rendering.Contracts.Models;
 using Aurelian.Runtime;
+using Aurelian.Spatial3D;
 
 namespace Aurelian.Beacon3D;
 
@@ -15,11 +16,12 @@ public sealed class BeaconPresentation : IDisposable
     private readonly List<WaterImpulse3D> impacts = [];
     public bool Enabled { get; set; } = true;
     public bool GroundWeather { get; set; } = true;
-    public FirstPersonPose3D Pose => Enabled ? motion.Pose : FirstPersonPose3D.Neutral;
+    public FirstPersonPose3D Pose => Enabled ? motion.Pose : motion.PoseWithoutMotion;
     public FirstPersonPresentation3D Motion => motion;
     public IReadOnlyList<WaterImpulse3D> Impacts => impacts;
     public EnvironmentalAmbienceState AudioState => ambience?.State ?? default;
     public Dictionary<string, int> Sounds { get; } = [];
+    public float WeaponClearance { get; private set; } = 1.05f;
 
     public void Start(GameContext services)
     {
@@ -37,6 +39,8 @@ public sealed class BeaconPresentation : IDisposable
 
     public void Reset(BeaconGame game)
     {
+        WeaponClearance = FirstPersonWeaponProbe3D.Measure(game.SpatialWorld, game.Eye, game.Direction,
+            reach: motion.Profile.WeaponReachMetres);
         motion.Reset(Input(game, false, false));
         Enabled = true;
         ambience?.Reset();
@@ -47,6 +51,8 @@ public sealed class BeaconPresentation : IDisposable
 
     public void Step(BeaconGame game, bool aiming, bool sprinting, float seconds, int oldShots, bool wasReloading)
     {
+        WeaponClearance = FirstPersonWeaponProbe3D.Measure(game.SpatialWorld, game.Eye, game.Direction, motion.Pose.Aim,
+            reach: motion.Profile.WeaponReachMetres);
         int steps = motion.Footsteps;
         int landings = motion.Landings;
         motion.Step(Input(game, aiming, sprinting), seconds);
@@ -99,9 +105,9 @@ public sealed class BeaconPresentation : IDisposable
 
     public void Dispose() => ambience?.Dispose();
 
-    private static FirstPersonMotion3D Input(BeaconGame game, bool aiming, bool sprinting) => new(
+    private FirstPersonMotion3D Input(BeaconGame game, bool aiming, bool sprinting) => new(
         new(game.Position.X, game.Height, game.Position.Y), game.Yaw, game.Pitch,
-        game.LastMovement?.Grounded ?? game.Height == 0, game.Shots, aiming, sprinting, game.Reloading);
+        game.LastMovement?.Grounded ?? game.Height == 0, game.Shots, aiming, sprinting, game.Reloading, WeaponClearance);
 
     private void Sound(string sound)
     {

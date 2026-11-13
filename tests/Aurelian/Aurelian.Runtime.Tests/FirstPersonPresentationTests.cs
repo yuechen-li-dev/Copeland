@@ -6,6 +6,49 @@ namespace Aurelian.Runtime.Tests;
 public sealed class FirstPersonPresentationTests
 {
     [Fact]
+    public void WeaponClearanceProfileControlsTheBoundedRetractionPose()
+    {
+        var profile = new FirstPersonProfile3D
+        {
+            WeaponReachMetres = .8f,
+            RetractedReachMetres = .2f,
+            ObstructionOffset = new(-.1f, .1f, -.3f),
+            ObstructionPitchRadians = -.8f,
+        };
+        var view = new FirstPersonPresentation3D(profile);
+        view.Reset(new(Vector3.Zero, 0, 0, true, 0, WeaponClearance: .5f));
+        Assert.Equal(.5f, view.Pose.Obstruction, 6);
+        Assert.True(Vector3.Distance(profile.ObstructionOffset * .5f, view.Pose.WeaponOffset) < .00001f);
+        Assert.Equal(-.4f, view.Pose.WeaponAngles.X, 6);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new FirstPersonPresentation3D(profile with
+        {
+            RetractedReachMetres = profile.WeaponReachMetres,
+        }));
+    }
+
+    [Fact]
+    public void WallResponseEntersImmediatelyRecoversSmoothlyAndSurvivesMotionDisable()
+    {
+        var view = new FirstPersonPresentation3D();
+        var state = new FirstPersonMotion3D(Vector3.Zero, 0, 0, true, 0);
+        view.Reset(state);
+        view.Step(state with { WeaponClearance = .2f, Aiming = true, Reloading = true, Shots = 1 }, 1f / 60);
+        Assert.Equal(1, view.Pose.Obstruction);
+        Assert.Equal(0, view.Pose.Aim);
+        Assert.Equal(-1.35f, view.Pose.WeaponAngles.X);
+        Assert.Equal(1, view.PoseWithoutMotion.Obstruction);
+        view.Step(state with { Shots = 1 }, 1f / 60);
+        Assert.InRange(view.Pose.Obstruction, .8f, .95f);
+        for (int frame = 0; frame < 90; frame++)
+        {
+            view.Step(state with { Shots = 1 }, 1f / 60);
+        }
+        Assert.InRange(view.Pose.Obstruction, 0, .0001f);
+        view.Reset(state with { WeaponClearance = 0 });
+        Assert.Equal(1, view.Pose.Obstruction);
+    }
+
+    [Fact]
     public void AcceptedDistanceDrivesStepsAndIdleSettlesWithoutPhantomRecoil()
     {
         var view = new FirstPersonPresentation3D();

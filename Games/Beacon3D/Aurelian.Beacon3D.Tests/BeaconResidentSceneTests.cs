@@ -14,7 +14,7 @@ public sealed class BeaconResidentSceneTests
         using var shell = new BeaconShellGame();
         var game = shell.World;
         var presenter = new BeaconResidentScene3D();
-        var raw = shell.View(new(960, 600)).Scene.Geometry;
+        var raw = BeaconScene.Build(game);
         var first = presenter.Build(game);
         var expanded = first.Instances.SelectMany(instance => instance.Expand().Vertices.Select(vertex =>
             new Native3DVertex(vertex.Position, vertex.Normal, vertex.Color * instance.Material.BaseColor))).ToArray();

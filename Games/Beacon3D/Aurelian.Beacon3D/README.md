@@ -31,6 +31,8 @@ Historical `--proof` and `--lighting-proof` retain the dedicated renderer qualif
 
 Normal play also demonstrates [first-person motion and environmental audio](../../../docs/Aurelian/beacon-first-person.md): recoil, sway, bob, landing response, aim/sprint FOV, surface footsteps, water impacts and a covered-spawn ambience transition. Walk north out of the canopy, then left toward the puddle near X = -5, Z = 5. `Playtests/presentation.json` exercises this ordinary shell path and captures its native frames; the historical proof does not qualify these additions.
 
+The geometric weapon now has [separate foreground depth and wall avoidance](../../../docs/Aurelian/beacon-viewmodel-and-quality.md). Approach a pillar to see it retract; **B** retains this clearance response while disabling cosmetic motion. **Settings → Display → Adaptive quality** enables measured LoD/HZB selection through the existing Dominatus policy. `Playtests/weapon-depth.json` exercises this path, settings, replay and resize.
+
 Ordinary shaded play uses Aurelian PathDiffuse. Supplying `--lighting` explicitly selects Lambert to match the published transfer asset's contract. The finite lighting proof disables temporal AA for byte-identical still comparisons.
 
 ## Optional humanoid player

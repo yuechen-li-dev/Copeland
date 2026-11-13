@@ -54,6 +54,7 @@ The docs above describe current code paths and contracts. For exact signatures a
 - [Rain after dark](rain-night-research.md): native GPU rain/night/puddle demo, shader authoring, qualification and a paper survey.
 - [Connected weather](connected-weather.md): shared wet-ground queries and meshes, shelter exposure, surface footsteps, and environmental ambience.
 - [Beacon first-person presentation](beacon-first-person.md): accepted-state spring motion, aim/sprint FOV, surface audio and water impacts in the playable FPS.
+- [Separate weapon depth and adaptive quality](beacon-viewmodel-and-quality.md): foreground depth, wall clearance and a persisted switch for measured Dominatus visibility decisions.
 - [Rain art direction](rain-night-art-direction.md): generated 2D atmosphere target and the native scene's response.
 - [Procedural surfaces and primitives](procedural-surfaces-and-primitives.md): height-derived normal/PBR maps, textured local primitives and the Aetheris/Blender handoff.
 - [Shader library and VFX roadmap](shader-library-and-vfx-roadmap.md) and [GPU VFX foundation](gpu-vfx-foundation.md).

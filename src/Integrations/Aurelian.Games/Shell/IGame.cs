@@ -228,7 +228,10 @@ public readonly record struct GameViewRequest(int Width, int Height)
 }
 
 /// <summary>A 3D frame: scene, world-to-clip matrix and eye position.</summary>
-public sealed record GameView(Native3DScene Scene, Matrix4x4 Camera, Vector3 Eye);
+public sealed record GameView(Native3DScene Scene, Matrix4x4 Camera, Vector3 Eye)
+{
+    public NativeViewmodel3D? Viewmodel { get; init; }
+}
 
 /// <summary>Sorted string facts for playtests. Values are formatted with the invariant culture.</summary>
 public sealed class GameFacts

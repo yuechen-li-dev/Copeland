@@ -57,4 +57,21 @@ The [connected-weather extension](connected-weather.md) now provides shared tria
 
 The [Beacon first-person integration](beacon-first-person.md) now adds a reusable accepted-state motion controller, spring recoil/landing response, bob, look sway, aim/sprint FOV, surface footsteps, water impacts and shelter ambience in the ordinary FPS path. Its shared Ambient voices follow the host lifecycle and volume controls.
 
-Distance-aware fence coverage still needs derivative/coverage behavior and moving-camera temporal tests. Adaptive resolution needs a proven GPU-bound consumer and resize/history qualification; an unattached controller would not improve the real renderer. Synchronized music stems and independent weapon depth/near-wall handling remain research candidates. The current implementation does not claim those capabilities.
+The [viewmodel/quality extension](beacon-viewmodel-and-quality.md) now adds separate geometric weapon depth, a near-field camera, conservative wall clearance and a persisted Adaptive quality switch over the existing measured Dominatus LoD/HZB policy. Beacon's opaque arena/ground is resident, while water remains in the later refractive pass. The policy bridge retains measurements across continuing scene snapshots.
+
+## Remaining-source ledger
+
+A second bounded inspection of the embedded source confirms that the source is **not exhausted**. The following are distinct follow-ups, not capabilities implied by the completed surface/audio/FPS work:
+
+| Idea | Current disposition | Useful acceptance case |
+| --- | --- | --- |
+| Distance-aware alpha coverage | Still useful. `SL_ACUT` adjusts cutoff/coverage as fence wires shrink; Aurelian's ordinary material cutoff remains fixed. | A fence consumer with distance and moving-camera coverage/shimmer comparisons in material raster and visibility resolve. |
+| Synchronized music layers | Still useful. Prepared sounds and ordinary music fades do not establish sample-aligned stems. | Beacon encounter layers started on one mixer clock, remaining aligned through pause, focus and restart; actual mixed PCM evidence. |
+| Jump forgiveness and crouch clearance | Still useful. The embedded player explicitly maintains coyote and jump-buffer timers. Aurelian's accepted character motor remains the collision authority. | A reusable input/motor adapter with ledge departure, early landing presses and obstructed stand-up tests. |
+| Visibility/recent-use spawn scoring | Potential Beacon gameplay improvement. Existing Dominatus agents remain authoritative; fixed arena spawn positions do not implement this policy. | Compare spawn distance, line of sight, recent reuse and alive-count scheduling without bypassing the game resolver. |
+| Wet orientation, streaks and beads | Partial extraction. Shared wetness/normal damping and ground exposure exist; those extra procedural visual details were not ported. | One authored wet prop with sheltered/upward/vertical faces and close/distant captures, avoiding a parallel material system. |
+| Reverb/convolution routing | Distinct audio work. Saltline uses convolver nodes; the current shelter blend uses prepared filtered layers. | A bounded mixer-owned effect with dry/wet routing, lifecycle and offline audio qualification. |
+| Cooperative/prioritized audio preparation | No current demonstrated loading bottleneck in the small bounded recipes. | A measured boot/frame stall before adding a new scheduling/cache owner. |
+| Automatic render scale/preset ladder | Defer until a measured workload needs it. The new setting reuses actual GPU-cost LoD/HZB decisions; Beacon's measured baseline beats HZB and already fits the reference frame budget. | A GPU-bound consumer showing a net gain after scale/resize/history transitions, respecting manual resolution and capture reproducibility. |
+
+Existing planar reflections, water transport, rain, authored PBR maps, exposure/post-processing and playtest diagnostics already cover those foundations. Recreating them from the bundle would duplicate owners. The remaining work is narrow integration and qualification of the rows above, not a wholesale HTML port or a claim of visual parity.

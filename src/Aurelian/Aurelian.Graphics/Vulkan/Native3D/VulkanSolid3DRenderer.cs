@@ -35,6 +35,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
     private readonly int cameraBytes;
     private readonly bool motionOutput;
     private readonly bool surfaceOnly;
+    private readonly bool preserveColor;
     private readonly VulkanSurfaceLighting3D? surfaceLighting;
     private readonly VulkanTransparency3D? transparency;
     private VulkanRefraction3D? refraction;
@@ -123,13 +124,19 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         CompiledGraphicsProgram? outputProgram = null,
         CompiledGraphicsProgram? temporalProgram = null,
         CompiledGraphicsProgram? bloomProgram = null,
-        SurfaceLightingPrograms? surfacePrograms = null, RetainedModel3DPrograms? retainedPrograms = null, FramePlanOptions? framePlans = null)
+        SurfaceLightingPrograms? surfacePrograms = null, RetainedModel3DPrograms? retainedPrograms = null, FramePlanOptions? framePlans = null,
+        bool preserveColor = false)
     {
         ArgumentNullException.ThrowIfNull(plant);
         ArgumentNullException.ThrowIfNull(program);
         ArgumentNullException.ThrowIfNull(target);
         target.ValidateExternalPass(plant);
         ValidateProgram(program);
+        if (preserveColor && (outputProgram is not null || surfacePrograms is not null))
+        {
+            throw new ArgumentException("Color-preserving foreground passes draw directly to an initialized display target, without HDR output passes.");
+        }
+        this.preserveColor = preserveColor;
         surfaceOnly = program.PixelTargets.Count == 5;
         if (surfaceOnly != (surfacePrograms is not null) || (surfaceOnly && (outputProgram is null || !enableDepth
             || modelProgram is not null && modelProgram.PixelTargets.Count != 5)))
@@ -218,8 +225,9 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
                 VulkanTextureUsage.DepthAttachment, VulkanMemoryUsage.GpuOnly, "solid3d.depth", VulkanTextureFormat.D32Float);
             var passResult = VulkanRenderPassFactory.Create(plant, new VulkanRenderPassDescriptor(
                 [new VulkanRenderPassAttachmentDescriptor(
-                    "solid3d.color", hdr?.Format ?? target.TextureFormat, VulkanAttachmentLoadOp.Clear,
-                    VulkanAttachmentStoreOp.Store, VulkanResourceLayout.Undefined,
+                    "solid3d.color", hdr?.Format ?? target.TextureFormat,
+                    preserveColor ? VulkanAttachmentLoadOp.Load : VulkanAttachmentLoadOp.Clear,
+                    VulkanAttachmentStoreOp.Store, preserveColor ? VulkanResourceLayout.TransferSource : VulkanResourceLayout.Undefined,
                     hdr is null ? VulkanResourceLayout.TransferSource : VulkanResourceLayout.ShaderResourceFragment),
                     .. motion is null ? Array.Empty<VulkanRenderPassAttachmentDescriptor>() : [new VulkanRenderPassAttachmentDescriptor(
                         "solid3d.motion", motion.Format, VulkanAttachmentLoadOp.Clear, VulkanAttachmentStoreOp.Store,
@@ -690,8 +698,12 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         if (EnableHierarchicalZ && (!EnableVisibilityBuffer || retainedModels?.CanUseHierarchicalZ != true))
             throw new NotSupportedException("AUR-HZB-004: Two-phase HZB requires visibility-buffer mode, culling/reduction programs and an admitted device.");
         if (EnableVisibilityBuffer && (!useBindless || retainedModels?.CanUseVisibilityBuffer != true
-            || !geometry.IsEmpty || models.Count != 0 || gpuGeometry is not null || !surfaceOnly))
-            throw new NotSupportedException("AUR-VBUFFER-006: Visibility-buffer mode requires an admitted device, programs and a resident-only opaque/MASK surface scene.");
+            || !geometry.IsEmpty || models.Any(batch => !batch.Material.AlphaBlend && batch.Material.Transmission <= 0)
+            || gpuGeometry is not null || !surfaceOnly))
+        {
+            throw new NotSupportedException("AUR-VBUFFER-006: Visibility-buffer opaque/MASK geometry must be resident. "
+                + "Forward transparent/refractive batches may follow its resolved surface on an admitted device.");
+        }
         modelRenderer?.Upload(models, worldToClip, eye, lighting, previousClip, resetHistory,
             resident?.Materials ?? sourceInstances.Select(instance => instance.Material).ToArray(), bindlessRetained: useBindless);
         retainedModels?.Upload(sourceInstances, resetHistory, useBindless, EnableVisibilityBuffer, EnableHierarchicalZ, RasterAdmissionMode);

@@ -8,6 +8,46 @@ namespace Aurelian.Beacon3D.Tests;
 
 public sealed class BeaconPresentationTests
 {
+    [Fact]
+    public void WallAvoidanceRetractsTheSeparateLayerWithoutPuttingItInTheWorldOrMovingTheAimRay()
+    {
+        using var fixture = new Fixture();
+        fixture.Target.Key(KeyboardKey.D, true);
+        fixture.Advance(15);
+        fixture.Target.Key(KeyboardKey.D, false);
+        fixture.Target.Key(KeyboardKey.W, true);
+        fixture.Advance(75);
+        fixture.Target.Key(KeyboardKey.W, false);
+        Assert.True(fixture.Game.Presentation.Pose.Obstruction > .99f);
+        int steps = fixture.Game.Presentation.Motion.Footsteps;
+        fixture.Advance(15);
+        Assert.Equal(steps, fixture.Game.Presentation.Motion.Footsteps);
+        fixture.Target.MouseButton(MouseButton.Secondary, true);
+        fixture.Target.MouseButton(MouseButton.Primary, true);
+        fixture.Advance(12);
+        fixture.Target.MouseButton(MouseButton.Primary, false);
+        fixture.Target.Key(KeyboardKey.R, true);
+        fixture.Advance(12);
+        var hash = fixture.Game.World.SemanticHash();
+        var direction = fixture.Game.World.Direction;
+        var view = fixture.Game.View(new(960, 600));
+        Assert.NotNull(view.Viewmodel);
+        Assert.NotEqual(view.Camera, view.Viewmodel.Camera);
+        Assert.DoesNotContain(view.Scene.Instances, instance => instance.Identity.StartsWith("view/"));
+        Assert.All(view.Viewmodel.Geometry, vertex => Assert.True(vertex.Position.Z >= 5,
+            $"Weapon crossed the pillar face: {vertex.Position}"));
+        fixture.Game.Presentation.Enabled = false;
+        Assert.Equal(1, fixture.Game.Presentation.Pose.Obstruction);
+        fixture.Game.View(new(960, 600));
+        Assert.Equal(hash, fixture.Game.World.SemanticHash());
+        Assert.Equal(direction, fixture.Game.World.Direction);
+        fixture.Target.Key(KeyboardKey.S, true);
+        fixture.Advance(30);
+        Assert.True(fixture.Game.Presentation.Pose.Obstruction < .1f);
+        fixture.Game.World.ToggleView();
+        Assert.Null(fixture.Game.View(new(960, 600)).Viewmodel);
+    }
+
     private sealed class Fixture : IDisposable
     {
         public BeaconShellGame Game { get; } = new();

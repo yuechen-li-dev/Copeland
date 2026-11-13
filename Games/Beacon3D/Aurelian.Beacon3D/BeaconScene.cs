@@ -61,14 +61,14 @@ internal static class BeaconScene
         return Scene.World("beacon-arena", children);
     }
 
-    public static Native3DVertex[] Build(BeaconGame game, FirstPersonPose3D? pose = null)
+    public static Native3DVertex[] Build(BeaconGame game, FirstPersonPose3D? pose = null, bool includeViewmodel = true)
     {
         var geometry = new BeaconVertexGeometry();
-        Describe(game, geometry, pose);
+        Describe(game, geometry, pose, includeViewmodel);
         return geometry.Vertices.ToArray();
     }
 
-    internal static void Describe(BeaconGame game, BeaconGeometry geometry, FirstPersonPose3D? pose = null)
+    internal static void Describe(BeaconGame game, BeaconGeometry geometry, FirstPersonPose3D? pose = null, bool includeViewmodel = true)
     {
         var frame = game.Scene.Project();
         foreach (var box in frame.Boxes)
@@ -117,35 +117,50 @@ internal static class BeaconScene
             BeaconBolt bolt = game.Bolts[index];
             geometry.Box("bolt-" + index, bolt.Position, new(0.06f, 0.06f, 0.06f), new(0.4f, 1, 1, 1));
         }
-        if (!game.Won && !game.Dead && game.HumanoidOptions is null && game.View == CameraView.FirstPerson)
+        if (includeViewmodel)
         {
-            Vector3 right = Vector3.Normalize(Vector3.Cross(game.Direction, Vector3.UnitY));
-            Vector3 up = Vector3.Normalize(Vector3.Cross(right, game.Direction));
-            var view = pose ?? FirstPersonPose3D.Neutral;
-            Vector3 cameraEye = view.Eye(game.Eye, game.Direction);
-            Vector3 gun = cameraEye + game.Direction * (.62f + view.WeaponOffset.Z)
-                + right * (.24f * (1 - view.Aim) + view.WeaponOffset.X)
-                + up * (-.22f * (1 - view.Aim) - .07f * view.Aim + view.WeaponOffset.Y);
-            Quaternion rotation = Quaternion.CreateFromAxisAngle(right, view.WeaponAngles.X)
-                * Quaternion.CreateFromAxisAngle(up, view.WeaponAngles.Y)
-                * Quaternion.CreateFromAxisAngle(game.Direction, view.WeaponAngles.Z);
-            right = Vector3.Transform(right, rotation);
-            up = Vector3.Transform(up, rotation);
-            Vector3 barrel = Vector3.Transform(game.Direction, rotation);
-            geometry.ViewBox("view/weapon", gun, right, up, barrel, new(0.055f, 0.06f, 0.16f), new(0.3f, 0.55f, 0.6f, 1));
-            geometry.ViewBox("view/barrel", gun + barrel * .22f, right, up, barrel, new(.022f, .024f, .10f), new(.10f, .16f, .18f, 1));
-            geometry.ViewBox("view/sight", gun + up * .073f, right, up, barrel, new(.012f, .012f, .045f), new(.45f, .95f, .8f, 1));
-            geometry.ViewBox("view/grip", gun - up * .095f - barrel * .035f, right, up, barrel, new(.035f, .07f, .045f), new(.12f, .2f, .22f, 1));
-            if (game.Bolts.Count > 0 && game.Bolts[^1].Life > 1.45f)
-            {
-                geometry.Diamond("view/flash", gun + barrel * .33f, game.Time, new(0.7f, 1, 1, 1), 0.12f);
-            }
+            DescribeViewmodel(game, geometry, pose ?? FirstPersonPose3D.Neutral);
         }
         Vector4 gateColor = game.GateOpen ? new(0.25f, 1, 0.65f, 1) : new(0.37f, 0.49f, 0.57f, 1);
         geometry.Box("gate/0", new(-1.4f, 1.5f, -10), new(0.2f, 1.5f, 0.25f), gateColor);
         geometry.Box("gate/1", new(1.4f, 1.5f, -10), new(0.2f, 1.5f, 0.25f), gateColor);
         geometry.Box("gate/2", new(0, 3, -10), new(1.6f, 0.2f, 0.25f), gateColor);
         geometry.Box("gate/3", new(0, 0.025f, -10), new(1.2f, 0.025f, 0.9f), gateColor);
+    }
+
+    public static Native3DVertex[] Viewmodel(BeaconGame game, FirstPersonPose3D pose)
+    {
+        var geometry = new BeaconVertexGeometry();
+        DescribeViewmodel(game, geometry, pose);
+        return geometry.Vertices.ToArray();
+    }
+
+    private static void DescribeViewmodel(BeaconGame game, BeaconGeometry geometry, FirstPersonPose3D view)
+    {
+        if (game.Won || game.Dead || game.HumanoidOptions is not null || game.View != CameraView.FirstPerson)
+        {
+            return;
+        }
+        Vector3 right = Vector3.Normalize(Vector3.Cross(game.Direction, Vector3.UnitY));
+        Vector3 up = Vector3.Normalize(Vector3.Cross(right, game.Direction));
+        Vector3 cameraEye = view.Eye(game.Eye, game.Direction);
+        Vector3 gun = cameraEye + game.Direction * Math.Max(.20f, .62f + view.WeaponOffset.Z)
+            + right * (.24f * (1 - view.Aim) + view.WeaponOffset.X)
+            + up * (-.22f * (1 - view.Aim) - .07f * view.Aim + view.WeaponOffset.Y);
+        Quaternion rotation = Quaternion.CreateFromAxisAngle(right, view.WeaponAngles.X)
+            * Quaternion.CreateFromAxisAngle(up, view.WeaponAngles.Y)
+            * Quaternion.CreateFromAxisAngle(game.Direction, view.WeaponAngles.Z);
+        right = Vector3.Transform(right, rotation);
+        up = Vector3.Transform(up, rotation);
+        Vector3 barrel = Vector3.Transform(game.Direction, rotation);
+        geometry.ViewBox("view/weapon", gun, right, up, barrel, new(0.055f, 0.06f, 0.16f), new(0.3f, 0.55f, 0.6f, 1));
+        geometry.ViewBox("view/barrel", gun + barrel * .22f, right, up, barrel, new(.022f, .024f, .10f), new(.10f, .16f, .18f, 1));
+        geometry.ViewBox("view/sight", gun + up * .073f, right, up, barrel, new(.012f, .012f, .045f), new(.45f, .95f, .8f, 1));
+        geometry.ViewBox("view/grip", gun - up * .095f - barrel * .035f, right, up, barrel, new(.035f, .07f, .045f), new(.12f, .2f, .22f, 1));
+        if (game.Bolts.Count > 0 && game.Bolts[^1].Life > 1.45f)
+        {
+            geometry.Diamond("view/flash", gun + barrel * .33f, game.Time, new(0.7f, 1, 1, 1), 0.12f);
+        }
     }
 
     public static void AddBox(List<Native3DVertex> vertices, Vector3 center, Vector3 halfSize, Vector4 color)

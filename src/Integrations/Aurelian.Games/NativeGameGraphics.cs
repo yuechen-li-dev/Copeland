@@ -56,7 +56,27 @@ public sealed class NativeGameGraphics : IDisposable
     }
 
     public ParticleBudget3D? ParticleBudget => Renderer.ParticleSystem?.Inspection;
-    public bool EnableAdaptiveVisibility { get; set; } = true;
+    private bool enableAdaptiveVisibility = true;
+    private VulkanSolid3DRenderer? viewmodelRenderer;
+
+    public bool EnableAdaptiveVisibility
+    {
+        get => enableAdaptiveVisibility;
+        set
+        {
+            if (enableAdaptiveVisibility == value)
+            {
+                return;
+            }
+            enableAdaptiveVisibility = value;
+            VisibilityPolicy.Controller.InvalidateMeasurements();
+            if (!value)
+            {
+                Renderer.EnableHierarchicalZ = false;
+                Renderer.LodPixelError = 0;
+            }
+        }
+    }
     public NativeDiffuseRegionalPolicy3D? DiffusePolicy { get; set; }
     private CompiledDiffuseProbeField3D? diffuseField;
 
@@ -183,6 +203,11 @@ public sealed class NativeGameGraphics : IDisposable
         DisposeSurfaceResources();
         CreateSurfaceResources((width, height));
         RestoreRenderState(state);
+        if (!EnableAdaptiveVisibility)
+        {
+            Renderer.EnableHierarchicalZ = false;
+            Renderer.LodPixelError = 0;
+        }
         SurfaceRebuilds++;
         return true;
     }
@@ -303,6 +328,28 @@ public sealed class NativeGameGraphics : IDisposable
         DiffusePolicy?.AfterFrame(result);
         if (EnableAdaptiveVisibility) VisibilityPolicy.AfterFrame(result);
         return result;
+    }
+
+    /// <summary>Load world color and draw a depth-tested foreground layer before HUD/menus.</summary>
+    public Native3DFrameResult RenderViewmodel(NativeViewmodel3D viewmodel, bool capture = false)
+    {
+        ArgumentNullException.ThrowIfNull(viewmodel);
+        viewmodelRenderer ??= OwnSurface(new VulkanSolid3DRenderer(Plant, assets.Shader("Solid3D.v.ts"), Target,
+            preserveColor: true)
+        {
+            FrameMode = enableFramesInFlight ? Native3DFrameMode.Interactive : Native3DFrameMode.Capture,
+        });
+        viewmodelRenderer.Settings = Graphics3DSettings.Basic with { SunDirection = Settings.SunDirection };
+        return viewmodelRenderer.Render(viewmodel.Geometry, viewmodel.Camera, Clear, capture, eye: viewmodel.Eye);
+    }
+
+    public string DescribeRendering()
+    {
+        string world = Renderer.CurrentFramePlan?.Describe() ?? "No 3D frame has rendered.";
+        string foreground = viewmodelRenderer?.CurrentFramePlan?.Describe() ?? "No foreground layer.";
+        string costs = System.Text.Json.JsonSerializer.Serialize(VisibilityPolicy.Controller.Costs);
+        return $"World:\n{world}\nViewmodel:\n{foreground}\nAdaptiveQuality={EnableAdaptiveVisibility} "
+            + $"Hzb={Renderer.EnableHierarchicalZ} LodPixelError={Renderer.LodPixelError}\nVisibilityCosts={costs}";
     }
 
     public static void WritePng(string path, int width, int height, byte[] pixels)
@@ -460,6 +507,7 @@ public sealed class NativeGameGraphics : IDisposable
         {
             item.Dispose();
         }
+        viewmodelRenderer = null;
     }
 
     private T OwnSurface<T>(T resource) where T : IDisposable

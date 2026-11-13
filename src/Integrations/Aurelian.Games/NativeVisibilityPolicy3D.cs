@@ -39,13 +39,16 @@ public sealed class NativeVisibilityPolicy3D
             Controller.InvalidateMeasurements();
             return;
         }
-        if (!ReferenceEquals(owner, renderer) || !ReferenceEquals(source, scene.Instances))
+        bool continues = ReferenceEquals(source, scene.Instances)
+            || source is NativeInstanceSet3D previous && scene.Instances is NativeInstanceSet3D current
+                && current.ContinuesFrom(previous);
+        if (!ReferenceEquals(owner, renderer) || !continues)
         {
             owner = renderer;
-            source = scene.Instances;
             hasLods = scene.Instances.Any(instance => instance.Mesh.LodRanges.Length > 1);
             Controller.InvalidateMeasurements();
         }
+        source = scene.Instances;
         if (hasCamera && CameraDistance(camera, previousCamera) > .25f) Controller.InvalidateMeasurements();
         previousCamera = camera;
         hasCamera = true;

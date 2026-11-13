@@ -100,14 +100,29 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
     public GameView View(GameViewRequest request)
     {
         FirstPersonPose3D pose = game.View == CameraView.FirstPerson ? Presentation.Pose : FirstPersonPose3D.Neutral;
-        Native3DScene scene = useGi ? resident.Build(game, pose) : new(BeaconScene.Build(game, pose), []);
+        Native3DScene scene = humanoid is null ? resident.Build(game, pose, includeViewmodel: false,
+            includeGroundWeather: !useGi && lighting is null)
+            : new(BeaconScene.Build(game, pose, includeViewmodel: false), []);
         if (!useGi && lighting is null)
         {
             scene = BeaconEnvironment.Present(scene, game.Time, Presentation.Impacts);
         }
-        currentView = game.View == CameraView.FirstPerson
-            ? new(scene, pose.Camera(game.CameraEye, game.Direction, request.Aspect), pose.Eye(game.CameraEye, game.Direction))
-            : new(scene, game.Camera(request.Aspect), game.CameraEye);
+        if (game.View == CameraView.FirstPerson)
+        {
+            var geometry = BeaconScene.Viewmodel(game, pose);
+            // Compensate the near-field camera as the physical proxy retracts, so the folded
+            // weapon keeps a readable screen size instead of filling the view at .20 metres.
+            var weaponEye = game.CameraEye - game.Direction * (.4f * pose.Obstruction);
+            currentView = new(scene, pose.Camera(game.CameraEye, game.Direction, request.Aspect), pose.Eye(game.CameraEye, game.Direction))
+            {
+                Viewmodel = geometry.Length == 0 ? null : new(geometry,
+                    pose.Camera(weaponEye, game.Direction, request.Aspect, .025f, 4), pose.Eye(weaponEye, game.Direction)),
+            };
+        }
+        else
+        {
+            currentView = new(scene, game.Camera(request.Aspect), game.CameraEye);
+        }
         return currentView;
     }
 
@@ -136,6 +151,9 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
         facts.Set("presentation.recoil", Presentation.Motion.Recoil);
         facts.Set("presentation.steps", Presentation.Motion.Footsteps);
         facts.Set("presentation.landings", Presentation.Motion.Landings);
+        facts.Set("presentation.obstruction", Presentation.Pose.Obstruction);
+        facts.Set("presentation.clearance", Presentation.WeaponClearance);
+        facts.Set("presentation.viewmodel", game.View == CameraView.FirstPerson && humanoid is null && !game.Won && !game.Dead);
         facts.Set("audio.shelter", Presentation.AudioState.Shelter);
         facts.Set("audio.outside", Presentation.AudioState.ExteriorGain);
         facts.Set("audio.inside", Presentation.AudioState.InteriorGain);
@@ -171,6 +189,8 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
     public void AttachGraphics(NativeGameGraphics graphics)
     {
         attachedGraphics = graphics;
+        graphics.Renderer.EnableVisibilityBuffer = humanoid is null
+            && graphics.Plant.Facts.VisibilityBufferEnabled && graphics.Plant.Facts.BindlessMaterialsEnabled;
         graphics.Clear = new(.055f, .095f, .15f, 1);
         if (useGi)
         {

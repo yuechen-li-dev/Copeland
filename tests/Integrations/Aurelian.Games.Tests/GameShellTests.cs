@@ -171,6 +171,31 @@ public sealed class GameShellTests
     }
 
     [Fact]
+    public void AdaptiveQualityIsPendingUntilAppliedPersistsAndDefaultsOnInOldPreferences()
+    {
+        string directory = TemporaryDirectory();
+        var host = new FakeDisplay();
+        using (var session = Create(out _, directory))
+        {
+            session.AttachDisplay(host);
+            session.Activate("settings");
+            session.Activate("display");
+            session.Adjust("display.adaptive", 1);
+            Assert.True(session.Settings.Display.AdaptiveQuality);
+            Assert.False(session.PendingDisplay.AdaptiveQuality);
+            Assert.True(host.Applied[^1].AdaptiveQuality);
+            session.Activate("display.apply");
+            Assert.False(host.Applied[^1].AdaptiveQuality);
+            Assert.Equal("false", session.Observe().Values["display.adaptive"]);
+        }
+        using var reopened = Create(out _, directory);
+        Assert.False(reopened.Settings.Display.AdaptiveQuality);
+        var old = System.Text.Json.JsonSerializer.Deserialize("{\"Width\":1280,\"Height\":720}",
+            GameShellJsonContext.Default.GameDisplaySettings);
+        Assert.True(old!.AdaptiveQuality);
+    }
+
+    [Fact]
     public async Task WorldSavesCarryCadencePhaseAndRejectIncompatibleOrInvalidStateAtomically()
     {
         string directory = TemporaryDirectory();

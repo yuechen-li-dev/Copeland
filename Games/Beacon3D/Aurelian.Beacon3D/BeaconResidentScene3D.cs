@@ -55,10 +55,15 @@ public sealed class BeaconResidentScene3D
     private readonly ResidentGeometry geometry = new();
     private NativeInstanceSet3D? previous;
 
-    public Native3DScene Build(BeaconGame game, FirstPersonPose3D? pose = null)
+    public Native3DScene Build(BeaconGame game, FirstPersonPose3D? pose = null, bool includeViewmodel = true,
+        bool includeGroundWeather = false)
     {
         geometry.Items.Clear();
-        BeaconScene.Describe(game, geometry, pose);
+        BeaconScene.Describe(game, geometry, pose, includeViewmodel);
+        if (includeGroundWeather)
+        {
+            geometry.Items.Add(BeaconEnvironment.GroundInstance);
+        }
         var items = geometry.Items;
         bool continues = previous is not null && previous.Count == items.Count;
         if (continues)
