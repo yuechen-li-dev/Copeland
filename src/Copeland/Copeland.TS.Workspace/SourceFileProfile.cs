@@ -83,7 +83,7 @@ public static class SourceFileProfiles
     private static readonly Regex Trivia = new(@"\G(?:[\s\uFEFF]+|//[^\r\n]*(?:\r?\n|$)|/\*[\s\S]*?\*/)*", RegexOptions.CultureInvariant);
     private static readonly Regex HeaderName = new(@"\G(?:export\s+)?type\s+CopelandProfile\b", RegexOptions.CultureInvariant);
     private static readonly Regex Header = new("\\G(?:export\\s+)?type\\s+CopelandProfile\\s*=\\s*([\"'])([^\"'\\\\\r\n]*)\\1\\s*;", RegexOptions.CultureInvariant);
-    private static readonly HashSet<string> Names = ["Legacy", "Copeland", "JavaScript", "Dotnet", "Dotnet-NativeAOT"];
+    private static readonly HashSet<string> Names = ["Legacy", "Copeland", "JavaScript", "Dotnet", "Dotnet-NativeAOT", "type"];
 
     public static SourceFileProfile Read(string source)
     {
@@ -112,7 +112,7 @@ public static class SourceFileProfiles
             }
             else if (!Names.Contains(selected))
             {
-                diagnostics.Add(new("COPE-PROFILE-0001", $"Unknown profile '{selected}'. Use Legacy, Copeland, JavaScript, Dotnet, or Dotnet-NativeAOT.", position, header.Length));
+                diagnostics.Add(new("COPE-PROFILE-0001", $"Unknown profile '{selected}'. Use Legacy, Copeland, JavaScript, Dotnet, Dotnet-NativeAOT, or type.", position, header.Length));
             }
             name ??= selected;
             position += header.Length;

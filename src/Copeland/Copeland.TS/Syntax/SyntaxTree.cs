@@ -34,7 +34,7 @@ public sealed class SyntaxTree
     public static SyntaxTree Parse(string text)
         => Parse(text, SourceFileKind.TypeScript);
 
-    public static SyntaxTree Parse(string text, SourceFileKind fileKind)
+    public static SyntaxTree Parse(string text, SourceFileKind fileKind, bool structuralTypeProfile = false)
     {
         SourceFileProfile profile = SourceFileProfiles.Read(text);
         var profileDiagnostics = profile.Diagnostics.ToList();
@@ -43,12 +43,19 @@ public sealed class SyntaxTree
             profileDiagnostics.Add(ownerDiagnostic);
         }
         string parserText = profileDiagnostics.Count == 0 ? profile.Mask(text) : string.Empty;
-        var parser = new Parser(parserText, fileKind == SourceFileKind.TypeScriptXml, fileKind == SourceFileKind.TypeScriptModule);
+        var parser = new Parser(parserText, fileKind == SourceFileKind.TypeScriptXml, fileKind == SourceFileKind.TypeScriptModule,
+            structuralTypeProfile || profile.Name == "type");
         var root = parser.ParseCompilationUnit();
         var diagnostics = parser.Diagnostics.Concat(profileDiagnostics.Select(diagnostic => new Diagnostic(
             diagnostic.Code, diagnostic.Message, diagnostic.Position, diagnostic.Length))).ToArray();
         var tokens = CollectTokens(root).ToArray();
         return new SyntaxTree(text, root, tokens, diagnostics);
+    }
+
+    public static SyntaxTree ParseTypeSchema(string text, string path)
+    {
+        var parsed = Parse(text, SourceFileKindExtensions.FromSourcePath(path), structuralTypeProfile: true);
+        return new(text, parsed.Root, parsed.Tokens, parsed.Diagnostics.Select(d => d with { SourcePath = path }).ToArray());
     }
 
     public static SyntaxTree Parse(string text, string? sourcePath)

@@ -12,6 +12,10 @@ public enum TsonTypeKind
     Enum,
     Array,
     Table,
+    Structural,
+    Union,
+    Literal,
+    Reference,
 }
 
 public sealed class TsonTypeReference
@@ -36,6 +40,26 @@ public sealed class TsonTypeReference
     public string? NominalName { get; }
 
     public TsonTypeReference? ElementType { get; }
+    public IReadOnlyList<TsonFieldDefinition> Fields { get; private init; } = [];
+    public IReadOnlyList<TsonTypeReference> Alternatives { get; private init; } = [];
+    public string? LiteralValue { get; private init; }
+
+    public static TsonTypeReference Reference(string name) => Nominal(TsonTypeKind.Reference, name);
+
+    public static TsonTypeReference Structural(IEnumerable<TsonFieldDefinition> fields)
+    {
+        return new(TsonTypeKind.Structural, null) { Fields = System.Array.AsReadOnly(fields.ToArray()) };
+    }
+
+    public static TsonTypeReference Union(IEnumerable<TsonTypeReference> alternatives)
+    {
+        return new(TsonTypeKind.Union, null) { Alternatives = System.Array.AsReadOnly(alternatives.ToArray()) };
+    }
+
+    public static TsonTypeReference Literal(string value)
+    {
+        return new(TsonTypeKind.Literal, null) { LiteralValue = value };
+    }
 
     public static TsonTypeReference Record(string name)
     {
@@ -248,7 +272,7 @@ public sealed class TsonTableColumnSchema
 
 public sealed class TsonFieldDefinition
 {
-    public TsonFieldDefinition(string name, string identity, TsonTypeReference type)
+    public TsonFieldDefinition(string name, string identity, TsonTypeReference type, bool optional = false)
     {
         if (string.IsNullOrEmpty(name))
         {
@@ -264,6 +288,7 @@ public sealed class TsonFieldDefinition
         Name = name;
         Identity = identity;
         Type = type;
+        Optional = optional;
     }
 
     public string Name { get; }
@@ -271,6 +296,14 @@ public sealed class TsonFieldDefinition
     public string Identity { get; }
 
     public TsonTypeReference Type { get; }
+    public bool Optional { get; }
+}
+
+/// <summary>Compile-time structural metadata. This declaration has no executable value.</summary>
+public sealed class TsonTypeAliasDefinition(string name, string identity, TsonTypeReference shape)
+    : TsonNominalDefinition(name, identity)
+{
+    public TsonTypeReference Shape { get; } = shape;
 }
 
 public abstract class TsonNominalDefinition

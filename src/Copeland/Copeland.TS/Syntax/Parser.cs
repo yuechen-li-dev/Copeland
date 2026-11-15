@@ -14,13 +14,15 @@ public sealed class Parser
     private readonly List<(int Start, int End)> _sourceCodeBlockRanges = [];
     private readonly bool _allowsTsXml;
     private readonly bool _allowsImports;
+    private readonly bool _structuralTypeProfile;
     private int _position;
 
-    public Parser(string text, bool allowsTsXml = false, bool allowsImports = false)
+    public Parser(string text, bool allowsTsXml = false, bool allowsImports = false, bool structuralTypeProfile = false)
     {
         _text = text;
         _allowsTsXml = allowsTsXml;
         _allowsImports = allowsImports;
+        _structuralTypeProfile = structuralTypeProfile;
         var lexer = new Lexer(text);
         var tokens = new List<SyntaxToken>();
 
@@ -597,7 +599,7 @@ public sealed class Parser
             equalsToken = MissingToken(SyntaxKind.EqualsToken, Current.Position);
         }
 
-        if (HasPipeBeforeTypeDeclarationTerminator())
+        if (!_structuralTypeProfile && HasPipeBeforeTypeDeclarationTerminator())
         {
             return ParseNominalUnionDeclaration(typeKeyword, identifier, equalsToken);
         }
@@ -2181,6 +2183,15 @@ public sealed class Parser
         }
 
         var type = ParsePostfixTypeSyntax();
+        if (_structuralTypeProfile)
+        {
+            while (Current.Kind == SyntaxKind.PipeToken)
+            {
+                SyntaxToken pipe = NextToken();
+                type = new UnionTypeSyntax(type, pipe, ParsePostfixTypeSyntax());
+            }
+            return type;
+        }
         if (Current.Kind != SyntaxKind.BangToken)
         {
             ConsumeIllegalInlinePipeTypeSyntax();
