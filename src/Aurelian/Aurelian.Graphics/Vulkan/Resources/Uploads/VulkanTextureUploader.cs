@@ -46,6 +46,10 @@ public sealed unsafe class VulkanTextureUploader : IDisposable
     }
 
     public PlantId PlantId { get; }
+    public bool CaptureTimings { get; set; }
+    public VulkanTextureUploadTimings? LastTimings { get; private set; }
+    private Aurelian.Graphics.Vulkan.Native3D.Vulkan3DGpuTimings? gpuTimings;
+    private long timingSequence;
 
     public VulkanTextureUploadResult Upload(VulkanTextureUploadRequest request)
     {
@@ -69,6 +73,9 @@ public sealed unsafe class VulkanTextureUploader : IDisposable
         VulkanCommandBufferLease? lease = null;
         ulong? signalValue = null;
         bool submitted = false;
+        long startedAt = System.Diagnostics.Stopwatch.GetTimestamp();
+        long stagedAt = startedAt, recordedAt = startedAt, queuedAt = startedAt, waitedAt = startedAt;
+        LastTimings = null;
 
         try
         {
@@ -113,6 +120,7 @@ public sealed unsafe class VulkanTextureUploader : IDisposable
                 return new VulkanTextureUploadResult(VulkanTextureUploadStatus.Failed, null, diagnostics);
             }
 
+            stagedAt = System.Diagnostics.Stopwatch.GetTimestamp();
             lease = commandBufferPool.Rent(completedResult.Value.Value);
             VulkanCommandBufferOperationResult beginResult = lease.Begin();
             if (!beginResult.Success)
@@ -125,6 +133,12 @@ public sealed unsafe class VulkanTextureUploader : IDisposable
                 return new VulkanTextureUploadResult(VulkanTextureUploadStatus.Failed, null, diagnostics);
             }
 
+            if (CaptureTimings)
+            {
+                gpuTimings ??= new(plant, ["texture-copy"]);
+                gpuTimings.Reset(lease);
+                gpuTimings.BeginFrame(lease, timingSequence++);
+            }
             VulkanTextureUploadResult? transferBarrierResult = TransitionTexture(
                 request.Destination,
                 lease,
@@ -161,6 +175,7 @@ public sealed unsafe class VulkanTextureUploader : IDisposable
                 return shaderBarrierResult;
             }
 
+            if (CaptureTimings) gpuTimings!.EndFrame(lease);
             VulkanCommandBufferOperationResult endResult = lease.End();
             if (!endResult.Success)
             {
@@ -172,8 +187,10 @@ public sealed unsafe class VulkanTextureUploader : IDisposable
                 return new VulkanTextureUploadResult(VulkanTextureUploadStatus.Failed, null, diagnostics);
             }
 
+            recordedAt = System.Diagnostics.Stopwatch.GetTimestamp();
             signalValue = fences.CommandListFence.AllocateSignalValue();
             Result submitResult = Submit(lease.CommandBuffer, fences.CommandListFence.Semaphore, signalValue.Value);
+            queuedAt = System.Diagnostics.Stopwatch.GetTimestamp();
             if (submitResult != Result.Success)
             {
                 diagnostics.Add(Diagnostic(
@@ -187,6 +204,7 @@ public sealed unsafe class VulkanTextureUploader : IDisposable
 
             submitted = true;
             VulkanFenceOperationResult waitResult = fences.CommandListFence.WaitForValue(signalValue.Value, UploadWaitTimeoutNanoseconds);
+            waitedAt = System.Diagnostics.Stopwatch.GetTimestamp();
             if (!waitResult.Success)
             {
                 diagnostics.Add(Diagnostic(
@@ -198,6 +216,14 @@ public sealed unsafe class VulkanTextureUploader : IDisposable
             }
 
             commandBufferPool.Retire(lease, signalValue.Value);
+            if (CaptureTimings)
+            {
+                LastTimings = new(System.Diagnostics.Stopwatch.GetElapsedTime(startedAt, stagedAt).TotalMilliseconds,
+                    System.Diagnostics.Stopwatch.GetElapsedTime(stagedAt, recordedAt).TotalMilliseconds,
+                    System.Diagnostics.Stopwatch.GetElapsedTime(recordedAt, queuedAt).TotalMilliseconds,
+                    System.Diagnostics.Stopwatch.GetElapsedTime(queuedAt, waitedAt).TotalMilliseconds, 0,
+                    gpuTimings?.ReadCompletedFrame());
+            }
             lease = null;
             return new VulkanTextureUploadResult(VulkanTextureUploadStatus.Submitted, signalValue, diagnostics);
         }
@@ -230,11 +256,14 @@ public sealed unsafe class VulkanTextureUploader : IDisposable
             }
 
             staging?.Dispose();
+            if (CaptureTimings && LastTimings is { } timing)
+                LastTimings = timing with { RetirementMilliseconds = System.Diagnostics.Stopwatch.GetElapsedTime(waitedAt).TotalMilliseconds };
         }
     }
 
     public void Dispose()
     {
+        gpuTimings?.Dispose();
         disposed = true;
     }
 

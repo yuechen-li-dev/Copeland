@@ -66,6 +66,11 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         set => vertexFrames[frames.Slot] = value;
     }
     public bool EnableFramesInFlight { get; set; }
+    /// <summary>Optional bounded qualification measurements. GPU intervals require synchronous completion.</summary>
+    public bool CaptureTimings { get; set; }
+    public VulkanTextureUploadTimings? LastTextureUpload => textureUploader?.LastTimings;
+    private Vulkan3DGpuTimings? gpuTimings;
+    private long timingSequence;
     private byte[] vertexBytes;
     private BindingKey[] submissionKeys = new BindingKey[InitialQuadCapacity];
     private int vertexCapacityQuads = InitialQuadCapacity;
@@ -282,6 +287,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             VulkanMemoryUsage.GpuOnly,
             "native-2d.texture",
             textureFormat);
+        textureUploader.CaptureTimings = CaptureTimings;
         VulkanTextureUploadResult upload = textureUploader.Upload(new VulkanTextureUploadRequest(
             texture,
             rgba8,
@@ -353,6 +359,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             throw new ArgumentException("Updated RGBA8 payload length does not match the texture extent.", nameof(rgba8));
         }
 
+        textureUploader.CaptureTimings = CaptureTimings;
         VulkanTextureUploadResult upload = textureUploader.Upload(new VulkanTextureUploadRequest(
             resource.Texture,
             rgba8,
@@ -602,6 +609,13 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             Stopwatch recordWatch = Stopwatch.StartNew();
             VulkanCommandBufferLease commandBuffer = commandPool.Rent(fences.CommandListFence.LastKnownCompletedValue);
             Require(commandBuffer.Begin().Success, "Command buffer begin failed.");
+            bool measureGpu = CaptureTimings && !EnableFramesInFlight;
+            if (measureGpu)
+            {
+                gpuTimings ??= new Vulkan3DGpuTimings(plant, ["native-2d"]);
+                gpuTimings.Reset(commandBuffer);
+                gpuTimings.BeginFrame(commandBuffer, timingSequence++);
+            }
             var renderPassEncoder = new VulkanRenderPassCommandEncoder();
             AurelianVulkanRenderPass activeRenderPass = clear
                 ? clearRenderPass
@@ -625,6 +639,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
 
             int drawCalls = RecordOrderedDraws(commandBuffer, begin.Scope!.Value, submissionKeys, submissions.Count);
             Require(renderPassEncoder.End(plant, commandBuffer, begin.Scope.Value).Success, "Render pass end failed.");
+            if (measureGpu) gpuTimings!.EndFrame(commandBuffer);
             if (readbackBuffer is not null)
             {
                 RecordReadback(commandBuffer.CommandBuffer, readbackBuffer);
@@ -637,7 +652,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
                 commandBuffer,
                 WaitForCompletion: captureReadback || !EnableFramesInFlight,
                 TimeoutNanoseconds: FenceWaitTimeoutNanoseconds,
-                DebugName: "native-2d.pass"));
+                DebugName: "native-2d.pass") { MeasureCpuTime = CaptureTimings });
             Require(submit.Success, "2D pass submission failed.");
             submitWatch.Stop();
             frames.Submitted(submit.SignalFenceValue!.Value);
@@ -664,7 +679,11 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
                 Math.Round(submitWatch.Elapsed.TotalMilliseconds, 3),
                 Math.Round(readbackWatch.Elapsed.TotalMilliseconds, 3),
                 allocatedBytes);
-            return new Native2DPassResult(metrics, pixels, hash);
+            return new Native2DPassResult(metrics, pixels, hash)
+            {
+                CpuSubmission = submit.CpuTimings,
+                GpuInterval = measureGpu ? gpuTimings!.ReadCompletedFrame() : null
+            };
         }
         finally
         {
@@ -683,6 +702,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         disposed = true;
         passActive = false;
         _ = plant.Vk.DeviceWaitIdle(plant.Device);
+        gpuTimings?.Dispose();
         foreach (BindingResource binding in bindings.Values)
         {
             binding.MaterialBuffer.Dispose();

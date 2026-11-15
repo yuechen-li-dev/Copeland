@@ -27,6 +27,8 @@ public sealed unsafe class VulkanNativeSwapchainPresenter : IDisposable
     private readonly VulkanPresentationTargetImageSet presentationTargets;
     private readonly bool[] presentedImages;
     private bool disposed;
+    public bool CaptureTimings { get; set; }
+    public NativePresentTimings? LastTimings { get; private set; }
     private readonly VulkanFrameInFlightSet? frames;
     private readonly Silk.NET.Vulkan.Semaphore[] renderFinished;
 
@@ -95,7 +97,9 @@ public sealed unsafe class VulkanNativeSwapchainPresenter : IDisposable
         ObjectDisposedException.ThrowIf(disposed, this);
 
         frames?.Begin();
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
         VulkanSwapchainAcquireResult acquire = swapchain.AcquireNextImage();
+        long acquired = System.Diagnostics.Stopwatch.GetTimestamp();
         if (acquire.Status == VulkanSwapchainAcquireStatus.OutOfDate)
         {
             return false;
@@ -134,7 +138,14 @@ public sealed unsafe class VulkanNativeSwapchainPresenter : IDisposable
         }
 
         frames?.Submitted(dispatch.SignalFenceValue!.Value);
+        long copied = System.Diagnostics.Stopwatch.GetTimestamp();
         VulkanSwapchainPresentResult present = swapchain.Present(acquire.ImageIndex.Value, signal);
+        if (CaptureTimings)
+        {
+            LastTimings = new(System.Diagnostics.Stopwatch.GetElapsedTime(started, acquired).TotalMilliseconds,
+                System.Diagnostics.Stopwatch.GetElapsedTime(acquired, copied).TotalMilliseconds,
+                System.Diagnostics.Stopwatch.GetElapsedTime(copied).TotalMilliseconds);
+        }
         if (present.Status == VulkanSwapchainPresentStatus.OutOfDate)
         {
             return false;

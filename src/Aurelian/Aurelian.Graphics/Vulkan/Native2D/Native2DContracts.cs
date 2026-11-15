@@ -173,4 +173,8 @@ public sealed record Native2DPassMetrics(
 public sealed record Native2DPassResult(
     Native2DPassMetrics Metrics,
     byte[]? Pixels,
-    string? PixelSha256);
+    string? PixelSha256)
+{
+    public Aurelian.Graphics.Vulkan.Commanding.Submit.VulkanSubmitCpuTimings? CpuSubmission { get; init; }
+    public Aurelian.Graphics.Vulkan.Native3D.Native3DCompletedGpuFrame? GpuInterval { get; init; }
+}
