@@ -168,6 +168,18 @@ public static class TypeProfileCompiler
                     if (text.Length > TsonLimits.Default.MaximumStringLength) throw new ArgumentException("String limit exceeded.");
                     return text;
                 case LiteralExpressionSyntax literal when literal.LiteralToken.Value is int or double: return literal.LiteralToken.Value;
+                case UnaryExpressionSyntax unary when unary.OperatorToken.Kind is SyntaxKind.MinusToken or SyntaxKind.PlusToken:
+                    object? operand = Project(unary.Operand, depth + 1);
+                    bool negative = unary.OperatorToken.Kind == SyntaxKind.MinusToken;
+                    if (operand is int integer)
+                    {
+                        return negative ? checked(-integer) : integer;
+                    }
+                    if (operand is double number && double.IsFinite(number))
+                    {
+                        return negative ? -number : number;
+                    }
+                    throw new ArgumentException("A signed data literal requires a finite numeric operand.");
                 case ArrayLiteralExpressionSyntax array:
                     if (array.Elements.Count > TsonLimits.Default.MaximumArrayLength) throw new ArgumentException("Array limit exceeded.");
                     return array.Elements.Select(e => Project(e, depth + 1)).ToArray();

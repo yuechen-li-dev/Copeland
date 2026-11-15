@@ -8,6 +8,16 @@ namespace Copeland.TS.Tests;
 
 public sealed class TypeProfileTests
 {
+    [Fact]
+    public void SignedNumericLiteralsAreDataWithoutExecutingExpressions()
+    {
+        var schema = TypeProfileCompiler.Compile("type Settings = { level: number; };", "settings.obj.ts", "copeland://tests/signed", "type");
+        Assert.True(schema.Success);
+        var value = TypeProfileCompiler.ReadTypedValue("const $value: Settings = { level: -35.5 };", "value.obj.ts", schema.Catalog!, "Settings");
+        Assert.Equal(-35.5, value.GetProperty("level").GetDouble());
+        Assert.Throws<ArgumentException>(() => TypeProfileCompiler.ReadTypedValue("const $value: Settings = { level: -run() };", "value.obj.ts", schema.Catalog!, "Settings"));
+        Assert.Throws<ArgumentException>(() => TypeProfileCompiler.ReadTypedValue("const $value: Settings = { level: -true };", "value.obj.ts", schema.Catalog!, "Settings"));
+    }
     private const string Source = """
         type CopelandProfile = "type";
         type Time = string;
