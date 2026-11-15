@@ -412,6 +412,7 @@ public sealed class GameSession : IDisposable
         facts.Set("display.mode", Settings.Display.Mode.ToString());
         facts.Set("display.vsync", Settings.Display.VSync);
         facts.Set("display.quality", Settings.Display.Quality.ToString());
+        facts.Set("display.adaptive", Settings.Display.AdaptiveQuality);
         facts.Set("audio.master", Settings.Audio.Master);
         facts.Set("audio.music", Settings.Audio.Music);
         facts.Set("audio.effects", Settings.Audio.Effects);
@@ -575,6 +576,9 @@ public sealed class GameSession : IDisposable
                 break;
             case "display.quality":
                 pendingDisplay = pendingDisplay with { Quality = Cycle(pendingDisplay.Quality, step) };
+                break;
+            case "display.adaptive":
+                pendingDisplay = pendingDisplay with { AdaptiveQuality = !pendingDisplay.AdaptiveQuality };
                 break;
             case "display.apply":
                 ApplySettings(Settings with { Display = pendingDisplay });
@@ -740,6 +744,7 @@ public sealed class GameSession : IDisposable
             new("display.mode", "Window", Value: ModeName(pendingDisplay.Mode), Adjustable: true),
             new("display.vsync", "VSync", Value: pendingDisplay.VSync ? "On" : "Off", Adjustable: true),
             new("display.quality", "Graphics", Value: pendingDisplay.Quality.ToString(), Adjustable: true),
+            new("display.adaptive", "Adaptive quality", Value: pendingDisplay.AdaptiveQuality ? "On" : "Off", Adjustable: true),
             new("display.apply", "Apply changes", Disabled: !changed),
             new("back", "Back"),
         ], Footer: "UP / DOWN choose   LEFT / RIGHT change   ENTER confirm   ESC back");

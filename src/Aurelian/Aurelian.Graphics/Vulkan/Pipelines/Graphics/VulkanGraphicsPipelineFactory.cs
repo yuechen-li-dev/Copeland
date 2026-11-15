@@ -431,6 +431,14 @@ public static unsafe class VulkanGraphicsPipelineFactory
                     plantId,
                     stage.Stage));
             }
+            else if (!SpirvModuleStructure.IsWellFormed(stage.SpirvWords))
+            {
+                diagnostics.Add(Diagnostic(
+                    VulkanGraphicsPipelineDiagnosticCodes.InvalidSpirv,
+                    $"{stage.Stage} shader has an invalid SPIR-V header or instruction stream.",
+                    plantId,
+                    stage.Stage));
+            }
         }
 
         if ((descriptor.EnableDepthTest || descriptor.EnableDepthWrite)

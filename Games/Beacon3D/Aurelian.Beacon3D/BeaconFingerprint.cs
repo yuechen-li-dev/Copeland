@@ -32,6 +32,13 @@ public sealed partial class BeaconGame
             writer.Write(gun.State.ShotCooldown);
             writer.Write(gun.State.ReloadRemaining);
             writer.Write(hurtRemaining);
+            var spawnHistory = spawnSelector.Capture();
+            writer.Write(spawnHistory.Count);
+            foreach (var use in spawnHistory)
+            {
+                writer.Write(use.Id);
+                writer.Write(use.Time);
+            }
             writer.Write(agents.Count);
             foreach (var agent in Agents)
             {

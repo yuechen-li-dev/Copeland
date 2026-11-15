@@ -1,0 +1,56 @@
+name: Aurelian core
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Enforce standalone engine boundary
+        shell: pwsh
+        run: ./scripts/Test-AurelianCoreBoundary.ps1
+      - name: Build engine and tests
+        run: dotnet build Aurelian.Core.slnx -c Release -m:1 -nr:false -p:UseSharedCompilation=false
+      - name: Test engine without optional browser toolchain
+        shell: pwsh
+        run: ./scripts/Invoke-AurelianCoreTests.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aurelian-core-tests
+          path: artifacts/local/core-ci/**/*.trx
+          if-no-files-found: ignore
+
+  browser-shader-toolchain:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install qualified SPIR-V to WGSL translator
+        run: cargo install naga-cli --version 30.0.1 --locked
+      - name: Test browser shader translation
+        shell: pwsh
+        run: |
+          dotnet build tests/Aurelian/Aurelian.Shaders.Tests -c Release -m:1
+          if ($LASTEXITCODE -ne 0) { throw 'Shader test build failed.' }
+          ./scripts/Invoke-AurelianCoreTests.ps1 -BrowserToolchain -ResultsDirectory artifacts/local/browser-ci
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aurelian-browser-shader-tests
+          path: artifacts/local/browser-ci/**/*.trx
+          if-no-files-found: ignore

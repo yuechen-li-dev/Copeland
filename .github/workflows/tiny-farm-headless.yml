@@ -1,10 +1,7 @@
 name: TinyFarm current game headless checks
 
 on:
-  pull_request:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -36,7 +33,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: yuechen-li-dev/InputMan
-          ref: f55011e77e9f869441a4be977c4304de97c7332c
+          ref: f9fe1f08a3d87ae5f8287e02992f771c57b9df01
           path: InputMan
 
       - uses: actions/setup-dotnet@v4

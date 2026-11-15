@@ -12,7 +12,8 @@ internal enum Native3DPass
 internal readonly record struct Native3DFeatures(bool Surface, bool Modern, bool Motion, bool Shadows,
     bool Ambient, bool Tiles, bool Temporal, bool Bloom, bool Subsurface, bool Fog, bool Volume,
     bool Refraction, bool Transparency, bool Particles, bool AsyncParticles, bool GpuHistory,
-    int LocalShadows, bool Alias, bool Visibility = false, bool VisibilityBuffer = false, bool HierarchicalZ = false, bool RayShadows = false);
+    int LocalShadows, bool Alias, bool Visibility = false, bool VisibilityBuffer = false, bool HierarchicalZ = false, bool RayShadows = false,
+    bool PreserveColor = false);
 
 /// <summary>Declarative authoring for the production renderer. The compiler publishes only resolved data.</summary>
 internal static class Native3DFrameGraph
@@ -30,7 +31,7 @@ internal static class Native3DFrameGraph
         FrameResource External(string name) => graph.Resource(name, "external", 1, 1, FrameLifetime.Imported, initialized: true);
         var inputs = External("frame-inputs");
         var lights = External("local-light-data");
-        var output = Texture("display-output");
+        var output = Texture("display-output", initialized: features.PreserveColor);
         var scene = features.Modern ? Texture("geometry-color") : output;
         var motion = Texture("motion-depth", "rgba32f", allowUnused: true);
         var normal = Texture("surface-normal");
@@ -115,7 +116,16 @@ internal static class Native3DFrameGraph
         if (features.HierarchicalZ)
             graph.Pass("hzb-history-pyramid", (int)Native3DPass.HzbHistoryPyramid, sideEffect: true)
                 .Read(hzbFinalDepth!, FrameAccess.TransferRead).Write(hzbHistory!, FrameAccess.ComputeWrite);
-        var geometry = graph.Pass(features.VisibilityBuffer ? "visibility-material-resolve" : "geometry", (int)Native3DPass.Geometry)
+        string geometryName = "geometry";
+        if (features.PreserveColor)
+        {
+            geometryName = "foreground-geometry";
+        }
+        else if (features.VisibilityBuffer)
+        {
+            geometryName = "visibility-material-resolve";
+        }
+        var geometry = graph.Pass(geometryName, (int)Native3DPass.Geometry)
             .Read(inputs, FrameAccess.Vertex).Write(scene);
         if (identity is not null) geometry.Read(identity);
         else if (arguments is not null) geometry.Read(arguments, FrameAccess.Indirect);

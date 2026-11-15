@@ -159,6 +159,14 @@ public sealed class ScenePlan
         writer.Write(material.SubsurfaceColor.Z);
         writer.Write(material.SubsurfaceRadius);
         writer.Write(material.AlphaCutoff);
+        if (material.SpecularAntiAliasing)
+        {
+            writer.Write("Aurelian.SpecularAntiAliasing.v1");
+        }
+        if (material.VertexWetness)
+        {
+            writer.Write("Aurelian.VertexWetness.v1");
+        }
         foreach (ModelTextureBinding? binding in material.Textures())
         {
             writer.Write(binding is not null);

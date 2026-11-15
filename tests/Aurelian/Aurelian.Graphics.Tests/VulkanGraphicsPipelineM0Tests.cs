@@ -167,12 +167,8 @@ public sealed class VulkanGraphicsPipelineM0Tests
                 InvalidSpirvDescriptor());
 
             Assert.False(result.Success);
-            Assert.NotEqual(VulkanGraphicsPipelineStatus.Created, result.Status);
-            Assert.NotEmpty(result.Diagnostics);
-            Assert.Contains(result.Diagnostics, diagnostic =>
-                diagnostic.Code == VulkanGraphicsPipelineDiagnosticCodes.ShaderModuleCreationFailed
-                || diagnostic.Code == VulkanGraphicsPipelineDiagnosticCodes.PipelineLayoutCreationFailed
-                || diagnostic.Code == VulkanGraphicsPipelineDiagnosticCodes.GraphicsPipelineCreationFailed);
+            Assert.Equal(VulkanGraphicsPipelineStatus.Rejected, result.Status);
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == VulkanGraphicsPipelineDiagnosticCodes.InvalidSpirv);
         });
 
     [Fact]

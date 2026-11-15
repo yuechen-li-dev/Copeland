@@ -70,6 +70,7 @@
     <Project Path="Games/TinyFarm/TinyFarm/TinyFarm.csproj" />
   </Folder>
   <Folder Name="/tools/">
+    <Project Path="tools/Aurelian.SurfaceResponseProof/Aurelian.SurfaceResponseProof.csproj" />
     <Project Path="tools/Aurelian.ArtSlots/Aurelian.ArtSlots.csproj" />
     <Project Path="tools/Aurelian.KernelComparison/Aurelian.KernelComparison.csproj" />
     <Project Path="tools/Aurelian.ClockResearch/Aurelian.ClockResearch.csproj" />
@@ -81,6 +82,7 @@
     <Project Path="tools/Hollowflux.PearlMiningM20/Hollowflux.PearlMiningM20.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Aurelian/Aurelian.Audio.Synthesis.Tests/Aurelian.Audio.Synthesis.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Inference.Tests/Aurelian.Inference.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Cloth3D.Tests/Aurelian.Cloth3D.Tests.csproj" />
     <Project Path="tests/Integrations/Aurelian.Physics3D.Bepu.Tests/Aurelian.Physics3D.Bepu.Tests.csproj" />

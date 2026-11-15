@@ -8,6 +8,7 @@ Aurelian owns engine lifecycle, world and game-object models, actuation, frame c
 - [Aetheris boundary](aetheris-boundary.md): which bridge projects may use Aetheris, and why the core, the shell and 2D games never do.
 - [Art slots](art-slots.md): SVG placeholders with briefs that painted art replaces without code changes, and the exporter for the art pass.
 - [Build a game on the shared shell](game-shell.md): `IGame`, `GameApp.Run`, input, menus, saves, audio, settings, and playtesting.
+- [Reusable platformer controller](platforming.md) and [gameplay extraction](gameplay-extraction.md): Cloudstep movement, synchronized music layers and accepted spawn placement.
 - [Choose the runtime execution mode](runtime-execution-modes.md): native host, context-free frame loop, finite harness, and caller-owned diagnostic sinks.
 - [Compose document scenes and reusable fragments](scene-composition.md).
 - [Author Blender/GLB assets and typed materials](static-assets.md).
@@ -52,6 +53,9 @@ The docs above describe current code paths and contracts. For exact signatures a
 - [Presentation graphics pack](presentation-graphics-pack.md) and [temporal graphics pack](temporal-graphics-pack.md).
 - [Water graphics pack](water-graphics-pack.md) and [transmission graphics pack](transmission-graphics-pack.md): bounded water/refraction and glass/volumetric contracts.
 - [Rain after dark](rain-night-research.md): native GPU rain/night/puddle demo, shader authoring, qualification and a paper survey.
+- [Connected weather](connected-weather.md): shared wet-ground queries and meshes, shelter exposure, surface footsteps, and environmental ambience.
+- [Beacon first-person presentation](beacon-first-person.md): accepted-state spring motion, aim/sprint FOV, surface audio and water impacts in the playable FPS.
+- [Separate weapon depth and adaptive quality](beacon-viewmodel-and-quality.md): foreground depth, wall clearance and a persisted switch for measured Dominatus visibility decisions.
 - [Rain art direction](rain-night-art-direction.md): generated 2D atmosphere target and the native scene's response.
 - [Procedural surfaces and primitives](procedural-surfaces-and-primitives.md): height-derived normal/PBR maps, textured local primitives and the Aetheris/Blender handoff.
 - [Shader library and VFX roadmap](shader-library-and-vfx-roadmap.md) and [GPU VFX foundation](gpu-vfx-foundation.md).

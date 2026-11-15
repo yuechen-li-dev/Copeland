@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
+    <ProjectReference Include="../../src/Aurelian/Aurelian.Shaders.Builtins/Aurelian.Shaders.Builtins.csproj" />
+    <ProjectReference Include="../../src/Aurelian/Aurelian.Audio/Aurelian.Audio.csproj" />
+  </ItemGroup>
+</Project>

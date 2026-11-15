@@ -99,7 +99,15 @@ public sealed partial class BeaconGame : IDisposable
             movement = Vector2.Normalize(movement);
         }
         Vector3 previousPosition = agents["runner"].State.Position;
-        float requestedSpeed = HumanoidOptions?.Locomotion is null || input.Sprint ? 4 : 1.6f;
+        float requestedSpeed;
+        if (HumanoidOptions?.Locomotion is not null)
+        {
+            requestedSpeed = input.Sprint ? 4 : 1.6f;
+        }
+        else
+        {
+            requestedSpeed = input.Sprint ? 6 : 4;
+        }
         Vector3 velocity = new Vector3(movement.X, 0, movement.Y) * requestedSpeed;
         HumanoidRootMotionRequest? root = null;
         if (HumanoidOptions?.Locomotion is { } bank)

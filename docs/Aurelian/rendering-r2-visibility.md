@@ -25,7 +25,10 @@ renderer.Render(scene, worldToClip, eye, clear);
 construction supplies `RetainedModel3DPrograms.VisibilityBuffer` with compiled `VisibilityRaster3D.v.ts`
 and `VisibilityResolve3D.v.ts` programs alongside the existing bindless program. Unsupported devices,
 missing programs, mutable instance lists and mixed geometry adapters receive `AUR-VBUFFER-006` when
-visibility mode is requested. Opaque/MASK static resident geometry is the admitted scope. Scene revision
+visibility mode is requested. Opaque/MASK static resident geometry is the admitted scope. Forward transparent
+and refractive batches can now follow the resolved opaque surface; immediate opaque and GPU-deformed
+adapters remain rejected. Beacon qualifies this composition with resident wet ground and a forward puddle.
+See [the weapon/quality integration](beacon-viewmodel-and-quality.md). Scene revision
 and mode changes use the existing frame-slot and timeline retirement machinery.
 
 ## Identity is integer data
