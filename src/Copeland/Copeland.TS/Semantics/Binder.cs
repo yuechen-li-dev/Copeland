@@ -6717,6 +6717,18 @@ public static partial class Binder
 
         private static BoundExpression AdaptExactIntegerLiteral(BoundExpression expression, TypeSymbol? contextualType)
         {
+            if (contextualType == PrimitiveTypeSymbol.Long)
+            {
+                if (expression is BoundLiteralExpression { Value: int integer })
+                {
+                    return new BoundLiteralExpression((long)integer, PrimitiveTypeSymbol.Long);
+                }
+                if (expression is BoundUnaryExpression
+                    { OperatorKind: SyntaxKind.MinusToken, Operand: BoundLiteralExpression { Value: int magnitude } })
+                {
+                    return new BoundLiteralExpression(-(long)magnitude, PrimitiveTypeSymbol.Long);
+                }
+            }
             if (expression is BoundLiteralExpression { Value: int } literal
                 && contextualType is not null
                 && TypeFacts.IsFloat(contextualType))
@@ -8095,6 +8107,11 @@ public static partial class Binder
         private BoundExpression BindUnary(UnaryExpressionSyntax u)
         {
             if (u.OperatorToken.Kind == SyntaxKind.MinusToken
+                && u.Operand is LiteralExpressionSyntax { LiteralToken.Value: MinimumLongMagnitudeTokenValue })
+            {
+                return new BoundLiteralExpression(long.MinValue, PrimitiveTypeSymbol.Long);
+            }
+            if (u.OperatorToken.Kind == SyntaxKind.MinusToken
                 && u.Operand is LiteralExpressionSyntax { LiteralToken.Value: MinimumIntMagnitudeTokenValue })
             {
                 return new BoundLiteralExpression(int.MinValue, PrimitiveTypeSymbol.Int);
@@ -8127,6 +8144,8 @@ public static partial class Binder
             if (op == SyntaxKind.EqualsEqualsEqualsToken) op = SyntaxKind.EqualsEqualsToken;
             if (op == SyntaxKind.BangEqualsEqualsToken) op = SyntaxKind.BangEqualsToken;
             if (l.Type == PrimitiveTypeSymbol.Error || r.Type == PrimitiveTypeSymbol.Error) return new BoundErrorExpression();
+            if (TypeFacts.IsLong(l.Type)) r = AdaptExactIntegerLiteral(r, l.Type);
+            if (TypeFacts.IsLong(r.Type)) l = AdaptExactIntegerLiteral(l, r.Type);
             if (TypeFacts.IsFloat(l.Type) && r is BoundLiteralExpression { Value: int } integerLiteral)
             {
                 r = new BoundLiteralExpression(Convert.ToDouble(integerLiteral.Value, System.Globalization.CultureInfo.InvariantCulture), l.Type);
@@ -8176,6 +8195,28 @@ public static partial class Binder
             {
                 if (TypeFacts.AreEquivalent(l.Type, r.Type))
                 {
+                    if (l is BoundLiteralExpression { Value: long left64 }
+                        && r is BoundLiteralExpression { Value: long right64 })
+                    {
+                        try
+                        {
+                            long value = op switch
+                            {
+                                SyntaxKind.PlusToken => checked(left64 + right64),
+                                SyntaxKind.MinusToken => checked(left64 - right64),
+                                SyntaxKind.StarToken => checked(left64 * right64),
+                                SyntaxKind.SlashToken => checked(left64 / right64),
+                                SyntaxKind.PercentToken => checked(left64 % right64),
+                                _ => throw new InvalidOperationException()
+                            };
+                            return new BoundLiteralExpression(value, PrimitiveTypeSymbol.Long);
+                        }
+                        catch (Exception error) when (error is OverflowException or DivideByZeroException)
+                        {
+                            Report("COPE-NUM-0064", "Int64 constant arithmetic overflows or divides by zero.", b.OperatorToken);
+                            return new BoundErrorExpression();
+                        }
+                    }
                     return new BoundBinaryExpression(l, op, r, l.Type);
                 }
 
@@ -8890,6 +8931,10 @@ public static partial class Binder
 
         private BoundExpression BindNumberLiteral(LiteralExpressionSyntax literal)
         {
+            if (literal.LiteralToken.Value is long integer64)
+            {
+                return new BoundLiteralExpression(integer64, PrimitiveTypeSymbol.Long);
+            }
             if (literal.LiteralToken.Value is int integer)
             {
                 return new BoundLiteralExpression(integer, PrimitiveTypeSymbol.Int);
@@ -8900,7 +8945,7 @@ public static partial class Binder
                 return new BoundLiteralExpression(floating, PrimitiveTypeSymbol.Float);
             }
 
-            Report("COPE-NUM-0001", "Invalid or unsupported numeric literal. Copeland int literals must be signed 32-bit values and float literals must be finite.", literal.LiteralToken);
+            Report("COPE-NUM-0001", "Invalid or unsupported numeric literal. Use signed 32-bit int, signed 64-bit long with an L suffix, or a finite float. Minimum magnitudes require unary minus.", literal.LiteralToken);
             return new BoundErrorExpression();
         }
 
@@ -9271,6 +9316,10 @@ public static partial class Binder
 
         private static bool IsClrArgumentCompatible(TypeSymbol source, Type target)
         {
+            if (target == typeof(long) && source == PrimitiveTypeSymbol.Long)
+            {
+                return true;
+            }
             if (target == typeof(int) && source == PrimitiveTypeSymbol.Int)
             {
                 return true;
@@ -9305,8 +9354,9 @@ public static partial class Binder
             if (type == typeof(string)) { projected = PrimitiveTypeSymbol.String; return true; }
             if (type == typeof(bool)) { projected = PrimitiveTypeSymbol.Boolean; return true; }
             if (type == typeof(int)) { projected = PrimitiveTypeSymbol.Int; return true; }
+            if (type == typeof(long)) { projected = PrimitiveTypeSymbol.Long; return true; }
             if (type == typeof(double)) { projected = PrimitiveTypeSymbol.Float; return true; }
-            if (type == typeof(float) || type == typeof(long) || type == typeof(short) || type == typeof(byte) || type == typeof(uint) || type == typeof(ulong) || type == typeof(ushort) || type == typeof(sbyte)) { projected = PrimitiveTypeSymbol.Error; return false; }
+            if (type == typeof(float) || type == typeof(short) || type == typeof(byte) || type == typeof(uint) || type == typeof(ulong) || type == typeof(ushort) || type == typeof(sbyte)) { projected = PrimitiveTypeSymbol.Error; return false; }
             if (type.IsArray && type.GetArrayRank() == 1 && TryProjectClrType(type.GetElementType()!, out TypeSymbol element)) { projected = new ArrayTypeSymbol(element); return true; }
             if (type.IsGenericParameter) { projected = PrimitiveTypeSymbol.Error; return false; }
             if (type == typeof(object) || type.IsEnum || Nullable.GetUnderlyingType(type) is not null || type.IsPointer || type.IsByRef || type.ContainsGenericParameters) { projected = PrimitiveTypeSymbol.Error; return false; }
@@ -11861,6 +11911,11 @@ public static partial class Binder
             HashSet<TypeSymbol> reachable,
             HashSet<TypeSymbol> visiting)
         {
+            if (TypeFacts.IsLong(type))
+            {
+                Report("COPE-TSON-ENCODE-0003", $"TSON numbers currently use binary64; encode Int64 as a canonical decimal string at '{path}'.", anchor);
+                return false;
+            }
             if (type is ClassTypeSymbol)
             {
                 Report("COPE-CLASS-0017", $"Classes are invariant boundaries and cannot participate in TSON at '{path}'. Project to an ordinary record DTO first.", anchor);
@@ -12184,6 +12239,11 @@ public static partial class Binder
                 return ValidateTsonSchemaType(catalog, array.ElementType, visited, out mismatch);
             }
 
+            if (TypeFacts.IsLong(type))
+            {
+                mismatch = "TSON numbers currently use binary64; represent Int64 as a canonical decimal string.";
+                return false;
+            }
             if (type is PrimitiveTypeSymbol primitive
                 && primitive != PrimitiveTypeSymbol.Boolean
                 && !TypeFacts.IsNumeric(primitive)
@@ -12214,7 +12274,7 @@ public static partial class Binder
                     case (TsonTypeKind.Boolean, PrimitiveTypeSymbol boolean)
                         when boolean == PrimitiveTypeSymbol.Boolean:
                     case (TsonTypeKind.Number, PrimitiveTypeSymbol number)
-                        when TypeFacts.IsNumeric(number):
+                        when TypeFacts.IsNumeric(number) && !TypeFacts.IsLong(number):
                     case (TsonTypeKind.String, PrimitiveTypeSymbol text)
                         when text == PrimitiveTypeSymbol.String:
                         break;
@@ -12240,7 +12300,7 @@ public static partial class Binder
             return type switch
             {
                 PrimitiveTypeSymbol primitive => primitive == PrimitiveTypeSymbol.Boolean
-                    || TypeFacts.IsNumeric(primitive)
+                    || (TypeFacts.IsNumeric(primitive) && !TypeFacts.IsLong(primitive))
                     || primitive == PrimitiveTypeSymbol.String,
                 RecordTypeSymbol => true,
                 EnumTypeSymbol => true,
@@ -12262,7 +12322,7 @@ public static partial class Binder
                 case PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.Boolean && value is TsonBoolean boolean:
                     expression = new BoundLiteralExpression(boolean.Value, primitive);
                     return true;
-                case PrimitiveTypeSymbol primitive when TypeFacts.IsNumeric(primitive) && value is TsonNumber number:
+                case PrimitiveTypeSymbol primitive when TypeFacts.IsNumeric(primitive) && !TypeFacts.IsLong(primitive) && value is TsonNumber number:
                     expression = primitive == PrimitiveTypeSymbol.Int && number.Value == Math.Truncate(number.Value) && number.Value >= int.MinValue && number.Value <= int.MaxValue
                         ? new BoundLiteralExpression((int)number.Value, primitive)
                         : new BoundLiteralExpression(number.Value, primitive);
@@ -13283,6 +13343,14 @@ public static partial class Binder
                 .ToArray();
             if (properties.Length == 0)
             {
+                // CLR constants are values, not runtime reflection operations.
+                // Keep their native primitive identity, including all 64 bits.
+                FieldInfo? constant = declaringType.GetField(syntax.NameToken.Text, flags);
+                if (constant is { IsLiteral: true }
+                    && TryProjectClrType(constant.FieldType, out TypeSymbol constantType))
+                {
+                    return new BoundLiteralExpression(constant.GetRawConstantValue(), constantType);
+                }
                 if (declaringType.GetProperties(BindingFlags.NonPublic | (receiver is null ? BindingFlags.Static : BindingFlags.Instance))
                     .Any(property => string.Equals(property.Name, syntax.NameToken.Text, StringComparison.Ordinal)))
                 {
@@ -13559,6 +13627,7 @@ public static partial class Binder
                 {
                     SyntaxKind.NumberKeyword => PrimitiveTypeSymbol.Number,
                     SyntaxKind.IntKeyword => PrimitiveTypeSymbol.Int,
+                    SyntaxKind.LongKeyword => PrimitiveTypeSymbol.Long,
                     SyntaxKind.FloatKeyword => PrimitiveTypeSymbol.Float,
                     SyntaxKind.StringKeyword => PrimitiveTypeSymbol.String,
                     SyntaxKind.BooleanKeyword => PrimitiveTypeSymbol.Boolean,
@@ -13629,6 +13698,7 @@ public static partial class Binder
                 {
                     ClrTypeSymbol clr => clr.RuntimeType,
                     PrimitiveTypeSymbol primitive when TypeFacts.IsInt(primitive) => typeof(int),
+                    PrimitiveTypeSymbol primitive when TypeFacts.IsLong(primitive) => typeof(long),
                     PrimitiveTypeSymbol primitive when TypeFacts.IsFloat(primitive) => typeof(double),
                     PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.String => typeof(string),
                     PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.Boolean => typeof(bool),
@@ -14040,6 +14110,7 @@ public static partial class Binder
             {
                 if (clrCandidates.Count == 1 && _clrResolver.IsTypeVisible(clrCandidates[0]))
                 {
+                    if (clrCandidates[0] == typeof(long)) return PrimitiveTypeSymbol.Long;
                     return new ClrTypeSymbol(clrCandidates[0]);
                 }
 

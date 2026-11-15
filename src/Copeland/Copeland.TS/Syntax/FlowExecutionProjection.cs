@@ -507,7 +507,7 @@ internal sealed partial class FlowExecutionProjection
     private TypeSyntax Type(string name)
     {
         SyntaxKind keyword = SyntaxFacts.GetKeywordKind(name);
-        return keyword is SyntaxKind.IntKeyword or SyntaxKind.FloatKeyword or SyntaxKind.NumberKeyword
+        return keyword is SyntaxKind.IntKeyword or SyntaxKind.LongKeyword or SyntaxKind.FloatKeyword or SyntaxKind.NumberKeyword
             or SyntaxKind.BooleanKeyword or SyntaxKind.StringKeyword or SyntaxKind.VoidKeyword
             ? new PredefinedTypeSyntax(Token(keyword, name))
             : new IdentifierTypeSyntax(Identifier(name));

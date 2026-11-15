@@ -268,6 +268,20 @@ public sealed class Lexer
 
             string suffix = _text.Substring(suffixStart, _position - suffixStart);
             string unitText = _text.Substring(start, _position - start);
+            if (!hasDecimalPoint && suffix == "L")
+            {
+                if (long.TryParse(numericText, System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture, out long integer))
+                {
+                    return new SyntaxToken(SyntaxKind.NumberToken, start, unitText, integer);
+                }
+                if (numericText == "9223372036854775808")
+                {
+                    return new SyntaxToken(SyntaxKind.NumberToken, start, unitText, new MinimumLongMagnitudeTokenValue());
+                }
+                _diagnostics.Report("COPE-NUM-0064", "Int64 literal is outside the signed 64-bit range.", start, unitText.Length);
+                return new SyntaxToken(SyntaxKind.NumberToken, start, unitText, null);
+            }
             if (parsed && suffix is "px" or "ui")
             {
                 double unitValue = hasDecimalPoint ? floatValue : intValue;
@@ -467,3 +481,6 @@ public sealed record LengthLiteralTokenValue(double Value, string Unit);
 
 /// <summary>The magnitude of int.MinValue is legal only directly after unary minus.</summary>
 public sealed record MinimumIntMagnitudeTokenValue;
+
+/// <summary>The magnitude of long.MinValue is legal only directly after unary minus.</summary>
+public sealed record MinimumLongMagnitudeTokenValue;

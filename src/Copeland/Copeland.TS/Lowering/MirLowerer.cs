@@ -1668,6 +1668,7 @@ public static class MirLowerer
         if (type == typeof(string)) return new MirNamedType("string");
         if (type == typeof(bool)) return new MirNamedType("boolean");
         if (type == typeof(int)) return new MirNamedType("int");
+        if (type == typeof(long)) return new MirNamedType("long");
         if (type == typeof(double)) return new MirNamedType("float");
         if (type.IsArray && type.GetArrayRank() == 1) return new MirArrayType(ToMirTypeFromRuntimeType(type.GetElementType()!));
         return LowerClrType(type);

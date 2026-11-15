@@ -13,6 +13,8 @@ public sealed class PrimitiveTypeSymbol : TypeSymbol
 
     /// <summary>Copeland's signed 32-bit whole-number type.</summary>
     public static readonly PrimitiveTypeSymbol Int = new("int");
+    /// <summary>Signed 64-bit whole numbers. Arithmetic is checked in the native C# backend.</summary>
+    public static readonly PrimitiveTypeSymbol Long = new("long");
     /// <summary>Copeland's IEEE-754 binary64 floating-point type.</summary>
     public static readonly PrimitiveTypeSymbol Float = new("float");
     /// <summary>
@@ -396,7 +398,9 @@ public static class TypeFacts
     public static bool IsFloat(TypeSymbol type)
         => type == PrimitiveTypeSymbol.Float || type == PrimitiveTypeSymbol.Number;
 
-    public static bool IsNumeric(TypeSymbol type) => IsInt(type) || IsFloat(type);
+    public static bool IsLong(TypeSymbol type) => type == PrimitiveTypeSymbol.Long;
+
+    public static bool IsNumeric(TypeSymbol type) => IsInt(type) || IsLong(type) || IsFloat(type);
 
     public static bool AreEquivalent(TypeSymbol left, TypeSymbol right)
     {

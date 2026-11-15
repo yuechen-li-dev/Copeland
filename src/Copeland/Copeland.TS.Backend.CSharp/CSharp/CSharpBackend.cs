@@ -2011,6 +2011,7 @@ public static partial class CSharpBackend
     private static string UnaryText(MirUnaryExpression unary, string operand)
     {
         string value = $"({unary.Operator}{operand})";
+        if (unary.Type.Identifier == "long" && unary.Operator == "-") return $"checked({value})";
         return unary.Type.Identifier == "int" && unary.Operator == "-" ? $"unchecked({value})" : value;
     }
 
@@ -2024,6 +2025,10 @@ public static partial class CSharpBackend
     private static string BinaryText(MirBinaryExpression binary, string left, string right, bool flow = false)
     {
         string expression = $"({left} {binary.Operator} {right})";
+        if (binary.Type.Identifier == "long" && binary.Operator is "+" or "-" or "*" or "/" or "%")
+        {
+            return $"checked({expression})";
+        }
         if (binary.Type.Identifier != "int") return expression;
         if (binary.Operator is "/" or "%")
         {
@@ -2229,7 +2234,7 @@ public static partial class CSharpBackend
         {
             MirNumericConversionKind.StringFrom when conversion.Operand.Type is MirType { Identifier: "boolean" }
                 => $"({operand} ? \"true\" : \"false\")",
-            MirNumericConversionKind.StringFrom when conversion.Operand.Type is MirType { Identifier: "int" }
+            MirNumericConversionKind.StringFrom when conversion.Operand.Type is MirType { Identifier: "int" or "long" }
                 => $"{operand}.ToString(global::System.Globalization.CultureInfo.InvariantCulture)",
             MirNumericConversionKind.StringFrom
                 => $"{operand}.ToString(\"R\", global::System.Globalization.CultureInfo.InvariantCulture)",
@@ -3539,7 +3544,7 @@ public static partial class CSharpBackend
         return "global::" + definition + "<" + string.Join(", ", type.TypeArguments.Select(MapType)) + ">";
     }
 
-    private static string MapType(MirType type) => type switch { MirType { Identifier: "int" } => "int", MirType { Identifier: "float" or "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirType { Identifier: "Document" } => "TextDocument", MirClrType clr => MapClrType(clr), MirArrayType array => MapType(array.ElementType) + "[]", MirMutableArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirAsyncType async => $"CopeAsync<{MapValueStorageType(async.EventualType)}>", MirIterableType iterable => $"global::System.Collections.Generic.IEnumerable<{MapValueStorageType(iterable.ElementType)}>", MirCallableType callable => CallableDelegateName(callable), MirRecordType record => RecordTypeName(record.RecordTypeId), MirTableType table => TableTypeName(table.TableId), MirTableRowType row => TableRowTypeName(row.RowTypeId), MirColumnType column => $"CopeColumn<{MapType(column.ElementType)}>", MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
+    private static string MapType(MirType type) => type switch { MirType { Identifier: "int" } => "int", MirType { Identifier: "long" } => "long", MirType { Identifier: "float" or "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirType { Identifier: "Document" } => "TextDocument", MirClrType clr => MapClrType(clr), MirArrayType array => MapType(array.ElementType) + "[]", MirMutableArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirAsyncType async => $"CopeAsync<{MapValueStorageType(async.EventualType)}>", MirIterableType iterable => $"global::System.Collections.Generic.IEnumerable<{MapValueStorageType(iterable.ElementType)}>", MirCallableType callable => CallableDelegateName(callable), MirRecordType record => RecordTypeName(record.RecordTypeId), MirTableType table => TableTypeName(table.TableId), MirTableRowType row => TableRowTypeName(row.RowTypeId), MirColumnType column => $"CopeColumn<{MapType(column.ElementType)}>", MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
 
     private static string EmitTextDocument(
         CSharpTextWriter writer,

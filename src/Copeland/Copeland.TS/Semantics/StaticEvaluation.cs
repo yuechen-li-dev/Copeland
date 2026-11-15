@@ -567,9 +567,14 @@ internal sealed class StaticEvaluator
     private StaticValue EvaluateUnary(BoundUnaryExpression unary, StaticEnvironment environment)
     {
         StaticPrimitiveValue operand = AsPrimitive(EvaluateExpression(unary.Operand, environment));
+        if (unary.OperatorKind == SyntaxKind.MinusToken && operand.Value is long.MinValue)
+        {
+            throw StaticEvaluationException.Failure("Int64 negation overflows during static evaluation.");
+        }
         object value = unary.OperatorKind switch
         {
             SyntaxKind.MinusToken when operand.Value is int integer => unchecked(-integer),
+            SyntaxKind.MinusToken when operand.Value is long integer64 => checked(-integer64),
             SyntaxKind.MinusToken when operand.Value is double number => -number,
             SyntaxKind.MinusToken when operand.Value is float number => -number,
             SyntaxKind.BangToken when operand.Value is bool boolean => !boolean,
@@ -599,11 +604,33 @@ internal sealed class StaticEvaluator
         {
             throw StaticEvaluationException.Failure("Division by zero occurred during static evaluation.");
         }
+        catch (OverflowException)
+        {
+            throw StaticEvaluationException.Failure("Int64 arithmetic overflows during static evaluation.");
+        }
         return Allocate(new StaticPrimitiveValue(value, binary.Type));
     }
 
     private static object EvaluatePrimitiveBinary(object? left, SyntaxKind operation, object? right)
     {
+        if (left is long left64 && right is long right64)
+        {
+            return operation switch
+            {
+                SyntaxKind.PlusToken => checked(left64 + right64),
+                SyntaxKind.MinusToken => checked(left64 - right64),
+                SyntaxKind.StarToken => checked(left64 * right64),
+                SyntaxKind.SlashToken => checked(left64 / right64),
+                SyntaxKind.PercentToken => checked(left64 % right64),
+                SyntaxKind.LessToken => left64 < right64,
+                SyntaxKind.LessOrEqualsToken => left64 <= right64,
+                SyntaxKind.GreaterToken => left64 > right64,
+                SyntaxKind.GreaterOrEqualsToken => left64 >= right64,
+                SyntaxKind.EqualsEqualsToken => left64 == right64,
+                SyntaxKind.BangEqualsToken => left64 != right64,
+                _ => throw StaticEvaluationException.Failure("Invalid Int64 operation during static evaluation.")
+            };
+        }
         // GPU scalar values use the same bounded evaluator and control flow,
         // retaining binary32 rounding and unsigned shader arithmetic.
         if (left is float leftFloat && right is float rightFloat)
@@ -1052,6 +1079,7 @@ internal sealed class StaticEvaluator
     private StaticValue DefaultValue(TypeSymbol type)
     {
         if (TypeFacts.IsInt(type)) return Allocate(new StaticPrimitiveValue(0, type));
+        if (TypeFacts.IsLong(type)) return Allocate(new StaticPrimitiveValue(0L, type));
         if (TypeFacts.IsFloat(type)) return Allocate(new StaticPrimitiveValue(0d, type));
         if (type == PrimitiveTypeSymbol.Boolean) return Allocate(new StaticPrimitiveValue(false, type));
         throw StaticEvaluationException.Unsupported(

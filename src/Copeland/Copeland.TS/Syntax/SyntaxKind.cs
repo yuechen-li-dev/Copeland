@@ -88,6 +88,7 @@ public enum SyntaxKind
     NullKeyword,
     NumberKeyword,
     IntKeyword,
+    LongKeyword,
     FloatKeyword,
     StringKeyword,
     BooleanKeyword,

@@ -681,7 +681,7 @@ public sealed class Parser
             if (expectingAlternative)
             {
                 if (Current.Kind is SyntaxKind.StringToken or SyntaxKind.NumberToken
-                    or SyntaxKind.NumberKeyword or SyntaxKind.IntKeyword or SyntaxKind.FloatKeyword
+                    or SyntaxKind.NumberKeyword or SyntaxKind.IntKeyword or SyntaxKind.LongKeyword or SyntaxKind.FloatKeyword
                     or SyntaxKind.StringKeyword or SyntaxKind.BooleanKeyword or SyntaxKind.VoidKeyword
                     or SyntaxKind.NullKeyword or SyntaxKind.TrueKeyword or SyntaxKind.FalseKeyword)
                 {
@@ -2711,7 +2711,7 @@ public sealed class Parser
     {
         TypeSyntax type = Current.Kind switch
         {
-            SyntaxKind.NumberKeyword or SyntaxKind.IntKeyword or SyntaxKind.FloatKeyword or SyntaxKind.StringKeyword or SyntaxKind.BooleanKeyword or SyntaxKind.VoidKeyword or SyntaxKind.NullKeyword
+            SyntaxKind.NumberKeyword or SyntaxKind.IntKeyword or SyntaxKind.LongKeyword or SyntaxKind.FloatKeyword or SyntaxKind.StringKeyword or SyntaxKind.BooleanKeyword or SyntaxKind.VoidKeyword or SyntaxKind.NullKeyword
                 => new PredefinedTypeSyntax(NextToken()),
             SyntaxKind.IdentifierToken when Current.Text == "Async" => ParseAsyncTypeSyntax(),
             SyntaxKind.IdentifierToken when Current.Text == "Iterable" => ParseIterableTypeSyntax(),
