@@ -13,6 +13,37 @@ public sealed record StreamingLinearResult(int WeightUploads, int Dispatches, do
 
 public sealed unsafe partial class VulkanComputeMath
 {
+    /// <summary>Replays resident output-row tiles with exactly the streamed linear shader,
+    /// dispatch shapes and ring semantics. All tiles remain caller owned; no weight copy is submitted.</summary>
+    public StreamingLinearResult LinearResidentTiles(GpuTensor input, GpuTensor output, StreamingLinearPlan plan,
+        IReadOnlyList<GpuTensor> weights, IComputeStreamController controller)
+    {
+        Validate(input, GpuTensorFormat.Float32);
+        Validate(output, GpuTensorFormat.Float32);
+        ComputeMathBatch.Require(weights.Count == plan.Tiles.Count && input.Columns == plan.InputWidth
+            && output.Columns == plan.OutputWidth && input.Rows == output.Rows && !ReferenceEquals(input, output),
+            "Resident affine tiles must match their explicit plan and independent activations.");
+        foreach (var weight in weights)
+        {
+            Validate(weight, GpuTensorFormat.Float32);
+            ComputeMathBatch.Require(weight.Rows == plan.TileRows && weight.Columns == plan.InputWidth + 1,
+                "Resident affine weight tile shape mismatch.");
+        }
+        // Preserve dependencies when callers use the owner's queued-compute scope.
+        queuedScope?.Flush();
+        using var ring = new SubmissionRing(this, controller, new(plan.Tiles.Count, plan.DispatchesPerTile, 0));
+        for (int index = 0; index < plan.Tiles.Count; index++)
+        {
+            _ = ring.Acquire();
+            ring.Submit(CreateStreamingLinearBatch(input, weights[index], output, plan, plan.Tiles[index]));
+        }
+        ring.Drain();
+        return new(0, ring.Dispatches, ring.GpuMilliseconds, weights.Aggregate(0UL, (bytes, weight) => bytes + weight.Buffer.SizeBytes), 0)
+        {
+            SubmissionDepth = ring.Depth, CompletionWaits = ring.CompletionWaits,
+            MaximumInFlight = ring.MaximumInFlight, MaximumOutstanding = ring.MaximumOutstanding
+        };
+    }
     /// <summary>Executes a fixed weight schedule on the existing plant. An attached
     /// controller enables bounded lookahead; physical slots wait only before reuse
     /// or final drain. Otherwise uploads and dispatches complete synchronously.

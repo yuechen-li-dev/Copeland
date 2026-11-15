@@ -22,6 +22,8 @@ public sealed unsafe partial class VulkanComputeMath
             public long Sequence { get; set; }
             public double PreparationMilliseconds { get; set; }
             public ulong UploadBytes { get; set; }
+            public double CpuRecordingMilliseconds { get; set; }
+            public double CpuSubmissionMilliseconds { get; set; }
 
             public void Dispose()
             {
@@ -117,6 +119,7 @@ public sealed unsafe partial class VulkanComputeMath
             ComputeMathBatch.Require(ReferenceEquals(batch.Owner, owner) && batch.DispatchCount is > 0
                 && batch.DispatchCount <= owner.MaximumDispatches, "Stream needs a nonempty bounded batch from its owner.");
             var slot = Acquire();
+            long recordingStart = System.Diagnostics.Stopwatch.GetTimestamp();
             if (upload is not null)
             {
                 owner.Validate(upload, GpuTensorFormat.UInt32);
@@ -149,6 +152,7 @@ public sealed unsafe partial class VulkanComputeMath
             var command = owner.commands.Rent(owner.fences.CommandListFence.LastKnownCompletedValue);
             Require(command.Begin().Success, "Stream command begin failed.");
             slot.Timings.Reset(command);
+            slot.Timings.BeginFrame(command, Submissions + 1);
             GpuTensor? copyDestination = upload ?? slot.Weights;
             slot.UploadBytes = 0;
             if (copyDestination is not null)
@@ -187,8 +191,12 @@ public sealed unsafe partial class VulkanComputeMath
                     PipelineStageFlags.ComputeShaderBit, PipelineStageFlags.ComputeShaderBit);
             }
             slot.Timings.Mark(command, 1, PipelineStageFlags.ComputeShaderBit);
+            slot.Timings.EndFrame(command);
             Require(command.End().Success, "Stream command end failed.");
+            slot.CpuRecordingMilliseconds = System.Diagnostics.Stopwatch.GetElapsedTime(recordingStart).TotalMilliseconds;
+            long submissionStart = System.Diagnostics.Stopwatch.GetTimestamp();
             var submission = owner.submitter.Submit(new(command, WaitForCompletion: false, DebugName: "compute-math.stream"));
+            slot.CpuSubmissionMilliseconds = System.Diagnostics.Stopwatch.GetElapsedTime(submissionStart).TotalMilliseconds;
             // A submitted fence survives a possible command-retirement failure.
             slot.FenceValue = submission.SignalFenceValue ?? 0;
             LastSubmittedFenceValue = Math.Max(LastSubmittedFenceValue, slot.FenceValue);
@@ -226,13 +234,18 @@ public sealed unsafe partial class VulkanComputeMath
                 return;
             }
             Require(owner.fences.CommandListFence.QueryCompletedValue().Success, "Stream timeline query failed.");
+            double waitMilliseconds = 0;
             if (owner.fences.CommandListFence.LastKnownCompletedValue < slot.FenceValue)
             {
                 CompletionWaits++;
+                long waitStart = System.Diagnostics.Stopwatch.GetTimestamp();
                 Require(owner.fences.CommandListFence.WaitForValue(slot.FenceValue, 30_000_000_000).Success,
                     "Stream completion wait failed.");
+                waitMilliseconds = System.Diagnostics.Stopwatch.GetElapsedTime(waitStart).TotalMilliseconds;
             }
             var timings = slot.Timings.Read();
+            var computeInterval = slot.Timings.ReadInterval(0);
+            var transferInterval = slot.Timings.ReadInterval(1);
             double? cost = timings.FirstOrDefault()?.Milliseconds;
             double? transferCost = timings.Skip(1).FirstOrDefault()?.Milliseconds;
             if (transferCost is { } transfer)
@@ -257,6 +270,14 @@ public sealed unsafe partial class VulkanComputeMath
             {
                 UploadBytes = slot.UploadBytes,
                 TransferGpuMilliseconds = transferCost,
+                ComputeStartTicks = computeInterval?.StartTicks,
+                ComputeEndTicks = computeInterval?.EndTicks,
+                TransferStartTicks = transferInterval?.StartTicks,
+                TransferEndTicks = transferInterval?.EndTicks,
+                NanosecondsPerTick = computeInterval?.NanosecondsPerTick,
+                CpuRecordingMilliseconds = slot.CpuRecordingMilliseconds,
+                CpuSubmissionMilliseconds = slot.CpuSubmissionMilliseconds,
+                CpuCompletionWaitMilliseconds = waitMilliseconds,
             });
         }
 

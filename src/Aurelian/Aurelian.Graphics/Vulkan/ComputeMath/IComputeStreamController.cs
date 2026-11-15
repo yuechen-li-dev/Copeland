@@ -7,6 +7,14 @@ public sealed record ComputeStreamObservation(long Sequence, int Slot, bool Comp
 {
     public ulong UploadBytes { get; init; }
     public double? TransferGpuMilliseconds { get; init; }
+    public ulong? ComputeStartTicks { get; init; }
+    public ulong? ComputeEndTicks { get; init; }
+    public ulong? TransferStartTicks { get; init; }
+    public ulong? TransferEndTicks { get; init; }
+    public float? NanosecondsPerTick { get; init; }
+    public double CpuRecordingMilliseconds { get; init; }
+    public double CpuSubmissionMilliseconds { get; init; }
+    public double CpuCompletionWaitMilliseconds { get; init; }
 }
 
 /// <summary>Feedforward admission and completion evidence. Predictions select a
