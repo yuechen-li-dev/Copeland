@@ -1,0 +1,2 @@
+ab30c939922c5143b0a74486c0302f75d59b06e54275437b2f16ba7d2e9f3ba9  Machina.Typography.OpenFont.1.0.1.nupkg
+cb43bd8a2f496600f6d963616f9dc48a9f43368663268b023673fedc70b5e704  Machina.Typography.OpenFont.1.0.1.snupkg

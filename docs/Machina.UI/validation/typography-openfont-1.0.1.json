@@ -21,7 +21,8 @@
     "cleanBuildWarnings": 0,
     "valenciaTestsPassed": 300,
     "fontTestsPassed": 311,
-    "cleanBuildErrors": 0
+    "cleanBuildErrors": 0,
+    "net8FragmentedFontConsumer": "passed against exact CI NuGet archive; 718 glyphs, space advance 229, maximum read chunk 3 bytes"
   },
   "scope": [
     "Remove unused fields from unimplemented bitmap stubs",
@@ -31,9 +32,19 @@
   ],
   "packagesAdded": [],
   "publication": {
-    "status": "validated candidate; publication pending",
+    "status": "package and symbols accepted; public feed availability unverified after 15 minutes",
     "target": "NuGet.org through existing trusted publishing workflow",
-    "workflow": "copeland-preview-release.yml"
+    "workflow": "copeland-preview-release.yml",
+    "workflowRun": "https://github.com/yuechen-li-dev/Copeland/actions/runs/43964812192",
+    "sourceCommit": "f68e43f9329db72619b8937f3d0cf033b6f4988a",
+    "packageResponse": "HTTP 201 Created at 2026-11-16T21:56:28Z",
+    "symbolsResponse": "HTTP 201 Created at 2026-11-16T21:56:29Z",
+    "publicFeedCheckedUtc": "2026-11-16T22:11:34Z",
+    "publicFeedVersions": [
+      "1.0.0"
+    ],
+    "version101DownloadHttpStatus": 404,
+    "publicFeedRestore": "not passed: package not yet available"
   },
   "evidence": [
     "artifacts/local/typography-baseline.log",

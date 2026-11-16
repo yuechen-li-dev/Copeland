@@ -57,3 +57,25 @@ The release validator performs a strict rebuild, tests, packing and archive
 inspection, then runs a fresh consumer using the actual `.nupkg`. Its font fixture
 now comes from the authoritative shared font asset directory rather than an obsolete
 test-fixture source path. Read `PATCHES.md` in the package for the exact scope.
+
+### 1.0.1 release evidence (2026-11-16)
+
+- Source commit: `f68e43f9329db72619b8937f3d0cf033b6f4988a`.
+- [Machina-only release workflow](https://github.com/yuechen-li-dev/Copeland/actions/runs/43964812192):
+  strict rebuild (zero warnings/errors), nine package tests, compatibility validation,
+  archive inspection, clean package consumer and trusted NuGet publication all succeeded.
+- Downstream current-source tests: Machina.Fonts 311, Aurelian.Machina 53, Valencia 300;
+  no failures/skips. RTX 3070 typography readback passed with zero Vulkan validation errors.
+- The exact CI archive also parsed a real 718-glyph font on .NET 8 through a stream
+  restricted to three-byte reads. Space glyph 556 retained advance 229.
+- NuGet returned HTTP 201 Created for the package at 21:56:28 UTC and symbols at
+  21:56:29 UTC. At 22:11:34 UTC the public flat-container index still listed only
+  1.0.0, and downloading 1.0.1 returned 404. **Upload was accepted; public indexing/
+  availability remains unverified.** A public-feed restore has consequently not passed.
+
+The source-commit-matched CI archives (not the earlier local candidates), manifest
+and SHA-256 checksums are retained under
+`artifacts/releases/machina-typography-openfont/1.0.1/`.
+Detailed observations are in `validation/typography-openfont-1.0.1.json`.
+The CI workflow's artifact-download action also emits an upstream Node.js deprecation
+notice; the zero-warning claim refers to the vendored C# build, not that action.

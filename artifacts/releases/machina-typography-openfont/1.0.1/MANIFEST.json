@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "packageId": "Machina.Typography.OpenFont",
+  "version": "1.0.1",
+  "upstreamCommit": "5877180c7c5271091379a0eaf9f03ab6ebd256b3",
+  "licenseFile": "LICENSE.md",
+  "validationStatus": "package tests and clean package-consumer smoke passed",
+  "publicationTarget": "NuGet.org trusted publishing",
+  "published": true,
+  "artifacts": [
+    {
+      "name": "Machina.Typography.OpenFont.1.0.1.nupkg",
+      "sha256": "ab30c939922c5143b0a74486c0302f75d59b06e54275437b2f16ba7d2e9f3ba9",
+      "size": 181233
+    },
+    {
+      "name": "Machina.Typography.OpenFont.1.0.1.snupkg",
+      "sha256": "cb43bd8a2f496600f6d963616f9dc48a9f43368663268b023673fedc70b5e704",
+      "size": 62230
+    }
+  ],
+  "sourceCommit": "f68e43f9329db72619b8937f3d0cf033b6f4988a",
+  "workflowRun": "https://github.com/yuechen-li-dev/Copeland/actions/runs/43964812192",
+  "publicationState": "upload accepted by NuGet; public availability unverified",
+  "publicFeedAvailable": false,
+  "publicFeedCheckedUtc": "2026-11-16T22:11:34Z"
+}
