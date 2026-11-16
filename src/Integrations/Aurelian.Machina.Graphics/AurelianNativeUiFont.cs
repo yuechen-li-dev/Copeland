@@ -50,6 +50,27 @@ public sealed class AurelianNativeUiFont : ITextMeasurer
         });
     }
 
+    /// <summary>One MSDF atlas: a font file rendered at one pixel size for one Machina text size.</summary>
+    public sealed record FontSpec(TextSize Size, string Path, string Id, int PixelSize);
+
+    /// <summary>Host-chosen fonts per text size, for applications with their own type system.</summary>
+    public static AurelianNativeUiFont Create(IEnumerable<FontSpec> specs)
+    {
+        var atlases = new Dictionary<TextSize, NativeUiFontAtlas>();
+        foreach (FontSpec spec in specs)
+        {
+            if (!File.Exists(spec.Path))
+            {
+                throw new FileNotFoundException("Aurelian native UI font is missing.", spec.Path);
+            }
+            atlases[spec.Size] = BuildAtlasAsync(spec.Path, spec.Id, spec.PixelSize).GetAwaiter().GetResult();
+        }
+        return new AurelianNativeUiFont(atlases);
+    }
+
+    /// <summary>The pixel size the given text size renders at.</summary>
+    public int PixelSize(TextSize size) => Get(size).Size;
+
     public IntrinsicSize MeasureText(string value, TextStyle style)
     {
         NativeUiFontAtlas atlas = Get(style.Size);

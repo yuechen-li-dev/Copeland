@@ -137,6 +137,9 @@ public static class MachinaPresentationTranslator
             TextSize.Sm => Resolved2DTextSize.Small,
             TextSize.Md => Resolved2DTextSize.Medium,
             TextSize.H1 => Resolved2DTextSize.Heading,
+            TextSize.Xs => Resolved2DTextSize.Small,
+            TextSize.Lg or TextSize.Xl => Resolved2DTextSize.Medium,
+            TextSize.H2 => Resolved2DTextSize.Heading,
             _ => throw new ArgumentOutOfRangeException(nameof(size), size, "Unsupported Machina text size."),
         };
     }

@@ -5,6 +5,11 @@ public enum TextSize
     Sm,
     Md,
     H1,
+    // Appended so existing numeric values stay stable. Hosts that support only the first three may reject these.
+    Xs,
+    Lg,
+    Xl,
+    H2,
 }
 
 public enum TextAlignX

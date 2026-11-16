@@ -38,6 +38,10 @@ public static class DeterministicBitmapTextMetrics
             TextSize.Sm => 1,
             TextSize.Md => 2,
             TextSize.H1 => 3,
+            TextSize.Xs => 1,
+            TextSize.Lg => 2,
+            TextSize.Xl => 3,
+            TextSize.H2 => 4,
             _ => throw new ArgumentOutOfRangeException(nameof(size), size, "Unsupported text size."),
         };
     }
