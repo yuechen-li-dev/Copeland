@@ -15,3 +15,10 @@ project licensing and component provenance.
 
 The fork keeps changes deliberately reviewable. Behavior corrections and safe
 refactors are recorded in `PATCHES.md` and covered by package-level tests.
+
+Version 1.0.1 removes dead bitmap-stub fields, enforces a warning-free build, and
+fixes incomplete big-endian reads that could reuse stale bytes from a preceding
+field. Truncated numeric fields now report `EndOfStreamException`; streams that
+return partial chunks are read to completion. This is a maintenance update, not
+new support for the unimplemented legacy bitmap formats. The package still targets
+netstandard2.0 and retains the existing public API.

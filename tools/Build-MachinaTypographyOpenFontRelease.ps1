@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Version = "1.0.0",
+    [string]$Version = "1.0.1",
     [string]$Configuration = "Release",
     [string]$ReleaseRoot
 )
@@ -73,6 +73,7 @@ $dotnet = (Get-Command dotnet -ErrorAction Stop).Source
 $project = Join-Path $repositoryRoot "src\ThirdParty\Machina.Typography.OpenFont\Machina.Typography.OpenFont.csproj"
 $testProject = Join-Path $repositoryRoot "tests\Machina.UI\Machina.Typography.OpenFont.Tests\Machina.Typography.OpenFont.Tests.csproj"
 
+Invoke-Checked $dotnet build $project --configuration $Configuration --target:Rebuild --maxcpucount:1 /p:TreatWarningsAsErrors=true
 Invoke-Checked $dotnet test $testProject --configuration $Configuration --maxcpucount:1
 Invoke-Checked $dotnet pack $project `
     --configuration $Configuration `
@@ -157,7 +158,7 @@ Console.WriteLine(
 '@
 $smokeProgram | Set-Content -LiteralPath (Join-Path $smokeRoot "Program.cs") -Encoding utf8
 
-$fontPath = Join-Path $repositoryRoot "tests\Machina.UI\Machina.Fonts.Tests\Fixtures\Fonts\CrimsonText-Regular.ttf"
+$fontPath = Join-Path $repositoryRoot "src\Aurelian\Aurelian.Assets\Defaults\Fonts\CrimsonText-Regular.ttf"
 Invoke-Checked $dotnet run `
     --project (Join-Path $smokeRoot "PackageSmoke.csproj") `
     --configuration $Configuration `

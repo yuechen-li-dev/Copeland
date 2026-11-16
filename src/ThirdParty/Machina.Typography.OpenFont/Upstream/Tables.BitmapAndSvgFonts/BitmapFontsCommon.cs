@@ -557,7 +557,6 @@ namespace Typography.OpenFont.Tables.BitmapFonts
     class GlyphBitmapDataFmt1 : GlyphBitmapDataFormatBase
     {
         public override int FormatNumber => 1;
-        public SmallGlyphMetrics smallGlyphMetrics;
         //Glyph bitmap format 1 consists of small metrics records(either horizontal or vertical
         //depending on the flags field of the BitmapSize table within the EBLC table) 
         //followed by byte aligned bitmap data.
@@ -641,7 +640,6 @@ namespace Typography.OpenFont.Tables.BitmapFonts
     class GlyphBitmapDataFmt6 : GlyphBitmapDataFormatBase
     {
         public override int FormatNumber => 6;
-        public BigGlyphMetrics bigMetrics;
 
         //Format 6: big metrics, byte-aligned data
         //Type            Name                  Description
@@ -666,7 +664,6 @@ namespace Typography.OpenFont.Tables.BitmapFonts
     {
         public override int FormatNumber => 7;
 
-        public BigGlyphMetrics bigMetrics;
 
         //    
         //Type                Name                  Description
@@ -694,14 +691,6 @@ namespace Typography.OpenFont.Tables.BitmapFonts
 
     //The EbdtComponent record contains the glyph ID of the component, which can be used to look up the location of component glyph data in the EBLC table, as well as xOffset and yOffset values, which specify where to position the top-left corner of the component in the composite.Nested composites (a composite of composites) are allowed, and the number of nesting levels is determined by implementation stack space.
 
-    struct EbdtComponent
-    {
-        public ushort glyphID;
-        public sbyte xOffset;
-        public sbyte yOffset;
-    }
-
-
     /// <summary>
     /// Format 8: small metrics, component data
     /// </summary>
@@ -709,9 +698,6 @@ namespace Typography.OpenFont.Tables.BitmapFonts
     {
         public override int FormatNumber => 8;
 
-        public SmallGlyphMetrics smallMetrics;
-        public byte pad;
-        public EbdtComponent[] components;
         //Format 8: small metrics, component data
         //Type              Name            Description
         //SmallGlyphMetrics smallMetrics    Metrics information for the glyph
@@ -735,8 +721,6 @@ namespace Typography.OpenFont.Tables.BitmapFonts
     class GlyphBitmapDataFmt9 : GlyphBitmapDataFormatBase
     {
         public override int FormatNumber => 9;
-        public BigGlyphMetrics bigMetrics;
-        public EbdtComponent[] components;
 
         //Format 9: big metrics, component data
         //Type              Name            Description

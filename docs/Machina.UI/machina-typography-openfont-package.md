@@ -31,10 +31,29 @@ repository.
 The release-authoritative local/CI command is:
 
 ```powershell
-./tools/Build-MachinaTypographyOpenFontRelease.ps1 -Version 1.0.0
+./tools/Build-MachinaTypographyOpenFontRelease.ps1 -Version 1.0.1
 ```
 
 To publish, dispatch `Copeland Preview Release` with
 `publish_machina_typography_openfont` enabled and the desired package version. A
 Machina-only dispatch skips the coordinated Copeland TS build and publishes only the
 validated `.nupkg` downloaded from the build job.
+
+## Maintenance release 1.0.1
+
+The vendored project now enforces warnings-as-errors. Eleven never-assigned fields
+from unimplemented bitmap stubs were removed without suppressions or public API
+changes. Its internal big-endian reader now fills each numeric field exactly,
+handles fragmented streams, rejects truncation with `EndOfStreamException`, and
+assembles values independently of host byte order. It keeps the eight-byte buffer;
+no new runtime dependencies or target framework requirements were introduced.
+
+Six of the seven new reader regression cases failed before the correction.
+The two existing identity tests plus all seven reader cases pass afterward.
+SDK [package validation](https://learn.microsoft.com/en-us/dotnet/fundamentals/apicompat/package-validation/overview)
+checks public API compatibility against the already-published 1.0.0 package during pack.
+
+The release validator performs a strict rebuild, tests, packing and archive
+inspection, then runs a fresh consumer using the actual `.nupkg`. Its font fixture
+now comes from the authoritative shared font asset directory rather than an obsolete
+test-fixture source path. Read `PATCHES.md` in the package for the exact scope.

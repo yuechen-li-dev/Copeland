@@ -36,7 +36,7 @@ on:
       machina_typography_openfont_version:
         description: Machina.Typography.OpenFont package version
         required: true
-        default: 1.0.0
+        default: 1.0.1
         type: string
 
 permissions:

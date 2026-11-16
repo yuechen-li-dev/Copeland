@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "package": "Machina.Typography.OpenFont",
+  "version": "1.0.1",
+  "date": "2026-11-16",
+  "targetFramework": "netstandard2.0",
+  "baseline": {
+    "readerTestsPassed": 1,
+    "readerTestsFailed": 6,
+    "cleanBuildWarnings": 11
+  },
+  "after": {
+    "integrationTestsPassed": 53,
+    "nativeTypography": "passed: RTX 3070; Vulkan validation available, zero errors",
+    "apiCompatibility": "passed",
+    "publicApiBaseline": "1.0.0",
+    "packageTestsPassed": 9,
+    "packageConsumer": "passed: glyph 556, advance 229",
+    "skipped": 0,
+    "failed": 0,
+    "cleanBuildWarnings": 0,
+    "valenciaTestsPassed": 300,
+    "fontTestsPassed": 311,
+    "cleanBuildErrors": 0
+  },
+  "scope": [
+    "Remove unused fields from unimplemented bitmap stubs",
+    "Exact reads for big-endian numeric fields; explicit byte assembly independent of host endianness",
+    "Retain eight-byte buffer, netstandard2.0, dependency and public API compatibility",
+    "Strict rebuild, package baseline validation, source fixture path correction"
+  ],
+  "packagesAdded": [],
+  "publication": {
+    "status": "validated candidate; publication pending",
+    "target": "NuGet.org through existing trusted publishing workflow",
+    "workflow": "copeland-preview-release.yml"
+  },
+  "evidence": [
+    "artifacts/local/typography-baseline.log",
+    "artifacts/local/typography-maintenance/reader-before.trx",
+    "artifacts/local/typography-maintenance/reader-after.trx",
+    "artifacts/local/typography-maintenance/Machina.Fonts.Tests.trx",
+    "artifacts/local/typography-maintenance/Aurelian.Machina.Tests.trx",
+    "artifacts/local/typography-release-1.0.1.log",
+    "../ValenciaNLE/artifacts/local/typography-maintenance-tests/",
+    "../ValenciaNLE/artifacts/local/typography-maintenance-native/result.json"
+  ]
+}
