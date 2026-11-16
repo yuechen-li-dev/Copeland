@@ -71,6 +71,7 @@ public static class AurelianGlyphRunAdapter
             float destinationHeight = CheckedPositiveFloat(field.Height, "destination height");
             float fieldScale = Math.Min(destinationWidth / entry.Width, destinationHeight / entry.Height);
 
+            // Font contours are encoded at 0.5; leave game-specific weight adjustments to their caller.
             var submission = new NativeMsdfQuadSubmission(
                 new Native2DRect(destinationX, destinationY, destinationWidth, destinationHeight),
                 new Native2DUvRect(
@@ -82,7 +83,7 @@ public static class AurelianGlyphRunAdapter
                 color,
                 NativeMsdfParameters.Create(
                     CheckedPositiveFloat(field.PixelRange, "pixel range"),
-                    CheckedPositiveFloat(fieldScale, "field scale")));
+                    CheckedPositiveFloat(fieldScale, "field scale")) with { Threshold = 0.5f });
 
             if (clipRect is Native2DRect clip && !TryClip(submission, clip, out submission))
             {

@@ -66,9 +66,8 @@ function EstablishClip(value: ObjectPosition3): ClipPosition4 {
 
 @vertex
 function VertexMain(input: VertexInput, builtins: VertexBuiltins): ForwardVaryings {
-    let vertexBias: f32 = Convert<f32>(builtins.vertexId + builtins.instanceId) * 0.000001;
     return {
-        position: float4(input.position.x + vertexBias, input.position.y, input.position.z, 1.0),
+        position: float4(input.position.x, input.position.y, input.position.z, 1.0),
         uv: input.uv,
         worldPosition: EstablishWorld(input.position),
     };

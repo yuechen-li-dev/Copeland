@@ -31,13 +31,28 @@ public sealed class VdMirGraphicsBackendM3Tests
         Assert.True(result.Pixel.SpirvValidated, result.Pixel.SpirvValidationOutput + Environment.NewLine + result.Pixel.DxcOutput);
         Assert.Contains("OpEntryPoint Vertex", result.Vertex.SpirvDisassembly, StringComparison.Ordinal);
         Assert.Contains("OpEntryPoint Fragment", result.Pixel.SpirvDisassembly, StringComparison.Ordinal);
-        Assert.Contains("BuiltIn VertexIndex", result.Vertex.SpirvDisassembly, StringComparison.Ordinal);
-        Assert.Contains("BuiltIn InstanceIndex", result.Vertex.SpirvDisassembly, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuiltIn VertexIndex", result.Vertex.SpirvDisassembly, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuiltIn InstanceIndex", result.Vertex.SpirvDisassembly, StringComparison.Ordinal);
         Assert.Contains("BuiltIn FrontFacing", result.Pixel.SpirvDisassembly, StringComparison.Ordinal);
         Assert.Contains("Binding 0", result.Pixel.SpirvDisassembly, StringComparison.Ordinal);
         Assert.Contains("Binding 1", result.Pixel.SpirvDisassembly, StringComparison.Ordinal);
         Assert.Contains("Binding 2", result.Pixel.SpirvDisassembly, StringComparison.Ordinal);
         Assert.Contains("DescriptorSet 0", result.Pixel.SpirvDisassembly, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UsedVertexBuiltinsSurviveInADedicatedCompilerProbe()
+    {
+        // Keep builtin coverage without perturbing the positions of production UI quads.
+        string source = File.ReadAllText(Path.Combine(RepositoryRoot(), "samples", "Aurelian", "ForwardTexturedM3.v.ts"));
+        Assert.Contains("uv: input.uv,", source, StringComparison.Ordinal);
+        source = source.Replace("uv: input.uv,", "uv: float2(Convert<f32>(builtins.vertexId) * 0.1, Convert<f32>(builtins.instanceId) * 0.1),", StringComparison.Ordinal);
+        var module = GpuGraphicsBinder.Compile(new GpuCompilationRequest([new GpuSourceFile("vertex-builtins-probe.v.ts", source)]));
+        Assert.True(module.Success, string.Join(Environment.NewLine, module.Diagnostics.Select(d => d.Message)));
+        var result = VdMirGraphicsBackend.Compile(module);
+        Assert.True(result.Vertex.SpirvValidated, result.Vertex.SpirvValidationOutput);
+        Assert.Contains("BuiltIn VertexIndex", result.Vertex.SpirvDisassembly, StringComparison.Ordinal);
+        Assert.Contains("BuiltIn InstanceIndex", result.Vertex.SpirvDisassembly, StringComparison.Ordinal);
     }
 
     [Fact]

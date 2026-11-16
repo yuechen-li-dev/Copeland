@@ -86,6 +86,7 @@ public static class UiLowerer
     {
         return node switch
         {
+            TextNode { FillAvailableSpace: true } => new FillFrame(),
             TextNode text => CreateTextFrame(text, context),
             ButtonNode button => CreateButtonFrame(button, context),
             SpacerNode spacer => CreateSpacerFrame(spacer),
@@ -105,6 +106,7 @@ public static class UiLowerer
     {
         return node switch
         {
+            TextNode { FillAvailableSpace: true } => new AnchorFrame(Left: 0, Right: 0, Top: 0, Bottom: 0),
             TextNode text => CreateDirectTextFrame(text, context),
             ButtonNode button => CreateDirectButtonFrame(button, context),
             SpacerNode spacer => new AnchorFrame(Left: 0, Width: SpacerWidth(spacer), Top: 0, Height: SpacerHeight(spacer)),

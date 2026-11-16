@@ -27,14 +27,13 @@ public static class MachinaPresentationFrameBuilder
         MachinaPresentationViewport frameViewport = viewport ?? ResolveViewport(resolved);
         var operations = new List<MachinaPresentationOperation>();
         ResolvedLayoutTree tree = ResolvedLayoutTreeBuilder.ToResolvedTree(resolved);
-        EmitNodeOperations(tree, lowering, resolved, operations);
+        EmitNodeOperations(tree, lowering, operations);
         return new MachinaPresentationFrame(frameViewport, operations);
     }
 
     private static void EmitNodeOperations(
         ResolvedLayoutTree tree,
         UiLoweringResult lowering,
-        ResolvedLayoutDocument resolved,
         ICollection<MachinaPresentationOperation> operations)
     {
         var node = new ResolvedLayoutNode(
@@ -60,12 +59,12 @@ public static class MachinaPresentationFrameBuilder
         EmitVectorIconOperation(node, lowering.NodePayloads, operations);
         if (!EmitRichTextOperations(node, lowering.NodePayloads, operations))
         {
-            EmitTextOperation(node, resolved, lowering.TextStyles, lowering.Semantics, operations);
+            EmitTextOperation(node, lowering.TextStyles, lowering.Semantics, operations);
         }
 
         foreach (ResolvedLayoutTree child in tree.Children)
         {
-            EmitNodeOperations(child, lowering, resolved, operations);
+            EmitNodeOperations(child, lowering, operations);
         }
 
         if (pushClip)
@@ -174,7 +173,6 @@ public static class MachinaPresentationFrameBuilder
 
     private static void EmitTextOperation(
         ResolvedLayoutNode node,
-        ResolvedLayoutDocument resolved,
         IReadOnlyDictionary<NodeId, TextStyle> textStyles,
         IReadOnlyDictionary<NodeId, UiSemantics> semantics,
         ICollection<MachinaPresentationOperation> operations)
@@ -189,7 +187,7 @@ public static class MachinaPresentationFrameBuilder
         TextStyle style = textStyles.TryGetValue(node.Id, out TextStyle? textStyle)
             ? textStyle
             : new TextStyle();
-        Rect rect = ResolveTextRect(node, resolved, style);
+        Rect rect = node.Rect;
         operations.Add(new PositionedTextOperation(
             node.Id.Value,
             rect,
@@ -201,20 +199,6 @@ public static class MachinaPresentationFrameBuilder
     private static bool ShouldDrawText(UiSemantics semantic)
     {
         return semantic.Role == UiRole.Text || semantic.Role == UiRole.Label;
-    }
-
-    private static Rect ResolveTextRect(ResolvedLayoutNode node, ResolvedLayoutDocument resolved, TextStyle style)
-    {
-        if (!node.Id.Value.EndsWith(".label", StringComparison.Ordinal) ||
-            (style.AlignX != TextAlignX.Center && style.AlignY != TextAlignY.Center))
-        {
-            return node.Rect;
-        }
-
-        var labelRegionId = new NodeId($"{node.Id.Value}-region");
-        return resolved.Nodes.TryGetValue(labelRegionId, out ResolvedLayoutNode? labelRegion)
-            ? labelRegion.Rect
-            : node.Rect;
     }
 
     private static MachinaPresentationViewport ResolveViewport(ResolvedLayoutDocument resolved)

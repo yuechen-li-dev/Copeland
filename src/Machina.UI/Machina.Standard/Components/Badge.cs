@@ -56,14 +56,11 @@ public static class Badge
         var bottomInset = ResolveTrailingInset(style.TextOffsetY);
 
         return UI.Anchor(
-            child: UI.Text(
-                text,
-                id: CreateChildId(id, "label"),
-                color: labelTextStyle.Color,
-                size: labelTextStyle.Size,
-                alignX: labelTextStyle.AlignX,
-                alignY: labelTextStyle.AlignY,
-                style: labelTextStyle),
+            child: new TextNode(text, labelTextStyle)
+            {
+                Id = CreateChildId(id, "label"),
+                FillAvailableSpace = true,
+            },
             id: CreateChildId(id, "label-region"),
             left: leftInset,
             right: rightInset,

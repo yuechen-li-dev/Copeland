@@ -28,14 +28,11 @@ public static class StandardButton
         var labelTextStyle = ResolveLabelTextStyle(effectiveStyle, size, style is not null);
 
         var labelNode = UI.Anchor(
-            child: UI.Text(
-                text,
-                id: CreateChildId(id, "label"),
-                color: labelTextStyle.Color,
-                size: labelTextStyle.Size,
-                alignX: labelTextStyle.AlignX,
-                alignY: labelTextStyle.AlignY,
-                style: labelTextStyle),
+            child: new TextNode(text, labelTextStyle)
+            {
+                Id = CreateChildId(id, "label"),
+                FillAvailableSpace = true,
+            },
             id: CreateChildId(id, "label-region"),
             left: effectiveStyle.HorizontalPadding,
             right: effectiveStyle.HorizontalPadding,

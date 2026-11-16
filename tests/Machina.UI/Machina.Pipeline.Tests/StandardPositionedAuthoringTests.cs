@@ -16,6 +16,23 @@ namespace Machina.Pipeline.Tests;
 public sealed class StandardPositionedAuthoringTests
 {
     [Theory]
+    [InlineData(null)]
+    [InlineData("ordinary")]
+    [InlineData("scope.with.dots")]
+    public void ButtonTextFillsItsPaddedLayoutRegionWithoutIdentityConventions(string? identity)
+    {
+        var button = StandardUI.Button("UNDO", 40, 30, 160, 36,
+            id: identity is null ? (NodeId?)null : new NodeId(identity));
+        var prepared = new MachinaPresentationPipeline().Prepare(UI.Surface(children: [button]), 240, 100);
+        var text = Assert.Single(prepared.PresentationFrame.Operations.OfType<PositionedTextOperation>());
+        var row = prepared.Resolved.Nodes[new NodeId(text.SourceId)];
+        Assert.Equal(new Rect(40, 30, 160, 36), row.Rect);
+        Assert.Equal(row.Rect, text.Rect);
+        Assert.Equal(TextAlignX.Center, text.Style.AlignX);
+        Assert.Equal(TextAlignY.Center, text.Style.AlignY);
+    }
+
+    [Theory]
     [InlineData(100, 80)]
     [InlineData(350, 240)]
     public void MovingNestedFrameMovesPaintAndHitTargetsWithoutChangingIds(double x, double y)

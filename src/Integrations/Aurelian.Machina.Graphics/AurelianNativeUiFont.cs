@@ -83,14 +83,18 @@ public sealed class AurelianNativeUiFont : ITextMeasurer
         NativeUiFontAtlas atlas = Get(operation.Style.Size);
         ValidateCharacters(operation);
         DistanceFieldTextLayoutResult initial = Layout(atlas, operation.Text, 0, 0);
+        MachinaPlaneBounds? ink = initial.GlyphRun.Lines.FirstOrDefault()?.InkBounds;
         double x = operation.Style.AlignX switch
         {
+            TextAlignX.Center when ink is not null => (operation.Rect.Width - ink.Left - ink.Right) / 2,
             TextAlignX.Center => (operation.Rect.Width - initial.Width) / 2,
+            TextAlignX.Right when ink is not null => operation.Rect.Width - ink.Right,
             TextAlignX.Right => operation.Rect.Width - initial.Width,
             _ => 0,
         };
         double baseline = operation.Style.AlignY switch
         {
+            TextAlignY.Center when ink is not null => (operation.Rect.Height - ink.Top - ink.Bottom) / 2,
             TextAlignY.Center => ((operation.Rect.Height - atlas.Size) / 2) + (atlas.Size * 0.8),
             TextAlignY.Bottom => operation.Rect.Height - (atlas.Size * 0.2),
             _ => atlas.Size * 0.8,

@@ -824,6 +824,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
     private int BuildVertices()
     {
         Span<Vertex> vertices = stackalloc Vertex[VerticesPerQuad];
+        float framebufferScale = Math.Min(width / (logicalWidth ?? width), height / (logicalHeight ?? height));
         for (int quadIndex = 0; quadIndex < submissions.Count; quadIndex++)
         {
             RenderSubmission submission = submissions[quadIndex];
@@ -831,14 +832,15 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             float right = ToNdcX(submission.Destination.X + submission.Destination.Width);
             float top = ToNdcY(submission.Destination.Y);
             float bottom = ToNdcY(submission.Destination.Y + submission.Destination.Height);
+            float fieldScale = submission.Msdf.FieldScale * framebufferScale;
             // Vulkan evaluates front-face winding after the positive-height viewport transform.
             // This order therefore reaches the shader as counter-clockwise in framebuffer space.
-            vertices[0] = new Vertex(left, bottom, 0, submission.Uv.U0, submission.Uv.V1, submission.Msdf.FieldScale);
-            vertices[1] = new Vertex(right, bottom, 0, submission.Uv.U1, submission.Uv.V1, submission.Msdf.FieldScale);
-            vertices[2] = new Vertex(right, top, 0, submission.Uv.U1, submission.Uv.V0, submission.Msdf.FieldScale);
-            vertices[3] = new Vertex(left, bottom, 0, submission.Uv.U0, submission.Uv.V1, submission.Msdf.FieldScale);
-            vertices[4] = new Vertex(right, top, 0, submission.Uv.U1, submission.Uv.V0, submission.Msdf.FieldScale);
-            vertices[5] = new Vertex(left, top, 0, submission.Uv.U0, submission.Uv.V0, submission.Msdf.FieldScale);
+            vertices[0] = new Vertex(left, bottom, 0, submission.Uv.U0, submission.Uv.V1, fieldScale);
+            vertices[1] = new Vertex(right, bottom, 0, submission.Uv.U1, submission.Uv.V1, fieldScale);
+            vertices[2] = new Vertex(right, top, 0, submission.Uv.U1, submission.Uv.V0, fieldScale);
+            vertices[3] = new Vertex(left, bottom, 0, submission.Uv.U0, submission.Uv.V1, fieldScale);
+            vertices[4] = new Vertex(right, top, 0, submission.Uv.U1, submission.Uv.V0, fieldScale);
+            vertices[5] = new Vertex(left, top, 0, submission.Uv.U0, submission.Uv.V0, fieldScale);
             for (int vertexIndex = 0; vertexIndex < vertices.Length; vertexIndex++)
             {
                 WriteVertex(vertexBytes, (quadIndex * VerticesPerQuad + vertexIndex) * vertexStride, vertices[vertexIndex]);

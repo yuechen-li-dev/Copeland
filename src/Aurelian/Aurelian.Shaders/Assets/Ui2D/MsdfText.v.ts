@@ -56,19 +56,18 @@ function Median3(a: f32, b: f32, c: f32): f32 {
 }
 
 function SmoothCoverage(distance: f32, pixelRange: f32, fieldScale: f32, threshold: f32): f32 {
-    // A full half-pixel ramp swells narrow stems at Mossward's 12px UI size.
-    // The shared CPU policy supplies a small-size threshold correction; this
-    // narrower screen-space ramp keeps both Profile vectors and glyphs crisp.
-    let smoothing: f32 = 0.25 / Max(1.0, pixelRange * fieldScale);
+    // Match Machina's CPU distance-field sampling: one framebuffer pixel of coverage.
+    // The native renderer supplies fieldScale after logical-to-framebuffer scaling.
+    // Differentiating the median distance itself is unstable around tiny glyph corners.
+    let smoothing: f32 = 0.5 / Max(1.0, pixelRange * fieldScale);
     let t: f32 = Clamp((distance - (threshold - smoothing)) / (smoothing + smoothing), 0.0, 1.0);
     return t * t * (3.0 - (2.0 * t));
 }
 
 @vertex
 function VertexMain(input: VertexInput, builtins: VertexBuiltins): TextVaryings {
-    let vertexBias: f32 = Convert<f32>(builtins.vertexId + builtins.instanceId) * 0.000001;
     return {
-        position: float4(input.position.x + vertexBias, input.position.y, input.position.z, 1.0),
+        position: float4(input.position.x, input.position.y, input.position.z, 1.0),
         uv: input.uv,
         fieldScale: input.fieldScale,
     };
