@@ -6,6 +6,26 @@ namespace Machina.Fonts.Tests.Generation.MsdfSharp;
 
 public sealed class MsdfSharpDistanceFieldGeneratorTests
 {
+    [Theory]
+    [InlineData(DistanceFieldKind.Sdf, 32)]
+    [InlineData(DistanceFieldKind.Sdf, 64)]
+    [InlineData(DistanceFieldKind.Msdf, 64)]
+    [InlineData(DistanceFieldKind.Mtsdf, 64)]
+    public void EncodedDistanceRangeIsInAtlasPixelsRegardlessOfProjection(DistanceFieldKind kind, int dimension)
+    {
+        // The rectangle's bottom edge projects exactly to y=8. Probe its middle,
+        // two atlas pixels inside the edge, away from corners and other edges.
+        var field = new MsdfSharpDistanceFieldGenerator().Generate(
+            MsdfSharpTestHelpers.CreateLineOutline(),
+            MsdfSharpTestHelpers.CreateSettings(kind, dimension, dimension, pixelRange: 8));
+        float distance = Machina.Fonts.ReferenceRendering.DistanceFieldSampling.SampleDistance(
+            field.Data.Span, dimension, dimension, field.ChannelCount, kind,
+            .5, 10d / dimension);
+
+        Assert.Empty(field.Diagnostics);
+        Assert.InRange(distance, .749f, .751f); // 0.5 + 2 / 8, not 0.5 + 2 / (8 * projection)
+    }
+
     [Fact]
     public void GenerateSdf_ProducesOneChannelData()
     {

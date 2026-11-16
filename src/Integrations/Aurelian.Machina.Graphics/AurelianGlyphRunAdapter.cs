@@ -13,7 +13,8 @@ public static class AurelianGlyphRunAdapter
         Native2DTint color,
         Native2DRect? clipRect = null,
         float destinationOffsetX = 0,
-        float destinationOffsetY = 0)
+        float destinationOffsetY = 0,
+        bool normalizeAtlasUv = false)
     {
         var submissions = new List<NativeMsdfQuadSubmission>(glyphRun.Glyphs.Count);
         AdaptInto(
@@ -24,7 +25,8 @@ public static class AurelianGlyphRunAdapter
             submissions,
             clipRect,
             destinationOffsetX,
-            destinationOffsetY);
+            destinationOffsetY,
+            normalizeAtlasUv);
         return submissions;
     }
 
@@ -36,7 +38,8 @@ public static class AurelianGlyphRunAdapter
         ICollection<NativeMsdfQuadSubmission> destination,
         Native2DRect? clipRect = null,
         float destinationOffsetX = 0,
-        float destinationOffsetY = 0)
+        float destinationOffsetY = 0,
+        bool normalizeAtlasUv = false)
     {
         ArgumentNullException.ThrowIfNull(glyphRun);
         ArgumentNullException.ThrowIfNull(atlas);
@@ -84,6 +87,14 @@ public static class AurelianGlyphRunAdapter
                 NativeMsdfParameters.Create(
                     CheckedPositiveFloat(field.PixelRange, "pixel range"),
                     CheckedPositiveFloat(fieldScale, "field scale")) with { Threshold = 0.5f });
+
+            // Normalize before clipping. Reversing the atlas V interval afterward
+            // would crop the opposite edge of an asymmetrically padded glyph,
+            // moving its visible baseline (notably Q and other descenders).
+            if (normalizeAtlasUv)
+            {
+                submission = submission with { Uv = AurelianMsdfAtlasUpload.NormalizeUv(submission.Uv) };
+            }
 
             if (clipRect is Native2DRect clip && !TryClip(submission, clip, out submission))
             {

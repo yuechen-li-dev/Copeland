@@ -237,6 +237,10 @@ public sealed class MsdfSharpDistanceFieldGenerator : IGlyphDistanceFieldGenerat
         projection = new Projection(
             new Vector2(appliedScale, appliedScale),
             new Vector2(shapeTranslateX, shapeTranslateY));
+        // msdfgen's range is measured in outline coordinates, while our public
+        // PixelRange and the sampling shader use atlas pixels. Each glyph has a
+        // different fit scale; passing PixelRange directly changes its edge softness.
+        range = new Msdfgen.Range(settings.PixelRange / appliedScale);
         fieldPlacement = CreatePlacement(settings, appliedScale, shapeTranslateX, shapeTranslateY);
 
         return true;

@@ -50,7 +50,6 @@ public static class AurelianMsdfTextPresentationAdapter
         Native2DRect? nativeClip = clipRect is Rect clip
             ? new Native2DRect((float)clip.X, (float)clip.Y, (float)clip.Width, (float)clip.Height)
             : null;
-        int firstAddedIndex = destination.Count;
         AurelianGlyphRunAdapter.AdaptInto(
             primitive.GlyphRun,
             atlas.Snapshot,
@@ -59,16 +58,8 @@ public static class AurelianMsdfTextPresentationAdapter
             destination,
             nativeClip,
             (float)operation.Rect.X,
-            (float)operation.Rect.Y);
-
-        for (int index = firstAddedIndex; index < destination.Count; index++)
-        {
-            NativeMsdfQuadSubmission submission = destination[index];
-            destination[index] = submission with
-            {
-                Uv = AurelianMsdfAtlasUpload.NormalizeUv(submission.Uv),
-            };
-        }
+            (float)operation.Rect.Y,
+            normalizeAtlasUv: true);
     }
 
     private static Native2DTint ToTint(ColorToken color)

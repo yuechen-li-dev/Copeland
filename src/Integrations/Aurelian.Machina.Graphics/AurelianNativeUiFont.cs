@@ -168,7 +168,8 @@ public sealed class AurelianNativeUiFont : ITextMeasurer
                 baseline,
                 PageWidth: 1024,
                 PageHeight: 1024,
-                PagePadding: 2));
+                PagePadding: 2),
+            pairAdjustments: atlas.PairAdjustments);
     }
 
     private static async Task<NativeUiFontAtlas> BuildAtlasAsync(string path, string id, int size)
@@ -218,6 +219,21 @@ public sealed class AurelianNativeUiFont : ITextMeasurer
             }
         }
 
+        // Resolve the finite ASCII pair set once, alongside the immutable atlas.
+        // Measurement and presentation must apply the same font-authored advances.
+        Dictionary<GlyphPairKey, GlyphPairAdjustment> pairAdjustments = [];
+        foreach (GlyphKey left in keys)
+        {
+            foreach (GlyphKey right in keys)
+            {
+                GlyphPairAdjustment? adjustment = await source.GetPairAdjustmentAsync(left, right);
+                if (adjustment is not null)
+                {
+                    pairAdjustments[new GlyphPairKey(left, right)] = adjustment;
+                }
+            }
+        }
+
         GeneratedFieldAtlasPackResult packed = new GeneratedFieldAtlasPacker().Pack(
             fields,
             new GeneratedFieldAtlasPackOptions(1024, 1024, 2, $"mossward-ui-{id}-{size}"));
@@ -234,6 +250,7 @@ public sealed class AurelianNativeUiFont : ITextMeasurer
             face,
             size,
             metrics,
+            pairAdjustments,
             new AurelianMsdfAtlasResource(identity, packed.Snapshot, pages, AurelianMsdfAtlasRowOrder.TopToBottom));
     }
 
@@ -269,5 +286,6 @@ public sealed class AurelianNativeUiFont : ITextMeasurer
         FontFaceId Face,
         int Size,
         IReadOnlyDictionary<GlyphKey, GlyphMetrics> Metrics,
+        IReadOnlyDictionary<GlyphPairKey, GlyphPairAdjustment> PairAdjustments,
         AurelianMsdfAtlasResource Resource);
 }
