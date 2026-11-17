@@ -17,5 +17,6 @@
     <ProjectReference Include="../../../src/Machina.UI/Machina.Standard/Machina.Standard.csproj" />
     <ProjectReference Include="../../../src/Machina.UI/Machina.Core/Machina.Core.csproj" />
     <ProjectReference Include="../../../src/Machina.UI/Machina.Layout/Machina.Layout.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Pipeline/Machina.Pipeline.csproj" />
   </ItemGroup>
 </Project>

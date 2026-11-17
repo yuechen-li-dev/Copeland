@@ -4,6 +4,10 @@ Machina.UI is the repository's C# UI declaration and presentation stack. Start w
 
 ## Learning path
 
+For reusable interactive controls, start with [native controlled widgets](native-widgets.md).
+It includes component coverage, host ownership, Base UI reference attribution and
+the Vulkan gallery validation. Existing StandardUI drawing APIs remain supported.
+
 1. [Authoring guide](authoring-guide.md) — choose between flat screen rows and local component trees; understand the Standard component surface, layout, and frame preparation path.
 2. [Architecture index](architecture/README.md) — current ownership and contracts by subsystem.
 3. [Reference contracts](reference/) — detailed renderer, component, layout, and artifact contracts.

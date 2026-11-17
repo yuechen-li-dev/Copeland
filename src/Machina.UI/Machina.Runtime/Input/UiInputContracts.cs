@@ -34,6 +34,14 @@ public enum UiKey
     R,
     O,
     E,
+    Backspace,
+    Delete,
+    A,
+    C,
+    V,
+    X,
+    Z,
+    Y,
 }
 
 public readonly record struct UiModifiers(bool Control, bool Shift, bool Alt, bool Meta)
@@ -110,6 +118,10 @@ public sealed record UiTextEntered : UiInputEvent
 public sealed record UiSurfaceResized(UiSurfaceSize Size) : UiInputEvent;
 
 public sealed record UiCloseRequested : UiInputEvent;
+
+public sealed record UiFocusChanged(bool Focused) : UiInputEvent;
+
+public sealed record UiPointerCaptureLost : UiInputEvent;
 
 /// <summary>
 /// Immutable callback-order-preserving input for one host iteration. Batch IDs

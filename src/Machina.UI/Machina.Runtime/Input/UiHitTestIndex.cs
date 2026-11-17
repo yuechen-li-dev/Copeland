@@ -1,5 +1,6 @@
 using Machina.Core.Actions;
 using Machina.Core.Semantics;
+using Machina.Core.Styling;
 using Machina.Layout.Documents;
 using Machina.Layout.Geometry;
 using Machina.Layout.Rows;
@@ -24,10 +25,31 @@ public sealed class UiHitTestIndex
         IReadOnlyDictionary<NodeId, UiAction> actions,
         IReadOnlyDictionary<NodeId, UiSemantics>? semantics = null)
     {
+        return Build(resolved, actions, semantics, null);
+    }
+
+    public static UiHitTestIndex Build(
+        ResolvedLayoutDocument resolved,
+        IReadOnlyDictionary<NodeId, UiAction> actions,
+        IReadOnlyDictionary<NodeId, UiSemantics>? semantics,
+        IReadOnlyDictionary<NodeId, UiStyle>? styles)
+    {
         ArgumentNullException.ThrowIfNull(resolved);
         ArgumentNullException.ThrowIfNull(actions);
 
         var candidates = new List<Candidate>();
+        var clips = new Dictionary<NodeId, Rect?>();
+        var pending = new Stack<(NodeId Id, Rect? Clip)>();
+        pending.Push((resolved.RootId, null));
+        while (pending.TryPop(out var next))
+        {
+            Rect? clip = next.Clip;
+            if (styles?.GetValueOrDefault(next.Id)?.ClipToBounds == true)
+                clip = clip is { } inherited ? Intersect(inherited, resolved.Nodes[next.Id].Rect) : resolved.Nodes[next.Id].Rect;
+            clips[next.Id] = clip;
+            if (resolved.Children.TryGetValue(next.Id, out var children))
+                foreach (var child in children) pending.Push((child, clip));
+        }
 
         foreach (var nodeId in EnumeratePreOrder(resolved))
         {
@@ -37,12 +59,13 @@ public sealed class UiHitTestIndex
             }
 
             var node = resolved.Nodes[nodeId];
-            if (node.Rect.Width <= 0 || node.Rect.Height <= 0)
+            Rect bounds = clips[nodeId] is { } clipBounds ? Intersect(node.Rect, clipBounds) : node.Rect;
+            if (bounds.Width <= 0 || bounds.Height <= 0)
             {
                 continue;
             }
 
-            candidates.Add(new Candidate(nodeId, node.Rect, action));
+            candidates.Add(new Candidate(nodeId, bounds, action));
         }
 
         return new UiHitTestIndex(candidates, semantics);
@@ -78,6 +101,13 @@ public sealed class UiHitTestIndex
             && point.X < rect.X + rect.Width
             && point.Y >= rect.Y
             && point.Y < rect.Y + rect.Height;
+    }
+
+    private static Rect Intersect(Rect a, Rect b)
+    {
+        double left = Math.Max(a.X, b.X), top = Math.Max(a.Y, b.Y);
+        return new Rect(left, top, Math.Max(0, Math.Min(a.X + a.Width, b.X + b.Width) - left),
+            Math.Max(0, Math.Min(a.Y + a.Height, b.Y + b.Height) - top));
     }
 
     private static IEnumerable<NodeId> EnumeratePreOrder(ResolvedLayoutDocument resolved)

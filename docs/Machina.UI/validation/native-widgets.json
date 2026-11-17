@@ -1,0 +1,293 @@
+{
+  "schemaVersion": 1,
+  "recordedUtc": "2026-11-16T23:09:07.3395059Z",
+  "outcome": "passed",
+  "scope": "First native controlled-widget set; not complete Base UI parity",
+  "reference": {
+    "repository": "https://github.com/mui/base-ui",
+    "revision": "6dd2a6987b3a01d000da6745a45f4690941e7a13",
+    "license": "MIT"
+  },
+  "machine": {
+    "cpu": "AMD Ryzen 7 7700X 8-Core Processor",
+    "gpu": "NVIDIA GeForce RTX 3070",
+    "driver": "610.88",
+    "runtime": "11.0.0"
+  },
+  "tests": {
+    "machina": [
+      {
+        "file": "yuech_DESKTOP-AKFI9N2_2026-11-16_14_58_17_net10.0.trx",
+        "total": 119,
+        "passed": 119,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "file": "yuech_DESKTOP-AKFI9N2_2026-11-16_14_58_22_net10.0.trx",
+        "total": 311,
+        "passed": 311,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "file": "yuech_DESKTOP-AKFI9N2_2026-11-16_14_58_28_net10.0.trx",
+        "total": 35,
+        "passed": 35,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "file": "yuech_DESKTOP-AKFI9N2_2026-11-16_14_58_38_net10.0.trx",
+        "total": 88,
+        "passed": 88,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "file": "yuech_DESKTOP-AKFI9N2_2026-11-16_14_58_45_net10.0.trx",
+        "total": 32,
+        "passed": 32,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "file": "yuech_DESKTOP-AKFI9N2_2026-11-16_14_58_47_net10.0.trx",
+        "total": 43,
+        "passed": 43,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "file": "yuech_DESKTOP-AKFI9N2_2026-11-16_14_58_50_net10.0.trx",
+        "total": 64,
+        "passed": 64,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "file": "yuech_DESKTOP-AKFI9N2_2026-11-16_14_58_52_net10.0.trx",
+        "total": 139,
+        "passed": 139,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "file": "yuech_DESKTOP-AKFI9N2_2026-11-16_14_58_54_net10.0.trx",
+        "total": 9,
+        "passed": 9,
+        "failed": 0,
+        "notExecuted": 0
+      }
+    ],
+    "nativeIntegration": {
+      "file": "yuech_DESKTOP-AKFI9N2_2026-11-16_14_59_35_net10.0.trx",
+      "total": 70,
+      "passed": 70,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "valencia": [
+      {
+        "file": "yuech_DESKTOP-AKFI9N2_2026-11-16_15_00_41_net11.0.trx",
+        "total": 76,
+        "passed": 76,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "file": "yuech_DESKTOP-AKFI9N2_2026-11-16_15_00_42_net11.0.trx",
+        "total": 21,
+        "passed": 21,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "file": "yuech_DESKTOP-AKFI9N2_2026-11-16_15_00_46_net11.0.trx",
+        "total": 85,
+        "passed": 85,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "file": "yuech_DESKTOP-AKFI9N2_2026-11-16_15_01_37_net11.0.trx",
+        "total": 118,
+        "passed": 118,
+        "failed": 0,
+        "notExecuted": 0
+      }
+    ],
+    "totalPassed": 1210,
+    "totalFailed": 0,
+    "totalSkipped": 0,
+    "newCases": 50
+  },
+  "nativeGallery": {
+    "outcome": "passed",
+    "gpu": "NVIDIA GeForce RTX 3070",
+    "runtime": "11.0.0",
+    "checks": [
+      "pointer checkbox",
+      "space release",
+      "native WM_CHAR transport and text replacement",
+      "decimal field",
+      "slider preview and commit",
+      "roving radio",
+      "manual tabs",
+      "select navigation",
+      "dialog focus and escape",
+      "alert outside blocking",
+      "popover escape",
+      "menu selection",
+      "accordion",
+      "compact resize and restore",
+      "local text undo",
+      "filtered combobox",
+      "scroll area keyboard navigation"
+    ],
+    "commits": 2,
+    "CallbackFailures": 0,
+    "DroppedBatches": 0,
+    "ValidationAvailable": true,
+    "ValidationErrorCount": 0,
+    "presentedFrames": 149,
+    "cachedDrawSamples": 147,
+    "drawCpuMedianMs": 5.3794,
+    "drawCpuP95Ms": 5.9248,
+    "drawCpuP99Ms": 54.1623,
+    "drawCpuMaximumMs": 59.8407,
+    "idleDraw": {
+      "samples": 120,
+      "cpuMedianMs": 5.467,
+      "cpuP95Ms": 5.9113,
+      "cpuP99Ms": 6.0307,
+      "cpuMaximumMs": 6.3703
+    },
+    "prepareMilliseconds": [
+      2493.2748,
+      3.647,
+      2.1598,
+      2.4265,
+      2.1684,
+      2.0726,
+      2.0636,
+      2.055,
+      6.7481,
+      2.8588,
+      5.0451,
+      2.1472,
+      3.7355,
+      2.08,
+      3.5479,
+      2.854,
+      3.8023,
+      2.1247,
+      2.1444,
+      3.8489,
+      0.3562,
+      8.5698,
+      2.3877,
+      2.4325,
+      4.4662,
+      2.6454,
+      2.6051,
+      2.1427
+    ],
+    "elapsedSeconds": 4.6269119,
+    "scalability": {
+      "widgets": 1000,
+      "prepareCpuMilliseconds": [
+        85.4477,
+        97.048,
+        45.0351,
+        50.6538,
+        37.3373,
+        40.9846
+      ],
+      "virtualized": false,
+      "note": "CPU declaration/layout/presentation only, not a GPU draw or a 1000-widget responsiveness qualification."
+    },
+    "inputQualification": "Native window and Vulkan; posted WM_CHAR through Silk callbacks, synthetic coordinate/key events through the shared session. Physical input and OS accessibility are not qualified."
+  },
+  "editorRegression": {
+    "outcome": "passed",
+    "gpu": "NVIDIA GeForce RTX 3070",
+    "runtime": "11.0.0",
+    "elapsedSeconds": 18.9212816,
+    "maximumAvSkewSeconds": 0.0452291666666671,
+    "realPlaybackSeconds": 9.666666666666666,
+    "exportDurationSeconds": 9.666666666666666,
+    "playbackElapsedSeconds": 9.7521196,
+    "exportDurationTicks": "2455488000000",
+    "seekRequests": 10,
+    "staleGenerationsRejected": 1,
+    "presentedFrames": 2054,
+    "seekLatencyMs": [
+      91.2905,
+      28.7009,
+      25.1636,
+      31.3454,
+      66.2935,
+      22.4411,
+      68.0575,
+      79.3548
+    ],
+    "uploadedFrames": 298,
+    "syntheticFrameMedianMs": 10.7082,
+    "syntheticFrameP95Ms": 16.845,
+    "syntheticClipCount": 5000,
+    "inputProposalMs": 30.4058,
+    "renderedBenchmarkFrames": 120,
+    "export": "C:\\Users\\yuech\\source\\repos\\ValenciaNLE\\artifacts\\local\\native-widgets-editor\\edited.mp4",
+    "saveReopenSemanticEquality": true,
+    "copelandScriptOnLiveSession": true
+  },
+  "independentExportVerification": {
+    "outcome": "passed",
+    "decoder": "independent FFmpeg CLI",
+    "probe": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720,
+          "r_frame_rate": "30/1"
+        },
+        {
+          "codec_name": "aac",
+          "sample_rate": "48000",
+          "r_frame_rate": "0/0"
+        }
+      ],
+      "format": {
+        "duration": "9.666667"
+      }
+    },
+    "earlySourceFrameError": 0.6464120370370371,
+    "postCutSourceFrameError": 0.6614583333333334,
+    "gapVideoMaximum": 0.0,
+    "secondSourceBlueMean": 252.0,
+    "gapAudioRms": 0.0,
+    "signalAudioRms": 0.08822027237194988
+  },
+  "commands": [
+    "dotnet test Machina.UI.slnx -c Release -m:1 -nr:false -p:UseSharedCompilation=false --logger trx --results-directory artifacts/local/native-widgets/regression",
+    "dotnet test tests/Integrations/Aurelian.Machina.Tests -c Release -m:1 -nr:false -p:UseSharedCompilation=false --logger trx --results-directory artifacts/local/native-widgets/integration",
+    "dotnet test Valencia.slnx -c Release -m:1 -nr:false -p:UseSharedCompilation=false --logger trx --results-directory artifacts/local/native-widgets-regression",
+    "dotnet publish ../ValenciaNLE/src/Valencia.App -c Release -r win-x64 --self-contained false -o ../ValenciaNLE/artifacts/local/native-widgets-host -m:1 -nr:false -p:UseSharedCompilation=false",
+    "Valencia.App.exe --widgets-smoke --output artifacts/local/native-widgets-smoke",
+    "Valencia.App.exe --editor-smoke artifacts/local/fixtures/av.mp4 --output artifacts/local/native-widgets-editor",
+    "scripts/VerifyEditorExport.ps1 -Directory artifacts/local/native-widgets-editor -SourcePath artifacts/local/fixtures/av.mp4"
+  ],
+  "limits": [
+    "Physical mouse/keyboard and OS accessibility not qualified",
+    "No UI Automation bridge or IME preedit support",
+    "Nonvirtualized list rebuild cost is measured, not qualified as smooth at 1000 widgets",
+    "CPU draw timing includes native submission/presentation; not GPU execution or input-to-visible latency",
+    "Cold prepare and resize costs remain in full distributions",
+    "Existing editor controls are preserved; gallery demonstrates shared controls without a full editor migration",
+    "Full Copeland compiler and slow font-tooling suites not rerun; no compiler/font implementation changes"
+  ]
+}

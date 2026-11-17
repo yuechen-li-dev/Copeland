@@ -37,7 +37,7 @@ public sealed class MachinaPresentationPipeline
         var rootRect = new Rect(0, 0, width, height);
         ResolvedLayoutDocument resolved = LayoutDocumentResolver.ResolveLayoutDocument(document, rootRect);
 
-        UiHitTestIndex hitTest = UiHitTestIndex.Build(resolved, lowering.Actions, lowering.Semantics);
+        UiHitTestIndex hitTest = UiHitTestIndex.Build(resolved, lowering.Actions, lowering.Semantics, lowering.Styles);
 
         var viewport = new MachinaPresentationViewport(width, height);
         MachinaPresentationFrame presentationFrame = MachinaPresentationFrameBuilder.Build(
@@ -55,7 +55,7 @@ public sealed class MachinaPresentationPipeline
         LayoutDocument layoutDocument = LayoutCompiler.CompileLayoutRows(lowering.Rows);
         var rootRect = new Rect(0, 0, width, height);
         ResolvedLayoutDocument resolved = LayoutDocumentResolver.ResolveLayoutDocument(layoutDocument, rootRect);
-        UiHitTestIndex hitTest = UiHitTestIndex.Build(resolved, lowering.Actions, lowering.Semantics);
+        UiHitTestIndex hitTest = UiHitTestIndex.Build(resolved, lowering.Actions, lowering.Semantics, lowering.Styles);
         MachinaPresentationFrame presentationFrame = MachinaPresentationFrameBuilder.Build(
             lowering,
             resolved,
