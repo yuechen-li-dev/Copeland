@@ -47,6 +47,36 @@ public sealed class AurelianVulkanSwapchain : IDisposable
     public VulkanPresentationTargetImageSet CreatePresentationTargetImageSet()
         => VulkanPresentationTargetImageSet.FromSwapchain(this);
 
+    /// <summary>
+    /// Non-blocking acquire into a caller-owned, unsignaled fence. Returns <see cref="VulkanSwapchainAcquireStatus.NotReady"/>
+    /// when the presentation engine has no free image (for example while Windows throttles composition because the
+    /// display is off). On Acquired/Suboptimal the fence signals when the image is actually usable; the caller owns
+    /// that pending fence until it has observed it signaled (it must not destroy or reuse it earlier).
+    /// </summary>
+    public unsafe VulkanSwapchainAcquireResult TryAcquireNextImage(Fence fence)
+    {
+        if (disposed || swapchain.Handle == 0 || plant.Device.Handle == 0)
+        {
+            return new VulkanSwapchainAcquireResult(VulkanSwapchainAcquireStatus.Rejected, null,
+                [DisposedDiagnostic("Cannot acquire a swapchain image because the swapchain has been disposed.")]);
+        }
+        uint imageIndex = 0;
+        Result result = swapchainApi.AcquireNextImage(plant.Device, swapchain, 0, default, fence, ref imageIndex);
+        return result switch
+        {
+            Result.Success => new VulkanSwapchainAcquireResult(VulkanSwapchainAcquireStatus.Acquired, imageIndex, []),
+            Result.SuboptimalKhr => new VulkanSwapchainAcquireResult(VulkanSwapchainAcquireStatus.Suboptimal, imageIndex, []),
+            Result.NotReady or Result.Timeout => new VulkanSwapchainAcquireResult(VulkanSwapchainAcquireStatus.NotReady, null, []),
+            Result.ErrorOutOfDateKhr => new VulkanSwapchainAcquireResult(VulkanSwapchainAcquireStatus.OutOfDate, null, []),
+            Result.ErrorSurfaceLostKhr => new VulkanSwapchainAcquireResult(VulkanSwapchainAcquireStatus.Unavailable, null,
+                [new VulkanPresentationDiagnostic(VulkanPresentationDiagnosticCodes.SurfaceLost, VulkanPresentationDiagnosticSeverity.Error,
+                    "vkAcquireNextImageKHR reported that the presentation surface was lost.", PlantId)]),
+            _ => new VulkanSwapchainAcquireResult(VulkanSwapchainAcquireStatus.Failed, null,
+                [new VulkanPresentationDiagnostic(VulkanPresentationDiagnosticCodes.AcquireFailed, VulkanPresentationDiagnosticSeverity.Error,
+                    $"vkAcquireNextImageKHR failed with result {result}.", PlantId)]),
+        };
+    }
+
     public unsafe VulkanSwapchainAcquireResult AcquireNextImage(ulong timeoutNanoseconds = ulong.MaxValue)
     {
         if (disposed || swapchain.Handle == 0 || plant.Device.Handle == 0)

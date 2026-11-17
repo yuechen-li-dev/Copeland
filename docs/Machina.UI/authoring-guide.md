@@ -111,6 +111,43 @@ both the resulting height and the same measurer to `StandardUI.TextBlock`.
 TinyFarm's HUD, journal, dialogue and menus, and Aurelian's `GameMenuTemplate` use
 this surface.
 
+## Bound widgets, measured text, flow and layout dumps
+
+These helpers remove the glue code where bugs collected, without hiding layout. Positions stay explicit numbers.
+
+**Bound widgets.** Declare a controlled value and its destination once instead of passing a value and then routing
+`WidgetChange` records by target ID in a host switch:
+
+```csharp
+w.Checkbox("export.audio", "Include audio", Bind.Value(() => model.Audio, v => model.Audio = v));
+w.Slider("clip.opacity", Bind.Edit(() => opacity,
+    preview: v => opacity = v,                                   // transient, no undo entry
+    commit: v => engine.Commit(new SetOpacity(clipId, v))), "Opacity", 0, 1, .01m);
+w.Menu("file", "File", items, Bind.Value(() => fileOpen, v => fileOpen = v), key => Run(key));
+
+var unbound = session.Apply(session.Handle(input).Changes);    // and session.Apply(session.DrainChanges())
+```
+
+Overloads are typed (a checkbox takes `Bound<bool>`, a slider `Bound<decimal>`, a select `Bound<string?>` plus a
+`Bound<bool>` for open). `Apply` returns everything it did not consume: unbound widgets and `WidgetOperationFailed`.
+A host that binds every widget can assert that nothing but tooltip dismissals comes back, which turns a forgotten
+binding into a test failure (Valencia's widget gallery does this). Machina targets .NET 10, so these types do not use
+C# 15 `closed` hierarchies or unions; applications on .NET 11 may use them for their own intent and command types.
+
+**Measured text.** `StandardUI.TextLine(text, width, height, measurer, ...)` (or `WidgetBuilder.TextLine` with the
+frame's measurer) returns a box that is never wider than requested, never shorter than the measured line, vertically
+centred, with an explicit `TextOverflow` (`Ellipsis`, `Clip`, `Throw`). `TextFit.Ellipsize` is the one shared trimming
+routine, cutting only at grapheme boundaries. Use these instead of a raw `UI.Text` in a fixed row: an overflowing
+`UI.Row` is a `LayoutError`, not a visual glitch.
+
+**Flow.** `Flow.Horizontal(available, widths, gap, overflow, ...)` is a pure function from widths to slot positions
+with a declared overflow policy (`Drop`, `Wrap`, `Throw`) and optional group gaps. It replaces `x += width + gap`
+cursor walks; print or assert the returned `FlowLayout`, then place nodes at its slots.
+
+**Layout dump.** `MachinaLayoutDump.Format(prepared)` renders the resolved layout as deterministic text: one line per
+node with ID, rect, clip, role, label, action and flags, indented by depth in paint order. Compact mode omits
+anonymous nodes without semantics or actions. Use it for golden layout tests and reviews.
+
 ## Preparation caching and widget lifetimes
 
 For stable identity and action dispatch, use `UiIdFamily<TKey>`,

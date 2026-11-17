@@ -8,6 +8,8 @@ public enum VulkanSwapchainAcquireStatus
     Unavailable,
     Rejected,
     Failed,
+    /// <summary>No image was free within the (zero) timeout; nothing was acquired and the fence is untouched.</summary>
+    NotReady,
 }
 
 public sealed record VulkanSwapchainAcquireResult(

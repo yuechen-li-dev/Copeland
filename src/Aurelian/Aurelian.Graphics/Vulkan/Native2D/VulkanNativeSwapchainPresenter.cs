@@ -11,6 +11,17 @@ using Aurelian.Rendering.Contracts.Compositor;
 
 namespace Aurelian.Graphics.Vulkan.Native2D;
 
+/// <summary>Result of a non-blocking <see cref="VulkanNativeSwapchainPresenter.PollImage"/>.</summary>
+public enum NativePresentReadiness
+{
+    /// <summary>An image is held; the next <see cref="VulkanNativeSwapchainPresenter.TryPresent"/> uses it without waiting.</summary>
+    Ready,
+    /// <summary>The presentation engine has no free image yet (composition throttled). Skip this frame; nothing blocked.</summary>
+    NotReady,
+    /// <summary>The swapchain no longer matches the surface; rebuild it.</summary>
+    OutOfDate,
+}
+
 /// <summary>
 /// Copies a completed native frame target directly to an acquired swapchain image.
 /// Pixel readback remains a separate, explicit capture operation.
@@ -31,6 +42,17 @@ public sealed unsafe class VulkanNativeSwapchainPresenter : IDisposable
     public NativePresentTimings? LastTimings { get; private set; }
     private readonly VulkanFrameInFlightSet? frames;
     private readonly Silk.NET.Vulkan.Semaphore[] renderFinished;
+
+    // Explicit acquisition state. A swapchain image is either not held, acquired with its fence still pending
+    // (the presentation engine has not released it), or acquired and usable. The fence persists across polls:
+    // while it is pending it is owned by the presentation engine and must be neither reset nor destroyed.
+    private enum AcquireState { NoImage, ImagePending, ImageReady }
+    private AcquireState acquireState;
+    private uint heldImage;
+    private Fence acquireFence;
+
+    /// <summary>Polls that found no free image or a still-pending one (each is a skipped, non-blocking frame).</summary>
+    public long ThrottledPolls { get; private set; }
 
     public VulkanNativeSwapchainPresenter(
         AurelianVulkanPlant plant,
@@ -75,6 +97,76 @@ public sealed unsafe class VulkanNativeSwapchainPresenter : IDisposable
         }
     }
 
+    /// <summary>
+    /// Non-blocking readiness check. Acquires at most one image (zero timeout) and observes its fence without waiting.
+    /// Hosts call this before rendering a frame; on <see cref="NativePresentReadiness.NotReady"/> they skip the frame
+    /// and keep their loop (input, media clocks, seeks) running instead of blocking on the compositor.
+    /// </summary>
+    public NativePresentReadiness PollImage()
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        if (acquireState == AcquireState.NoImage)
+        {
+            if (acquireFence.Handle == 0)
+            {
+                FenceCreateInfo info = new() { SType = StructureType.FenceCreateInfo };
+                if (plant.Vk.CreateFence(plant.Device, &info, null, out acquireFence) != Result.Success)
+                {
+                    throw new InvalidOperationException("AUR-FRAME-003: Acquire fence allocation failed.");
+                }
+            }
+            VulkanSwapchainAcquireResult acquire = swapchain.TryAcquireNextImage(acquireFence);
+            switch (acquire.Status)
+            {
+                case VulkanSwapchainAcquireStatus.NotReady:
+                    ThrottledPolls++;
+                    return NativePresentReadiness.NotReady;
+                case VulkanSwapchainAcquireStatus.OutOfDate:
+                    return NativePresentReadiness.OutOfDate;
+                case VulkanSwapchainAcquireStatus.Acquired or VulkanSwapchainAcquireStatus.Suboptimal when acquire.ImageIndex is { } index:
+                    heldImage = index;
+                    acquireState = AcquireState.ImagePending;
+                    break;
+                default:
+                    throw new InvalidOperationException(Format("Swapchain image acquisition failed", acquire.Diagnostics));
+            }
+        }
+        if (acquireState == AcquireState.ImagePending)
+        {
+            Result status = plant.Vk.GetFenceStatus(plant.Device, acquireFence);
+            if (status == Result.NotReady)
+            {
+                ThrottledPolls++;
+                return NativePresentReadiness.NotReady;
+            }
+            if (status != Result.Success)
+            {
+                throw new InvalidOperationException($"AUR-FRAME-004: Acquire fence status failed with {status}.");
+            }
+            Fence signaled = acquireFence;
+            _ = plant.Vk.ResetFences(plant.Device, 1, &signaled);
+            acquireState = AcquireState.ImageReady;
+        }
+        return NativePresentReadiness.Ready;
+    }
+
+    /// <summary>Takes the held image, waiting for a still-pending fence only on the legacy blocking path.</summary>
+    private uint? TakeHeldImage()
+    {
+        if (acquireState == AcquireState.NoImage) return null;
+        if (acquireState == AcquireState.ImagePending)
+        {
+            Fence pending = acquireFence;
+            if (plant.Vk.WaitForFences(plant.Device, 1, &pending, true, ulong.MaxValue) != Result.Success)
+            {
+                throw new InvalidOperationException("AUR-FRAME-004: Waiting for the held swapchain image failed.");
+            }
+            _ = plant.Vk.ResetFences(plant.Device, 1, &pending);
+        }
+        acquireState = AcquireState.NoImage;
+        return heldImage;
+    }
+
     public string PresentMode => swapchain.Facts.SelectedPresentMode;
 
     public uint SwapchainImageCount => swapchain.Facts.ImageCount;
@@ -98,7 +190,10 @@ public sealed unsafe class VulkanNativeSwapchainPresenter : IDisposable
 
         frames?.Begin();
         long started = System.Diagnostics.Stopwatch.GetTimestamp();
-        VulkanSwapchainAcquireResult acquire = swapchain.AcquireNextImage();
+        // A host that polled first presents its held image without waiting; otherwise acquire as before (blocking).
+        VulkanSwapchainAcquireResult acquire = TakeHeldImage() is { } held
+            ? new VulkanSwapchainAcquireResult(VulkanSwapchainAcquireStatus.Acquired, held, [])
+            : swapchain.AcquireNextImage();
         long acquired = System.Diagnostics.Stopwatch.GetTimestamp();
         if (acquire.Status == VulkanSwapchainAcquireStatus.OutOfDate)
         {
@@ -167,6 +262,20 @@ public sealed unsafe class VulkanNativeSwapchainPresenter : IDisposable
         disposed = true;
         // Presentation waits can outlive the copy's retirement timeline.
         _ = plant.Vk.DeviceWaitIdle(plant.Device);
+        if (acquireFence.Handle != 0)
+        {
+            // A pending acquire fence still belongs to the presentation engine: observe it before destroying.
+            // If it never signals (lost surface), leak the handle rather than destroy a fence in use.
+            Fence fence = acquireFence;
+            bool idle = acquireState != AcquireState.ImagePending
+                || plant.Vk.WaitForFences(plant.Device, 1, &fence, true, 1_000_000_000) == Result.Success;
+            if (idle)
+            {
+                plant.Vk.DestroyFence(plant.Device, fence, null);
+            }
+            acquireFence = default;
+            acquireState = AcquireState.NoImage;
+        }
         foreach (var semaphore in renderFinished)
         {
             if (semaphore.Handle != 0)

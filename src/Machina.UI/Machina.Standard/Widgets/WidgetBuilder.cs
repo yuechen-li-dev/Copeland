@@ -256,18 +256,14 @@ public sealed partial class WidgetBuilder
     }
 
     /// <summary>Trims to the measured width with "...", using the same measurer as layout.</summary>
-    internal string Ellipsize(string text, double width)
-    {
-        var style = new TextStyle(Style.Foreground, Style.TextSize);
-        if (TextMeasurer.MeasureText(text, style).Width <= width) return text;
-        var boundaries = StringInfo.ParseCombiningCharacters(text);
-        for (int i = boundaries.Length - 1; i > 0; i--)
-        {
-            string candidate = text[..boundaries[i]].TrimEnd() + "...";
-            if (TextMeasurer.MeasureText(candidate, style).Width <= width) return candidate;
-        }
-        return TextMeasurer.MeasureText("...", style).Width <= width ? "..." : "";
-    }
+    internal string Ellipsize(string text, double width) =>
+        TextFit.Ellipsize(text, width, new TextStyle(Style.Foreground, Style.TextSize), TextMeasurer);
+
+    /// <summary>One measured line of text in an explicit box, using this frame's measurer and widget text style.</summary>
+    public RectNode TextLine(string text, double width, double height, ColorToken? color = null,
+        TextAlignX alignX = TextAlignX.Left, TextOverflow overflow = TextOverflow.Ellipsis, NodeId? id = null, TextSize? size = null) =>
+        StandardUI.TextLine(text, width, height, TextMeasurer, size ?? Style.TextSize, color ?? Style.Foreground, alignX,
+            TextAlignY.Center, overflow, id);
 
     private UiNode Shell(NodeId id, UiNode body, double width, bool disabled = false)
     {

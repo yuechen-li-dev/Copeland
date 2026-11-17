@@ -181,6 +181,25 @@ public sealed partial class WidgetSession : IDisposable
         return result;
     }
 
+    /// <summary>
+    /// Applies proposals from widgets declared with a <see cref="Bound{T}"/> (or a handler), in order, and returns the
+    /// rest: proposals from unbound widgets and <see cref="WidgetOperationFailed"/>. Call it with
+    /// <see cref="WidgetInputResult.Changes"/> and with <see cref="DrainChanges"/>, then reprepare. Explicit by design:
+    /// nothing is written to the host's model until the host asks.
+    /// </summary>
+    public ImmutableArray<WidgetChange> Apply(IEnumerable<WidgetChange> changes)
+    {
+        EnsureOwner();
+        ArgumentNullException.ThrowIfNull(changes);
+        var rest = ImmutableArray.CreateBuilder<WidgetChange>();
+        foreach (var change in changes)
+        {
+            if (change.Action is { } action && action.TryGetMessage<WidgetSink>(out var sink) && sink.TryApply(change)) continue;
+            rest.Add(change);
+        }
+        return rest.ToImmutable();
+    }
+
     public WidgetInputResult Handle(UiInputEvent input, TimeSpan timestamp = default)
     {
         EnsureOwner();
@@ -413,8 +432,9 @@ public sealed partial class WidgetSession : IDisposable
         return binding.Minimum + lower;
     }
 
+    // Proposals carry canonical decimals (50, not 50.0): arithmetic scale must not leak into host displays.
     private void EmitNumber(WidgetBinding binding, decimal value, WidgetEditPhase phase) =>
-        pending.Add(new WidgetNumberChanged(binding.Owner, value, phase, binding.Changed));
+        pending.Add(new WidgetNumberChanged(binding.Owner, value / 1.0000000000000000000000000000m, phase, binding.Changed));
 
     private static IEnumerable<NodeId> PreOrder(ResolvedLayoutDocument document)
     {
