@@ -21,9 +21,12 @@ public sealed partial class WidgetBuilder
         ValidateOptions(options);
         if (open && !disabled)
         {
-            var items = ListItems(id, options, value, changed, closeOnSelect: true, width - 2 * Style.Padding, false);
-            AddPopup(new(id, id.Child("trigger"), items, WidgetPopupKind.Select, "Options", width,
-                ListPanelHeight(options.Count), WidgetPopupSide.Bottom, false, true, true, openChanged) { ListHeight = ListContentHeight(options.Count) });
+            AddPopup(new(id, id.Child("trigger"), Placeholder, WidgetPopupKind.Select, "Options", width,
+                ListPanelHeight(options.Count), WidgetPopupSide.Bottom, false, true, true, openChanged)
+            {
+                ListHeight = ListContentHeight(options.Count),
+                List = rowWidth => ListItems(id, options, value, changed, closeOnSelect: true, rowWidth, false)
+            });
         }
         return PopupTrigger(id, (options.FirstOrDefault(option => option.Key == value)?.Label ?? placeholder) + " v",
             open, openChanged, disabled, width, UiRole.ComboBox);
@@ -33,9 +36,12 @@ public sealed partial class WidgetBuilder
         UiAction? invoked = null, UiAction? openChanged = null, double width = 220)
     {
         ValidateOptions(items);
-        if (open) AddPopup(new(id, id.Child("trigger"), ListItems(id, items, null, invoked, true, width - 2 * Style.Padding, true),
-            WidgetPopupKind.Menu, label, width, ListPanelHeight(items.Count),
-            WidgetPopupSide.Bottom, false, true, true, openChanged) { ListHeight = ListContentHeight(items.Count) });
+        if (open) AddPopup(new(id, id.Child("trigger"), Placeholder, WidgetPopupKind.Menu, label, width, ListPanelHeight(items.Count),
+            WidgetPopupSide.Bottom, false, true, true, openChanged)
+        {
+            ListHeight = ListContentHeight(items.Count),
+            List = rowWidth => ListItems(id, items, null, invoked, true, rowWidth, true)
+        });
         return PopupTrigger(id, label, open, openChanged, false, width, UiRole.Button);
     }
 
@@ -107,8 +113,12 @@ public sealed partial class WidgetBuilder
         double contentHeight = Math.Max(1, bounds.Height - top - Style.Padding);
         UiNode content = popup.Content;
         if (popup.Kind is WidgetPopupKind.Select or WidgetPopupKind.Menu or WidgetPopupKind.Combobox)
-            content = ScrollArea(popup.Id.Child("scroll"), content,
-                Math.Max(1, popup.ListHeight ?? popup.Height - 2 * Style.Padding), contentWidth, contentHeight, popup.Title);
+        {
+            double listHeight = Math.Max(1, popup.ListHeight ?? popup.Height - 2 * Style.Padding);
+            if (popup.List is { } list)
+                content = list(Math.Max(1, contentWidth - (listHeight > contentHeight ? ScrollbarGutter : 0)));
+            content = ScrollArea(popup.Id.Child("scroll"), content, listHeight, contentWidth, contentHeight, popup.Title);
+        }
         children.Add(StandardUI.Place(content, Style.Padding, top, contentWidth, contentHeight));
         var panel = Panel(popup.Panel, bounds.Width, bounds.Height, children,
             new UiStyle(Style.Background, BorderColor: Style.Border, BorderThickness: 1, ClipToBounds: true));
@@ -142,6 +152,7 @@ public sealed partial class WidgetBuilder
             with { Semantics = new(menu ? UiRole.Menu : UiRole.ListBox) };
     }
 
+    private static readonly UiNode Placeholder = UI.Layer(children: []);
     private double ListContentHeight(int count) => Math.Max(Style.Height, count * Style.Height + Math.Max(0, count - 1) * Style.Gap);
     private double ListPanelHeight(int count) => ListContentHeight(count) + 2 * Style.Padding;
 

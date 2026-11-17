@@ -411,6 +411,45 @@ public sealed class WidgetHardeningTests
         void apply(WidgetChange change) => Apply(change);
     }
 
+    [Fact]
+    public void ScrollFocusRingDrawsAboveFullWidthContentAndTheIndicatorHasItsOwnGutter()
+    {
+        using var host = new Host(w => w.ScrollArea("scroll", UI.Column(Enumerable.Range(0, 6)
+            .Select(i => w.Button("row" + i, "Row " + i, width: 240)).ToArray(), gap: 8), 6 * 44, width: 240, height: 100), _ => { });
+        Assert.True(host.Session.Focus("scroll", visible: true));
+        host.Prepare();
+        var nodes = host.Frame.Resolved.Nodes;
+        Rect scroll = nodes[new NodeId("scroll")].Rect, viewport = nodes[new NodeId("scroll.viewport")].Rect;
+        Rect indicator = nodes[new NodeId("scroll.scroll-indicator")].Rect;
+        Assert.Equal(240 - WidgetBuilder.ScrollbarGutter, viewport.Width, 6);
+        Assert.True(indicator.X >= viewport.X + viewport.Width, "indicator overlaps content");
+        Assert.True(indicator.X + indicator.Width <= scroll.X + scroll.Width);
+        // Painter order: the ring comes after every content operation, so content cannot paint over it.
+        var operations = host.Frame.PresentationFrame.Operations;
+        static string Source(object op) => op.GetType().GetProperty("SourceId")?.GetValue(op) as string ?? "";
+        int ring = operations.ToList().FindLastIndex(op => Source(op).StartsWith("scroll.focus-ring", StringComparison.Ordinal));
+        int lastRow = operations.ToList().FindLastIndex(op => Source(op).StartsWith("row", StringComparison.Ordinal));
+        Assert.True(ring >= 0 && lastRow >= 0, $"ring {ring}, last row {lastRow}");
+        Assert.True(ring > lastRow, $"ring {ring}, last row {lastRow}");
+        // Over-wide content is clipped at the gutter: a row's hit area ends where the viewport ends.
+        var hit = host.Frame.HitTest.HitTest(new(viewport.X + viewport.Width + 2, viewport.Y + 10));
+        Assert.True(hit is null || !hit.NodeId.Value.StartsWith("row", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void OverflowingPopupListRowsStayClearOfTheIndicator()
+    {
+        WidgetOption[] many = Enumerable.Range(0, 30).Select(i => new WidgetOption("o" + i, "Option " + i)).ToArray();
+        using var host = new Host(w => w.Select("sel", many, "o0", true), _ => { });
+        var nodes = host.Frame.Resolved.Nodes;
+        Rect indicator = nodes[new NodeId("sel.scroll.scroll-indicator")].Rect;
+        Rect row = nodes[new NodeId("sel.option.o0")].Rect;
+        Assert.True(row.X + row.Width <= indicator.X, $"row ends {row.X + row.Width}, indicator {indicator.X}");
+        // A short list keeps full-width rows and no gutter.
+        using var shortHost = new Host(w => w.Select("sel", Options, "a", true), _ => { });
+        Assert.False(shortHost.Frame.Resolved.Nodes.ContainsKey(new NodeId("sel.scroll.scroll-indicator")));
+    }
+
     private sealed class FakeClipboard(string text) : IWidgetClipboard
     {
         public bool TryRead(out string value) { value = text; return true; }

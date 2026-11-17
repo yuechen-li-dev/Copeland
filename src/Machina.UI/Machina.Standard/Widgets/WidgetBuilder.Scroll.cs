@@ -10,6 +10,8 @@ namespace Machina.Standard.Widgets;
 public sealed partial class WidgetBuilder
 {
     internal List<WidgetScrollRegion> ScrollRegions { get; } = [];
+    /// <summary>Width reserved beside overflowing content for the scroll indicator.</summary>
+    public const double ScrollbarGutter = 8;
 
     /// <summary>
     /// A clipped vertical viewport with wheel, keyboard and focus-into-view behavior.
@@ -25,21 +27,30 @@ public sealed partial class WidgetBuilder
             throw new ArgumentOutOfRangeException(nameof(contentHeight));
         ScrollRegions.Add(new(id, contentHeight, height));
         double offset = Session.ScrollOffset(id, contentHeight, height);
+        bool overflow = contentHeight > height;
+        // Overflowing content gets a gutter for the indicator; its own clip means even content wider than the
+        // viewport can never draw underneath the indicator.
+        double viewportWidth = Math.Max(1, width - (overflow ? ScrollbarGutter : 0));
         var children = new List<UiNode>
         {
-            StandardUI.Place(content, 0, -offset, width, Math.Max(1, contentHeight))
+            StandardUI.Place(UI.Rect(UI.Layer(children: [StandardUI.Place(content, 0, -offset, viewportWidth, Math.Max(1, contentHeight))]),
+                id.Child("viewport"), viewportWidth, height, style: new UiStyle(ClipToBounds: true)), 0, 0, viewportWidth, height)
         };
-        if (contentHeight > height)
+        if (overflow)
         {
-            double thumbHeight = Math.Max(12, height * height / contentHeight);
-            thumbHeight = Math.Min(height, thumbHeight);
-            double top = offset / (contentHeight - height) * (height - thumbHeight);
+            // Track inset 4 px top and bottom: clear of the 2 px focus ring.
+            double track = Math.Max(1, height - 8);
+            double thumbHeight = Math.Min(track, Math.Max(12, track * height / contentHeight));
+            double top = 4 + offset / (contentHeight - height) * (track - thumbHeight);
             children.Add(StandardUI.Place(Box(id.Child("scroll-indicator"), 3, thumbHeight, Style.Muted),
-                Math.Max(0, width - 3), top));
+                width - ScrollbarGutter + (ScrollbarGutter - 3) / 2, top));
         }
+        // The focus ring is the last child, so it draws above the content instead of being painted over by it.
+        if (Session.Focused == id && Session.FocusVisible)
+            children.Add(StandardUI.Place(UI.Rect(id: id.Child("focus-ring"), width: width, height: height,
+                style: new UiStyle(BorderColor: Style.Focus, BorderThickness: 2)), 0, 0, width, height));
         return Bind(new(id, id, WidgetKind.Scroll),
-            Panel(id, width, height, children, new UiStyle(ClipToBounds: true,
-                BorderColor: Session.Focused == id && Session.FocusVisible ? Style.Focus : null, BorderThickness: 1)),
+            Panel(id, width, height, children, new UiStyle(ClipToBounds: true)),
             new(UiRole.Group, label, Focusable: contentHeight > height));
     }
 }

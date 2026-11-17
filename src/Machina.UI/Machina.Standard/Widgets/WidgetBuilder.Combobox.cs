@@ -40,12 +40,13 @@ public sealed partial class WidgetBuilder
         if (open && !disabled)
         {
             var filtered = options.Where(option => option.Label.Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
-            UiNode items = filtered.Length == 0
-                ? UI.Text("No matches", size: Style.TextSize, color: Style.Muted)
-                : ListItems(id, filtered, selected, changed, true, width - 2 * Style.Padding, false);
-            AddPopup(new(id, inputId, items, WidgetPopupKind.Combobox, label, width,
+            UiNode empty = UI.Text("No matches", size: Style.TextSize, color: Style.Muted);
+            AddPopup(new(id, inputId, filtered.Length == 0 ? empty : Placeholder, WidgetPopupKind.Combobox, label, width,
                 ListPanelHeight(filtered.Length), WidgetPopupSide.Bottom, false, true, true, openChanged)
-                { ListHeight = ListContentHeight(filtered.Length) });
+            {
+                ListHeight = ListContentHeight(filtered.Length),
+                List = filtered.Length == 0 ? null : rowWidth => ListItems(id, filtered, selected, changed, true, rowWidth, false)
+            });
         }
         return Panel(id, width, Style.Height,
         [

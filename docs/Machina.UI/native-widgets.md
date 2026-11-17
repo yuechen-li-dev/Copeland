@@ -90,7 +90,7 @@ resize events even when another application subsystem handles ordinary input.
 | Menu | Flat menu items, keyboard/typeahead, dismissal, invocation represented by selected item key | No submenus, menubar or context-menu positioning |
 | Dialog, Alert Dialog | Current-geometry overlay, nested popup focus scope, focus trap/restore, Escape, explicit close, outside-click policy | Alert blocks outside dismissal but permits Escape; no native window dialog |
 | Popover, Tooltip | Anchor flip/clamp, overlay clipping, Escape, outside-click consumption for popovers, focus moves into popover content and returns to the trigger; tooltip hover/focus and dismissal suppression | Tooltip is immediate unless caller supplies controlled timing; no hover grace corridor; Tab does not return from popover content to the trigger's next sibling |
-| Scroll Area | Vertical wheel/keyboard scroll, clipped hit testing, focus ring, focus visibility, scroll-position indicator | No thumb drag, horizontal scroll or virtualization |
+| Scroll Area | Vertical wheel/keyboard scroll, clipped hit testing, focus ring drawn above content, indicator in its own 8 px gutter (`ScrollbarGutter`), focus visibility | No thumb drag, horizontal scroll or virtualization |
 | Progress, Meter, Separator | Controlled values/semantics and native primitives | Indeterminate progress has a static marker, not an animation |
 | Field, Fieldset, Form | Label/description/error relationships, grouped declarations, validation state metadata | Validation/business rules and submit remain application-owned |
 
@@ -184,10 +184,10 @@ dotnet publish src/Valencia.App -c Release -r win-x64 --self-contained false -o 
 
 Recorded results and limitations are in [validation/native-widgets.json](validation/native-widgets.json).
 
-2026-11-17 hardening: `WidgetHardeningTests` adds 21 regression cases for the defects fixed in that pass and a
+2026-11-17 hardening: `WidgetHardeningTests` adds 23 regression cases for the defects fixed in that pass and a
 seeded randomized interaction test (4 seeds x 2,500 mixed key/text/pointer/wheel/focus/resize events over a full
 controlled view) asserting no exceptions, focus only on mounted nodes and no capture leaks, with a guard that
-popups, text edits and numeric commits were actually exercised. Machina.UI solution: 865 passed.
+popups, text edits and numeric commits were actually exercised. Machina.UI solution: 867 passed.
 Current-source Release validation on the Ryzen 7 7700X / RTX 3070 (driver 610.88):
 
 | Check | Observed result |
