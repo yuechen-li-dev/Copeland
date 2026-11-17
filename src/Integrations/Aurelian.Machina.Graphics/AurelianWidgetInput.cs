@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Machina.Runtime.Input;
 using Machina.Standard.Widgets;
+using Machina.Core.Semantics;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
@@ -23,6 +24,12 @@ public sealed class AurelianWidgetInput : IDisposable, IWidgetClipboard
     private char? pendingSurrogate;
     private bool captured;
     private bool disposed;
+    private PointerPoint? observedPointer;
+    private readonly AurelianCursor cursor;
+    public UiCursor Cursor => cursor.Current;
+    public int CursorChanges => cursor.Changes;
+    public StandardCursor? NativeCursorShape => cursor.NativeShape;
+    public void SetCursor(UiCursor intent) => cursor.Set(intent);
 
     public int CallbackFailures { get; private set; }
     public int DroppedBatches { get; private set; }
@@ -32,6 +39,7 @@ public sealed class AurelianWidgetInput : IDisposable, IWidgetClipboard
     {
         this.window = window;
         devices = window.CreateInput();
+        cursor = new(devices);
         foreach (var keyboard in devices.Keyboards)
         {
             keyboard.KeyDown += (_, key, _) => Guard(() =>
@@ -62,6 +70,13 @@ public sealed class AurelianWidgetInput : IDisposable, IWidgetClipboard
     public UiInputBatch Poll()
     {
         ObjectDisposedException.ThrowIf(disposed, this);
+        // Non-client movement does not produce GLFW client motion callbacks.
+        // Sampling once per iteration clears hover when entering the title bar.
+        if (devices.Mice.FirstOrDefault() is { } mouse)
+        {
+            var point = new PointerPoint(mouse.Position.X, mouse.Position.Y);
+            if (observedPointer != point) Enqueue(new UiPointerMoved(point, observedPointer, Modifiers()));
+        }
         if (captured && OperatingSystem.IsWindows() && GetCapture() != Handle)
         {
             captured = false;
@@ -131,6 +146,7 @@ public sealed class AurelianWidgetInput : IDisposable, IWidgetClipboard
     private void Enqueue(UiInputEvent input)
     {
         if (disposed) return;
+        if (input is UiPointerMoved moved) observedPointer = moved.Position;
         if (input is UiPointerMoved && events.LastOrDefault() is UiPointerMoved)
         {
             events[^1] = input;
@@ -210,6 +226,7 @@ public sealed class AurelianWidgetInput : IDisposable, IWidgetClipboard
         window.FocusChanged -= FocusChanged;
         window.Resize -= Resized;
         window.Closing -= Closing;
+        cursor.Dispose();
         devices.Dispose();
         events.Clear();
         held.Clear();

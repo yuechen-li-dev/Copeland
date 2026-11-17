@@ -53,7 +53,7 @@ public sealed partial class WidgetBuilder
         var box = UI.Rect(UI.Anchor(mark, left: 4, top: indeterminate ? 7 : 4, width: indeterminate ? 10 : 8,
             height: indeterminate ? 2 : 8), id: id.Child("indicator"), width: 18, height: 18,
             style: new UiStyle(Style.Background, BorderColor: disabled ? Style.Border : Style.Muted, BorderThickness: 1));
-        return Bind(binding, LabelSlot(id, box, 18, 18, label, disabled ? Style.Muted : Style.Foreground, width), new(UiRole.Checkbox, label, disabled, !disabled)
+        return Bind(binding, LabelSlot(id, box, 18, 18, label, disabled ? Style.Muted : Style.Foreground, width, disabled), new(UiRole.Checkbox, label, disabled, !disabled)
         {
             Checked = isChecked, Indeterminate = indeterminate, ReadOnly = readOnly
         });
@@ -70,7 +70,7 @@ public sealed partial class WidgetBuilder
             with { Semantics = null, DeclaredAction = null };
         var switchStyle = Theme.Switch.Default;
         return Bind(binding, LabelSlot(id, track, switchStyle.TrackWidth, switchStyle.TrackHeight, label,
-            disabled ? Style.Muted : Style.Foreground, width), new(UiRole.Switch, label, disabled, !disabled)
+            disabled ? Style.Muted : Style.Foreground, width, disabled), new(UiRole.Switch, label, disabled, !disabled)
         {
             Checked = value, ReadOnly = readOnly
         });
@@ -192,7 +192,8 @@ public sealed partial class WidgetBuilder
         if (Session.Focused == binding.Id)
             children.Add(StandardUI.Place(Box(binding.Id.Child("caret"), 1, Style.Height - 10, Style.Foreground), Style.Padding + before - scroll, 5));
         var root = Panel(binding.Id, width, Style.Height, children,
-            new UiStyle(Style.Background, BorderColor: Border(binding.Id), BorderThickness: 1, ClipToBounds: true));
+            new UiStyle(Surface(binding.Id, Style.Background, Style.Foreground, binding.Disabled),
+                BorderColor: Border(binding.Id, binding.Disabled), BorderThickness: 1, ClipToBounds: true));
         return Bind(binding, root, new(binding.Kind == WidgetKind.Number ? UiRole.SpinButton : UiRole.Input,
             label, binding.Disabled, !binding.Disabled)
         { Value = binding.Text, ReadOnly = binding.ReadOnly, Minimum = binding.Kind == WidgetKind.Number ? binding.Minimum : null,
@@ -223,9 +224,10 @@ public sealed partial class WidgetBuilder
         var buttonStyle = Theme.Button.Outline with
         {
             Width = width, Height = Style.Height,
-            Background = active ? Style.Accent : Style.Background,
+            Background = Surface(binding.Id, active ? Style.Accent : Style.Background,
+                active ? Style.AccentForeground : Style.Foreground, binding.Disabled),
             Foreground = binding.Disabled ? Style.Muted : active ? Style.AccentForeground : Style.Foreground,
-            BorderColor = Border(binding.Id),
+            BorderColor = Border(binding.Id, binding.Disabled),
             TextStyle = new TextStyle(binding.Disabled ? Style.Muted : active ? Style.AccentForeground : Style.Foreground,
                 Style.TextSize, TextAlignX.Center, TextAlignY.Center)
         };
@@ -238,7 +240,7 @@ public sealed partial class WidgetBuilder
     /// Indicator plus label in a fixed slot. The label is ellipsized and clipped: an overflowing row is a layout
     /// error in Machina, so a long label must never be allowed to exceed the control.
     /// </summary>
-    private UiNode LabelSlot(NodeId id, UiNode indicator, double indicatorWidth, double indicatorHeight, string label, ColorToken color, double width)
+    private UiNode LabelSlot(NodeId id, UiNode indicator, double indicatorWidth, double indicatorHeight, string label, ColorToken color, double width, bool disabled = false)
     {
         ValidateWidth(width);
         double inner = Math.Max(1, width - 2 * Style.Padding), textX = indicatorWidth + Style.Gap, textWidth = Math.Max(1, inner - textX);
@@ -250,7 +252,7 @@ public sealed partial class WidgetBuilder
             StandardUI.Place(indicator, 0, Math.Max(0, (20 - indicatorHeight) / 2), indicatorWidth, indicatorHeight),
             StandardUI.Place(text, textX, 0, textWidth, 20)
         ]);
-        return Shell(id, body, width);
+        return Shell(id, body, width, disabled);
     }
 
     /// <summary>Trims to the measured width with "...", using the same measurer as layout.</summary>
@@ -267,19 +269,28 @@ public sealed partial class WidgetBuilder
         return TextMeasurer.MeasureText("...", style).Width <= width ? "..." : "";
     }
 
-    private UiNode Shell(NodeId id, UiNode body, double width)
+    private UiNode Shell(NodeId id, UiNode body, double width, bool disabled = false)
     {
         ValidateWidth(width);
         return UI.Rect(UI.Anchor(body, left: Style.Padding, top: Math.Max(0, (Style.Height - 20) / 2),
             width: Math.Max(1, width - 2 * Style.Padding), height: 20), id, width, Style.Height,
-            style: new UiStyle(Style.Background, BorderColor: Border(id), BorderThickness: 1));
+            style: new UiStyle(Surface(id, Style.Background, Style.Foreground, disabled),
+                BorderColor: Border(id, disabled), BorderThickness: 1));
     }
 
     private UiNode FocusOutline(NodeId id, UiNode body, double width, double height) =>
         UI.Rect(body with { Id = id.Child("body") }, id, width, height,
             style: new UiStyle(BorderColor: Border(id), BorderThickness: 1));
 
-    private ColorToken Border(NodeId id) => Session.Focused == id && Session.FocusVisible ? Style.Focus : Style.Border;
+    private ColorToken Surface(NodeId id, ColorToken background, ColorToken foreground, bool disabled) => disabled
+        ? background : StandardInteraction.Surface(background, foreground, Session.Hovered == id, Session.IsPressed(id));
+
+    private ColorToken Border(NodeId id, bool disabled = false)
+    {
+        if (disabled) return Style.Border;
+        if (Session.Focused == id && Session.FocusVisible) return Style.Focus;
+        return Session.Hovered == id ? Style.Muted : Style.Border;
+    }
     private static UiNode Panel(NodeId id, double width, double height, IReadOnlyList<UiNode> children, UiStyle? style = null) =>
         UI.Rect(UI.Layer(children: children), id, width, height, style: style);
     private static RectNode Box(NodeId id, double width, double height, ColorToken color) => (RectNode)UI.Rect(id: id, width: width, height: height, color: color);

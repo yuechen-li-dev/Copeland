@@ -7,6 +7,7 @@ using Machina.Layout.Rows;
 using Machina.Runtime.Input;
 using Machina.Runtime.State;
 using Machina.Standard.Theme;
+using Machina.Core.Semantics;
 
 namespace Machina.Standard.Widgets;
 
@@ -42,6 +43,7 @@ public sealed partial class WidgetSession : IDisposable
     {
         public NodeId? Focus;
         public NodeId? Hover;
+        public PointerPoint? PointerPosition;
         public bool FocusVisible;
         public NodeId? Pressed;
         public WidgetBinding? Drag;
@@ -70,6 +72,26 @@ public sealed partial class WidgetSession : IDisposable
     public NodeId? Hovered => State.Hover;
     public bool FocusVisible => State.FocusVisible;
     public bool HasPointerCapture => State.Drag is not null || State.Pressed is not null;
+    public bool IsPressed(NodeId id) => State.SpaceArmed == id
+        || State.Pressed == id && State.Hover == id;
+
+    public UiCursor Cursor
+    {
+        get
+        {
+            var id = State.Drag?.Id ?? (State.SelectingText ? State.Pressed : State.Hover);
+            if (id is null || !bindings.TryGetValue(id.Value, out var binding) || binding.Disabled)
+                return UiCursor.Arrow;
+            return binding.Kind switch
+            {
+                WidgetKind.Input or WidgetKind.Number => UiCursor.IBeam,
+                WidgetKind.Slider => binding.Orientation == WidgetOrientation.Horizontal
+                    ? UiCursor.ResizeHorizontal : UiCursor.ResizeVertical,
+                WidgetKind.Dismiss or WidgetKind.Scroll => UiCursor.Arrow,
+                _ => UiCursor.Hand
+            };
+        }
+    }
     public IWidgetClipboard? Clipboard { get; init; }
 
     public WidgetBuilder CreateBuilder(StandardTheme? theme = null, WidgetStyle? style = null)
@@ -84,6 +106,7 @@ public sealed partial class WidgetSession : IDisposable
         EnsureOwner();
         if (!ReferenceEquals(builder.Session, this)) throw new ArgumentException("Builder belongs to another session.", nameof(builder));
         var oldPopups = popups;
+        var previousHover = State.Hover;
         dismissedTooltips.RemoveWhere(id => !builder.TooltipIds.Contains(id));
         bindings = builder.Bindings.Where(pair => resolved.Nodes.ContainsKey(pair.Key)).ToDictionary();
         rectangles = resolved.Nodes.ToDictionary(pair => pair.Key, pair => pair.Value.Rect);
@@ -146,6 +169,8 @@ public sealed partial class WidgetSession : IDisposable
         textMeasurer = builder.TextMeasurer;
         textStyle = builder.Style;
         PresentScroll(builder, resolved);
+        State.Hover = State.PointerPosition is { } point ? RouteHit(point)?.NodeId : null;
+        NeedsReprepare |= previousHover != State.Hover;
     }
 
     public ImmutableArray<WidgetChange> DrainChanges()
@@ -190,6 +215,8 @@ public sealed partial class WidgetSession : IDisposable
     private bool PointerButton(UiPointerButtonChanged input, TimeSpan timestamp)
     {
         var hit = RouteHit(input.Position);
+        State.PointerPosition = input.Position;
+        State.Hover = hit?.NodeId;
         if (input.Button != UiPointerButton.Primary)
         {
             // Other buttons never activate widgets, but must not reach application controls covered by an overlay.
@@ -275,7 +302,8 @@ public sealed partial class WidgetSession : IDisposable
 
     private bool PointerMove(UiPointerMoved input)
     {
-        State.Hover = hitTest?.HitTest(input.Position)?.NodeId;
+        State.PointerPosition = input.Position;
+        State.Hover = RouteHit(input.Position)?.NodeId;
         if (State.SelectingText && State.Pressed is { } textId && bindings.TryGetValue(textId, out var textBinding))
         {
             MoveTextCaret(textBinding, input.Position, true);
@@ -354,6 +382,7 @@ public sealed partial class WidgetSession : IDisposable
         CancelCapture();
         CommitNumberDraft();
         State.Hover = null;
+        State.PointerPosition = null;
         State.Search = "";
         State.LastClick = null;
         return true;

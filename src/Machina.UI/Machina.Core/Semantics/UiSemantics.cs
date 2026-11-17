@@ -6,6 +6,7 @@ public sealed record UiSemantics(
     bool Disabled = false,
     bool Focusable = false)
 {
+    public UiCursor Cursor { get; init; } = UiCursor.Auto;
     public bool? Checked { get; init; }
     public bool Indeterminate { get; init; }
     public bool? Selected { get; init; }

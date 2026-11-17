@@ -77,6 +77,8 @@ public sealed class UiHitTestIndex
         return new UiHitTestIndex(candidates, updatedSemantics);
     }
 
+    public bool Contains(NodeId id) => candidates.Any(candidate => candidate.NodeId == id);
+
     public UiHitTestResult? HitTest(PointerPoint point)
     {
         for (var i = this.candidates.Count - 1; i >= 0; i--)

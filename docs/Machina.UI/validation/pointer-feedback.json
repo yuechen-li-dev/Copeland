@@ -1,0 +1,635 @@
+{
+  "schemaVersion": 1,
+  "outcome": "pointer-features-passed-playback-regression-blocked",
+  "recordedUtc": "2026-11-17T07:09:38.9874814Z",
+  "machine": {
+    "gpu": "NVIDIA GeForce RTX 3070",
+    "cpu": "AMD Ryzen 7 7700X 8-Core Processor",
+    "runtime": "11.0.0",
+    "driver": "610.88"
+  },
+  "tests": {
+    "integration": [
+      {
+        "artifact": "yuech_DESKTOP-AKFI9N2_2026-11-16_23_03_11_net10.0.trx",
+        "total": 76,
+        "passed": 76,
+        "failed": 0,
+        "notExecuted": 0
+      }
+    ],
+    "addedCases": 22,
+    "failed": 0,
+    "machina": [
+      {
+        "artifact": "yuech_DESKTOP-AKFI9N2_2026-11-16_22_57_48_net10.0.trx",
+        "total": 119,
+        "passed": 119,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "artifact": "yuech_DESKTOP-AKFI9N2_2026-11-16_22_57_53_net10.0.trx",
+        "total": 311,
+        "passed": 311,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "artifact": "yuech_DESKTOP-AKFI9N2_2026-11-16_22_57_58_net10.0.trx",
+        "total": 35,
+        "passed": 35,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "artifact": "yuech_DESKTOP-AKFI9N2_2026-11-16_22_58_03_net10.0.trx",
+        "total": 88,
+        "passed": 88,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "artifact": "yuech_DESKTOP-AKFI9N2_2026-11-16_22_58_08_net10.0.trx",
+        "total": 32,
+        "passed": 32,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "artifact": "yuech_DESKTOP-AKFI9N2_2026-11-16_22_58_10_net10.0.trx",
+        "total": 43,
+        "passed": 43,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "artifact": "yuech_DESKTOP-AKFI9N2_2026-11-16_22_58_12_net10.0.trx",
+        "total": 64,
+        "passed": 64,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "artifact": "yuech_DESKTOP-AKFI9N2_2026-11-16_22_58_14_net10.0.trx",
+        "total": 178,
+        "passed": 178,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "artifact": "yuech_DESKTOP-AKFI9N2_2026-11-16_22_58_21_net10.0.trx",
+        "total": 9,
+        "passed": 9,
+        "failed": 0,
+        "notExecuted": 0
+      }
+    ],
+    "passed": 1259,
+    "notExecuted": 0,
+    "valencia": [
+      {
+        "artifact": "yuech_DESKTOP-AKFI9N2_2026-11-16_23_02_03_net11.0.trx",
+        "total": 76,
+        "passed": 76,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "artifact": "yuech_DESKTOP-AKFI9N2_2026-11-16_23_02_05_net11.0.trx",
+        "total": 21,
+        "passed": 21,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "artifact": "yuech_DESKTOP-AKFI9N2_2026-11-16_23_02_09_net11.0.trx",
+        "total": 85,
+        "passed": 85,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      {
+        "artifact": "yuech_DESKTOP-AKFI9N2_2026-11-16_23_02_58_net11.0.trx",
+        "total": 122,
+        "passed": 122,
+        "failed": 0,
+        "notExecuted": 0
+      }
+    ]
+  },
+  "gallery": {
+    "outcome": "passed",
+    "gpu": "NVIDIA GeForce RTX 3070",
+    "runtime": "11.0.0",
+    "checks": [
+      "pointer checkbox",
+      "space release",
+      "native WM_CHAR transport and text replacement",
+      "decimal field",
+      "slider preview and commit",
+      "roving radio",
+      "manual tabs",
+      "select navigation",
+      "dialog focus and escape",
+      "alert outside blocking",
+      "popover escape",
+      "menu selection",
+      "accordion",
+      "compact resize and restore",
+      "local text undo",
+      "filtered combobox",
+      "scroll area keyboard navigation",
+      "native hand cursor",
+      "hover/pressed surfaces and drag-off cancellation",
+      "native I-beam cursor",
+      "disabled/slider/focus-loss cursor policy",
+      "native drag/resize/maximize hit tests",
+      "native maximize/restore/minimize/restore",
+      "native close respects host cancellation"
+    ],
+    "commits": 2,
+    "CallbackFailures": 0,
+    "DroppedBatches": 0,
+    "ValidationAvailable": true,
+    "ValidationErrorCount": 0,
+    "cursorChanges": 21,
+    "chromeCallbackFailures": 0,
+    "feedbackPixels": {
+      "idlePixel": 4294967295,
+      "hoverPixel": 4293190884,
+      "pressedPixel": 4291414473
+    },
+    "presentedFrames": 162,
+    "cachedDrawSamples": 154,
+    "drawCpuMedianMs": 5.3383,
+    "drawCpuP95Ms": 6.6974,
+    "drawCpuP99Ms": 82.0934,
+    "drawCpuMaximumMs": 98.7259,
+    "idleDraw": {
+      "samples": 120,
+      "cpuMedianMs": 5.4536,
+      "cpuP95Ms": 5.8918,
+      "cpuP99Ms": 6.129,
+      "cpuMaximumMs": 11.6638
+    },
+    "prepareMilliseconds": [
+      2465.1124,
+      3.7788,
+      3.0513,
+      4.5938,
+      5.7778,
+      2.9871,
+      3.2869,
+      3.1672,
+      23.1506,
+      6.7521,
+      12.1639,
+      5.6285,
+      14.9318,
+      5.6675,
+      11.7786,
+      5.5632,
+      10.3804,
+      5.641,
+      3.0732,
+      5.2473,
+      1.5327,
+      10.5988,
+      3.5775,
+      3.2848,
+      10.8147,
+      5.9688,
+      3.1504,
+      3.1428,
+      3.4397,
+      4.3481,
+      3.6789,
+      3.5523,
+      3.2705,
+      3.4125,
+      3.7362
+    ],
+    "elapsedSeconds": 5.0620586,
+    "scalability": {
+      "widgets": 1000,
+      "prepareCpuMilliseconds": [
+        114.4743,
+        58.861,
+        70.7786,
+        65.2982,
+        35.5918,
+        40.5643
+      ],
+      "virtualized": false,
+      "note": "CPU declaration/layout/presentation only, not a GPU draw or a 1000-widget responsiveness qualification."
+    },
+    "inputQualification": "Native window and Vulkan; posted WM_CHAR through Silk callbacks, synthetic coordinate/key events through the shared session. Physical input and OS accessibility are not qualified."
+  },
+  "editor": {
+    "outcome": "passed",
+    "gpu": "NVIDIA GeForce RTX 3070",
+    "runtime": "11.0.0",
+    "elapsedSeconds": 19.3129967,
+    "maximumAvSkewSeconds": 0.1105416666666672,
+    "pointerFeedbackMilliseconds": [
+      7.4334,
+      10.5883,
+      6.9118,
+      6.9472
+    ],
+    "realPlaybackSeconds": 9.666666666666666,
+    "exportDurationSeconds": 9.666666666666666,
+    "playbackElapsedSeconds": 9.7591318,
+    "exportDurationTicks": "2455488000000",
+    "seekRequests": 10,
+    "staleGenerationsRejected": 1,
+    "presentedFrames": 2016,
+    "seekLatencyMs": [
+      91.0607,
+      30.9364,
+      27.4337,
+      32.0038,
+      59.2137,
+      24.5638,
+      73.2679,
+      81.9896
+    ],
+    "uploadedFrames": 297,
+    "syntheticFrameMedianMs": 11.8056,
+    "syntheticFrameP95Ms": 18.2648,
+    "syntheticClipCount": 5000,
+    "inputProposalMs": 30.8272,
+    "renderedBenchmarkFrames": 120,
+    "export": "C:\\Users\\yuech\\source\\repos\\ValenciaNLE\\artifacts\\local\\pointer-editor\\edited.mp4",
+    "saveReopenSemanticEquality": true,
+    "copelandScriptOnLiveSession": true
+  },
+  "independentExport": {
+    "outcome": "passed",
+    "decoder": "independent FFmpeg CLI",
+    "probe": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720,
+          "r_frame_rate": "30/1"
+        },
+        {
+          "codec_name": "aac",
+          "sample_rate": "48000",
+          "r_frame_rate": "0/0"
+        }
+      ],
+      "format": {
+        "duration": "9.666667"
+      }
+    },
+    "earlySourceFrameError": 0.6464120370370371,
+    "postCutSourceFrameError": 0.6614583333333334,
+    "gapVideoMaximum": 0.0,
+    "secondSourceBlueMean": 252.0,
+    "gapAudioRms": 0.0,
+    "signalAudioRms": 0.08822027237194988
+  },
+  "avSkewContractSeconds": 0.15,
+  "commands": [
+    "dotnet test Machina.UI.slnx -c Release -m:1 -nr:false -p:UseSharedCompilation=false --logger trx --results-directory artifacts/local/pointer-regression",
+    "dotnet test tests/Integrations/Aurelian.Machina.Tests -c Release -m:1 -nr:false -p:UseSharedCompilation=false --logger trx --results-directory artifacts/local/pointer-integration-final",
+    "dotnet test Valencia.slnx -c Release -m:1 -nr:false -p:UseSharedCompilation=false --logger trx --results-directory artifacts/local/pointer-valencia-tests",
+    "dotnet publish src/Valencia.App -c Release -r win-x64 --self-contained false -o artifacts/local/pointer-host -m:1 -nr:false -p:UseSharedCompilation=false",
+    "Valencia.App.exe --widgets-smoke --output artifacts/local/pointer-gallery",
+    "Valencia.App.exe --editor-smoke artifacts/local/fixtures/av.mp4 --output artifacts/local/pointer-editor",
+    "scripts/VerifyEditorExport.ps1 -Directory artifacts/local/pointer-editor -SourcePath artifacts/local/fixtures/av.mp4",
+    "VALENCIA_RENDER_TRACE=artifacts/local/pointer-scrub-traced/trace.json Valencia.App.exe --scrub-smoke artifacts/local/fixtures/av.mp4 --output artifacts/local/pointer-scrub-traced",
+    "Pre-change artifacts/local/native-widgets-host/Valencia.App.exe --scrub-smoke artifacts/local/fixtures/av.mp4 --output artifacts/local/pointer-baseline-scrub",
+    "dotnet publish src/Valencia.App -c Release -r win-x64 --self-contained false -o artifacts/publish/win-x64 -m:1 -nr:false -p:UseSharedCompilation=false"
+  ],
+  "qualification": {
+    "pixelCheck": "RGBA pixels sampled away from glyphs differ in idle, hover and pressed states.",
+    "notQualified": [
+      "Physical mouse/keyboard",
+      "Snap flyout selection",
+      "Mixed-DPI multi-monitor dragging",
+      "Prolonged resize stress",
+      "Native OS accessibility bridge",
+      "Non-Windows custom chrome"
+    ],
+    "feedbackTiming": "Four explicit editor pointer-event to completed Draw CPU wall-time samples; not physical/optical input-to-visible latency.",
+    "input": "Synthetic pointer/key events plus actual native cursor backend state, native caption messages/system commands, real Vulkan readback and audio/video playback."
+  },
+  "sources": {
+    "snap": "https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/ui/apply-snap-layout-menu",
+    "customFrame": "https://learn.microsoft.com/en-us/windows/win32/dwm/customframe"
+  },
+  "regressionBlocker": {
+    "status": "reproduced-in-current-and-pre-change-executable",
+    "currentUntraced": {
+      "exitCode": 1,
+      "log": "artifacts/local/pointer-scrub.log",
+      "maximumAvSkewSeconds": 0.284
+    },
+    "currentTraced": {
+      "exitCode": 1,
+      "log": "artifacts/local/pointer-scrub-traced.log",
+      "summary": {
+        "trace": "artifacts/local/pointer-scrub-traced/trace.json",
+        "sha256": "D95EF20FD3A01390FEC8FFD5F879312C5E0688953AB41139B6DE5EA86EE2B1EC",
+        "frameCount": 61,
+        "drawMedianMs": 245.941,
+        "drawMaximumMs": 263.6565,
+        "acquireMedianMs": 240.83,
+        "acquireP95Ms": 257.283,
+        "acquireMaximumMs": 258.2529,
+        "framesWithAcquireAbove150Ms": 56,
+        "worstFrame": {
+          "id": 48,
+          "started": 1200745090139,
+          "finished": 1200747726704,
+          "monotonicFrequency": 10000000,
+          "drawMs": 263.6565,
+          "cadenceMs": 250.8426,
+          "cpu": {
+            "layoutAndPresentationBuildMs": 1.5588,
+            "nativeUiPreparationMs": 0.4886
+          },
+          "mediaFrame": null,
+          "upload": null,
+          "passes": [
+            {
+              "Metrics": {
+                "QuadCount": 195,
+                "DrawCalls": 65,
+                "CommandBuffers": 1,
+                "QueueSubmissions": 1,
+                "BufferUploads": 1,
+                "DescriptorSetAllocations": 0,
+                "DescriptorWrites": 0,
+                "VertexCapacityQuads": 256,
+                "VertexUploadMilliseconds": 0.02,
+                "CommandRecordingMilliseconds": 0.339,
+                "SubmitWaitMilliseconds": 0.776,
+                "ReadbackMilliseconds": 0,
+                "CpuAllocatedBytes": 1032
+              },
+              "Pixels": null,
+              "PixelSha256": null,
+              "CpuSubmission": {
+                "PreparationMicroseconds": 0.3,
+                "QueueSubmitMicroseconds": 48.6,
+                "CompletionWaitMicroseconds": 726.3,
+                "RetirementMicroseconds": 0.3
+              },
+              "GpuInterval": {
+                "Sequence": 48,
+                "StartTicks": 1794899657251908704,
+                "EndTicks": 1794899657252055040,
+                "NanosecondsPerTick": 1
+              }
+            },
+            {
+              "Metrics": {
+                "QuadCount": 774,
+                "DrawCalls": 62,
+                "CommandBuffers": 1,
+                "QueueSubmissions": 1,
+                "BufferUploads": 1,
+                "DescriptorSetAllocations": 0,
+                "DescriptorWrites": 0,
+                "VertexCapacityQuads": 1024,
+                "VertexUploadMilliseconds": 0.069,
+                "CommandRecordingMilliseconds": 0.26,
+                "SubmitWaitMilliseconds": 0.632,
+                "ReadbackMilliseconds": 0,
+                "CpuAllocatedBytes": 1032
+              },
+              "Pixels": null,
+              "PixelSha256": null,
+              "CpuSubmission": {
+                "PreparationMicroseconds": 0.1,
+                "QueueSubmitMicroseconds": 37.8,
+                "CompletionWaitMicroseconds": 593.3,
+                "RetirementMicroseconds": 0.3
+              },
+              "GpuInterval": {
+                "Sequence": 48,
+                "StartTicks": 1794899657253040160,
+                "EndTicks": 1794899657253134336,
+                "NanosecondsPerTick": 1
+              }
+            },
+            {
+              "Metrics": {
+                "QuadCount": 51,
+                "DrawCalls": 6,
+                "CommandBuffers": 1,
+                "QueueSubmissions": 1,
+                "BufferUploads": 1,
+                "DescriptorSetAllocations": 0,
+                "DescriptorWrites": 0,
+                "VertexCapacityQuads": 256,
+                "VertexUploadMilliseconds": 0.007,
+                "CommandRecordingMilliseconds": 0.084,
+                "SubmitWaitMilliseconds": 0.81,
+                "ReadbackMilliseconds": 0,
+                "CpuAllocatedBytes": 1032
+              },
+              "Pixels": null,
+              "PixelSha256": null,
+              "CpuSubmission": {
+                "PreparationMicroseconds": 0.1,
+                "QueueSubmitMicroseconds": 36.7,
+                "CompletionWaitMicroseconds": 772.7,
+                "RetirementMicroseconds": 0.2
+              },
+              "GpuInterval": {
+                "Sequence": 48,
+                "StartTicks": 1794899657253988864,
+                "EndTicks": 1794899657254052864,
+                "NanosecondsPerTick": 1
+              }
+            }
+          ],
+          "presentation": {
+            "AcquireMilliseconds": 258.2529,
+            "CopyMilliseconds": 2.1875,
+            "PresentMilliseconds": 0.0687
+          },
+          "atlasUploads": 4,
+          "uploadedFrames": 22,
+          "allocatedBytes": 930195864,
+          "gen0": 44,
+          "gen1": 18,
+          "gen2": 7,
+          "totalGcPauseMs": 46,
+          "workingSetBytes": 399499264
+        },
+        "validation": {
+          "errors": 0,
+          "warnings": 0,
+          "messages": []
+        }
+      },
+      "maximumAvSkewSeconds": 0.255
+    },
+    "preChangeExecutable": {
+      "sha256": "9CD3ABE2A25AB51266B3E15D3BBC92F1F542CFD3610A5C222FBF46981B6F3F26",
+      "maximumAvSkewSeconds": 0.253,
+      "path": "artifacts/local/native-widgets-host/Valencia.App.exe",
+      "buildQualification": "Existing pre-change binary; not rebuilt in this turn",
+      "exitCode": 1,
+      "log": "artifacts/local/pointer-baseline-scrub.log",
+      "summary": {
+        "trace": "artifacts/local/pointer-baseline-scrub/trace.json",
+        "sha256": "08E689779581557A0F1C7DEEC8E2F71F228A694ADD16DFA83F0BE76FD63DD5D0",
+        "frameCount": 61,
+        "drawMedianMs": 247.3668,
+        "drawMaximumMs": 263.2779,
+        "acquireMedianMs": 242.2692,
+        "acquireP95Ms": 256.8275,
+        "acquireMaximumMs": 257.7604,
+        "framesWithAcquireAbove150Ms": 56,
+        "worstFrame": {
+          "id": 18,
+          "started": 1201080681550,
+          "finished": 1201083314329,
+          "monotonicFrequency": 10000000,
+          "drawMs": 263.2779,
+          "cadenceMs": 250.8939,
+          "cpu": {
+            "layoutAndPresentationBuildMs": 1.6225,
+            "nativeUiPreparationMs": 0.1567
+          },
+          "mediaFrame": null,
+          "upload": null,
+          "passes": [
+            {
+              "Metrics": {
+                "QuadCount": 167,
+                "DrawCalls": 58,
+                "CommandBuffers": 1,
+                "QueueSubmissions": 1,
+                "BufferUploads": 1,
+                "DescriptorSetAllocations": 0,
+                "DescriptorWrites": 0,
+                "VertexCapacityQuads": 256,
+                "VertexUploadMilliseconds": 0.017,
+                "CommandRecordingMilliseconds": 0.342,
+                "SubmitWaitMilliseconds": 0.78,
+                "ReadbackMilliseconds": 0,
+                "CpuAllocatedBytes": 1248
+              },
+              "Pixels": null,
+              "PixelSha256": null,
+              "CpuSubmission": {
+                "PreparationMicroseconds": 1.9,
+                "QueueSubmitMicroseconds": 51.8,
+                "CompletionWaitMicroseconds": 722.6,
+                "RetirementMicroseconds": 1.3
+              },
+              "GpuInterval": {
+                "Sequence": 18,
+                "StartTicks": 1794899690810599712,
+                "EndTicks": 1794899690810742784,
+                "NanosecondsPerTick": 1
+              }
+            },
+            {
+              "Metrics": {
+                "QuadCount": 745,
+                "DrawCalls": 62,
+                "CommandBuffers": 1,
+                "QueueSubmissions": 1,
+                "BufferUploads": 1,
+                "DescriptorSetAllocations": 0,
+                "DescriptorWrites": 0,
+                "VertexCapacityQuads": 1024,
+                "VertexUploadMilliseconds": 0.067,
+                "CommandRecordingMilliseconds": 0.278,
+                "SubmitWaitMilliseconds": 0.638,
+                "ReadbackMilliseconds": 0,
+                "CpuAllocatedBytes": 1248
+              },
+              "Pixels": null,
+              "PixelSha256": null,
+              "CpuSubmission": {
+                "PreparationMicroseconds": 0.7,
+                "QueueSubmitMicroseconds": 45.8,
+                "CompletionWaitMicroseconds": 589.3,
+                "RetirementMicroseconds": 0.8
+              },
+              "GpuInterval": {
+                "Sequence": 18,
+                "StartTicks": 1794899690811771936,
+                "EndTicks": 1794899690811863040,
+                "NanosecondsPerTick": 1
+              }
+            },
+            {
+              "Metrics": {
+                "QuadCount": 51,
+                "DrawCalls": 6,
+                "CommandBuffers": 1,
+                "QueueSubmissions": 1,
+                "BufferUploads": 1,
+                "DescriptorSetAllocations": 0,
+                "DescriptorWrites": 0,
+                "VertexCapacityQuads": 256,
+                "VertexUploadMilliseconds": 0.007,
+                "CommandRecordingMilliseconds": 0.095,
+                "SubmitWaitMilliseconds": 0.824,
+                "ReadbackMilliseconds": 0,
+                "CpuAllocatedBytes": 1248
+              },
+              "Pixels": null,
+              "PixelSha256": null,
+              "CpuSubmission": {
+                "PreparationMicroseconds": 0.7,
+                "QueueSubmitMicroseconds": 38.4,
+                "CompletionWaitMicroseconds": 781.8,
+                "RetirementMicroseconds": 0.8
+              },
+              "GpuInterval": {
+                "Sequence": 18,
+                "StartTicks": 1794899690812742400,
+                "EndTicks": 1794899690812813312,
+                "NanosecondsPerTick": 1
+              }
+            }
+          ],
+          "presentation": {
+            "AcquireMilliseconds": 257.3071,
+            "CopyMilliseconds": 2.6617,
+            "PresentMilliseconds": 0.0707
+          },
+          "atlasUploads": 4,
+          "uploadedFrames": 7,
+          "allocatedBytes": 748306776,
+          "gen0": 36,
+          "gen1": 10,
+          "gen2": 5,
+          "totalGcPauseMs": 33.723,
+          "workingSetBytes": 386510848
+        },
+        "validation": {
+          "errors": 0,
+          "warnings": 0,
+          "messages": []
+        }
+      }
+    },
+    "isolatedPhase": "AurelianVulkanSwapchain.AcquireNextImage including vkAcquireNextImageKHR and acquire-fence wait; underlying driver/WSI reason is not established",
+    "safeBoundary": "The synchronous acquire allocates a fence and destroys it in finally. Nonblocking acquisition requires retaining an acquired image and unsignaled fence across polls, plus resize/shutdown handling. No timeout-only or synchronization-weakening patch was made.",
+    "newInteractionCode": "Native cursor, hover/pressed GPU pixels and caption system controls pass; editor/export smoke passes; rapid-scrub A/V qualification fails as above."
+  },
+  "publication": {
+    "assemblySha256": "A03B70065C962AF4D7E8E62709835FE5F7D1E9791DA3E55A8327EA4049524057",
+    "path": "artifacts/publish/win-x64/Valencia.App.exe",
+    "warnings": 0,
+    "errors": 0,
+    "matchesTestedAssembly": true
+  }
+}

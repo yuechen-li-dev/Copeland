@@ -8,6 +8,18 @@ namespace Aurelian.Machina.Tests;
 public sealed class AurelianWidgetInputTests
 {
     [Theory]
+    [InlineData(global::Machina.Core.Semantics.UiCursor.Hand, StandardCursor.Hand)]
+    [InlineData(global::Machina.Core.Semantics.UiCursor.IBeam, StandardCursor.IBeam)]
+    [InlineData(global::Machina.Core.Semantics.UiCursor.ResizeHorizontal, StandardCursor.HResize)]
+    [InlineData(global::Machina.Core.Semantics.UiCursor.ResizeVertical, StandardCursor.VResize)]
+    [InlineData(global::Machina.Core.Semantics.UiCursor.Move, StandardCursor.ResizeAll)]
+    [InlineData(global::Machina.Core.Semantics.UiCursor.Arrow, StandardCursor.Arrow)]
+    public void CursorIntentMapsToNativeShape(global::Machina.Core.Semantics.UiCursor intent, StandardCursor expected)
+    {
+        Assert.Equal(expected, AurelianCursor.Map(intent));
+    }
+
+    [Theory]
     [InlineData(Key.Up, UiKey.ArrowUp)]
     [InlineData(Key.Down, UiKey.ArrowDown)]
     [InlineData(Key.Left, UiKey.ArrowLeft)]

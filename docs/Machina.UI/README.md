@@ -4,6 +4,9 @@ Machina.UI is the repository's C# UI declaration and presentation stack. Start w
 
 ## Learning path
 
+See [native pointer feedback and window chrome](native-pointer-feedback.md) for
+cursor intent, hover/pressed surfaces, legacy-control adoption and Windows captions.
+
 For reusable interactive controls, start with [native controlled widgets](native-widgets.md).
 It includes component coverage, host ownership, Base UI reference attribution and
 the Vulkan gallery validation. Existing StandardUI drawing APIs remain supported.
