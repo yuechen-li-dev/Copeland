@@ -15,11 +15,23 @@ public enum WidgetEditPhase { Preview, Commit, Cancel }
 public enum WidgetPopupKind { Select, Menu, Popover, Dialog, AlertDialog, Tooltip, Drawer, Combobox }
 public enum WidgetPopupSide { Bottom, Top, Left, Right }
 
+/// <summary>
+/// Which keyboard policy the widget layer currently needs from the host's shortcut system. Hosts map this to
+/// their own mechanism (for example by pushing an InputMan action map): <see cref="TextEntry"/> owns unmodified
+/// keys, <see cref="Popup"/> owns navigation/Escape, <see cref="Modal"/> owns every key. <see cref="Control"/>
+/// means a non-text widget has focus (Enter/Space/arrows may be consumed); <see cref="None"/> leaves shortcuts alone.
+/// </summary>
+public enum WidgetKeyboardScope { None, Control, Popup, TextEntry, Modal }
+
 public sealed record WidgetOption(string Key, string Label, bool Disabled = false);
 public sealed record WidgetPanel(string Key, string Label, UiNode Content, bool Disabled = false);
 
 public abstract record WidgetChange(NodeId Target, UiAction? Action);
-public sealed record WidgetInvoked(NodeId Target, UiAction? Action) : WidgetChange(Target, Action);
+public sealed record WidgetInvoked(NodeId Target, UiAction? Action) : WidgetChange(Target, Action)
+{
+    /// <summary>The stable item key when the invoked control belongs to a toolbar; null for a standalone button.</summary>
+    public string? Key { get; init; }
+}
 public sealed record WidgetCheckedChanged(NodeId Target, bool Checked, UiAction? Action) : WidgetChange(Target, Action);
 public sealed record WidgetSelectionChanged(NodeId Target, ImmutableArray<string> Keys, UiAction? Action) : WidgetChange(Target, Action);
 public sealed record WidgetTextChanged(NodeId Target, string Text, UiAction? Action) : WidgetChange(Target, Action);
@@ -91,6 +103,8 @@ internal sealed record WidgetPopup(NodeId Id, NodeId Trigger, UiNode Content, Wi
     bool DismissOutside, bool DismissEscape, UiAction? Changed)
 {
     public NodeId Panel => Id.Child("popup");
+    /// <summary>Exact list content height for select/menu/combobox panels; null for free content.</summary>
+    public double? ListHeight { get; init; }
 }
 
 /// <summary>Viewport-local placement, flipping when possible and clamping without negative dimensions.</summary>

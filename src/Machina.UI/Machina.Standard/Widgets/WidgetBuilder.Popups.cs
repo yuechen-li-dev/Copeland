@@ -23,8 +23,7 @@ public sealed partial class WidgetBuilder
         {
             var items = ListItems(id, options, value, changed, closeOnSelect: true, width - 2 * Style.Padding, false);
             AddPopup(new(id, id.Child("trigger"), items, WidgetPopupKind.Select, "Options", width,
-                Math.Max(Style.Height, options.Count * (Style.Height + Style.Gap) + Style.Gap),
-                WidgetPopupSide.Bottom, false, true, true, openChanged));
+                ListPanelHeight(options.Count), WidgetPopupSide.Bottom, false, true, true, openChanged) { ListHeight = ListContentHeight(options.Count) });
         }
         return PopupTrigger(id, (options.FirstOrDefault(option => option.Key == value)?.Label ?? placeholder) + " v",
             open, openChanged, disabled, width, UiRole.ComboBox);
@@ -35,8 +34,8 @@ public sealed partial class WidgetBuilder
     {
         ValidateOptions(items);
         if (open) AddPopup(new(id, id.Child("trigger"), ListItems(id, items, null, invoked, true, width - 2 * Style.Padding, true),
-            WidgetPopupKind.Menu, label, width, Math.Max(Style.Height, items.Count * (Style.Height + Style.Gap) + Style.Gap),
-            WidgetPopupSide.Bottom, false, true, true, openChanged));
+            WidgetPopupKind.Menu, label, width, ListPanelHeight(items.Count),
+            WidgetPopupSide.Bottom, false, true, true, openChanged) { ListHeight = ListContentHeight(items.Count) });
         return PopupTrigger(id, label, open, openChanged, false, width, UiRole.Button);
     }
 
@@ -109,7 +108,7 @@ public sealed partial class WidgetBuilder
         UiNode content = popup.Content;
         if (popup.Kind is WidgetPopupKind.Select or WidgetPopupKind.Menu or WidgetPopupKind.Combobox)
             content = ScrollArea(popup.Id.Child("scroll"), content,
-                Math.Max(1, popup.Height - 2 * Style.Padding), contentWidth, contentHeight, popup.Title);
+                Math.Max(1, popup.ListHeight ?? popup.Height - 2 * Style.Padding), contentWidth, contentHeight, popup.Title);
         children.Add(StandardUI.Place(content, Style.Padding, top, contentWidth, contentHeight));
         var panel = Panel(popup.Panel, bounds.Width, bounds.Height, children,
             new UiStyle(Style.Background, BorderColor: Style.Border, BorderThickness: 1, ClipToBounds: true));
@@ -142,6 +141,9 @@ public sealed partial class WidgetBuilder
         return UI.Column(children, id.Child("options"), gap: Style.Gap)
             with { Semantics = new(menu ? UiRole.Menu : UiRole.ListBox) };
     }
+
+    private double ListContentHeight(int count) => Math.Max(Style.Height, count * Style.Height + Math.Max(0, count - 1) * Style.Gap);
+    private double ListPanelHeight(int count) => ListContentHeight(count) + 2 * Style.Padding;
 
     private UiNode PopupTrigger(NodeId id, string label, bool open, UiAction? changed, bool disabled, double width, UiRole role)
     {

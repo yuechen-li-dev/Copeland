@@ -44,8 +44,8 @@ public sealed partial class WidgetBuilder
                 ? UI.Text("No matches", size: Style.TextSize, color: Style.Muted)
                 : ListItems(id, filtered, selected, changed, true, width - 2 * Style.Padding, false);
             AddPopup(new(id, inputId, items, WidgetPopupKind.Combobox, label, width,
-                Math.Max(Style.Height, filtered.Length * (Style.Height + Style.Gap) + Style.Gap),
-                WidgetPopupSide.Bottom, false, true, true, openChanged));
+                ListPanelHeight(filtered.Length), WidgetPopupSide.Bottom, false, true, true, openChanged)
+                { ListHeight = ListContentHeight(filtered.Length) });
         }
         return Panel(id, width, Style.Height,
         [

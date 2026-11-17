@@ -18,7 +18,7 @@ public sealed partial class WidgetSession
         {
             if (HasPointerCapture) return CancelCapture();
             if (popups.LastOrDefault() is { DismissEscape: true } top) return Dismiss(top.Id);
-            return false;
+            return ModalKeys();
         }
         if (input.Key == UiKey.Tab)
         {
@@ -40,10 +40,10 @@ public sealed partial class WidgetSession
             Focus(stops[index]);
             return true;
         }
-        if (State.Focus is not { } id) return false;
+        if (State.Focus is not { } id) return ModalKeys();
         if (bindings.TryGetValue(id, out var binding))
         {
-            if (binding.Disabled) return false;
+            if (binding.Disabled) return ModalKeys();
             if (binding.Kind == WidgetKind.Scroll && ScrollKey(binding, input.Key)) return true;
             if (binding.Kind is WidgetKind.Input or WidgetKind.Number && EditKey(binding, input)) return true;
             if (binding.Kind == WidgetKind.Input && binding.Popup is { } popupId
@@ -60,6 +60,11 @@ public sealed partial class WidgetSession
                 return true;
             }
             if (binding.Kind is WidgetKind.Slider or WidgetKind.Number && NumericKey(binding, input)) return true;
+            if (binding.Kind == WidgetKind.Input && input.Key is UiKey.ArrowUp or UiKey.ArrowDown && State.Text is { } line)
+            {
+                line.Move(input.Key == UiKey.ArrowUp ? 0 : line.Text.Length, input.Modifiers.Shift);
+                return true;
+            }
             if (binding.Group is not null && NavigateGroup(binding, input)) return true;
             if (binding.Kind == WidgetKind.PopupTrigger && input.Key is UiKey.ArrowDown or UiKey.ArrowUp)
             {
@@ -67,18 +72,25 @@ public sealed partial class WidgetSession
                 return true;
             }
         }
-        if (input.Key == UiKey.Enter && !input.IsRepeat)
+        if (input.Key == UiKey.Enter)
         {
-            Activate(id);
+            if (!input.IsRepeat) Activate(id);
             return true;
         }
-        if (input.Key == UiKey.Space && !input.IsRepeat)
+        if (input.Key == UiKey.Space)
         {
-            State.SpaceArmed = id;
+            if (!input.IsRepeat) State.SpaceArmed = id;
             return true;
         }
-        return false;
+        // A focused text field owns unmodified keys: typing "i" must not also run an application's Mark In.
+        // Command chords (Ctrl/Meta/Alt) still reach application shortcuts such as Save.
+        if (bindings.TryGetValue(id, out var owner) && owner.Kind is WidgetKind.Input or WidgetKind.Number
+            && !input.Modifiers.Control && !input.Modifiers.Meta && !input.Modifiers.Alt) return true;
+        return ModalKeys();
     }
+
+    /// <summary>While a modal is open nothing reaches the application underneath.</summary>
+    private bool ModalKeys() => popups.Any(popup => popup.Modal);
 
     private List<NodeId> TabStops()
     {
@@ -155,12 +167,20 @@ public sealed partial class WidgetSession
 
     private bool Text(string text, TimeSpan timestamp)
     {
-        if (State.Focus is not { } id || !bindings.TryGetValue(id, out var binding)) return false;
+        if (State.Focus is not { } id || !bindings.TryGetValue(id, out var binding)) return ModalKeys();
+        if (binding.Kind == WidgetKind.Choice && popups.FirstOrDefault(popup => popup.Id == binding.Popup) is { Kind: WidgetPopupKind.Combobox } combo
+            && Focus(combo.Trigger) && bindings.TryGetValue(combo.Trigger, out var query))
+        {
+            State.Text?.Move(State.Text.Text.Length, false);
+            (id, binding) = (combo.Trigger, query);
+        }
         if (binding.Kind is WidgetKind.Input or WidgetKind.Number)
         {
             if (binding.ReadOnly) return true;
             var selection = State.Text;
             if (selection is null) return false;
+            // Single-line: pasted line breaks and tabs become spaces rather than silently joining words.
+            text = text.Replace("\r\n", " ").Replace('\r', ' ').Replace('\n', ' ').Replace('\t', ' ');
             string inserted = string.Concat(text.EnumerateRunes().Where(rune => !System.Text.Rune.IsControl(rune)
                 && (!binding.DigitsOnly || rune.Value is >= '0' and <= '9')).Take(binding.MaximumLength).Select(rune => rune.ToString()));
             selection.Replace(inserted, binding.MaximumLength);
@@ -170,8 +190,9 @@ public sealed partial class WidgetSession
                 pending.Add(new WidgetOpenChanged(popup, true, binding.OpenChanged));
             return true;
         }
-        if (binding.Group is null || text.Any(char.IsControl)) return false;
+        if (binding.Group is null || text.Any(char.IsControl)) return ModalKeys();
         if (timestamp - State.SearchTime > TimeSpan.FromSeconds(1) || timestamp < State.SearchTime) State.Search = "";
+        if (State.Search.Length == 0 && string.IsNullOrWhiteSpace(text)) return true;
         State.SearchTime = timestamp;
         State.Search = (State.Search + text).Length <= 64 ? State.Search + text : text;
         var members = GroupMembers(binding);

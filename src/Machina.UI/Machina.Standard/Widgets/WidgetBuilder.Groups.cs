@@ -3,6 +3,7 @@ using Machina.Core.Actions;
 using Machina.Core.Authoring;
 using Machina.Core.Nodes;
 using Machina.Core.Semantics;
+using Machina.Core.Styling;
 using Machina.Layout.Frames;
 using Machina.Layout.Rows;
 using Machina.Standard.Authoring;
@@ -49,8 +50,8 @@ public sealed partial class WidgetBuilder
         if (content is not null)
         {
             var panelId = id.Child("panel");
-            children.Add(StandardUI.Place(UI.Rect(content, panelId, width, contentHeight,
-                style: new(Style.Background, Padding: Style.Padding, BorderColor: Style.Border, BorderThickness: 1))
+            children.Add(StandardUI.Place(UI.Rect(Inset(content, width, contentHeight), panelId, width, contentHeight,
+                style: new(Style.Background, BorderColor: Style.Border, BorderThickness: 1, ClipToBounds: true))
                 with { Semantics = new(UiRole.TabPanel) { LabelledBy = id.Child("tabs").Child(selected!).Value } },
                 0, listHeight + Style.Gap, width, contentHeight));
         }
@@ -65,7 +66,7 @@ public sealed partial class WidgetBuilder
         var trigger = ButtonNode(binding, label, width,
             new(UiRole.Button, label, disabled, !disabled) { Expanded = open, Controls = id.Child("panel").Value });
         var children = new List<UiNode> { StandardUI.Place(trigger, 0, 0, width, Style.Height) };
-        if (open) children.Add(StandardUI.Place(UI.Rect(content, id.Child("panel"), width, contentHeight,
+        if (open) children.Add(StandardUI.Place(UI.Rect(Inset(content, width, contentHeight), id.Child("panel"), width, contentHeight,
             style: new(Style.Background, ClipToBounds: true)), 0, Style.Height + Style.Gap, width, contentHeight));
         return Panel(id, width, Style.Height + (open ? Style.Gap + contentHeight : 0), children);
     }
@@ -92,12 +93,31 @@ public sealed partial class WidgetBuilder
                 0, y, width, Style.Height));
             y += Style.Height + Style.Gap;
             if (!open) continue;
-            children.Add(StandardUI.Place(UI.Rect(panel.Content, panelId, width, panelHeight,
+            children.Add(StandardUI.Place(UI.Rect(Inset(panel.Content, width, panelHeight), panelId, width, panelHeight,
                 style: new(Style.Background, ClipToBounds: true)), 0, y, width, panelHeight));
             y += panelHeight + Style.Gap;
         }
         return Panel(id, width, Math.Max(1, y), children);
     }
+
+    /// <summary>Radio (round dot) or checkbox (square mark) item: indicator, then label, in a focusable shell.</summary>
+    private UiNode IndicatorItem(WidgetBinding binding, string label, double width, UiSemantics semantics, bool radio, bool active)
+    {
+        var indicatorId = binding.Id.Child("indicator");
+        UiNode? mark = active
+            ? UI.Anchor(UI.Rect(id: binding.Id.Child("mark"), width: radio ? 6 : 8, height: radio ? 6 : 8,
+                style: new UiStyle(binding.Disabled ? Style.Muted : Style.Accent, Shape: radio ? UiShapeKind.Circle : null)),
+                left: radio ? 5 : 4, top: radio ? 5 : 4, width: radio ? 6 : 8, height: radio ? 6 : 8)
+            : null;
+        var indicator = UI.Rect(mark, indicatorId, 16, 16, style: new UiStyle(Style.Background,
+            // Control boundaries need 3:1 contrast: enabled uses the muted foreground, disabled the faint border token.
+            BorderColor: binding.Disabled ? Style.Border : Style.Muted, BorderThickness: 1,
+            Shape: radio ? UiShapeKind.Circle : null));
+        return Bind(binding, LabelSlot(binding.Id, indicator, 16, 16, label, binding.Disabled ? Style.Muted : Style.Foreground, width), semantics);
+    }
+
+    private UiNode Inset(UiNode content, double width, double height) => UI.Anchor(content, left: Style.Padding, top: Style.Padding,
+        width: Math.Max(1, width - 2 * Style.Padding), height: Math.Max(1, height - 2 * Style.Padding));
 
     private UiNode ChoiceGroup(NodeId id, IReadOnlyList<WidgetOption> options, ImmutableArray<string> selected,
         UiAction? changed, WidgetOrientation orientation, WidgetDirection direction, bool disabled,
@@ -120,13 +140,15 @@ public sealed partial class WidgetBuilder
                 Direction = direction, Multiple = multiple, ToggleSelection = toggle, ActivateOnFocus = activateOnFocus
             };
             bool active = selected.Contains(option.Key);
-            var item = ButtonNode(binding, option.Label, itemWidth,
-                new(itemRole, option.Label, binding.Disabled, !binding.Disabled)
-                {
-                    Selected = active,
-                    Checked = itemRole is UiRole.Radio or UiRole.Checkbox ? active : null,
-                    Controls = itemRole == UiRole.Tab ? (owner ?? id).Child("panel").Value : null
-                });
+            var semantics = new UiSemantics(itemRole, option.Label, binding.Disabled, !binding.Disabled)
+            {
+                Selected = active,
+                Checked = itemRole is UiRole.Radio or UiRole.Checkbox ? active : null,
+                Controls = itemRole == UiRole.Tab ? (owner ?? id).Child("panel").Value : null
+            };
+            var item = itemRole is UiRole.Radio or UiRole.Checkbox
+                ? IndicatorItem(binding, option.Label, itemWidth, semantics, itemRole == UiRole.Radio, active)
+                : ButtonNode(binding, option.Label, itemWidth, semantics);
             int visualIndex = horizontal && direction == WidgetDirection.RightToLeft ? options.Count - index - 1 : index;
             children.Add(StandardUI.Place(item, horizontal ? visualIndex * (itemWidth + Style.Gap) : 0,
                 horizontal ? 0 : index * (Style.Height + Style.Gap), itemWidth, Style.Height));

@@ -105,7 +105,11 @@ public sealed class WidgetInteractionTests
         var result = fixture.Session.Handle(new UiFocusChanged(false));
         Assert.Equal(WidgetEditPhase.Cancel, Assert.IsType<WidgetNumberChanged>(Assert.Single(result.Changes)).Phase);
         Assert.False(fixture.Session.HasPointerCapture);
-        Assert.Null(fixture.Session.Focused);
+        // Like a native window, keyboard focus survives deactivation; only gestures and armed keys are dropped.
+        Assert.Equal(new NodeId("s"), fixture.Session.Focused);
+        fixture.Key(UiKey.Space);
+        fixture.Session.Handle(new UiFocusChanged(false));
+        Assert.Empty(fixture.Key(UiKey.Space, false).Changes);
     }
 
     [Fact]

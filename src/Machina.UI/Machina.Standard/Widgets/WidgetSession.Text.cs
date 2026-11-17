@@ -135,5 +135,8 @@ public sealed partial class WidgetSession
         }
         decimal value = Snap(binding, number);
         if (value != binding.Value) EmitNumber(binding, value, WidgetEditPhase.Commit);
+        // "150" in a 0..100 field commits 100: show what was committed, not the rejected draft.
+        string canonical = WidgetBuilder.FormatDecimal(value);
+        if (selection.Text != canonical && (value != number || value == binding.Value)) selection.Reset(value == binding.Value ? binding.Text : canonical);
     }
 }

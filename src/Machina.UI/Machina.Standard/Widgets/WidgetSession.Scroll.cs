@@ -65,7 +65,7 @@ public sealed partial class WidgetSession
             SetScroll(region, scrollOffsets[region.Id] - input.DeltaY * 36);
             return true;
         }
-        return false;
+        return InOverlay(hit.Value) || popups.Any(popup => popup.Modal);
     }
 
     private bool ScrollKey(WidgetBinding binding, UiKey key)

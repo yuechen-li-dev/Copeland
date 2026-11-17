@@ -52,10 +52,8 @@ public sealed partial class WidgetBuilder
             isChecked || indeterminate ? Style.Accent : Style.Background);
         var box = UI.Rect(UI.Anchor(mark, left: 4, top: indeterminate ? 7 : 4, width: indeterminate ? 10 : 8,
             height: indeterminate ? 2 : 8), id: id.Child("indicator"), width: 18, height: 18,
-            style: new UiStyle(Style.Background, BorderColor: Style.Border, BorderThickness: 1));
-        var body = UI.Row([box, UI.Text(label, id: id.Child("label"), size: Style.TextSize,
-            color: disabled ? Style.Muted : Style.Foreground)], gap: Style.Gap);
-        return Bind(binding, Shell(id, body, width), new(UiRole.Checkbox, label, disabled, !disabled)
+            style: new UiStyle(Style.Background, BorderColor: disabled ? Style.Border : Style.Muted, BorderThickness: 1));
+        return Bind(binding, LabelSlot(id, box, 18, 18, label, disabled ? Style.Muted : Style.Foreground, width), new(UiRole.Checkbox, label, disabled, !disabled)
         {
             Checked = isChecked, Indeterminate = indeterminate, ReadOnly = readOnly
         });
@@ -68,9 +66,11 @@ public sealed partial class WidgetBuilder
         {
             Checked = value, Changed = changed, Disabled = disabled, ReadOnly = readOnly, Text = label
         };
-        var body = Components.Switch.Create(id.Child("visual"), label, value, disabled, theme: Theme)
+        var track = Components.Switch.Create(id.Child("visual"), null, value, disabled, theme: Theme)
             with { Semantics = null, DeclaredAction = null };
-        return Bind(binding, Shell(id, body, width), new(UiRole.Switch, label, disabled, !disabled)
+        var switchStyle = Theme.Switch.Default;
+        return Bind(binding, LabelSlot(id, track, switchStyle.TrackWidth, switchStyle.TrackHeight, label,
+            disabled ? Style.Muted : Style.Foreground, width), new(UiRole.Switch, label, disabled, !disabled)
         {
             Checked = value, ReadOnly = readOnly
         });
@@ -98,7 +98,7 @@ public sealed partial class WidgetBuilder
         ValidateRange(minimum, maximum, step);
         return TextInput(new(id, id, WidgetKind.Number)
         {
-            Value = Math.Clamp(value, minimum, maximum), Text = value.ToString(CultureInfo.InvariantCulture),
+            Value = Math.Clamp(value, minimum, maximum), Text = FormatDecimal(Math.Clamp(value, minimum, maximum)),
             Minimum = minimum, Maximum = maximum, Step = step, Changed = changed,
             Disabled = disabled, ReadOnly = readOnly, MaximumLength = 64
         }, label, "", width);
@@ -120,16 +120,23 @@ public sealed partial class WidgetBuilder
         };
         double progress = maximum == minimum ? 0 : (double)((binding.Value - minimum) / (maximum - minimum));
         if (orientation == WidgetOrientation.Horizontal && direction == WidgetDirection.RightToLeft) progress = 1 - progress;
-        double thumbX = orientation == WidgetOrientation.Horizontal ? 3 + progress * (width - 14) : (width - 10) / 2;
-        double thumbY = orientation == WidgetOrientation.Vertical ? 3 + (1 - progress) * (h - 14) : (h - 10) / 2;
+        // Thumb centre spans [SliderInset, extent - SliderInset]; WidgetSession maps the pointer over the same span.
+        double thumbX = orientation == WidgetOrientation.Horizontal ? SliderInset - 5 + progress * Math.Max(0, width - 2 * SliderInset) : (width - 10) / 2;
+        double thumbY = orientation == WidgetOrientation.Vertical ? SliderInset - 5 + (1 - progress) * Math.Max(0, h - 2 * SliderInset) : (h - 10) / 2;
         UiNode track = orientation == WidgetOrientation.Horizontal
             ? StandardUI.Place(Box(id.Child("track"), Math.Max(1, width - 8), 4, Style.Border), 4, (h - 4) / 2)
             : StandardUI.Place(Box(id.Child("track"), 4, Math.Max(1, h - 8), Style.Border), (width - 4) / 2, 4);
         var root = Panel(id, width, h,
         [track, StandardUI.Place(Box(id.Child("thumb"), 10, 10, disabled ? Style.Muted : Style.Accent), thumbX, thumbY)]);
         return Bind(binding, FocusOutline(id, root, width, h), new(UiRole.Slider, label, disabled, !disabled)
-        { Value = binding.Value.ToString(CultureInfo.InvariantCulture), Minimum = minimum, Maximum = maximum });
+        { Value = FormatDecimal(binding.Value), Minimum = minimum, Maximum = maximum });
     }
+
+    internal const double SliderInset = 8;
+
+    /// <summary>Invariant decimal text without trailing zeros from arithmetic scale (50.0 -> 50, 12.50 -> 12.5).</summary>
+    internal static string FormatDecimal(decimal value) =>
+        (value / 1.0000000000000000000000000000m).ToString(CultureInfo.InvariantCulture);
 
     public UiNode Progress(NodeId id, decimal? value, string label, decimal maximum = 100, double width = 240) =>
         Indicator(id, value, label, 0, maximum, width, UiRole.ProgressBar);
@@ -200,7 +207,7 @@ public sealed partial class WidgetBuilder
         var fill = Box(id.Child("fill"), Math.Max(1, width * fraction), 12, Style.Accent);
         return UI.Rect(value == minimum ? null : fill, id, width, 12,
             style: new UiStyle(Theme.Colors.Muted, ClipToBounds: true)) with
-        { Semantics = new(role, label) { Value = value?.ToString(CultureInfo.InvariantCulture), Minimum = minimum, Maximum = maximum } };
+        { Semantics = new(role, label) { Value = value is { } v ? FormatDecimal(v) : null, Minimum = minimum, Maximum = maximum } };
     }
 
     private UiNode Bind(WidgetBinding binding, UiNode root, UiSemantics semantics)
@@ -222,8 +229,42 @@ public sealed partial class WidgetBuilder
             TextStyle = new TextStyle(binding.Disabled ? Style.Muted : active ? Style.AccentForeground : Style.Foreground,
                 Style.TextSize, TextAlignX.Center, TextAlignY.Center)
         };
-        var root = StandardUI.Button(label, id: binding.Id, disabled: binding.Disabled, style: buttonStyle);
+        // The visible label is ellipsized; the accessible name keeps the full text.
+        var root = StandardUI.Button(Ellipsize(label, Math.Max(1, width - 2 * Style.Padding)), id: binding.Id, disabled: binding.Disabled, style: buttonStyle);
         return Bind(binding, root, semantics ?? new(UiRole.Button, label, binding.Disabled, !binding.Disabled));
+    }
+
+    /// <summary>
+    /// Indicator plus label in a fixed slot. The label is ellipsized and clipped: an overflowing row is a layout
+    /// error in Machina, so a long label must never be allowed to exceed the control.
+    /// </summary>
+    private UiNode LabelSlot(NodeId id, UiNode indicator, double indicatorWidth, double indicatorHeight, string label, ColorToken color, double width)
+    {
+        ValidateWidth(width);
+        double inner = Math.Max(1, width - 2 * Style.Padding), textX = indicatorWidth + Style.Gap, textWidth = Math.Max(1, inner - textX);
+        string shown = Ellipsize(label, textWidth);
+        var text = UI.Rect(UI.Text(shown, id: id.Child("label"), size: Style.TextSize, color: color, alignY: TextAlignY.Center),
+            id.Child("label-slot"), textWidth, 20, style: new UiStyle(ClipToBounds: true));
+        var body = UI.Layer(children:
+        [
+            StandardUI.Place(indicator, 0, Math.Max(0, (20 - indicatorHeight) / 2), indicatorWidth, indicatorHeight),
+            StandardUI.Place(text, textX, 0, textWidth, 20)
+        ]);
+        return Shell(id, body, width);
+    }
+
+    /// <summary>Trims to the measured width with "...", using the same measurer as layout.</summary>
+    internal string Ellipsize(string text, double width)
+    {
+        var style = new TextStyle(Style.Foreground, Style.TextSize);
+        if (TextMeasurer.MeasureText(text, style).Width <= width) return text;
+        var boundaries = StringInfo.ParseCombiningCharacters(text);
+        for (int i = boundaries.Length - 1; i > 0; i--)
+        {
+            string candidate = text[..boundaries[i]].TrimEnd() + "...";
+            if (TextMeasurer.MeasureText(candidate, style).Width <= width) return candidate;
+        }
+        return TextMeasurer.MeasureText("...", style).Width <= width ? "..." : "";
     }
 
     private UiNode Shell(NodeId id, UiNode body, double width)

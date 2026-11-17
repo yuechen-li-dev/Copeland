@@ -38,7 +38,8 @@ public sealed partial class WidgetBuilder
                 Math.Max(0, width - 3), top));
         }
         return Bind(new(id, id, WidgetKind.Scroll),
-            Panel(id, width, height, children, new UiStyle(ClipToBounds: true)),
+            Panel(id, width, height, children, new UiStyle(ClipToBounds: true,
+                BorderColor: Session.Focused == id && Session.FocusVisible ? Style.Focus : null, BorderThickness: 1)),
             new(UiRole.Group, label, Focusable: contentHeight > height));
     }
 }

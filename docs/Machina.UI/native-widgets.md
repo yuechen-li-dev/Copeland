@@ -77,20 +77,20 @@ resize events even when another application subsystem handles ordinary input.
 | Family | Current native behavior | Deliberate limits |
 |---|---|---|
 | Button | Pointer activation on matching release, Enter, Space on release, disabled occlusion, focus ring | No arbitrary browser prop/event API |
-| Checkbox, Checkbox Group, Switch, Toggle, Toggle Group | Controlled values, mixed checkbox indicator, read-only/disabled states, single/multiple selection, keyboard interaction | Group items currently use button-style visuals |
-| Input | Single-line Unicode, grapheme caret/deletion, pointer selection, horizontal text scrolling, Home/End, select all, clipboard, bounded local undo/redo | Committed Unicode only; no IME preedit, bidi editor or multiline input |
-| Number Field | Invariant decimal draft, explicit commit/failure, bounds/step, arrow/page changes | No locale formatting, wheel spin or scrub handle |
+| Checkbox, Checkbox Group, Switch, Toggle, Toggle Group | Controlled values, mixed checkbox indicator, square/round group indicators, read-only/disabled states, single/multiple selection, keyboard interaction, ellipsized labels | Toggle group items use button visuals by design |
+| Input | Single-line Unicode, grapheme caret/deletion, pointer and double/triple-click selection, Windows-style Ctrl word movement/deletion, horizontal text scrolling, Home/End (and Up/Down), select all, clipboard (line breaks pasted as spaces), bounded local undo/redo | Committed Unicode only; no IME preedit, bidi editor or multiline input |
+| Number Field | Invariant decimal draft, explicit commit/failure, bounds/step, arrow/page changes; a clamped or unchanged commit redisplays the committed value; values display without scale noise (`50`, not `50.0`) | No locale formatting, wheel spin or scrub handle |
 | Slider | Exact decimal range/step, horizontal/vertical/RTL, pointer capture, Preview/Commit/Cancel, keyboard | One thumb; no range slider |
 | Radio Group | Roving tab stop, arrows/Home/End, disabled skipping, looping, automatic selection, RTL | Fixed option declarations |
 | Tabs | Manual/automatic activation, roving focus, orientation/RTL, selected panel only | Vertical tab list is above content; no animation |
-| Toolbar | Roving focus and invocation using stable item keys/actions | Flat button toolbar |
+| Toolbar | Roving focus; invocation reports the item via `WidgetInvoked.Key` | Flat button toolbar |
 | Accordion, Collapsible | Controlled disclosure, expanded/controls semantics, disabled headers, accordion arrows, individual header Tab stops | Fixed content height; no animated measurement |
 | Select | Stable keys, current selected option, arrows/Home/End/typeahead, scroll-into-view, selection/dismissal, trigger focus restoration | Single selection, nonvirtualized options |
-| Combobox | Controlled query separate from selected key, deterministic filtering, suggestions, arrows/Enter/Escape, empty results | Single selection, no tokens or async search provider; host decides selected-label text |
+| Combobox | Controlled query separate from selected key, deterministic filtering, suggestions, arrows/Enter/Escape, empty results; clicking its input while open edits instead of dismissing; typing with an option focused returns to the query | Single selection, no tokens or async search provider; host decides selected-label text |
 | Menu | Flat menu items, keyboard/typeahead, dismissal, invocation represented by selected item key | No submenus, menubar or context-menu positioning |
 | Dialog, Alert Dialog | Current-geometry overlay, nested popup focus scope, focus trap/restore, Escape, explicit close, outside-click policy | Alert blocks outside dismissal but permits Escape; no native window dialog |
-| Popover, Tooltip | Anchor flip/clamp, overlay clipping, Escape, outside-click consumption for popovers; tooltip hover/focus and dismissal suppression | Tooltip is immediate unless caller supplies controlled timing; no hover grace corridor |
-| Scroll Area | Vertical wheel/keyboard scroll, clipped hit testing, focus visibility, scroll-position indicator | No thumb drag, horizontal scroll or virtualization |
+| Popover, Tooltip | Anchor flip/clamp, overlay clipping, Escape, outside-click consumption for popovers, focus moves into popover content and returns to the trigger; tooltip hover/focus and dismissal suppression | Tooltip is immediate unless caller supplies controlled timing; no hover grace corridor; Tab does not return from popover content to the trigger's next sibling |
+| Scroll Area | Vertical wheel/keyboard scroll, clipped hit testing, focus ring, focus visibility, scroll-position indicator | No thumb drag, horizontal scroll or virtualization |
 | Progress, Meter, Separator | Controlled values/semantics and native primitives | Indeterminate progress has a static marker, not an animation |
 | Field, Fieldset, Form | Label/description/error relationships, grouped declarations, validation state metadata | Validation/business rules and submit remain application-owned |
 
@@ -103,6 +103,14 @@ Semantic metadata is **not an OS accessibility bridge**. UI Automation/screen
 reader integration and IME composition require separate native host work. Current
 keyboard behavior and semantic tests do not qualify those missing capabilities.
 
+## Keyboard scope and application shortcuts
+
+`WidgetSession.KeyboardScope` reports the keyboard policy the widgets need: `TextEntry` (a text or number field
+owns unmodified keys), `Popup` (navigation/Escape belong to the open popup), `Modal` (every key belongs to the
+dialog), `Control` (a non-text widget has focus) or `None`. Map it onto the application's shortcut system, for
+example by pushing an InputMan action map per scope, so shortcut policy stays in one declarative place.
+`WidgetInputResult.Handled` remains authoritative per event and agrees with the scope.
+
 ## Interaction rules
 
 - Controlled values stay in the host. Rejected changes leave the authoritative
@@ -113,6 +121,13 @@ keyboard behavior and semantic tests do not qualify those missing capabilities.
 - Numeric values use `decimal`; step snapping is relative to the minimum, with
   halfway values rounded upward in that nonnegative offset. Conversions through
   `double` are limited to pointer position/visual fraction, not model values.
+- A focused text field consumes every key without Ctrl/Meta/Alt (typing "i" never also runs an application's
+  Mark In); command chords pass through. Auto-repeated Enter/Space on a focused control are consumed but do not
+  activate again. While a modal is open, keys, text and wheel input never reach the application.
+- Keyboard focus and the text draft survive window deactivation; gestures, hover, armed keys and typeahead do not.
+- Secondary/middle clicks never activate widgets; on an overlay they are consumed and outside clicks dismiss.
+- Labels are ellipsized to their control (accessible names keep the full text). An overflowing row is a layout
+  error in Machina, so no widget lets a label exceed its slot.
 - Ordinary controls activate on matching pointer release. Disabled controls block
   hits to controls behind them. Capture/focus loss cancels gestures and clears
   armed keys. Resize cancels capture before new geometry is prepared.
@@ -168,6 +183,11 @@ dotnet publish src/Valencia.App -c Release -r win-x64 --self-contained false -o 
 ```
 
 Recorded results and limitations are in [validation/native-widgets.json](validation/native-widgets.json).
+
+2026-11-17 hardening: `WidgetHardeningTests` adds 21 regression cases for the defects fixed in that pass and a
+seeded randomized interaction test (4 seeds x 2,500 mixed key/text/pointer/wheel/focus/resize events over a full
+controlled view) asserting no exceptions, focus only on mounted nodes and no capture leaks, with a guard that
+popups, text edits and numeric commits were actually exercised. Machina.UI solution: 865 passed.
 Current-source Release validation on the Ryzen 7 7700X / RTX 3070 (driver 610.88):
 
 | Check | Observed result |

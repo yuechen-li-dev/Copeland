@@ -29,6 +29,7 @@ public sealed partial class WidgetSession : IDisposable
     private readonly Dictionary<NodeId, NodeId?> returnFocus = [];
     private readonly HashSet<NodeId> dismissedTooltips = [];
     private readonly Dictionary<NodeId, HashSet<NodeId>> popupChildren = [];
+    private readonly HashSet<NodeId> overlayNodes = [];
 
     internal bool TooltipVisible(NodeId id, NodeId trigger)
     {
@@ -51,12 +52,21 @@ public sealed partial class WidgetSession : IDisposable
         public bool SelectingText;
         public string Search = "";
         public TimeSpan SearchTime;
+        public (NodeId Id, PointerPoint Point, TimeSpan Time, int Count)? LastClick;
     }
 
     private InputState State => lifetime.GetOrCreate(new NodeId("machina.widgets.input"),
         static () => new InputState(), UiStateLifetime.Activation);
 
     public NodeId? Focused => State.Focus;
+
+    /// <summary>The strongest keyboard scope in effect; see <see cref="WidgetKeyboardScope"/>.</summary>
+    public WidgetKeyboardScope KeyboardScope =>
+        popups.Any(popup => popup.Modal) ? WidgetKeyboardScope.Modal
+        : State.Focus is { } id && bindings.TryGetValue(id, out var binding) && binding.Kind is WidgetKind.Input or WidgetKind.Number
+            ? WidgetKeyboardScope.TextEntry
+        : popups.Any(popup => popup.Kind != WidgetPopupKind.Tooltip) ? WidgetKeyboardScope.Popup
+        : State.Focus is not null ? WidgetKeyboardScope.Control : WidgetKeyboardScope.None;
     public NodeId? Hovered => State.Hover;
     public bool FocusVisible => State.FocusVisible;
     public bool HasPointerCapture => State.Drag is not null || State.Pressed is not null;
@@ -89,7 +99,13 @@ public sealed partial class WidgetSession : IDisposable
         popups = builder.Popups.Where(popup => resolved.Nodes.ContainsKey(popup.Panel))
             .OrderBy(popup => ordered.IndexOf(popup.Panel)).ToList();
         popupChildren.Clear();
-        foreach (var popup in popups) popupChildren[popup.Id] = Descendants(resolved, popup.Panel);
+        overlayNodes.Clear();
+        foreach (var popup in popups)
+        {
+            popupChildren[popup.Id] = Descendants(resolved, popup.Panel);
+            var overlay = popup.Id.Child("overlay");
+            overlayNodes.UnionWith(resolved.Nodes.ContainsKey(overlay) ? Descendants(resolved, overlay) : popupChildren[popup.Id]);
+        }
         var modal = popups.LastOrDefault(popup => popup.Modal);
         HashSet<NodeId>? modalNodes = modal is null ? null : Descendants(resolved, modal.Panel);
         if (modal is not null)
@@ -111,13 +127,15 @@ public sealed partial class WidgetSession : IDisposable
         {
             returnFocus[opened.Id] = opened.Kind == WidgetPopupKind.Combobox ? opened.Trigger : State.Focus ?? opened.Trigger;
             if (opened.Kind == WidgetPopupKind.Combobox) State.Focus = opened.Trigger;
-            if (opened.Kind is WidgetPopupKind.Select or WidgetPopupKind.Menu || opened.Modal)
+            if (opened.Kind is WidgetPopupKind.Select or WidgetPopupKind.Menu or WidgetPopupKind.Popover || opened.Modal)
             {
                 var children = Descendants(resolved, opened.Panel);
                 State.Focus = focusOrder.FirstOrDefault(id => children.Contains(id)
                     && bindings.TryGetValue(id, out var binding) && binding.Selected.Contains(binding.Key ?? ""));
                 if (State.Focus is null || !focusOrder.Contains(State.Focus.Value))
                     State.Focus = focusOrder.Where(children.Contains).Select(id => (NodeId?)id).FirstOrDefault();
+                // A popover without focusable content keeps focus on its trigger.
+                if (opened.Kind == WidgetPopupKind.Popover && State.Focus is null) State.Focus = returnFocus[opened.Id];
                 State.FocusVisible = true;
             }
         }
@@ -143,7 +161,7 @@ public sealed partial class WidgetSession : IDisposable
         EnsureOwner();
         bool handled = input switch
         {
-            UiPointerButtonChanged pointer => PointerButton(pointer),
+            UiPointerButtonChanged pointer => PointerButton(pointer, timestamp),
             UiPointerMoved pointer => PointerMove(pointer),
             UiPointerWheel wheel => Wheel(wheel),
             UiKeyChanged key => Key(key),
@@ -169,10 +187,17 @@ public sealed partial class WidgetSession : IDisposable
         return true;
     }
 
-    private bool PointerButton(UiPointerButtonChanged input)
+    private bool PointerButton(UiPointerButtonChanged input, TimeSpan timestamp)
     {
-        if (input.Button != UiPointerButton.Primary) return false;
-        var hit = hitTest?.HitTest(input.Position);
+        var hit = RouteHit(input.Position);
+        if (input.Button != UiPointerButton.Primary)
+        {
+            // Other buttons never activate widgets, but must not reach application controls covered by an overlay.
+            if (!input.IsPressed || hit is null || !InOverlay(hit.NodeId)) return false;
+            if (bindings.TryGetValue(hit.NodeId, out var covered) && covered.Kind == WidgetKind.Dismiss && covered.Id != PanelOf(covered.Popup))
+                Activate(covered.Id);
+            return true;
+        }
         if (input.IsPressed)
         {
             State.SpaceArmed = null;
@@ -184,8 +209,11 @@ public sealed partial class WidgetSession : IDisposable
                 Focus(hit.NodeId, false);
                 if (binding.Kind is WidgetKind.Input or WidgetKind.Number)
                 {
-                    MoveTextCaret(binding, input.Position, input.Modifiers.Shift);
-                    State.SelectingText = true;
+                    int clicks = ClickCount(binding.Id, input.Position, timestamp);
+                    MoveTextCaret(binding, input.Position, input.Modifiers.Shift && clicks == 1);
+                    if (clicks == 2) State.Text?.SelectWord();
+                    else if (clicks >= 3) State.Text?.SelectAll();
+                    State.SelectingText = clicks == 1;
                 }
                 if (binding.Kind == WidgetKind.Slider && !binding.ReadOnly)
                 {
@@ -214,6 +242,36 @@ public sealed partial class WidgetSession : IDisposable
         if (pressed is { } node && hit?.NodeId == node) Activate(node);
         return pressed is not null || hit?.Semantics?.Disabled == true;
     }
+
+    /// <summary>Platform-style multi-click counting: same target, within 500 ms and 4 px.</summary>
+    private int ClickCount(NodeId id, PointerPoint point, TimeSpan time)
+    {
+        int count = State.LastClick is { } last && last.Id == id && time >= last.Time
+            && time - last.Time <= TimeSpan.FromMilliseconds(500)
+            && Math.Abs(point.X - last.Point.X) <= 4 && Math.Abs(point.Y - last.Point.Y) <= 4 ? last.Count + 1 : 1;
+        State.LastClick = (id, point, time, count);
+        return count;
+    }
+
+    /// <summary>
+    /// Hit testing with one routing rule: a combobox keeps its own input interactive while its list is open,
+    /// so a click there moves the caret instead of dismissing through the backdrop.
+    /// </summary>
+    private UiHitTestResult? RouteHit(PointerPoint point)
+    {
+        var hit = hitTest?.HitTest(point);
+        if (hit is null || !bindings.TryGetValue(hit.NodeId, out var binding) || binding.Kind != WidgetKind.Dismiss
+            || binding.Id == PanelOf(binding.Popup)) return hit;
+        var popup = popups.LastOrDefault(item => item.Id == binding.Popup);
+        if (popup is not { Kind: WidgetPopupKind.Combobox } || !rectangles.TryGetValue(popup.Trigger, out var input)
+            || point.X < input.X || point.Y < input.Y || point.X >= input.X + input.Width || point.Y >= input.Y + input.Height) return hit;
+        return actions.TryGetValue(popup.Trigger, out var action) ? new UiHitTestResult(popup.Trigger, input, action, null) : hit;
+    }
+
+    private NodeId? PanelOf(NodeId? popup) => popup is { } id ? popups.FirstOrDefault(item => item.Id == id)?.Panel : null;
+
+    /// <summary>True when the node belongs to any open popup's overlay (backdrop, panel or content).</summary>
+    private bool InOverlay(NodeId id) => overlayNodes.Contains(id);
 
     private bool PointerMove(UiPointerMoved input)
     {
@@ -266,7 +324,7 @@ public sealed partial class WidgetSession : IDisposable
                 if (binding.CloseOnSelect) Dismiss(binding.Popup);
                 break;
             case WidgetKind.Button:
-                pending.Add(new WidgetInvoked(binding.Owner, binding.Changed));
+                pending.Add(new WidgetInvoked(binding.Owner, binding.Changed) { Key = binding.Key });
                 break;
         }
     }
@@ -295,16 +353,19 @@ public sealed partial class WidgetSession : IDisposable
     {
         CancelCapture();
         CommitNumberDraft();
-        lifetime.Suspend();
+        State.Hover = null;
+        State.Search = "";
+        State.LastClick = null;
         return true;
     }
 
     private decimal SliderValue(WidgetBinding binding, PointerPoint point)
     {
         Rect rect = rectangles[binding.Id];
+        double inset = WidgetBuilder.SliderInset;
         double ratio = binding.Orientation == WidgetOrientation.Vertical
-            ? 1 - (point.Y - rect.Y) / Math.Max(1, rect.Height)
-            : (point.X - rect.X) / Math.Max(1, rect.Width);
+            ? 1 - (point.Y - rect.Y - inset) / Math.Max(1, rect.Height - 2 * inset)
+            : (point.X - rect.X - inset) / Math.Max(1, rect.Width - 2 * inset);
         if (binding.Orientation == WidgetOrientation.Horizontal && binding.Direction == WidgetDirection.RightToLeft) ratio = 1 - ratio;
         return Snap(binding, binding.Minimum + (decimal)Math.Clamp(ratio, 0, 1) * (binding.Maximum - binding.Minimum));
     }
