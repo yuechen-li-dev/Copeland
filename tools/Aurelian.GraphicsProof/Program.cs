@@ -32,6 +32,12 @@ if (args.Contains("--viewmodel", StringComparer.Ordinal))
     return;
 }
 
+if (args.Contains("--rendering-r6", StringComparer.Ordinal))
+{
+    RenderingR3Proof.RunResolutionScaling(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r6"));
+    return;
+}
+
 if (args.Contains("--rendering-r5d", StringComparer.Ordinal))
 {
     RenderingR3Proof.RunScreenReflections(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r5d"));

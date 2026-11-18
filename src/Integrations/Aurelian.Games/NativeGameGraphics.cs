@@ -103,6 +103,7 @@ public sealed class NativeGameGraphics : IDisposable
     private readonly string title;
     private readonly bool visible;
     private readonly bool enableFramesInFlight;
+    private readonly RenderScale3D renderScale;
     private readonly List<StaticModel> preparedModels = [];
     private readonly GameAssets assets;
     private readonly LightingCompilationController lighting;
@@ -117,7 +118,7 @@ public sealed class NativeGameGraphics : IDisposable
     public Aurelian.Runtime.Dominatus.Inspection.DominatusInspector LightingInspector => lighting.Inspector;
 
     public NativeGameGraphics(IWindow window, string title, bool visible, GameAssets? assets = null, bool enableRayQueries = false,
-        bool vSync = true, bool enableFramesInFlight = true)
+        bool vSync = true, bool enableFramesInFlight = true, RenderScale3D renderScale = RenderScale3D.Native)
     {
         assets ??= new();
         this.assets = assets;
@@ -125,6 +126,7 @@ public sealed class NativeGameGraphics : IDisposable
         this.title = title;
         this.visible = visible;
         this.enableFramesInFlight = enableFramesInFlight;
+        this.renderScale = renderScale;
         VSync = vSync;
         lightingShaderKey = LightingProgramIdentity.Compute(assets.Shader("SurfaceSolid3D.v.ts"));
         lighting = new LightingCompilationController(request =>
@@ -480,7 +482,7 @@ public sealed class NativeGameGraphics : IDisposable
                         HybridResolve = assets.Shader("HybridResolve3D.v.ts"),
                     },
                     HierarchicalZ = new(assets.ComputeShader("HzbCull3D.v.ts"), assets.ComputeShader("HzbReduce3D.v.ts")),
-                })
+                }, renderScale: renderScale)
             {
                 FrameMode = enableFramesInFlight ? Native3DFrameMode.Interactive : Native3DFrameMode.Capture,
             });

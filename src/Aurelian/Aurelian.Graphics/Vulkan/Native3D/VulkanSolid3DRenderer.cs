@@ -114,6 +114,10 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
 
     public Graphics3DSettings Settings { get; set; } = Graphics3DSettings.Default;
 
+    public uint RenderWidth { get; }
+    public uint RenderHeight { get; }
+    private bool ScaledOutput => RenderWidth != target.Width || RenderHeight != target.Height;
+
     public VulkanSolid3DRenderer(
         AurelianVulkanPlant plant,
         CompiledGraphicsProgram program,
@@ -125,11 +129,15 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         CompiledGraphicsProgram? temporalProgram = null,
         CompiledGraphicsProgram? bloomProgram = null,
         SurfaceLightingPrograms? surfacePrograms = null, RetainedModel3DPrograms? retainedPrograms = null, FramePlanOptions? framePlans = null,
-        bool preserveColor = false)
+        bool preserveColor = false, RenderScale3D renderScale = RenderScale3D.Native)
     {
         ArgumentNullException.ThrowIfNull(plant);
         ArgumentNullException.ThrowIfNull(program);
         ArgumentNullException.ThrowIfNull(target);
+        RenderWidth = ScaleExtent(target.Width, renderScale);
+        RenderHeight = ScaleExtent(target.Height, renderScale);
+        if (renderScale != RenderScale3D.Native && (temporalProgram is null || !enableDepth))
+            throw new ArgumentException("Scaled rendering requires motion, depth and the HDR reconstruction pipeline.", nameof(renderScale));
         target.ValidateExternalPass(plant);
         ValidateProgram(program);
         if (preserveColor && (outputProgram is not null || surfacePrograms is not null))
@@ -175,7 +183,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
                     .. surfaceOnly ? new[] { "ambient-occlusion", "local-light-culling", "surface-lighting", "local-shadows", "subsurface-diffusion", "atmosphere", "transparency", "refraction", "particles-update", "visibility-cull", "visibility-raster",
                         "hzb-seed-depth", "hzb-seed-pyramid", "hzb-final-cull", "hzb-history-pyramid", "sharp-reflections",
                         "glossy-reflection-reconstruction" } : []], frames);
-                hdr = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, target.Width, target.Height,
+                hdr = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, RenderWidth, RenderHeight,
                     VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferSource,
                     VulkanMemoryUsage.GpuOnly, "solid3d.hdr", VulkanTextureFormat.Rgba16Float);
                 shadowMap = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, Lighting3DUniforms.ShadowSize, Lighting3DUniforms.ShadowSize,
@@ -200,7 +208,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             }
             if (motionOutput)
             {
-                motion = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, target.Width, target.Height,
+                motion = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, RenderWidth, RenderHeight,
                     VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferSource, VulkanMemoryUsage.GpuOnly,
                     "solid3d.motion", VulkanTextureFormat.Rgba32Float);
                 for (int index = 0; index < VulkanFrameInFlightSet.Count; index++)
@@ -210,7 +218,8 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
                 }
             }
             if (temporalProgram is not null)
-                temporal = new(plant, allocator, commandPool, fences, temporalProgram, target.Width, target.Height, frames);
+                temporal = new(plant, allocator, commandPool, fences, temporalProgram, target.Width, target.Height, frames,
+                    RenderWidth, RenderHeight);
             if (bloomProgram is not null)
             {
                 if (!outputHasBloom || hdr is null) throw new ArgumentException("Bloom requires the HDR bloom-aware output shader.");
@@ -218,11 +227,11 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             }
             if (surfacePrograms is not null)
             {
-                surfaceLighting = new(plant, allocator, commandPool, fences, surfacePrograms, shadowProgram!, target.Width, target.Height, frames, planOptions.AliasTransientTextures);
+                surfaceLighting = new(plant, allocator, commandPool, fences, surfacePrograms, shadowProgram!, RenderWidth, RenderHeight, frames, planOptions.AliasTransientTextures);
             }
             shadowSampler = Vulkan3DPass.CreateSampler(plant, Filter.Nearest);
             depth = VulkanNativeForwardTexturedRenderer.CreateTexture(
-                plant, allocator, target.Width, target.Height,
+                plant, allocator, RenderWidth, RenderHeight,
                 VulkanTextureUsage.DepthAttachment, VulkanMemoryUsage.GpuOnly, "solid3d.depth", VulkanTextureFormat.D32Float);
             var passResult = VulkanRenderPassFactory.Create(plant, new VulkanRenderPassDescriptor(
                 [new VulkanRenderPassAttachmentDescriptor(
@@ -249,7 +258,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             Require(passResult.Success, string.Join("; ", passResult.Diagnostics.Select(item => item.Message)));
             renderPass = passResult.RenderPass!;
             var framebufferResult = VulkanFramebufferFactory.Create(plant, renderPass,
-                new VulkanFramebufferDescriptor(target.Width, target.Height, [hdr ?? target.Texture, .. motion is null ? Array.Empty<AurelianVulkanTexture>() : [motion],
+                new VulkanFramebufferDescriptor(RenderWidth, RenderHeight, [hdr ?? target.Texture, .. motion is null ? Array.Empty<AurelianVulkanTexture>() : [motion],
                     .. surfaceLighting is null ? Array.Empty<AurelianVulkanTexture>() : [surfaceLighting.Normal, surfaceLighting.Emission, surfaceLighting.Subsurface]], depth));
             Require(framebufferResult.Success, string.Join("; ", framebufferResult.Diagnostics.Select(item => item.Message)));
             framebuffer = framebufferResult.Framebuffer!;
@@ -286,17 +295,17 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
                     throw new ArgumentException("Retained geometry requires the model material program.");
                 }
                 retainedModels = new(plant, allocator, commandPool, fences, frames,
-                    modelRenderer, renderPass, modelProgram, retainedPrograms, target.Width, target.Height);
+                    modelRenderer, renderPass, modelProgram, retainedPrograms, RenderWidth, RenderHeight);
             }
             if (surfacePrograms?.TransparentModel is not null && surfacePrograms.TransparencyResolve is not null)
                 transparency = new(plant, allocator, commandPool, fences, surfacePrograms,
-                    target.Width, target.Height, shadowMap, shadowSampler, frames);
+                    RenderWidth, RenderHeight, shadowMap, shadowSampler, frames, markEmissiveReactive: ScaledOutput);
             if (surfacePrograms?.RefractiveModel is not null && surfacePrograms.RefractionResolve is not null)
                 refractionFactory = () => new(plant, allocator, commandPool, fences, surfacePrograms,
-                    target.Width, target.Height, shadowMap, shadowSampler, frames);
+                    RenderWidth, RenderHeight, shadowMap, shadowSampler, frames);
             if (surfaceOnly && surfacePrograms is not null && modelProgram is not null)
             {
-                waterReflectionFactory = configuration => new(plant, target.Width, target.Height,
+                waterReflectionFactory = configuration => new(plant, RenderWidth, RenderHeight,
                     configuration, program, modelProgram, shadowProgram, outputProgram, surfacePrograms);
             }
         }
@@ -306,6 +315,14 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             throw;
         }
     }
+
+    private static uint ScaleExtent(uint size, RenderScale3D scale) => scale switch
+    {
+        RenderScale3D.Native => size,
+        RenderScale3D.TwoThirds => (uint)Math.Max((2UL * size + 1) / 3, 1),
+        RenderScale3D.Half => (uint)Math.Max(((ulong)size + 1) / 2, 1),
+        _ => throw new ArgumentOutOfRangeException(nameof(scale)),
+    };
 
     public void Prepare(StaticModel model)
     {
@@ -652,7 +669,13 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             throw new NotSupportedException("AUR-RAY-SHADOW-002: Ray shadows require one opaque NativeInstanceSet3D snapshot; mixed immediate or GPU-generated geometry has no shared acceleration authority yet.");
         if (correspondenceChanged) InvalidateSurfaceHistory();
         Matrix4x4 logicalCamera = worldToClip;
-        if (useTemporal) worldToClip = temporal!.Begin(logicalCamera);
+        bool hasParticles = ParticleEmitters.Count > 0;
+        bool hasTransparency = hasParticles || models.Any(batch => batch.Material.AlphaBlend);
+        bool hasRefraction = models.Any(batch => batch.Material.Transmission > 0);
+        // These secondary contributions lack complete motion correspondence.
+        // Keep their current raster stable so the spatial resolve preserves them.
+        bool jitterRaster = !ScaledOutput || !(hasTransparency || hasRefraction || reflections);
+        if (useTemporal) worldToClip = temporal!.Begin(logicalCamera, jitterRaster);
         if (surfaceOnly && !Matrix4x4.Invert(worldToClip, out _))
         {
             throw new ArgumentException("Surface lighting requires an invertible camera.", nameof(worldToClip));
@@ -725,7 +748,6 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             surfaceLighting.PrepareRayLighting(resident!, rayInverse, LocalLightSampling, RaySceneUpdateMode, StaticEmissionIntensity,
                 retainedModels?.SecondaryMaterialTable, retainedModels?.VisibilityIdentity, settings, EnvironmentSource);
         }
-        bool hasParticles = ParticleEmitters.Count > 0;
         if (hasParticles)
         {
             if (ParticleSystem is null || transparency is null || surfaceLighting is null)
@@ -738,8 +760,6 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             ParticleSystem.ValidatePlant(plant);
             ParticleSystem.Configure(ParticleEmitters, worldToClip, frames.Slot);
         }
-        bool hasTransparency = hasParticles || models.Any(batch => batch.Material.AlphaBlend);
-        bool hasRefraction = models.Any(batch => batch.Material.Transmission > 0);
         if (hasRefraction)
             EnsureRefraction();
         bool hasSubsurface = models.Any(batch => batch.Material.SubsurfaceStrength > 0)
@@ -752,7 +772,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             if (transparency is null || surfaceLighting is null)
                 throw new InvalidOperationException("Blend materials require the transparent model and resolve programs.");
             transparency.Prepare(models, worldToClip, eye, lighting, previousClip,
-                surfaceLighting.TransparentUniforms(cascades!, settings, target.Width, target.Height),
+                surfaceLighting.TransparentUniforms(cascades!, settings, RenderWidth, RenderHeight),
                 surfaceLighting.TransparentInputs(shadowMap, motion!));
             transparency.PrepareParticles(hasParticles ? ParticleSystem : null, worldToClip, eye, settings,
                 motion!, surfaceLighting.VolumeTexture, surfaceLighting.VolumeParameters(settings));

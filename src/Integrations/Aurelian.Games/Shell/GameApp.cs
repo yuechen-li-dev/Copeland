@@ -9,6 +9,7 @@ using Aurelian.GameMenus;
 using Aurelian.Graphics.Vulkan.Native2D;
 using Aurelian.Graphics.Vulkan.Native3D;
 using Aurelian.Playtesting;
+using Aurelian.Rendering.Contracts.Models;
 using Machina.Runtime.Input;
 using Silk.NET.Input;
 using Silk.NET.Maths;
@@ -27,6 +28,7 @@ public sealed record GameLaunchOptions
     public string? Output { get; init; }
     public string? SaveRoot { get; init; }
     public bool RayQueries { get; init; }
+    public RenderScale3D RenderScale { get; init; }
     public GameResolution? Resolution { get; init; }
     public GameWindowMode? Mode { get; init; }
     public GameGraphicsQuality? Quality { get; init; }
@@ -35,7 +37,8 @@ public sealed record GameLaunchOptions
 
     /// <summary>
     /// --headless, --playtest-script PATH, --playtest-stdio, --launch-smoke, --visible, --output DIR, --save-root DIR,
-    /// --gpu-rays, --resolution WxH, --windowed, --borderless, --fullscreen, --quality low|medium|high, --basic-graphics.
+    /// --gpu-rays, --resolution WxH, --render-scale native|2/3|1/2, --windowed, --borderless, --fullscreen,
+    /// --quality low|medium|high, --basic-graphics.
     /// Unknown arguments are ignored so games can add their own.
     /// </summary>
     public static GameLaunchOptions Parse(string[] args)
@@ -86,6 +89,13 @@ public sealed record GameLaunchOptions
             Output = Option(args, "--output"),
             SaveRoot = Option(args, "--save-root"),
             RayQueries = args.Contains("--gpu-rays", StringComparer.Ordinal),
+            RenderScale = Option(args, "--render-scale") switch
+            {
+                null or "native" => RenderScale3D.Native,
+                "2/3" => RenderScale3D.TwoThirds,
+                "1/2" => RenderScale3D.Half,
+                _ => throw new ArgumentException("--render-scale expects native, 2/3 or 1/2."),
+            },
             Resolution = resolution,
             Mode = mode,
             Quality = quality,
@@ -195,7 +205,8 @@ public static class GameApp
         window.Initialize();
         using IInputContext input = window.CreateInput();
         using var graphics = new NativeGameGraphics(window, manifest.Title, visible, session.Context.Assets,
-            enableRayQueries: launch.RayQueries, vSync: initial.VSync, enableFramesInFlight: !launch.Playtest);
+            enableRayQueries: launch.RayQueries, vSync: initial.VSync, enableFramesInFlight: !launch.Playtest,
+            renderScale: launch.RenderScale);
         var menus = new GameMenuView(graphics.Font);
         using var native = new NativeGameSession(session, window, input, graphics, menus,
             manageFocus: !launch.Playtest, retainedGeometry: !launch.Playtest);
@@ -208,7 +219,7 @@ public static class GameApp
             session.AttachDisplay(display, applyNow: false);
             native.SyncSurface();
             Console.WriteLine($"AURELIAN_GAME_READY id={manifest.Id} gpu={graphics.Plant.Facts.PhysicalDeviceName} " +
-                $"extent={graphics.Width}x{graphics.Height} mode={initial.Mode}");
+                $"extent={graphics.Width}x{graphics.Height} render={graphics.Renderer.RenderWidth}x{graphics.Renderer.RenderHeight} mode={initial.Mode}");
             if (launch.Playtest)
             {
                 RunPlaytest(new GamePlaytestTarget(session, menus, native), launch.PlaytestScript, output);

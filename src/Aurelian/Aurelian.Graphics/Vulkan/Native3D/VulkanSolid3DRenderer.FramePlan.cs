@@ -82,7 +82,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
         var features = new Native3DFeatures(surfaceOnly, outputPass is not null, motionOutput, shadowPass is not null,
             !planOptions.OptimizeInactivePasses || state.Settings.AmbientOcclusionStrength > 0,
             !planOptions.OptimizeInactivePasses || state.Settings.LocalLightCulling && LocalLights.Count > 0,
-            state.UseTemporal, state.Settings.BloomIntensity > 0, shaded && state.HasSubsurface,
+            state.UseTemporal || ScaledOutput, state.Settings.BloomIntensity > 0, shaded && state.HasSubsurface,
             shaded && state.Settings.Fog.Density > 0, state.Settings.Volumetrics.Enabled,
             shaded && state.HasRefraction, shaded && state.HasTransparency, shaded && state.HasParticles,
             planOptions.AsyncParticleUpdates && plant.ComputeQueue.HasValue, state.UseTemporal && state.GpuGeometry is not null,
@@ -92,7 +92,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
             surfaceLighting is { ReflectionsActive: true, ReconstructReflections: true }, surfaceLighting?.ReflectionGuideActive == true);
         if (!framePlanCache.TryGetValue(features, out var plan))
         {
-            plan = Native3DFrameGraph.Compile(features, (int)target.Width, (int)target.Height);
+            plan = Native3DFrameGraph.Compile(features, (int)RenderWidth, (int)RenderHeight, (int)target.Width, (int)target.Height);
             framePlanCache.Add(features, plan);
         }
         CurrentFramePlan = plan;

@@ -19,9 +19,12 @@ internal readonly record struct Native3DFeatures(bool Surface, bool Modern, bool
 /// <summary>Declarative authoring for the production renderer. The compiler publishes only resolved data.</summary>
 internal static class Native3DFrameGraph
 {
-    public static FramePlan Compile(Native3DFeatures features, int width, int height)
+    public static FramePlan Compile(Native3DFeatures features, int width, int height, int? displayWidth = null, int? displayHeight = null)
     {
         var graph = new FrameGraphBuilder();
+        int outputWidth = displayWidth ?? width;
+        int outputHeight = displayHeight ?? height;
+        bool scaled = width != outputWidth || height != outputHeight;
         FrameResource Texture(string name, string format = "rgba16f", bool initialized = false,
             bool allowUnused = false, bool aliasable = false, int scale = 1)
         {
@@ -32,7 +35,8 @@ internal static class Native3DFrameGraph
         FrameResource External(string name) => graph.Resource(name, "external", 1, 1, FrameLifetime.Imported, initialized: true);
         var inputs = External("frame-inputs");
         var lights = External("local-light-data");
-        var output = Texture("display-output", initialized: features.PreserveColor);
+        var output = graph.Resource("display-output", "rgba16f", outputWidth, outputHeight,
+            features.PreserveColor ? FrameLifetime.Imported : FrameLifetime.Transient, initialized: features.PreserveColor, dedicated: true);
         var scene = features.Modern ? Texture("geometry-color") : output;
         var motion = Texture("motion-depth", "rgba32f", allowUnused: true);
         var normal = Texture("surface-normal");
@@ -223,8 +227,8 @@ internal static class Native3DFrameGraph
         }
         if (features.Temporal)
         {
-            var temporal = Texture("temporal-color");
-            var history = graph.Resource("temporal-history", "rgba32f", width, height, FrameLifetime.History, initialized: true);
+            var temporal = graph.Resource("temporal-color", scaled ? "rgba32f" : "rgba16f", outputWidth, outputHeight, dedicated: true);
+            var history = graph.Resource("temporal-history", "rgba32f", outputWidth, outputHeight, FrameLifetime.History, initialized: true);
             var pass = graph.Pass("temporal-resolve", (int)Native3DPass.Temporal).Read(scene).Read(motion)
                 .Write(history, FrameAccess.HistoryReadWrite).Write(temporal);
             if (reflections is not null) pass.Read(reflections);
@@ -234,7 +238,9 @@ internal static class Native3DFrameGraph
         FrameResource? glow = null;
         if (features.Bloom)
         {
-            glow = Texture("bloom-color", scale: 2);
+            glow = scaled
+                ? graph.Resource("bloom-color", "rgba16f", Math.Max(outputWidth / 2, 1), Math.Max(outputHeight / 2, 1), dedicated: true)
+                : Texture("bloom-color", scale: 2);
             graph.Pass("bloom", (int)Native3DPass.Bloom).Read(scene).Write(glow);
         }
         if (features.Modern)

@@ -9,6 +9,14 @@ public enum AntiAliasing3D
     Temporal,
 }
 
+/// <summary>Fixed internal raster resolution relative to the display target.</summary>
+public enum RenderScale3D
+{
+    Native,
+    TwoThirds,
+    Half,
+}
+
 public enum SurfaceDebugView3D
 {
     Shaded,

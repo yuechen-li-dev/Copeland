@@ -105,6 +105,14 @@ def evaluate(manifest_path):
     elif manifest.get("Qualification") in ("probe-reflection-experiment", "screen-reflection-experiment"):
         if len(results) < 4:
             raise ValueError("Reflection comparison is missing captures")
+    elif manifest.get("Qualification") == "resolution-scaling":
+        for scale in ("two-thirds", "half"):
+            for scene in ("thin-static", "thin-motion"):
+                if means[f"{scene}-{scale}-temporal"] >= means[f"{scene}-{scale}-spatial"] * .99:
+                    raise ValueError(f"Temporal scaling failed the spatial FLIP control for {scene} at {scale}")
+            for scene in ("particles", "glossy"):
+                if means[f"{scene}-{scale}-temporal"] > means[f"{scene}-{scale}-spatial"] * 1.02:
+                    raise ValueError(f"Reactive scaling degraded FLIP for {scene} at {scale}")
     elif manifest.get("Qualification") == "screen-reflection-bounds":
         if len(results) < 7 or any(value != 0 for value in means.values()):
             raise ValueError("Screen-assisted reflection captures differ from hardware")

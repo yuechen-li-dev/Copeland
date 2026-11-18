@@ -110,7 +110,8 @@ internal static class RenderingBindlessProof
     }
 
     internal static VulkanSolid3DRenderer CreateRenderer(AurelianVulkanPlant plant, GameAssets assets, VulkanNativeFrameTarget target,
-        bool enableCulling = false, VisibilityBufferPrograms? visibilityPrograms = null, bool rayShadows = false)
+        bool enableCulling = false, VisibilityBufferPrograms? visibilityPrograms = null, bool rayShadows = false,
+        RenderScale3D renderScale = RenderScale3D.Native, bool particles = false)
         => new(plant, assets.Shader("SurfaceSolid3D.v.ts"), target,
             modelProgram: assets.Shader("SurfaceModel3D.v.ts"), shadowProgram: assets.Shader("Shadow3D.v.ts"),
             outputProgram: assets.Shader("ToneMap3D.v.ts"), temporalProgram: assets.Shader("TemporalResolve3D.v.ts"),
@@ -129,6 +130,9 @@ internal static class RenderingBindlessProof
                 LocalRayShadows = rayShadows ? assets.ComputeShader("LocalShadows3D.v.ts") : null,
                 SubsurfaceDiffuse = assets.Shader("SubsurfaceDiffuse3D.v.ts"),
                 SubsurfaceMerge = assets.Shader("SubsurfaceMerge3D.v.ts"),
+                TransparentModel = particles ? assets.Shader("TransparentModel3D.v.ts") : null,
+                TransparencyResolve = particles ? assets.Shader("TransparencyResolve3D.v.ts") : null,
+                ParticleBillboards = particles ? assets.Shader("ParticleBillboard3D.v.ts") : null,
             }, retainedPrograms: new(assets.Shader("InstancedModel3D.v.ts"), assets.Shader("InstancedShadow3D.v.ts"))
             {
                 Bindless = assets.Shader("BindlessModel3D.v.ts"),
@@ -140,7 +144,7 @@ internal static class RenderingBindlessProof
                 HierarchicalZ = new(assets.ComputeShader("HzbCull3D.v.ts"), assets.ComputeShader("HzbReduce3D.v.ts")),
                 Visibility = enableCulling ? new(assets.ComputeShader("VisibilityCull3D.v.ts"),
                     assets.ComputeShader("VisibilityScan3D.v.ts"), assets.ComputeShader("VisibilityScatter3D.v.ts")) : null,
-            });
+            }, renderScale: renderScale);
 
     private static IReadOnlyList<object> CheckCulledSceneRevisions(AurelianVulkanPlant plant, GameAssets assets, string output)
     {

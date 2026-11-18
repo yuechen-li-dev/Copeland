@@ -44,7 +44,12 @@ function PixelMain(input: Varyings, resources: Resources): Output {
     if (optical.x > 0.001) {
         mixed = (1.0 - transmission) / optical.x;
     }
+    var coverage: f32 = scene.w * transmission;
+    // An additive spark can change radiance while leaving optical depth zero.
+    if (resources.material.parameters.x > 0.5 && Max(optical.y, Max(optical.z, optical.w)) > 0.00001) {
+        coverage = Min(coverage, 0.99);
+    }
     return { color: float4(scene.x * transmission + sum.x * scale + optical.y * mixed,
         scene.y * transmission + sum.y * scale + optical.z * mixed,
-        scene.z * transmission + sum.z * scale + optical.w * mixed, scene.w * transmission) };
+        scene.z * transmission + sum.z * scale + optical.w * mixed, coverage) };
 }

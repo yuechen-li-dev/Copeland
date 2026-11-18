@@ -156,7 +156,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
         if (hasRefraction && settings.SurfaceDebugView == SurfaceDebugView3D.Shaded)
         {
             state.Resolved = refraction!.Record(command, outputVertices!, models, worldToClip, eye, lighting,
-                surfaceLighting!.TransparentUniforms(cascades!, settings, target.Width, target.Height),
+                surfaceLighting!.TransparentUniforms(cascades!, settings, RenderWidth, RenderHeight),
                 surfaceLighting.TransparentInputs(shadowMap, motion!), surfaceLighting.UnfoggedOutput!, state.Resolved!,
                 waterFrame, resetHistory ? waterFrame.Time : previousWaterTime, previousClip, logicalCamera,
                 resetHistory, useTemporal, settings.TemporalHistoryWeight,
@@ -184,9 +184,9 @@ public sealed unsafe partial class VulkanSolid3DRenderer
         var settings = state.Settings;
         bool useTemporal = state.UseTemporal;
         gpuTimings?.Mark(command, 4);
-        if (useTemporal)
+        if (useTemporal || ScaledOutput)
             state.Resolved = temporal!.Resolve(command, outputVertices!, state.Resolved!, motion!, settings.TemporalHistoryWeight,
-                surfaceLighting?.ReflectionOutput);
+                surfaceLighting?.ReflectionOutput, accumulate: useTemporal);
         gpuTimings?.Mark(command, 5);
     }
 
@@ -208,7 +208,8 @@ public sealed unsafe partial class VulkanSolid3DRenderer
         if (outputPass is not null)
         {
             Vulkan3DPass.SampleAfterRendering(plant, command, state.Resolved!);
-            if (outputHasBloom) outputPass.SetOutputTextures(state.Resolved!, state.Glow ?? state.Resolved!);
+            if (outputHasBloom || ScaledOutput)
+                outputPass.SetOutputTextures(state.Resolved!, outputHasBloom ? state.Glow ?? state.Resolved! : null);
             bool encodeSrgb = target.TextureFormat is not (VulkanTextureFormat.Rgba8Srgb or VulkanTextureFormat.Bgra8Srgb);
             float toneControl = settings.ToneMapping
                 ? 1 + settings.ToneMapColorRetention + (settings.ToneMapGamutCompression ? 2 : 0)

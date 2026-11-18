@@ -19,18 +19,25 @@ internal sealed class VulkanTemporal3D : IDisposable
     private readonly VulkanPostProcess3D[] passes = new VulkanPostProcess3D[2];
     private readonly uint width;
     private readonly uint height;
+    private readonly uint renderWidth;
+    private readonly uint renderHeight;
+    private bool Scaled => renderWidth != width || renderHeight != height;
     private int writeIndex;
     private uint frame;
     private bool valid;
     private Vector2 jitter;
     private Vector2 previousJitter;
+    private bool rasterJitter;
     public bool SupportsReflectionMask { get; }
 
     public VulkanTemporal3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
-        VulkanCommandBufferPool commands, VulkanFenceBundle fences, CompiledGraphicsProgram program, uint width, uint height, VulkanFrameInFlightSet? frames = null)
+        VulkanCommandBufferPool commands, VulkanFenceBundle fences, CompiledGraphicsProgram program, uint width, uint height,
+        VulkanFrameInFlightSet? frames = null, uint? renderWidth = null, uint? renderHeight = null)
     {
         this.width = width;
         this.height = height;
+        this.renderWidth = renderWidth ?? width;
+        this.renderHeight = renderHeight ?? height;
         SupportsReflectionMask = program.Resources.Any(resource => resource.Binding == 7);
         try
         {
@@ -59,28 +66,38 @@ internal sealed class VulkanTemporal3D : IDisposable
         frame = 0;
     }
 
-    public Matrix4x4 Begin(Matrix4x4 logicalCamera)
+    public Matrix4x4 Begin(Matrix4x4 logicalCamera, bool jitterEnabled = true)
     {
         previousJitter = jitter;
-        uint sample = frame % 8 + 1;
-        jitter = new(Halton(sample, 2) - .5f, Halton(sample, 3) - .5f);
-        return Jitter(logicalCamera, jitter, width, height);
+        uint sample = frame % (Scaled ? 32u : 8u) + 1;
+        rasterJitter = jitterEnabled;
+        jitter = rasterJitter ? new(Halton(sample, 2) - .5f, Halton(sample, 3) - .5f) : Vector2.Zero;
+        return Jitter(logicalCamera, jitter, renderWidth, renderHeight);
     }
 
     public AurelianVulkanTexture Resolve(VulkanCommandBufferLease command, AurelianVulkanBuffer triangle,
         AurelianVulkanTexture current, AurelianVulkanTexture motion, float historyWeight,
-        AurelianVulkanTexture? reflection = null)
+        AurelianVulkanTexture? reflection = null, bool accumulate = true)
     {
         var pass = passes[writeIndex];
-        Vector2 delta = previousJitter - jitter;
-        pass.Configure([1f / width, 1f / height, valid ? 1 : 0, Math.Min(frame / (frame + 1f), historyWeight),
-            delta.X / width, delta.Y / height, 0, 0, jitter.X / width, jitter.Y / height, reflection is null ? 0 : 1, 0],
+        Vector2 sampleJitter = accumulate ? jitter : Vector2.Zero;
+        Vector2 delta = accumulate ? previousJitter - jitter : Vector2.Zero;
+        // Native TAA, jittered temporal upscale, spatial upscale, unjittered temporal upscale.
+        float mode = 0;
+        if (Scaled)
+        {
+            mode = rasterJitter ? 1 : 3;
+            if (!accumulate) mode = 2;
+        }
+        pass.Configure([1f / renderWidth, 1f / renderHeight, valid && accumulate ? 1 : 0, Math.Min(frame / (frame + 1f), historyWeight),
+            delta.X / renderWidth, delta.Y / renderHeight, 1f / width, 1f / height,
+            sampleJitter.X / renderWidth, sampleJitter.Y / renderHeight, reflection is null ? 0 : 1, mode],
             [current, motion, history[1 - writeIndex], .. SupportsReflectionMask ? new[] { reflection ?? motion } : []]);
         pass.Record(command, triangle);
         var result = history[writeIndex];
         writeIndex = 1 - writeIndex;
-        valid = true;
-        frame++;
+        valid = accumulate;
+        frame = accumulate ? frame + 1 : 0;
         return result;
     }
 

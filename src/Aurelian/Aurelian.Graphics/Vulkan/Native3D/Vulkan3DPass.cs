@@ -112,10 +112,10 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
         }
     }
 
-    public void SetOutputTextures(AurelianVulkanTexture source, AurelianVulkanTexture bloom)
+    public void SetOutputTextures(AurelianVulkanTexture source, AurelianVulkanTexture? bloom)
     {
         WriteImage(plant, bindings.Set, 1, source, sampler);
-        WriteImage(plant, bindings.Set, 3, bloom, sampler);
+        if (bloom is not null) WriteImage(plant, bindings.Set, 3, bloom, sampler);
     }
 
     public void Upload(ReadOnlySpan<float> values)

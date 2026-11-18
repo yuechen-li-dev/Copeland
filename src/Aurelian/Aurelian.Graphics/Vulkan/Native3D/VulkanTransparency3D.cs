@@ -29,13 +29,16 @@ internal sealed class VulkanTransparency3D : IDisposable
     private readonly AurelianVulkanTexture accumulation;
     private readonly AurelianVulkanTexture optical;
     private readonly AurelianVulkanTexture output;
+    private readonly bool markEmissiveReactive;
     private NativeModel3DBatch[] batches = [];
 
     public VulkanTransparency3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
         VulkanCommandBufferPool commands, VulkanFenceBundle fences, SurfaceLightingPrograms programs,
-        uint width, uint height, AurelianVulkanTexture shadow, Sampler sampler, VulkanFrameInFlightSet? frames = null)
+        uint width, uint height, AurelianVulkanTexture shadow, Sampler sampler, VulkanFrameInFlightSet? frames = null,
+        bool markEmissiveReactive = false)
     {
         this.plant = plant;
+        this.markEmissiveReactive = markEmissiveReactive;
         try
         {
             accumulation = Image("transparency.color", VulkanTextureFormat.Rgba32Float);
@@ -116,7 +119,7 @@ internal sealed class VulkanTransparency3D : IDisposable
         if (particles is not null) { particleDraw!.Draw(command, begin.Scope.Value, framebuffer, particles); }
         if (!encoder.End(plant, command, begin.Scope.Value).Success)
             throw new InvalidOperationException("Weighted transparency accumulation end failed.");
-        resolvePass.Configure([0, 0, 0, 0], scene, accumulation, optical);
+        resolvePass.Configure([markEmissiveReactive ? 1 : 0, 0, 0, 0], scene, accumulation, optical);
         resolvePass.Record(command, triangle);
         return output;
     }
