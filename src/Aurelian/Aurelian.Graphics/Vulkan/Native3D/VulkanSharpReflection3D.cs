@@ -157,7 +157,9 @@ internal sealed unsafe class VulkanSharpReflection3D : IDisposable
         WriteVector(48, Vector3.Normalize(settings.SunDirection), settings.Shadows ? 1 : 0);
         WriteVector(52, settings.SunColor, settings.SunIntensity);
         bool quarterRate = settings.GlossyReflections == GlossyReflectionMode3D.HalfResolution;
-        WriteVector(56, settings.SkyAmbient, quarterRate ? 1 : 0);
+        int traceFlags = quarterRate ? 1 : 0;
+        if (settings.ScreenSpaceReflectionBounds) traceFlags |= 2;
+        WriteVector(56, settings.SkyAmbient, traceFlags);
         WriteVector(60, settings.GroundAmbient, 0);
         words[63] = sequence % 4096;
         RecordedPhase = (int)(sequence % 4);

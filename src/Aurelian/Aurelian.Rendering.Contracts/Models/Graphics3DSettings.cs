@@ -66,6 +66,8 @@ public sealed record Graphics3DSettings
     public GlossyReflectionMode3D GlossyReflections { get; init; }
     /// <summary>Use fresh runtime diffuse probe observations to guide GGX sampling toward bright emissive geometry.</summary>
     public bool GuideGlossyReflectionsWithProbes { get; init; }
+    /// <summary>Use current visibility to shorten hardware reflection rays. Useful when reflections see deep geometry layers.</summary>
+    public bool ScreenSpaceReflectionBounds { get; init; }
     public bool LocalLightCulling { get; init; } = true;
     public int LocalShadowBudget { get; init; } = 2;
     public bool SolidPbr { get; init; } = true;

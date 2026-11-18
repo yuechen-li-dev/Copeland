@@ -1,9 +1,11 @@
 import { Cross3, Dot3, Unit } from "./Lighting3D";
 
-// The high bit records use of the two-proposal mixture. The remaining bits retain the
-// hardware hit distance in centimetres and the two reserved sentinel values.
+// The high bits record which techniques ran. The low bits retain hardware hit
+// distance in centimetres and the sky and rejected-direction sentinel values.
 export const ReflectionGuideBit: u32 = 0x80000000;
-export const ReflectionDistanceMask: u32 = 0x7fffffff;
+export const ScreenCandidateBit: u32 = 0x40000000;
+export const ScreenRetryBit: u32 = 0x20000000;
+export const ReflectionDistanceMask: u32 = 0x1fffffff;
 
 export function GlossyCoverage(roughness: f32): f32 {
     return Clamp((0.48 - roughness) / 0.12, 0.0, 1.0);

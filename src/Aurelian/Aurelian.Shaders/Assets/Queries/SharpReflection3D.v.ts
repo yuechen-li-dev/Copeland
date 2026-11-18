@@ -1,6 +1,6 @@
 import { EnvironmentUv } from "./EnvironmentCoordinates3D";
 import { SecondaryAttributes } from "./SecondarySurface3D";
-import { ResidentVertex, ResidentInstance, ResidentAttributes, DirectionRow } from "./ResidentGeometry3D";
+import { ResidentVertex, ResidentInstance, ResidentAttributes, DirectionRow, PointRow } from "./ResidentGeometry3D";
 import { BindlessMaterialRecord } from "./ResidentMaterial3D";
 import { SurfaceData, EvaluateSurfaceSamples } from "./SurfaceMaterial3D";
 import { AnalyticLocalRay } from "./AnalyticGeometry3D";
@@ -9,6 +9,8 @@ import { AffineAnalyticIntersection } from "./AffineAnalyticQuery3D";
 import { WorldAt, EncodeOcta, EnvironmentBandUv } from "./SurfaceLighting";
 import { Cross3, Unit, Dot3, DirectLightModel, HemisphereLight, SpecularFresnel } from "./Lighting3D";
 import { GlossyCoverage, GlossyIsSharp, SampleVisibleGgx, GgxVisibilityWeight, VisibleGgxReflectionPdf, SampleReflectionCone, ReflectionGuideBit } from "./GlossyReflection3D";
+import { ScreenCandidateBit, ScreenRetryBit } from "./GlossyReflection3D";
+import { ReflectionRayRange, ScreenPixel, ScreenTriangleLimit } from "./ScreenReflection3D";
 import { Read4 } from "./LocalLightSamplingMath3D";
 import { EmitterSample3D, SampleLocalEmitter, EmitterRandom } from "./LocalEmitter3D";
 
@@ -83,7 +85,9 @@ function SharpReflectionMain(@builtin(dispatchThreadId) thread: uint3,
     let workIndex: u32 = raySlot + thread.y * U32(Parameters[27]);
     let width: u32 = U32(Parameters[20]);
     let height: u32 = U32(Parameters[21]);
-    let quarterRate: bool = Parameters[59] > 0.5;
+    let tracing: u32 = U32(Parameters[59]);
+    let quarterRate: bool = tracing % 2 != 0;
+    let useScreenBounds: bool = tracing >= 2;
     let compact: bool = quarterRate && thread.z != 0;
     var texelX: u32 = workIndex % width;
     var texelY: u32 = workIndex / width;
@@ -204,19 +208,59 @@ function SharpReflectionMain(@builtin(dispatchThreadId) thread: uint3,
         }
         return;
     }
-    SetReflectionRay(Rays, raySlot, position + geometric * 0.0005, direction, 10000.0);
-    RayQueryTraceRetained(Scene, Procedurals, Rays, Hits, Shading, raySlot, AffineAnalyticIntersection);
+    let rayOrigin: float3 = position + geometric * 0.0005;
+    let hit: u32 = raySlot * 16;
+    var limit: f32 = ReflectionRayRange;
+    var flags: u32 = 0;
+    if (useScreenBounds) {
+        let cx: float4 = Read4(Parameters, 32);
+        let cy: float4 = Read4(Parameters, 36);
+        let cz: float4 = Read4(Parameters, 40);
+        let cw: float4 = Read4(Parameters, 44);
+        // The resolved receiver already supplies clip position up to the homogeneous scale.
+        let start: float4 = float4(uv.x * 2.0 - 1.0, uv.y * 2.0 - 1.0, depth, 1.0) * PointRow(cw, position);
+        let delta: float4 = float4(DirectionRow(cx, direction), DirectionRow(cy, direction), DirectionRow(cz, direction), DirectionRow(cw, direction));
+        var previous: uint2 = uint2(identity.x, 0);
+        var step: f32 = 0.55;
+        for (let tap of BoundedIndices<4>(4)) {
+            if (limit == ReflectionRayRange) {
+                let pixel: uint2 = ScreenPixel(start + delta * step, viewport);
+                step = step * 2.4;
+                if (pixel.x != 0xffffffff) {
+                    let observed: uint2 = Load(Visibility, pixel);
+                    if (observed.x != 0 && observed.x != identity.x && (observed.x != previous.x || observed.y != previous.y)) {
+                        previous = observed;
+                        limit = ScreenTriangleLimit(observed, rayOrigin, direction, Geometry[observed.x - 1], Vertices, Indices);
+                    }
+                }
+            }
+        }
+        if (limit < ReflectionRayRange) { flags = ScreenCandidateBit; }
+    }
+    var trace: bool = true;
+    for (let attempt of BoundedIndices<2>(2)) {
+        if (trace) {
+            SetReflectionRay(Rays, raySlot, rayOrigin, direction, limit);
+            RayQueryTraceRetained(Scene, Procedurals, Rays, Hits, Shading, raySlot, AffineAnalyticIntersection);
+            // A screen candidate can be filtered by the TLAS. A miss or a hit at
+            // the clipping boundary needs the original range and tie behavior.
+            trace = limit < ReflectionRayRange && (Hits[hit + 2] < 0.5 || Hits[hit + 4] > limit - 0.0001);
+            if (trace) {
+                flags = flags | ScreenRetryBit;
+                limit = ReflectionRayRange;
+            }
+        }
+    }
 
     let sky: float3 = float3(Parameters[56], Parameters[57], Parameters[58]);
     let ground: float3 = float3(Parameters[60], Parameters[61], Parameters[62]);
-    let hit: u32 = raySlot * 16;
     if (writeHit) {
         ReflectionHits[index * 2] = U32(Hits[hit + 3] + 1.0);
         // Zero identifies a sky miss. Hits store distance in centimetres plus two.
         var distance: u32 = 0;
         if (Hits[hit + 2] > 0.5) { distance = U32(Hits[hit + 4] * 100.0 + 2.5); }
         if (usedGuide) { distance = distance | ReflectionGuideBit; }
-        ReflectionHits[index * 2 + 1] = distance;
+        ReflectionHits[index * 2 + 1] = distance | flags;
     }
     var radiance: float3 = float3(0.0, 0.0, 0.0);
     if (Hits[hit + 2] < 0.5) {
