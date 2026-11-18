@@ -38,6 +38,8 @@ outline geometry and shaping behavior unchanged.
 
 ## Safe maintenance refactors
 
+- Removed an unused Debug-only WOFF2 guard while preserving the known-table tag
+  check on construction.
 - Centralized empty-glyph construction so TrueType and WOFF2 loaders use the same
   identity-preserving rule.
 - Removed a write-only layout-mode field while retaining the clone behavior it

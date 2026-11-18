@@ -72,11 +72,17 @@ public sealed class WgslGraphicsBackendTests
     [Fact]
     public void DerivativeSamplingAtVertexStageFailsBeforeSerialization()
     {
-        string source = GpuGraphicsBinderM3Tests.Source
-            .Replace("input: VertexInput, builtins: VertexBuiltins", "input: VertexInput, builtins: VertexBuiltins, resources: ForwardResources", StringComparison.Ordinal)
-            .Replace("let vertexBias: f32", "let sampled: float4 = Sample(resources.albedo, resources.linearSampler, input.uv); let vertexBias: f32", StringComparison.Ordinal);
+        const string vertexParameters = "input: VertexInput, builtins: VertexBuiltins)";
+        const string vertexUv = "uv: input.uv,";
+        string specimen = GpuGraphicsBinderM3Tests.Source;
+        Assert.Contains(vertexParameters, specimen);
+        Assert.Contains(vertexUv, specimen);
+        string source = specimen
+            .Replace(vertexParameters, "input: VertexInput, builtins: VertexBuiltins, resources: ForwardResources)", StringComparison.Ordinal)
+            .Replace(vertexUv, "uv: float2(Sample(resources.albedo, resources.linearSampler, input.uv).x, input.uv.y),", StringComparison.Ordinal);
         var result = Compile(source);
         Assert.False(result.Success);
+        Assert.Null(result.Program);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "COPE-WGSL-STAGE-0001");
     }
 

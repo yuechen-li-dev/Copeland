@@ -109,13 +109,17 @@ public sealed class GpuGraphicsBinderM3Tests
     [Fact]
     public void Fwidth_Is_Rejected_Outside_The_Pixel_Stage()
     {
-        string source = Source.Replace(
-            "let vertexBias: f32 = Convert<f32>(builtins.vertexId + builtins.instanceId) * 0.000001;",
-            "let derivative: f32 = Fwidth(input.uv.x);\n    let vertexBias: f32 = derivative * 0.000001;",
+        const string vertexUv = "uv: input.uv,";
+        string specimen = Source;
+        Assert.Contains(vertexUv, specimen);
+        string source = specimen.Replace(
+            vertexUv, "uv: float2(Fwidth(input.uv.x), input.uv.y),",
             StringComparison.Ordinal);
 
+        VdMirGraphicsModule module = Compile(source);
+        Assert.False(module.Success);
         VdMirDiagnostic diagnostic = Assert.Single(
-            Compile(source).Diagnostics,
+            module.Diagnostics,
             item => item.Code == "COPE-GPU-DERIVATIVE-0002");
         Assert.Equal("SDSL-V4200", diagnostic.CanonicalCode);
     }

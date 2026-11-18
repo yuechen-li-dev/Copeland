@@ -1320,29 +1320,19 @@ namespace Typography.OpenFont.WebFont
         public Woff2Reader()
         {
 #if DEBUG
-            dbugVerifyKnownTables();
+            VerifyKnownTableTags();
 #endif
         }
 #if DEBUG
 
-        static bool s_dbugPassVeriKnownTables;
-        static void dbugVerifyKnownTables()
+        private static void VerifyKnownTableTags()
         {
-            if (s_dbugPassVeriKnownTables)
-            {
-                return;
-            }
-            //--------------
-            Dictionary<string, bool> uniqueNames = new Dictionary<string, bool>();
+            var uniqueNames = new HashSet<string>(System.StringComparer.Ordinal);
             foreach (string name in s_knownTableTags)
             {
-                if (!uniqueNames.ContainsKey(name))
+                if (!uniqueNames.Add(name))
                 {
-                    uniqueNames.Add(name, true);
-                }
-                else
-                {
-                    throw new System.Exception();
+                    throw new System.InvalidOperationException($"Duplicate WOFF2 table tag '{name}'.");
                 }
             }
         }

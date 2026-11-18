@@ -38,19 +38,43 @@ public sealed class AetherisBoundaryTests
     {
         string root = RepositoryRoot();
         var offenders = new List<string>();
-        foreach (string project in Directory.EnumerateFiles(root, "*.csproj", SearchOption.AllDirectories))
+        foreach (string project in SourceProjects(root))
         {
             string relative = Relative(root, project);
-            if (relative.Contains("/obj/", StringComparison.Ordinal) || relative.StartsWith("tests/", StringComparison.Ordinal))
-            {
-                continue;
-            }
             if (References(project).Any(IsAetheris) && !Bridges.Contains(relative))
             {
                 offenders.Add(relative);
             }
         }
         Assert.Empty(offenders);
+    }
+
+    private static IEnumerable<string> SourceProjects(string root)
+    {
+        // Qualification builds can leave detached checkouts and junctions under artifacts.
+        var options = new EnumerationOptions
+        {
+            AttributesToSkip = FileAttributes.ReparsePoint,
+            IgnoreInaccessible = false,
+        };
+        var pending = new Stack<string>();
+        pending.Push(root);
+        while (pending.TryPop(out string? directory))
+        {
+            foreach (string project in Directory.EnumerateFiles(directory, "*.csproj", options))
+            {
+                yield return project;
+            }
+            foreach (string child in Directory.EnumerateDirectories(directory, "*", options))
+            {
+                string name = Path.GetFileName(child);
+                if (name is ".git" or "bin" or "obj" || directory == root && name is ("artifacts" or "tests"))
+                {
+                    continue;
+                }
+                pending.Push(child);
+            }
+        }
     }
 
     [Fact]
