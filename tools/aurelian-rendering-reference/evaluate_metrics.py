@@ -92,6 +92,12 @@ def evaluate(manifest_path):
                 raise ValueError(f"Local ray shadows failed to improve FLIP: {scene}")
             if edge_means[scene + "-ray"] >= edge_means[scene + "-unshadowed"]:
                 raise ValueError(f"Local ray shadows failed to improve reference-edge FLIP: {scene}")
+    elif manifest.get("Qualification") == "glossy-reflections":
+        for roughness in (12, 24, 36, 44):
+            scene = f"roughness-{roughness}"
+            for reconstruction in ("full", "half"):
+                if means[f"{scene}-{reconstruction}"] >= means[f"{scene}-raw4"]:
+                    raise ValueError(f"Glossy {reconstruction} reconstruction failed the four-ray FLIP control: {scene}")
     elif manifest.get("Qualification") == "sharp-reflections":
         for scene in ["mirror", "curved"]:
             if means[scene + "-hardware"] >= means[scene + "-environment"] * .2:

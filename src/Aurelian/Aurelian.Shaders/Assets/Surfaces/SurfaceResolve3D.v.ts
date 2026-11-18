@@ -187,11 +187,12 @@ function PixelMain(input: Varyings, resources: Resources): Output {
     if (resources.material.reflectionParameters.x > 0.5) {
         reflection = Sample(resources.reflection, resources.baseSampler, input.uv);
     }
+    let reflectionWeight: f32 = Abs(reflection.w);
     var ambient: float3 = HemisphereLight(base, normal, view, sky, ground, n.w, material.w);
-    if (reflection.w > 0.0) {
+    if (reflectionWeight > 0.0) {
         let blend: f32 = Clamp(normal.y * 0.5 + 0.5, 0.0, 1.0);
         let diffuseHemisphere: float3 = Scale3(Mul3(base, Add3(Scale3(sky, blend), Scale3(ground, 1.0 - blend))), 1.0 - n.w);
-        ambient = Add3(Scale3(ambient, 1.0 - reflection.w), Scale3(diffuseHemisphere, reflection.w));
+        ambient = Add3(Scale3(ambient, 1.0 - reflectionWeight), Scale3(diffuseHemisphere, reflectionWeight));
     }
     if (resources.material.parameters.y > 0.5) {
         let reflected: float3 = BoxReflection(p, Sub3(Scale3(normal, 2.0 * Max(Dot3(normal, view), 0.0)), view),
@@ -204,13 +205,13 @@ function PixelMain(input: Varyings, resources: Resources): Output {
         }
         let nv: f32 = Max(Dot3(normal, view), 0.0001);
         ambient = float3(0.0, 0.0, 0.0);
-        if (reflection.w < 1.0) {
+        if (reflectionWeight < 1.0) {
             ambient = Scale3(EnvironmentSurfaceResponseWeighted(resources.environment, resources.environmentSampler, base, normal, reflected,
-                nv, n.w, material.w, 0.04, diffuseWeight), resources.material.parameters.z * (1.0 - reflection.w));
+                nv, n.w, material.w, 0.04, diffuseWeight), resources.material.parameters.z * (1.0 - reflectionWeight));
         }
-        if (reflection.w > 0.0) {
+        if (reflectionWeight > 0.0) {
             ambient = Add3(ambient, Scale3(EnvironmentDiffuseWeighted(resources.environment, resources.environmentSampler, base, normal,
-                nv, n.w, material.w, diffuseWeight), resources.material.parameters.z * reflection.w));
+                nv, n.w, material.w, diffuseWeight), resources.material.parameters.z * reflectionWeight));
         }
     }
     if (profile.w > 0.0 && resources.material.parameters.y > 0.5 && resources.material.probePosition.w < 0.5) {
@@ -322,6 +323,10 @@ function PixelMain(input: Varyings, resources: Resources): Output {
     if (reflection.w > 0.0) {
         let fresnel: float3 = SpecularFresnel(base, n.w, Max(Dot3(normal, view), 0.0));
         lit = Add3(lit, Scale3(Mul3(float3(reflection.x, reflection.y, reflection.z), fresnel), reflection.w));
+    }
+    if (reflection.w < 0.0) {
+        // The GGX estimator already includes the sample's Fresnel and visibility.
+        lit = Add3(lit, Scale3(float3(reflection.x, reflection.y, reflection.z), reflectionWeight));
     }
     let diffuse: float3 = Add3(bounce, Add3(diffuseDirect, Scale3(diffuseAmbient, emission.w * Occlusion(resources, input.uv, p))));
     return {

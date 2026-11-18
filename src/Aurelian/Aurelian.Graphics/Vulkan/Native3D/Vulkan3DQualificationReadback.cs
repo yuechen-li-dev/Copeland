@@ -15,14 +15,18 @@ namespace Aurelian.Graphics.Vulkan.Native3D;
 /// <summary>Explicit synchronous qualification only. The ordinary frame never calls these readbacks.</summary>
 internal static unsafe class Vulkan3DQualificationReadback
 {
-    internal static float[] ReadBuffer(AurelianVulkanPlant plant, VulkanFrameInFlightSet frames, AurelianVulkanBuffer source)
+    internal static float[] ReadBuffer(AurelianVulkanPlant plant, VulkanFrameInFlightSet frames, AurelianVulkanBuffer source) =>
+        ReadBuffer<float>(plant, frames, source);
+
+    internal static T[] ReadBuffer<T>(AurelianVulkanPlant plant, VulkanFrameInFlightSet frames, AurelianVulkanBuffer source)
+        where T : unmanaged
     {
         byte[] bytes = Read(plant, frames, source.SizeBytes, (command, destination) =>
         {
             BufferCopy copy = new(0, 0, source.SizeBytes);
             plant.Vk.CmdCopyBuffer(command.CommandBuffer, source.NativeBuffer, destination.NativeBuffer, 1, &copy);
         });
-        return MemoryMarshal.Cast<byte, float>(bytes).ToArray();
+        return MemoryMarshal.Cast<byte, T>(bytes).ToArray();
     }
 
     internal static ReferenceImage3D ReadTexture(AurelianVulkanPlant plant, VulkanFrameInFlightSet frames, AurelianVulkanTexture texture)

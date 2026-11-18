@@ -7,13 +7,14 @@ internal enum Native3DPass
     Uploads, Particles, DirectionalShadows, LocalShadows, Geometry, AmbientOcclusion, LightTiles,
     SurfaceResolve, Subsurface, Atmosphere, Refraction, Transparency, Temporal, Bloom, Output, HistoryCopy,
     RayShadows, Visibility, IdentityRaster, HzbSeedRaster, HzbSeedPyramid, HzbFinalCull, HzbHistoryPyramid, Reflections,
+    ReflectionReconstruction,
 }
 
 internal readonly record struct Native3DFeatures(bool Surface, bool Modern, bool Motion, bool Shadows,
     bool Ambient, bool Tiles, bool Temporal, bool Bloom, bool Subsurface, bool Fog, bool Volume,
     bool Refraction, bool Transparency, bool Particles, bool AsyncParticles, bool GpuHistory,
     int LocalShadows, bool Alias, bool Visibility = false, bool VisibilityBuffer = false, bool HierarchicalZ = false, bool RayShadows = false,
-    bool PreserveColor = false, bool Reflections = false);
+    bool PreserveColor = false, bool Reflections = false, bool ReflectionReconstruction = false);
 
 /// <summary>Declarative authoring for the production renderer. The compiler publishes only resolved data.</summary>
 internal static class Native3DFrameGraph
@@ -148,6 +149,19 @@ internal static class Native3DFrameGraph
                 .Read(inputs).Read(lights).Read(identity!).Read(scene).Read(motion).Read(normal).Read(emission)
                 .Write(reflections, FrameAccess.TransferWrite);
             if (rayShadows is not null) trace.DependsOn(rayShadows);
+            if (features.ReflectionReconstruction)
+            {
+                var hits = Texture("glossy-reflection-hits", "rg32ui");
+                trace.Write(hits, FrameAccess.TransferWrite);
+                var history = graph.Resource("glossy-reflection-history", "reflection-radiance-and-guide",
+                    width, height, FrameLifetime.History, initialized: true);
+                var reconstructed = Texture("glossy-reflection-radiance");
+                graph.Pass("glossy-reflection-reconstruction", (int)Native3DPass.ReflectionReconstruction)
+                    .Read(reflections).Read(hits).Read(scene).Read(motion).Read(normal).Read(identity!)
+                    .Write(history, FrameAccess.HistoryReadWrite).Write(reconstructed);
+                graph.Export(history);
+                reflections = reconstructed;
+            }
         }
         FrameResource unfogged = scene;
         if (features.Surface)

@@ -129,6 +129,8 @@ public static class BuiltinShaderLibrary
         new("SecondarySurface3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Module),
         new("DynamicDiffuse3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
         new("SharpReflection3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
+        new("GlossyReflection3D.v.ts", ShaderFamily.Lighting, ShaderSourceKind.Module),
+        new("GlossyReflectionResolve3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Graphics),
         new("RestirSpatial3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
         new("LocalLightProposal3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Module),
         new("SampledLocalLights3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),

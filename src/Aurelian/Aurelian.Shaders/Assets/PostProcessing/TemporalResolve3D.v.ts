@@ -56,7 +56,7 @@ function PixelMain(input: Varyings, resources: TemporalResources): Output {
     let motion: float4 = Sample(resources.motion, resources.motionSampler, input.uv);
     // The receiver motion says nothing about motion at the second hit.
     if (resources.temporal.reconstruction.z > 0.5
-        && Sample(resources.reflection, resources.reflectionSampler, input.uv).w > 0.0) {
+        && Abs(Sample(resources.reflection, resources.reflectionSampler, input.uv).w) > 0.0) {
         return { color: float4(current.x, current.y, current.z, -1.0) };
     }
     // OIT coverage has no opaque-surface motion correspondence. Reconstruct

@@ -82,6 +82,8 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
     private VulkanLocalRayShadows3D? rayShadows;
     private VulkanSceneAcceleration3D? rayScene;
     private VulkanSharpReflection3D? reflections;
+    private VulkanGlossyReflection3D? glossyReconstruction;
+    private NativeInstanceSet3D? reflectionSnapshot;
     private VulkanBindlessMaterials3D? reflectionMaterials;
     private AurelianVulkanTexture? reflectionIdentity;
     private AurelianVulkanTexture? reflectionSky;
@@ -92,7 +94,15 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
     private CompiledDiffuseProbeField3D? compiledProbes;
     public bool RayShadowsActive { get; private set; }
     public bool ReflectionsActive { get; private set; }
-    public AurelianVulkanTexture? ReflectionOutput => ReflectionsActive ? reflections!.Output : null;
+    public bool ReconstructReflections { get; private set; }
+    public AurelianVulkanTexture? ReflectionOutput
+    {
+        get
+        {
+            if (!ReflectionsActive) return null;
+            return ReconstructReflections ? glossyReconstruction!.Output : reflections!.Output;
+        }
+    }
     public SceneAccelerationStatistics3D? RayStatistics => RayShadowsActive || ReflectionsActive ? rayScene?.Statistics : null;
     private ReflectionProbe3D? probe;
     public int ShadowCount { get; private set; }
@@ -245,7 +255,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
     }
 
     public bool Prepare(EnvironmentLighting? asset, ReflectionProbe3D? reflectionProbe, IReadOnlyList<LocalLight3D> lights, int shadowBudget,
-        bool rayShadowEnabled, DynamicDiffuseLighting3D diffuseOptions, EnvironmentRadiance3D? environmentSource, bool sharpReflections)
+        bool rayShadowEnabled, DynamicDiffuseLighting3D diffuseOptions, EnvironmentRadiance3D? environmentSource, bool enableReflections)
     {
         if (lights.Count > 256)
         {
@@ -279,8 +289,8 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
         }
         bool environmentChanged = environmentKey != asset?.ContentKey;
         bool changed = environmentChanged || probe != reflectionProbe || rayModeChanged
-            || environmentSourceKey != environmentSource?.ContentKey || ReflectionsActive != sharpReflections;
-        ReflectionsActive = sharpReflections;
+            || environmentSourceKey != environmentSource?.ContentKey || ReflectionsActive != enableReflections;
+        ReflectionsActive = enableReflections;
         environmentSourceKey = environmentSource?.ContentKey;
         probe = reflectionProbe;
         if (environmentChanged)
@@ -418,6 +428,22 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
             if (frames is null || localPrograms.SharpReflections is null || materialTable is null || identity is null || !resolveHasReflectionInput)
                 throw new NotSupportedException("AUR-REFLECT-002: Sharp reflections require reflection-compatible trace and resolve programs and resident identity and material tables.");
             reflections ??= Own(new VulkanSharpReflection3D(plant, allocator, frames, localPrograms.SharpReflections, Output.Width, Output.Height));
+            ReconstructReflections = settings.GlossyReflections is GlossyReflectionMode3D.FullResolution or GlossyReflectionMode3D.HalfResolution;
+            if (ReconstructReflections)
+            {
+                if (localPrograms.GlossyReflectionResolve is null)
+                    throw new NotSupportedException("AUR-REFLECT-005: Glossy reconstruction requires GlossyReflectionResolve3D.");
+                reflections.PrepareMetadata();
+                glossyReconstruction ??= Own(new VulkanGlossyReflection3D(plant, allocator, frames,
+                    localPrograms.GlossyReflectionResolve, Output.Width, Output.Height));
+                if (!ReferenceEquals(reflectionSnapshot, instances)
+                    && (reflectionSnapshot is null || !instances.ContinuesFrom(reflectionSnapshot) || instances.HasRaySceneChanges))
+                {
+                    // Receiver reprojection alone cannot track a displaced secondary hit.
+                    glossyReconstruction.Reset();
+                }
+                reflectionSnapshot = instances;
+            }
             reflectionIdentity = identity;
             reflectionMaterials = materialTable;
             PrepareReflectionSky(environmentSource);
@@ -473,7 +499,11 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
         rayShadows?.ResetSampling();
         localTail?.Reset();
     }
-    public void ResetTailHistory() => localTail?.Reset();
+    public void ResetSurfaceHistory()
+    {
+        localTail?.Reset();
+        glossyReconstruction?.Reset();
+    }
     public float[] ReadMotionForQualification() => rayShadows!.ReadMotionForQualification();
     public float[] ReadSamplesForQualification() => rayShadows!.ReadSamplesForQualification();
     public ReferenceImage3D ReadHeadForQualification() => Vulkan3DQualificationReadback.ReadTexture(plant, frames!, Output);
@@ -495,10 +525,25 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
             environment is not null, reflectionSky is not null, probe is not null);
     }
 
+    public void RecordReflectionReconstruction(VulkanCommandBufferLease command, AurelianVulkanBuffer triangle)
+    {
+        glossyReconstruction!.Record(command, triangle, reflections!, Normal, current.motion, current.surface,
+            reflectionIdentity!, current.clip, current.inverse, current.eye,
+            current.settings.GlossyReflections == GlossyReflectionMode3D.HalfResolution);
+    }
+
     public (float[] Radiance, float[] Hits) ReadReflectionsForQualification()
     {
-        if (!ReflectionsActive) throw new InvalidOperationException("Sharp reflections are inactive.");
+        if (!ReflectionsActive || ReconstructReflections)
+            throw new InvalidOperationException("Full reflection ray packets require an unreconstructed trace.");
         return reflections!.ReadForQualification();
+    }
+
+    public (float[] Radiance, uint[] HitPairs) ReadGlossyReflectionsForQualification()
+    {
+        if (!ReflectionsActive || !ReconstructReflections)
+            throw new InvalidOperationException("Glossy hit pairs require a reconstructed reflection mode.");
+        return reflections!.ReadGlossyForQualification();
     }
 
     private void PrepareReflectionSky(EnvironmentRadiance3D? source)

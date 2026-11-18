@@ -16,6 +16,7 @@ public sealed class GraphicsStarterShaderTests
     [InlineData("SurfaceSolid3D.v.ts", 304, 1)]
     [InlineData("SurfaceModel3D.v.ts", 352, 11)]
     [InlineData("SurfaceResolve3D.v.ts", 640, 34)]
+    [InlineData("GlossyReflectionResolve3D.v.ts", 176, 16)]
     [InlineData("LocalTailTemporal3D.v.ts", 160, 15)]
     [InlineData("LocalTailSpatial3D.v.ts", 160, 9)]
     [InlineData("LocalTailCompose3D.v.ts", 16, 5)]

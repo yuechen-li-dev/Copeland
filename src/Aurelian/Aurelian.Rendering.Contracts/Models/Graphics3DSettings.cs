@@ -15,6 +15,17 @@ public enum SurfaceDebugView3D
     AmbientOcclusion,
 }
 
+public enum GlossyReflectionMode3D
+{
+    Off,
+    /// <summary>One unfiltered GGX sample per glossy pixel.</summary>
+    Raw,
+    /// <summary>Reconstruct one GGX sample per glossy pixel each frame.</summary>
+    FullResolution,
+    /// <summary>Rotate one GGX sample through each 2x2 group and reconstruct at display resolution.</summary>
+    HalfResolution,
+}
+
 /// <summary>Experimental direct-light diffuse lobes. Indirect irradiance retains its existing model.</summary>
 public enum DirectDiffuseModel3D
 {
@@ -51,6 +62,8 @@ public sealed record Graphics3DSettings
     public float EnvironmentIntensity { get; init; } = 1;
     /// <summary>Trace the sharp specular lobe of opaque resident surfaces on a ray-query device.</summary>
     public bool SharpReflections { get; init; }
+    /// <summary>Sample glossy GGX reflections on the retained ray-query path. Raw exposes one sample for qualification.</summary>
+    public GlossyReflectionMode3D GlossyReflections { get; init; }
     public bool LocalLightCulling { get; init; } = true;
     public int LocalShadowBudget { get; init; } = 2;
     public bool SolidPbr { get; init; } = true;
@@ -84,6 +97,7 @@ public sealed record Graphics3DSettings
         ArgumentNullException.ThrowIfNull(Volumetrics);
         Volumetrics.Validate();
         if (!Enum.IsDefined(AntiAliasing) || !Enum.IsDefined(SurfaceDebugView) || !Enum.IsDefined(DirectDiffuseModel)
+            || !Enum.IsDefined(GlossyReflections)
             || !Range(TemporalHistoryWeight, 0, .95f) || !Range(BloomIntensity, 0, 1)
             || !Range(AmbientOcclusionStrength, 0, 2) || !Range(AmbientOcclusionRadius, .01f, 10)
             || !Range(EnvironmentIntensity, 0, 100)

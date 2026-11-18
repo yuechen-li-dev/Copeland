@@ -23,11 +23,14 @@ internal sealed unsafe class VulkanSharpReflection3D : IDisposable
     private const uint SamplerBinding = 21;
     private const uint MaterialImagesBinding = 22;
     private const uint MaterialSamplersBinding = 23;
+    private const uint HitMetadataBinding = 24;
+    private const uint DescriptorCount = 25;
     private const uint ThreadsPerGroup = 64;
     private const uint MaximumScratchRays = 256 * 1024;
 
     private readonly AurelianVulkanPlant plant;
     private readonly VulkanFrameInFlightSet frames;
+    private readonly RawVulkanMemoryAllocator allocator;
     private readonly Stack<IDisposable> owned = new();
     private readonly AurelianVulkanBuffer[] parameters = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
     private readonly DescriptorSet[] sets = new DescriptorSet[VulkanFrameInFlightSet.Count];
@@ -36,6 +39,7 @@ internal sealed unsafe class VulkanSharpReflection3D : IDisposable
     private readonly AurelianVulkanBuffer hits;
     private readonly AurelianVulkanBuffer occlusion;
     private readonly AurelianVulkanBuffer radiance;
+    private AurelianVulkanBuffer? hitMetadata;
     private readonly uint pixelCount;
     private readonly uint scratchRays;
     private readonly uint stripeCount;
@@ -44,14 +48,18 @@ internal sealed unsafe class VulkanSharpReflection3D : IDisposable
     private PipelineLayout layout;
     private Pipeline pipeline;
     private Sampler sampler;
+    private uint sequence;
 
     public AurelianVulkanTexture Output { get; }
+    public AurelianVulkanTexture? HitMetadata { get; private set; }
+    public int RecordedPhase { get; private set; }
 
     public VulkanSharpReflection3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
         VulkanFrameInFlightSet frames, byte[] program, uint width, uint height)
     {
         this.plant = plant;
         this.frames = frames;
+        this.allocator = allocator;
         plant.Vk.GetPhysicalDeviceProperties(plant.PhysicalDevice, out PhysicalDeviceProperties properties);
         pixelCount = checked(width * height);
         scratchRays = Math.Min(pixelCount, MaximumScratchRays);
@@ -64,18 +72,18 @@ internal sealed unsafe class VulkanSharpReflection3D : IDisposable
         const uint samplers = 1 + VulkanBindlessMaterials3D.SamplerCapacity;
         if (properties.Limits.MaxPerStageDescriptorSampledImages < images || properties.Limits.MaxDescriptorSetSampledImages < images
             || properties.Limits.MaxPerStageDescriptorSamplers < samplers || properties.Limits.MaxDescriptorSetSamplers < samplers
-            || properties.Limits.MaxPerStageDescriptorStorageBuffers < BufferCount || properties.Limits.MaxDescriptorSetStorageBuffers < BufferCount
-            || properties.Limits.MaxPerStageResources < images + samplers + BufferCount + 1)
+            || properties.Limits.MaxPerStageDescriptorStorageBuffers < BufferCount + 1 || properties.Limits.MaxDescriptorSetStorageBuffers < BufferCount + 1
+            || properties.Limits.MaxPerStageResources < images + samplers + BufferCount + 2)
             throw new NotSupportedException("AUR-REFLECT-003: The reflection material table exceeds this device's compute descriptor limits.");
 
         try
         {
-            rays = Buffer("rays", (4 + scratchRays * 12UL) * 4, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferDestination);
-            hits = Buffer("hits", scratchRays * 64UL, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferSource);
-            occlusion = Buffer("occlusion", scratchRays * 4UL, VulkanBufferUsage.Storage);
-            radiance = Buffer("radiance", pixelCount * 16UL, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferSource);
+            rays = Own(CreateBuffer("rays", (4 + scratchRays * 12UL) * 4, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferDestination));
+            hits = Own(CreateBuffer("hits", scratchRays * 64UL, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferSource));
+            occlusion = Own(CreateBuffer("occlusion", scratchRays * 4UL, VulkanBufferUsage.Storage));
+            radiance = Own(CreateBuffer("radiance", pixelCount * 16UL, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferSource));
             for (int slot = 0; slot < parameters.Length; slot++)
-                parameters[slot] = Buffer("parameters", (64 + 256 * 16) * 4, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
+                parameters[slot] = Own(CreateBuffer("parameters", (64 + 256 * 16) * 4, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu));
             Output = Own(VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, width, height,
                 VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferDestination, VulkanMemoryUsage.GpuOnly,
                 "sharp-reflection.radiance", VulkanTextureFormat.Rgba32Float));
@@ -87,15 +95,34 @@ internal sealed unsafe class VulkanSharpReflection3D : IDisposable
             Dispose();
             throw;
         }
+    }
 
-        AurelianVulkanBuffer Buffer(string name, ulong bytes, VulkanBufferUsage usage, VulkanMemoryUsage memory = VulkanMemoryUsage.GpuOnly)
+    public void PrepareMetadata()
+    {
+        if (HitMetadata is not null) return;
+        var buffer = CreateBuffer("hit-metadata", pixelCount * 8UL, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferSource);
+        try
         {
-            var allocation = VulkanBufferFactory.Create(plant, allocator,
-                new(plant.Context.Id, bytes, usage, memory, "sharp-reflection." + name, MapOnCreate: memory != VulkanMemoryUsage.GpuOnly));
-            if (!allocation.Success)
-                throw new InvalidOperationException("AUR-REFLECT-004: Reflection " + name + " allocation failed.");
-            return Own(allocation.Buffer!);
+            HitMetadata = Own(VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, Output.Width, Output.Height,
+                VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferDestination, VulkanMemoryUsage.GpuOnly,
+                "glossy-reflection.hits", VulkanTextureFormat.Rg32UInt));
         }
+        catch
+        {
+            buffer.Dispose();
+            throw;
+        }
+        hitMetadata = Own(buffer);
+    }
+
+    private AurelianVulkanBuffer CreateBuffer(string name, ulong bytes, VulkanBufferUsage usage,
+        VulkanMemoryUsage memory = VulkanMemoryUsage.GpuOnly)
+    {
+        var allocation = VulkanBufferFactory.Create(plant, allocator,
+            new(plant.Context.Id, bytes, usage, memory, "sharp-reflection." + name, MapOnCreate: memory != VulkanMemoryUsage.GpuOnly));
+        if (!allocation.Success)
+            throw new InvalidOperationException("AUR-REFLECT-004: Reflection " + name + " allocation failed.");
+        return allocation.Buffer!;
     }
 
     public void Record(VulkanCommandBufferLease command, VulkanSceneAcceleration3D scene, VulkanBindlessMaterials3D materials,
@@ -116,13 +143,19 @@ internal sealed unsafe class VulkanSharpReflection3D : IDisposable
         words[25] = settings.EnvironmentIntensity;
         words[26] = lightCount;
         words[27] = scratchRays;
+        words[28] = settings.GlossyReflections != GlossyReflectionMode3D.Off ? 1 : 0;
         words[29] = hasSkySource ? 1 : 0;
         words[30] = hasProbe ? 1 : 0;
+        bool reconstruct = settings.GlossyReflections is GlossyReflectionMode3D.FullResolution or GlossyReflectionMode3D.HalfResolution;
+        words[31] = reconstruct ? 1 : 0;
         Lighting3DUniforms.Rows(clip).CopyTo(words, 32);
         WriteVector(48, Vector3.Normalize(settings.SunDirection), settings.Shadows ? 1 : 0);
         WriteVector(52, settings.SunColor, settings.SunIntensity);
-        WriteVector(56, settings.SkyAmbient, 0);
+        bool quarterRate = settings.GlossyReflections == GlossyReflectionMode3D.HalfResolution;
+        WriteVector(56, settings.SkyAmbient, quarterRate ? 1 : 0);
         WriteVector(60, settings.GroundAmbient, 0);
+        words[63] = sequence % 4096;
+        RecordedPhase = (int)(sequence % 4);
         packedLights[..(lightCount * 16)].CopyTo(words.AsSpan(64));
         if (!parameters[frames.Slot].Write(MemoryMarshal.AsBytes(words.AsSpan())).Success)
             throw new InvalidOperationException("AUR-REFLECT-004: Reflection parameters could not be uploaded.");
@@ -140,26 +173,50 @@ internal sealed unsafe class VulkanSharpReflection3D : IDisposable
             AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit);
         plant.Vk.CmdBindPipeline(command.CommandBuffer, PipelineBindPoint.Compute, pipeline);
         plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Compute, layout, 0, 1, &set, 0, null);
-        for (uint stripe = 0; stripe < stripeCount; stripe++)
+        DispatchStripes(pixelCount, 0);
+        if (quarterRate)
         {
-            if (stripe != 0)
-                Barrier(command, PipelineStageFlags.ComputeShaderBit, AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
-                    PipelineStageFlags.ComputeShaderBit, AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit);
-            uint remainingPixels = pixelCount - stripe * scratchRays;
-            plant.Vk.CmdDispatchBase(command.CommandBuffer, 0, stripe, 0, Groups(Math.Min(scratchRays, remainingPixels)), 1, 1);
+            // Full-rate sharp pixels and receiver flags come from the first
+            // dispatch. Pack the glossy lanes together for the hardware query.
+            ReuseScratch();
+            DispatchStripes((Output.Width + 1) / 2 * ((Output.Height + 1) / 2), 1);
         }
         Barrier(command, PipelineStageFlags.ComputeShaderBit, AccessFlags.ShaderWriteBit,
             PipelineStageFlags.TransferBit, AccessFlags.TransferReadBit);
-        Transition(command, Output, VulkanResourceLayout.TransferDestination);
-        BufferImageCopy copy = new()
-        {
-            ImageSubresource = new(ImageAspectFlags.ColorBit, 0, 0, 1),
-            ImageExtent = new(Output.Width, Output.Height, 1),
-        };
-        plant.Vk.CmdCopyBufferToImage(command.CommandBuffer, radiance.NativeBuffer, Output.NativeImage,
-            ImageLayout.TransferDstOptimal, 1, &copy);
-        Transition(command, Output, VulkanResourceLayout.ShaderResourceFragment);
+        Publish(radiance, Output);
+        if (reconstruct)
+            Publish(hitMetadata!, HitMetadata!);
+        if (settings.GlossyReflections != GlossyReflectionMode3D.Off) sequence++;
 
+        void ReuseScratch()
+        {
+            Barrier(command, PipelineStageFlags.ComputeShaderBit, AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
+                PipelineStageFlags.ComputeShaderBit, AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit);
+        }
+
+        void DispatchStripes(uint pixels, uint pass)
+        {
+            uint stripes = (pixels + scratchRays - 1) / scratchRays;
+            for (uint stripe = 0; stripe < stripes; stripe++)
+            {
+                if (stripe != 0) ReuseScratch();
+                uint remaining = pixels - stripe * scratchRays;
+                plant.Vk.CmdDispatchBase(command.CommandBuffer, 0, stripe, pass, Groups(Math.Min(scratchRays, remaining)), 1, 1);
+            }
+        }
+
+        void Publish(AurelianVulkanBuffer source, AurelianVulkanTexture destination)
+        {
+            Transition(command, destination, VulkanResourceLayout.TransferDestination);
+            BufferImageCopy copy = new()
+            {
+                ImageSubresource = new(ImageAspectFlags.ColorBit, 0, 0, 1),
+                ImageExtent = new(destination.Width, destination.Height, 1),
+            };
+            plant.Vk.CmdCopyBufferToImage(command.CommandBuffer, source.NativeBuffer, destination.NativeImage,
+                ImageLayout.TransferDstOptimal, 1, &copy);
+            Transition(command, destination, VulkanResourceLayout.ShaderResourceFragment);
+        }
         void WriteVector(int offset, Vector3 value, float w)
         {
             words[offset] = value.X;
@@ -177,6 +234,10 @@ internal sealed unsafe class VulkanSharpReflection3D : IDisposable
             Vulkan3DQualificationReadback.ReadBuffer(plant, frames, hits));
     }
 
+    public (float[] Radiance, uint[] HitPairs) ReadGlossyForQualification() =>
+        (Vulkan3DQualificationReadback.ReadBuffer(plant, frames, radiance),
+            Vulkan3DQualificationReadback.ReadBuffer<uint>(plant, frames, hitMetadata!));
+
     private static uint Groups(uint count) => (count + ThreadsPerGroup - 1) / ThreadsPerGroup;
 
     private DescriptorSet UpdateDescriptors(VulkanSceneAcceleration3D scene, VulkanBindlessMaterials3D materials, AurelianVulkanTexture[] inputs)
@@ -192,8 +253,8 @@ internal sealed unsafe class VulkanSharpReflection3D : IDisposable
         };
         AurelianVulkanBuffer[] buffers = [scene.Procedurals, scene.Instances, scene.Shading, parameters[slot], rays, hits, occlusion, radiance,
             materials.MaterialRecords, materials.InstanceMaterials, materials.ResidentVertices, materials.ResidentIndices, materials.ResidentInstances];
-        WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[24];
-        DescriptorBufferInfo* bufferInfos = stackalloc DescriptorBufferInfo[(int)BufferCount];
+        WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[(int)DescriptorCount];
+        DescriptorBufferInfo* bufferInfos = stackalloc DescriptorBufferInfo[(int)BufferCount + 1];
         DescriptorImageInfo* imageInfos = stackalloc DescriptorImageInfo[(int)ImageCount + 1];
         writes[0] = new() { SType = StructureType.WriteDescriptorSet, PNext = &acceleration, DstSet = set,
             DstBinding = 0, DescriptorCount = 1, DescriptorType = DescriptorType.AccelerationStructureKhr };
@@ -211,9 +272,15 @@ internal sealed unsafe class VulkanSharpReflection3D : IDisposable
         }
         imageInfos[ImageCount] = new(sampler, default, ImageLayout.Undefined);
         writes[SamplerBinding] = ImageWrite(set, SamplerBinding, DescriptorType.Sampler, 1, &imageInfos[ImageCount]);
+        var metadata = hitMetadata ?? occlusion;
+        bufferInfos[BufferCount] = new(metadata.NativeBuffer, 0, metadata.SizeBytes);
+        WriteDescriptorSet metadataWrite = new() { SType = StructureType.WriteDescriptorSet, DstSet = set,
+            DstBinding = HitMetadataBinding, DescriptorCount = 1, DescriptorType = DescriptorType.StorageBuffer, PBufferInfo = &bufferInfos[BufferCount] };
+        writes[HitMetadataBinding] = metadataWrite;
         if (ReferenceEquals(sampledTables[slot], materials))
         {
-            plant.Vk.UpdateDescriptorSets(plant.Device, 22, writes, 0, null);
+            writes[MaterialImagesBinding] = metadataWrite;
+            plant.Vk.UpdateDescriptorSets(plant.Device, 23, writes, 0, null);
         }
         else
         {
@@ -222,7 +289,7 @@ internal sealed unsafe class VulkanSharpReflection3D : IDisposable
             {
                 writes[MaterialImagesBinding] = ImageWrite(set, MaterialImagesBinding, DescriptorType.SampledImage, VulkanBindlessMaterials3D.TextureCapacity, textures);
                 writes[MaterialSamplersBinding] = ImageWrite(set, MaterialSamplersBinding, DescriptorType.Sampler, VulkanBindlessMaterials3D.SamplerCapacity, samplers);
-                plant.Vk.UpdateDescriptorSets(plant.Device, 24, writes, 0, null);
+                plant.Vk.UpdateDescriptorSets(plant.Device, DescriptorCount, writes, 0, null);
             }
             sampledTables[slot] = materials;
         }
@@ -235,7 +302,7 @@ internal sealed unsafe class VulkanSharpReflection3D : IDisposable
 
     private void CreatePipeline(byte[] spirv)
     {
-        DescriptorSetLayoutBinding* bindings = stackalloc DescriptorSetLayoutBinding[24];
+        DescriptorSetLayoutBinding* bindings = stackalloc DescriptorSetLayoutBinding[(int)DescriptorCount];
         bindings[0] = new(0, DescriptorType.AccelerationStructureKhr, 1, ShaderStageFlags.ComputeBit);
         for (uint index = 1; index <= BufferCount; index++)
             bindings[index] = new(index, DescriptorType.StorageBuffer, 1, ShaderStageFlags.ComputeBit);
@@ -244,12 +311,13 @@ internal sealed unsafe class VulkanSharpReflection3D : IDisposable
         bindings[SamplerBinding] = new(SamplerBinding, DescriptorType.Sampler, 1, ShaderStageFlags.ComputeBit);
         bindings[MaterialImagesBinding] = new(MaterialImagesBinding, DescriptorType.SampledImage, VulkanBindlessMaterials3D.TextureCapacity, ShaderStageFlags.ComputeBit);
         bindings[MaterialSamplersBinding] = new(MaterialSamplersBinding, DescriptorType.Sampler, VulkanBindlessMaterials3D.SamplerCapacity, ShaderStageFlags.ComputeBit);
-        DescriptorSetLayoutCreateInfo descriptorLayout = new() { SType = StructureType.DescriptorSetLayoutCreateInfo, BindingCount = 24, PBindings = bindings };
+        bindings[HitMetadataBinding] = new(HitMetadataBinding, DescriptorType.StorageBuffer, 1, ShaderStageFlags.ComputeBit);
+        DescriptorSetLayoutCreateInfo descriptorLayout = new() { SType = StructureType.DescriptorSetLayoutCreateInfo, BindingCount = DescriptorCount, PBindings = bindings };
         fixed (DescriptorSetLayout* value = &setLayout) Check(plant.Vk.CreateDescriptorSetLayout(plant.Device, &descriptorLayout, null, value));
         const uint slots = VulkanFrameInFlightSet.Count;
         DescriptorPoolSize* sizes = stackalloc DescriptorPoolSize[4]
         {
-            new(DescriptorType.AccelerationStructureKhr, slots), new(DescriptorType.StorageBuffer, BufferCount * slots),
+            new(DescriptorType.AccelerationStructureKhr, slots), new(DescriptorType.StorageBuffer, (BufferCount + 1) * slots),
             new(DescriptorType.SampledImage, (ImageCount + VulkanBindlessMaterials3D.TextureCapacity) * slots),
             new(DescriptorType.Sampler, (1 + VulkanBindlessMaterials3D.SamplerCapacity) * slots),
         };

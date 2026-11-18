@@ -173,7 +173,8 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
                 ValidateModernFormats();
                 gpuTimings = new(plant, ["directional-shadow", "linear-lighting", "temporal-resolve", "bloom", "tone-map-output",
                     .. surfaceOnly ? new[] { "ambient-occlusion", "local-light-culling", "surface-lighting", "local-shadows", "subsurface-diffusion", "atmosphere", "transparency", "refraction", "particles-update", "visibility-cull", "visibility-raster",
-                        "hzb-seed-depth", "hzb-seed-pyramid", "hzb-final-cull", "hzb-history-pyramid", "sharp-reflections" } : []], frames);
+                        "hzb-seed-depth", "hzb-seed-pyramid", "hzb-final-cull", "hzb-history-pyramid", "sharp-reflections",
+                        "glossy-reflection-reconstruction" } : []], frames);
                 hdr = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, target.Width, target.Height,
                     VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferSource,
                     VulkanMemoryUsage.GpuOnly, "solid3d.hdr", VulkanTextureFormat.Rgba16Float);
@@ -635,15 +636,16 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         if (DynamicDiffuse.Mode != DynamicDiffuseMode3D.Off && Environment is not null
             && (EnvironmentSource is null || Environment.SourceKey != EnvironmentSource.ContentKey))
             throw new NotSupportedException("AUR-GI-007: Dynamic environment lighting requires source radiance matching the compiled environment's SourceKey.");
-        bool sharpReflections = settings.SharpReflections && settings.SurfaceDebugView == SurfaceDebugView3D.Shaded;
-        if (sharpReflections && (surfaceLighting is null || !settings.SolidPbr || !EnableVisibilityBuffer
+        bool reflections = (settings.SharpReflections || settings.GlossyReflections != GlossyReflectionMode3D.Off)
+            && settings.SurfaceDebugView == SurfaceDebugView3D.Shaded;
+        if (reflections && (surfaceLighting is null || !settings.SolidPbr || !EnableVisibilityBuffer
             || !EnableBindlessMaterials || diffusePublished || resident is null || !geometry.IsEmpty || models.Count != 0 || gpuGeometry is not null
             || !plant.Facts.EnabledDeviceExtensions.Contains("VK_KHR_ray_query", StringComparer.Ordinal)))
-            throw new NotSupportedException("AUR-REFLECT-001: Sharp reflections require opaque retained visibility-buffer PBR on a ray-query device.");
-        if (sharpReflections && useTemporal && temporal?.SupportsReflectionMask != true)
-            throw new NotSupportedException("AUR-REFLECT-002: Temporal AA with sharp reflections requires a reflection-aware temporal resolve program.");
+            throw new NotSupportedException("AUR-REFLECT-001: Ray-traced reflections require opaque retained visibility-buffer PBR on a ray-query device.");
+        if (reflections && useTemporal && temporal?.SupportsReflectionMask != true)
+            throw new NotSupportedException("AUR-REFLECT-002: Temporal AA with ray-traced reflections requires a reflection-aware temporal resolve program.");
         if (surfaceLighting?.Prepare(Environment, ReflectionProbe, LocalLights, settings.LocalShadowBudget,
-            EnableRayShadows, DynamicDiffuse, EnvironmentSource, sharpReflections) == true)
+            EnableRayShadows, DynamicDiffuse, EnvironmentSource, reflections) == true)
             correspondenceChanged = true;
         if ((DynamicDiffuse.Mode != DynamicDiffuseMode3D.Off || EnableRayShadows && LocalLights.Any(light => light.CastShadows || light.Kind == LocalLightKind.Sphere))
             && (resident is null || !geometry.IsEmpty || models.Count != 0 || gpuGeometry is not null))
@@ -804,7 +806,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
 
     private void InvalidateSurfaceHistory()
     {
-        surfaceLighting?.ResetTailHistory();
+        surfaceLighting?.ResetSurfaceHistory();
         temporal?.Reset();
         resetHistory = true;
     }
