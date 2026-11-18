@@ -49,6 +49,8 @@ public sealed record Graphics3DSettings
     public SurfaceDebugView3D SurfaceDebugView { get; init; }
     public DirectDiffuseModel3D DirectDiffuseModel { get; init; } = DirectDiffuseModel3D.PathDiffuse;
     public float EnvironmentIntensity { get; init; } = 1;
+    /// <summary>Trace the sharp specular lobe of opaque resident surfaces on a ray-query device.</summary>
+    public bool SharpReflections { get; init; }
     public bool LocalLightCulling { get; init; } = true;
     public int LocalShadowBudget { get; init; } = 2;
     public bool SolidPbr { get; init; } = true;

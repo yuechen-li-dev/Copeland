@@ -45,6 +45,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
         CompiledDiffuseRevision++;
     }
     public float[] ReadSecondaryWitnessForQualification() => surfaceLighting!.ReadSecondaryWitness();
+    public (float[] Radiance, float[] Hits) ReadReflectionsForQualification() => surfaceLighting!.ReadReflectionsForQualification();
     public float[] ReadDiffuseCacheForQualification() => surfaceLighting!.ReadDiffuseCache();
     public float[] ReadDiffuseOutputForQualification() => surfaceLighting!.ReadDiffuseOutput();
     public bool EnableRayShadows { get; set; }
@@ -85,7 +86,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
             planOptions.AsyncParticleUpdates && plant.ComputeQueue.HasValue, state.UseTemporal && state.GpuGeometry is not null,
             surfaceLighting?.ShadowCount ?? 0, planOptions.AliasTransientTextures, retainedModels?.HasVisibility == true,
             retainedModels?.VisibilityBufferActive == true, retainedModels?.HierarchicalZActive == true, surfaceLighting?.RayShadowsActive == true,
-            preserveColor);
+            preserveColor, surfaceLighting?.ReflectionsActive == true);
         if (!framePlanCache.TryGetValue(features, out var plan))
         {
             plan = Native3DFrameGraph.Compile(features, (int)target.Width, (int)target.Height);
@@ -260,6 +261,11 @@ public sealed unsafe partial class VulkanSolid3DRenderer
                 surfaceLighting!.RecordRayShadows(command);
                 gpuTimings?.Mark(command, 17);
                 break;
+            case Native3DPass.Reflections:
+                gpuTimings?.Mark(command, 40);
+                surfaceLighting!.RecordReflections(command);
+                gpuTimings?.Mark(command, 41);
+                break;
             case Native3DPass.LocalShadows: RecordLocalShadows(command, state); break;
             case Native3DPass.Geometry: RecordGeometry(command, state); break;
             case Native3DPass.IdentityRaster:
@@ -330,7 +336,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
         Native3DPass.Subsurface => 9, Native3DPass.Atmosphere => 10, Native3DPass.Transparency => 11,
         Native3DPass.Refraction => 12, Native3DPass.Particles => 13, Native3DPass.Visibility => 14,
         Native3DPass.IdentityRaster => 15, Native3DPass.HzbSeedRaster => 16, Native3DPass.HzbSeedPyramid => 17,
-        Native3DPass.HzbFinalCull => 18, Native3DPass.HzbHistoryPyramid => 19, _ => -1,
+        Native3DPass.HzbFinalCull => 18, Native3DPass.HzbHistoryPyramid => 19, Native3DPass.Reflections => 20, _ => -1,
     };
 
     private void RecordMemoryBarrier(VulkanCommandBufferLease command, AccessFlags before, AccessFlags after)

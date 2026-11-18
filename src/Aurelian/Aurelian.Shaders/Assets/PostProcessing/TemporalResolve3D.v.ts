@@ -10,7 +10,7 @@ record TemporalMaterial {
     parameters: float4;
     // previous minus current jitter in UV, reserved
     jitter: float4;
-    // current projection jitter in UV; reactive coverage uses single-frame reconstruction
+    // current projection jitter in UV, reflection mask enabled, reserved
     reconstruction: float4;
 }
 stream TemporalResources {
@@ -21,6 +21,8 @@ stream TemporalResources {
     @binding(4) motionSampler: Sampler;
     @binding(5) history: Texture2D<float4>;
     @binding(6) historySampler: Sampler;
+    @binding(7) reflection: Texture2D<float4>;
+    @binding(8) reflectionSampler: Sampler;
 }
 stream Input { @location(0) position: float2; }
 stream Varyings {
@@ -52,6 +54,11 @@ function PixelMain(input: Varyings, resources: TemporalResources): Output {
     let parameters: float4 = resources.temporal.parameters;
     let current: float4 = Sample(resources.current, resources.currentSampler, input.uv);
     let motion: float4 = Sample(resources.motion, resources.motionSampler, input.uv);
+    // The receiver motion says nothing about motion at the second hit.
+    if (resources.temporal.reconstruction.z > 0.5
+        && Sample(resources.reflection, resources.reflectionSampler, input.uv).w > 0.0) {
+        return { color: float4(current.x, current.y, current.z, -1.0) };
+    }
     // OIT coverage has no opaque-surface motion correspondence. Reconstruct
     // this pixel immediately and mark its history depth invalid, so removing
     // or moving translucent geometry cannot leave a retained color trail.

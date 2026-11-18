@@ -29,9 +29,9 @@ public static partial class VdMirComputeHlslEmitter
             {
                 resourceType = "RaytracingAccelerationStructure";
             }
-            else if (resource.ElementType is "Texture2D<float4>" or "Sampler")
+            else if (resource.ElementType is "Texture2D<float4>" or "Texture2D<uint2>" or "Sampler")
             {
-                resourceType = resource.ElementType == "Sampler" ? "SamplerState" : "Texture2D<float4>";
+                resourceType = resource.ElementType == "Sampler" ? "SamplerState" : resource.ElementType;
             }
             else if (resource.Access == VdMirResourceAccess.Readonly)
             {
@@ -229,6 +229,7 @@ public static partial class VdMirComputeHlslEmitter
             "descriptor-index" => $"{EmitExpression(expression.Operands![0])}[{EmitExpression(expression.Operands[1])}]",
             "intrinsic" when expression.Value == "NonUniformIndex" => $"NonUniformResourceIndex({EmitExpression(expression.Operands![0])})",
             "intrinsic" when expression.Value == "SampleLevel2D" => $"{EmitExpression(expression.Operands![0])}.SampleLevel({string.Join(", ", expression.Operands.Skip(1).Select(EmitExpression))})",
+            "intrinsic" when expression.Value == "LoadTexture2D" => $"{EmitExpression(expression.Operands![0])}.Load(int3({EmitExpression(expression.Operands[1])}, 0))",
             "index" => $"{EmitExpression(expression.Operands![0])}[{EmitExpression(expression.Operands[1])}]",
             "storage-load" => $"__vts_load_{(expression.Value == "word" ? "word_" : "")}{expression.Type}({EmitExpression(expression.Operands![0])}, {EmitExpression(expression.Operands[1])})",
             "binary" => $"({EmitExpression(expression.Operands![0])} {expression.Value} {EmitExpression(expression.Operands[1])})",
@@ -279,7 +280,7 @@ public static partial class VdMirComputeHlslEmitter
         "bool" => "bool",
         "u32" => "uint",
         "f32" => "float",
-        "uint3" => "uint3",
+        "uint2" or "uint3" => type,
         "float2" or "float3" or "float4" or "Texture2D<float4>" => type,
         "Sampler" => "SamplerState",
         _ when (module.ValueTypes ?? []).Any(value => value.Name == type) => type,

@@ -12,6 +12,7 @@ public sealed record SurfaceLightingPrograms(
     public CompiledGraphicsProgram? TailSpatial { get; init; }
     public CompiledGraphicsProgram? TailCompose { get; init; }
     public byte[]? DynamicDiffuse { get; init; }
+    public byte[]? SharpReflections { get; init; }
     public byte[]? RestirSpatial { get; init; }
     public byte[]? SampledLocalLights { get; init; }
     public byte[]? LocalRayShadows { get; init; }

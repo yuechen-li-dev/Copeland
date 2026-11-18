@@ -122,6 +122,13 @@ public static partial class GpuComputeBinder
                 return null;
             }
             string operation = name.IdentifierToken.Text;
+            if (operation == "uint2")
+            {
+                var lanes = call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray();
+                if (lanes.Length != 2 || lanes.Any(lane => lane.Type != "u32"))
+                    return NativeError("uint2 requires 2 u32 lanes.");
+                return new("call", "uint2", Span(path, call), "uint2", lanes);
+            }
             int width = VectorWidth(operation);
             if (width == 0 && operation is not ("Dot" or "Cross" or "Length" or "Normalize"))
             {

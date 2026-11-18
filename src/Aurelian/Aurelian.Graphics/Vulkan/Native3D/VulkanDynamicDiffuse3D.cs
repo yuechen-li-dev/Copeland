@@ -139,7 +139,6 @@ internal sealed unsafe partial class VulkanDynamicDiffuse3D : IDisposable
         PrepareSky(lighting, settings, environmentSource);
         PrepareRegions(settings);
         options = settings;
-        scene.PrepareShading(instances, frames.Slot);
         var words = new float[64 + 256 * 16];
         Lighting3DUniforms.Rows(inverse).CopyTo(words, 0);
         words[16] = width;

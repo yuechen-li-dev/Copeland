@@ -1,4 +1,4 @@
-import { Unit, Add3, Scale3, Dot3, Mul3 } from "./Lighting3D";
+import { Unit, Add3, Sub3, Scale3, Dot3, Mul3 } from "./Lighting3D";
 
 function Sign(value: f32): f32 {
     if (value < 0.0) {
@@ -28,10 +28,12 @@ export function EncodeOcta(direction: float3): float2 {
     }
     return float2(x * 0.5 + 0.5, z * 0.5 + 0.5);
 }
-export function Band(map: Texture2D<float4>, sampler: Sampler, uv: float2, band: f32): float3 {
-    let coordinate: float2 = float2((Clamp(uv.x, 0.0, 1.0) * 63.0 + 0.5) / 64.0,
+export function EnvironmentBandUv(uv: float2, band: f32): float2 {
+    return float2((Clamp(uv.x, 0.0, 1.0) * 63.0 + 0.5) / 64.0,
         (band * 64.0 + Clamp(uv.y, 0.0, 1.0) * 63.0 + 0.5) / 512.0);
-    let value: float4 = Sample(map, sampler, coordinate);
+}
+export function Band(map: Texture2D<float4>, sampler: Sampler, uv: float2, band: f32): float3 {
+    let value: float4 = Sample(map, sampler, EnvironmentBandUv(uv, band));
     return float3(value.x, value.y, value.z);
 }
 export function PrefilteredEnvironment(map: Texture2D<float4>, sampler: Sampler, uv: float2, roughness: f32): float3 {
@@ -68,6 +70,13 @@ export function EnvironmentSurfaceResponseWeighted(map: Texture2D<float4>, sampl
 export function EnvironmentResponse(map: Texture2D<float4>, sampler: Sampler, base: float3,
     normal: float3, reflected: float3, nv: f32, metallic: f32, roughness: f32): float3 {
     return EnvironmentSurfaceResponse(map, sampler, base, normal, reflected, nv, metallic, roughness, 0.04);
+}
+export function EnvironmentDiffuseWeighted(map: Texture2D<float4>, sampler: Sampler, base: float3,
+    normal: float3, nv: f32, metallic: f32, roughness: f32, weight: f32): float3 {
+    let diffuse: float3 = Band(map, sampler, EncodeOcta(normal), 6.0);
+    let energy: float3 = EnvironmentBrdfEnergy(map, sampler, base, nv, metallic, roughness, 0.04);
+    let kd: float3 = Scale3(Sub3(float3(1.0, 1.0, 1.0), energy), 1.0 - metallic);
+    return Scale3(Mul3(Mul3(base, diffuse), kd), weight);
 }
 export function EnvironmentDiffuse(map: Texture2D<float4>, sampler: Sampler, base: float3,
     normal: float3, nv: f32, roughness: f32): float3 {

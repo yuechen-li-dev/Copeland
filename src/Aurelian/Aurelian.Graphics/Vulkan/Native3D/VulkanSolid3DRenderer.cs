@@ -173,7 +173,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
                 ValidateModernFormats();
                 gpuTimings = new(plant, ["directional-shadow", "linear-lighting", "temporal-resolve", "bloom", "tone-map-output",
                     .. surfaceOnly ? new[] { "ambient-occlusion", "local-light-culling", "surface-lighting", "local-shadows", "subsurface-diffusion", "atmosphere", "transparency", "refraction", "particles-update", "visibility-cull", "visibility-raster",
-                        "hzb-seed-depth", "hzb-seed-pyramid", "hzb-final-cull", "hzb-history-pyramid" } : []], frames);
+                        "hzb-seed-depth", "hzb-seed-pyramid", "hzb-final-cull", "hzb-history-pyramid", "sharp-reflections" } : []], frames);
                 hdr = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, target.Width, target.Height,
                     VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferSource,
                     VulkanMemoryUsage.GpuOnly, "solid3d.hdr", VulkanTextureFormat.Rgba16Float);
@@ -635,7 +635,16 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         if (DynamicDiffuse.Mode != DynamicDiffuseMode3D.Off && Environment is not null
             && (EnvironmentSource is null || Environment.SourceKey != EnvironmentSource.ContentKey))
             throw new NotSupportedException("AUR-GI-007: Dynamic environment lighting requires source radiance matching the compiled environment's SourceKey.");
-        if (surfaceLighting?.Prepare(Environment, ReflectionProbe, LocalLights, settings.LocalShadowBudget, EnableRayShadows, DynamicDiffuse, EnvironmentSource) == true) correspondenceChanged = true;
+        bool sharpReflections = settings.SharpReflections && settings.SurfaceDebugView == SurfaceDebugView3D.Shaded;
+        if (sharpReflections && (surfaceLighting is null || !settings.SolidPbr || !EnableVisibilityBuffer
+            || !EnableBindlessMaterials || diffusePublished || resident is null || !geometry.IsEmpty || models.Count != 0 || gpuGeometry is not null
+            || !plant.Facts.EnabledDeviceExtensions.Contains("VK_KHR_ray_query", StringComparer.Ordinal)))
+            throw new NotSupportedException("AUR-REFLECT-001: Sharp reflections require opaque retained visibility-buffer PBR on a ray-query device.");
+        if (sharpReflections && useTemporal && temporal?.SupportsReflectionMask != true)
+            throw new NotSupportedException("AUR-REFLECT-002: Temporal AA with sharp reflections requires a reflection-aware temporal resolve program.");
+        if (surfaceLighting?.Prepare(Environment, ReflectionProbe, LocalLights, settings.LocalShadowBudget,
+            EnableRayShadows, DynamicDiffuse, EnvironmentSource, sharpReflections) == true)
+            correspondenceChanged = true;
         if ((DynamicDiffuse.Mode != DynamicDiffuseMode3D.Off || EnableRayShadows && LocalLights.Any(light => light.CastShadows || light.Kind == LocalLightKind.Sphere))
             && (resident is null || !geometry.IsEmpty || models.Count != 0 || gpuGeometry is not null))
             throw new NotSupportedException("AUR-RAY-SHADOW-002: Ray shadows require one opaque NativeInstanceSet3D snapshot; mixed immediate or GPU-generated geometry has no shared acceleration authority yet.");
@@ -708,10 +717,11 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             resident?.Materials ?? sourceInstances.Select(instance => instance.Material).ToArray(), bindlessRetained: useBindless);
         retainedModels?.Upload(sourceInstances, resetHistory, useBindless, EnableVisibilityBuffer, EnableHierarchicalZ, RasterAdmissionMode);
         retainedModels?.UpdateBindlessFrame(worldToClip, eye, lighting, previousClip);
-        if (surfaceLighting?.RayShadowsActive == true)
+        if (surfaceLighting is not null && (surfaceLighting.RayShadowsActive || surfaceLighting.ReflectionsActive))
         {
             Matrix4x4.Invert(worldToClip, out Matrix4x4 rayInverse);
-            surfaceLighting.PrepareRayShadows(resident!, rayInverse, LocalLightSampling, RaySceneUpdateMode, (float)settings.DirectDiffuseModel, StaticEmissionIntensity, retainedModels?.SecondaryMaterialTable, settings, EnvironmentSource);
+            surfaceLighting.PrepareRayLighting(resident!, rayInverse, LocalLightSampling, RaySceneUpdateMode, StaticEmissionIntensity,
+                retainedModels?.SecondaryMaterialTable, retainedModels?.VisibilityIdentity, settings, EnvironmentSource);
         }
         bool hasParticles = ParticleEmitters.Count > 0;
         if (hasParticles)

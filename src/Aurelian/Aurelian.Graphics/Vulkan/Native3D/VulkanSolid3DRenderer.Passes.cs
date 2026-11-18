@@ -185,7 +185,8 @@ public sealed unsafe partial class VulkanSolid3DRenderer
         bool useTemporal = state.UseTemporal;
         gpuTimings?.Mark(command, 4);
         if (useTemporal)
-            state.Resolved = temporal!.Resolve(command, outputVertices!, state.Resolved!, motion!, settings.TemporalHistoryWeight);
+            state.Resolved = temporal!.Resolve(command, outputVertices!, state.Resolved!, motion!, settings.TemporalHistoryWeight,
+                surfaceLighting?.ReflectionOutput);
         gpuTimings?.Mark(command, 5);
     }
 

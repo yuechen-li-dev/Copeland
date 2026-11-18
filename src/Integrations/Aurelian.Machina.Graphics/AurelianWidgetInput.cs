@@ -35,11 +35,23 @@ public sealed class AurelianWidgetInput : IDisposable, IWidgetClipboard
     public int DroppedBatches { get; private set; }
     public Exception? LastError { get; private set; }
 
-    public AurelianWidgetInput(IWindow window)
+    private readonly bool ownsDevices;
+
+    public AurelianWidgetInput(IWindow window) : this(window, window.CreateInput(), null, ownsDevices: true) { }
+
+    /// <summary>
+    /// Shares a host's Silk input context and cursor. Use when widgets are one surface of an app that also reads the
+    /// devices itself (an editor with a settings page): one context and one cursor owner, so two transports never
+    /// fight over the pointer shape. The host keeps ownership of both; <see cref="Dispose"/> only detaches this one.
+    /// </summary>
+    public AurelianWidgetInput(IWindow window, IInputContext devices, AurelianCursor cursor) : this(window, devices, cursor, ownsDevices: false) { }
+
+    private AurelianWidgetInput(IWindow window, IInputContext devices, AurelianCursor? sharedCursor, bool ownsDevices)
     {
         this.window = window;
-        devices = window.CreateInput();
-        cursor = new(devices);
+        this.devices = devices;
+        this.ownsDevices = ownsDevices;
+        cursor = sharedCursor ?? new(devices);
         foreach (var keyboard in devices.Keyboards)
         {
             keyboard.KeyDown += (_, key, _) => Guard(() =>
@@ -226,8 +238,12 @@ public sealed class AurelianWidgetInput : IDisposable, IWidgetClipboard
         window.FocusChanged -= FocusChanged;
         window.Resize -= Resized;
         window.Closing -= Closing;
-        cursor.Dispose();
-        devices.Dispose();
+        // Shared devices keep this instance's callbacks; they are inert once disposed (Guard and Enqueue check it).
+        if (ownsDevices)
+        {
+            cursor.Dispose();
+            devices.Dispose();
+        }
         events.Clear();
         held.Clear();
         disposed = true;

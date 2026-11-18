@@ -5,6 +5,7 @@ using Aurelian.Graphics.Vulkan.Commanding.RenderPasses;
 using Aurelian.Graphics.Vulkan.Pipelines.Framebuffers;
 using Aurelian.Graphics.Vulkan.Pipelines.Graphics;
 using Aurelian.Graphics.Vulkan.Pipelines.RenderPasses;
+using Aurelian.Graphics.Vulkan.Resources.Textures;
 using Silk.NET.Vulkan;
 
 namespace Aurelian.Graphics.Vulkan.Native3D;
@@ -16,6 +17,7 @@ internal sealed unsafe partial class VulkanRetainedModels3D
     private readonly List<BindlessRun> bindlessRuns = [];
     private readonly AurelianVulkanRenderPass geometryPass;
     internal VulkanBindlessMaterials3D? SecondaryMaterialTable => VisibilityBufferActive ? bindlessTable : null;
+    internal AurelianVulkanTexture? VisibilityIdentity => VisibilityBufferActive ? visibilityBuffer?.Identity : null;
     public bool BindlessActive { get; private set; }
     private sealed record BindlessRun(DrawGroup Draw, ImmutableArray<SceneInstance3D> Source);
 

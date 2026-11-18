@@ -128,6 +128,7 @@ public static class BuiltinShaderLibrary
         new("AffineAnalyticQuery3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Module),
         new("SecondarySurface3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Module),
         new("DynamicDiffuse3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
+        new("SharpReflection3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
         new("RestirSpatial3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
         new("LocalLightProposal3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Module),
         new("SampledLocalLights3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),

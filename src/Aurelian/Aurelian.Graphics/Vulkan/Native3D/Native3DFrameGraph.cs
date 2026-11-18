@@ -6,14 +6,14 @@ internal enum Native3DPass
 {
     Uploads, Particles, DirectionalShadows, LocalShadows, Geometry, AmbientOcclusion, LightTiles,
     SurfaceResolve, Subsurface, Atmosphere, Refraction, Transparency, Temporal, Bloom, Output, HistoryCopy,
-    RayShadows, Visibility, IdentityRaster, HzbSeedRaster, HzbSeedPyramid, HzbFinalCull, HzbHistoryPyramid,
+    RayShadows, Visibility, IdentityRaster, HzbSeedRaster, HzbSeedPyramid, HzbFinalCull, HzbHistoryPyramid, Reflections,
 }
 
 internal readonly record struct Native3DFeatures(bool Surface, bool Modern, bool Motion, bool Shadows,
     bool Ambient, bool Tiles, bool Temporal, bool Bloom, bool Subsurface, bool Fog, bool Volume,
     bool Refraction, bool Transparency, bool Particles, bool AsyncParticles, bool GpuHistory,
     int LocalShadows, bool Alias, bool Visibility = false, bool VisibilityBuffer = false, bool HierarchicalZ = false, bool RayShadows = false,
-    bool PreserveColor = false);
+    bool PreserveColor = false, bool Reflections = false);
 
 /// <summary>Declarative authoring for the production renderer. The compiler publishes only resolved data.</summary>
 internal static class Native3DFrameGraph
@@ -133,11 +133,21 @@ internal static class Native3DFrameGraph
         if (features.Motion) geometry.Write(motion);
         if (features.Surface) geometry.Write(normal).Write(emission).Write(profile);
 
+        FramePassBuilder? rayShadows = null;
         if (features.RayShadows)
         {
-            graph.Pass("local-ray-shadows", (int)Native3DPass.RayShadows)
+            rayShadows = graph.Pass("local-ray-shadows", (int)Native3DPass.RayShadows)
                 .Read(inputs).Read(lights).Read(motion, FrameAccess.TransferRead).Read(normal, FrameAccess.TransferRead)
                 .Write(rayVisibility, FrameAccess.TransferWrite);
+        }
+        FrameResource? reflections = null;
+        if (features.Reflections)
+        {
+            reflections = Texture("sharp-reflection-radiance", "rgba32f");
+            var trace = graph.Pass("sharp-reflections", (int)Native3DPass.Reflections)
+                .Read(inputs).Read(lights).Read(identity!).Read(scene).Read(motion).Read(normal).Read(emission)
+                .Write(reflections, FrameAccess.TransferWrite);
+            if (rayShadows is not null) trace.DependsOn(rayShadows);
         }
         FrameResource unfogged = scene;
         if (features.Surface)
@@ -154,6 +164,7 @@ internal static class Native3DFrameGraph
                 .Read(scene).Read(motion).Read(normal).Read(emission).Read(profile).Read(lights)
                 .Read(shadow).Read(cascade1).Read(cascade2).Read(spot1).Read(spot2).Read(inputs).Write(lit).Write(diffuse);
             if (features.RayShadows) resolve.Read(rayVisibility);
+            if (reflections is not null) resolve.Read(reflections);
             if (features.Ambient) resolve.Read(ambient);
             if (features.Tiles) resolve.Read(tiles);
             scene = lit;
@@ -194,8 +205,9 @@ internal static class Native3DFrameGraph
         {
             var temporal = Texture("temporal-color");
             var history = graph.Resource("temporal-history", "rgba32f", width, height, FrameLifetime.History, initialized: true);
-            graph.Pass("temporal-resolve", (int)Native3DPass.Temporal).Read(scene).Read(motion)
+            var pass = graph.Pass("temporal-resolve", (int)Native3DPass.Temporal).Read(scene).Read(motion)
                 .Write(history, FrameAccess.HistoryReadWrite).Write(temporal);
+            if (reflections is not null) pass.Read(reflections);
             graph.Export(history);
             scene = temporal;
         }

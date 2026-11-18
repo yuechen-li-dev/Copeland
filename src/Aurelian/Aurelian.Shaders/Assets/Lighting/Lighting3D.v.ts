@@ -25,6 +25,11 @@ export function Fresnel(f0: f32, vh: f32): f32 {
     let x: f32 = 1.0 - vh;
     return f0 + (1.0 - f0) * x * x * x * x * x;
 }
+export function SpecularFresnel(base: float3, metallic: f32, nv: f32): float3 {
+    let dielectric: f32 = 0.04 * (1.0 - metallic);
+    return float3(Fresnel(dielectric + base.x * metallic, nv),
+        Fresnel(dielectric + base.y * metallic, nv), Fresnel(dielectric + base.z * metallic, nv));
+}
 export function Geometry(n: f32, k: f32): f32 {
     return n / (n * (1.0 - k) + k);
 }

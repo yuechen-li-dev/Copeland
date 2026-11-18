@@ -453,6 +453,8 @@ public sealed class NativeGameGraphics : IDisposable
                         ? assets.ComputeShader("LocalShadows3D.v.ts") : null,
                     DynamicDiffuse = Plant.Facts.EnabledDeviceExtensions.Contains("VK_KHR_ray_query", StringComparer.Ordinal)
                         ? assets.ComputeShader("DynamicDiffuse3D.v.ts") : null,
+                    SharpReflections = Plant.Facts.EnabledDeviceExtensions.Contains("VK_KHR_ray_query", StringComparer.Ordinal)
+                        ? assets.ComputeShader("SharpReflection3D.v.ts") : null,
                     HeightFog = assets.Shader("HeightFog3D.v.ts"),
                     VolumeInject = assets.Shader("VolumeInject3D.v.ts"),
                     VolumeIntegrate = assets.Shader("VolumeIntegrate3D.v.ts"),

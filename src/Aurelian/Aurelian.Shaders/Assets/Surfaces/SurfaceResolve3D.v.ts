@@ -1,6 +1,6 @@
 import { EmitterSample3D, SampleLocalEmitter } from "./LocalEmitter3D";
-import { WorldAt, EnvironmentResponse, EnvironmentSurfaceResponseWeighted, EnvironmentDiffuse, MaskAllows, BoxReflection, LocalAttenuation } from "./SurfaceLighting";
-import { Unit, Sub3, Add3, Scale3, Mul3, Dot3, DirectLightModel, DirectDiffuseModel, HemisphereLight, ShadowVisibility, PlaneShadowVisibility, LimitRadiance } from "./Lighting3D";
+import { WorldAt, EnvironmentResponse, EnvironmentSurfaceResponseWeighted, EnvironmentDiffuse, EnvironmentDiffuseWeighted, MaskAllows, BoxReflection, LocalAttenuation } from "./SurfaceLighting";
+import { Unit, Sub3, Add3, Scale3, Mul3, Dot3, DirectLightModel, DirectDiffuseModel, HemisphereLight, SpecularFresnel, ShadowVisibility, PlaneShadowVisibility, LimitRadiance } from "./Lighting3D";
 import { CompiledDiffuse } from "./CompiledDiffuseLighting";
 
 @space(clip.position)
@@ -47,6 +47,7 @@ record PassMaterial {
     cascadeEnds: float4;
     cascadeForward: float4;
     cascadeBias: float4;
+    reflectionParameters: float4;
 }
 stream Resources {
     @binding(0) material: PassMaterial;
@@ -82,6 +83,7 @@ stream Resources {
     @binding(30) subsurfaceSampler: Sampler;
     @binding(31) rayVisibility: Texture2D<float4>;
     @binding(32) rayVisibilitySampler: Sampler;
+    @binding(33) reflection: Texture2D<float4>;
 }
 stream Input { @location(0) position: float2; }
 stream Varyings {
@@ -179,8 +181,18 @@ function PixelMain(input: Varyings, resources: Resources): Output {
         diffuseAmbient = Mul3(base, Add3(Scale3(float3(resources.material.sky.x, resources.material.sky.y, resources.material.sky.z), blend),
             Scale3(float3(resources.material.ground.x, resources.material.ground.y, resources.material.ground.z), 1.0 - blend)));
     }
-    var ambient: float3 = HemisphereLight(base, normal, view, float3(resources.material.sky.x, resources.material.sky.y, resources.material.sky.z),
-        float3(resources.material.ground.x, resources.material.ground.y, resources.material.ground.z), n.w, material.w);
+    let sky: float3 = float3(resources.material.sky.x, resources.material.sky.y, resources.material.sky.z);
+    let ground: float3 = float3(resources.material.ground.x, resources.material.ground.y, resources.material.ground.z);
+    var reflection: float4 = float4(0.0, 0.0, 0.0, 0.0);
+    if (resources.material.reflectionParameters.x > 0.5) {
+        reflection = Sample(resources.reflection, resources.baseSampler, input.uv);
+    }
+    var ambient: float3 = HemisphereLight(base, normal, view, sky, ground, n.w, material.w);
+    if (reflection.w > 0.0) {
+        let blend: f32 = Clamp(normal.y * 0.5 + 0.5, 0.0, 1.0);
+        let diffuseHemisphere: float3 = Scale3(Mul3(base, Add3(Scale3(sky, blend), Scale3(ground, 1.0 - blend))), 1.0 - n.w);
+        ambient = Add3(Scale3(ambient, 1.0 - reflection.w), Scale3(diffuseHemisphere, reflection.w));
+    }
     if (resources.material.parameters.y > 0.5) {
         let reflected: float3 = BoxReflection(p, Sub3(Scale3(normal, 2.0 * Max(Dot3(normal, view), 0.0)), view),
             resources.material.probePosition, resources.material.probeBounds);
@@ -190,8 +202,16 @@ function PixelMain(input: Varyings, resources: Resources): Output {
             // No valid connection means no diffuse estimate, rather than a black sky.
             if (estimate.w > 0.000001) { diffuseWeight = 0.0; }
         }
-        ambient = Scale3(EnvironmentSurfaceResponseWeighted(resources.environment, resources.environmentSampler, base, normal, reflected,
-            Max(Dot3(normal, view), 0.0001), n.w, material.w, 0.04, diffuseWeight), resources.material.parameters.z);
+        let nv: f32 = Max(Dot3(normal, view), 0.0001);
+        ambient = float3(0.0, 0.0, 0.0);
+        if (reflection.w < 1.0) {
+            ambient = Scale3(EnvironmentSurfaceResponseWeighted(resources.environment, resources.environmentSampler, base, normal, reflected,
+                nv, n.w, material.w, 0.04, diffuseWeight), resources.material.parameters.z * (1.0 - reflection.w));
+        }
+        if (reflection.w > 0.0) {
+            ambient = Add3(ambient, Scale3(EnvironmentDiffuseWeighted(resources.environment, resources.environmentSampler, base, normal,
+                nv, n.w, material.w, diffuseWeight), resources.material.parameters.z * reflection.w));
+        }
     }
     if (profile.w > 0.0 && resources.material.parameters.y > 0.5 && resources.material.probePosition.w < 0.5) {
         diffuseAmbient = Scale3(EnvironmentDiffuse(resources.environment, resources.environmentSampler, base, normal,
@@ -299,6 +319,10 @@ function PixelMain(input: Varyings, resources: Resources): Output {
         bounce = Scale3(Mul3(base, float3(gi.x, gi.y, gi.z)), (1.0 - n.w) * 0.96);
     }
     var lit: float3 = Add3(Add3(Add3(direct, indirect), emitted), bounce);
+    if (reflection.w > 0.0) {
+        let fresnel: float3 = SpecularFresnel(base, n.w, Max(Dot3(normal, view), 0.0));
+        lit = Add3(lit, Scale3(Mul3(float3(reflection.x, reflection.y, reflection.z), fresnel), reflection.w));
+    }
     let diffuse: float3 = Add3(bounce, Add3(diffuseDirect, Scale3(diffuseAmbient, emission.w * Occlusion(resources, input.uv, p))));
     return {
         tail: LimitRadiance(float4(stochasticTail.x, stochasticTail.y, stochasticTail.z, tailVisible / Max(tailSlots, 1.0))),

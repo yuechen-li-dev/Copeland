@@ -32,6 +32,12 @@ if (args.Contains("--viewmodel", StringComparer.Ordinal))
     return;
 }
 
+if (args.Contains("--rendering-r5a", StringComparer.Ordinal))
+{
+    RenderingR3Proof.RunSharpReflections(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r5a"));
+    return;
+}
+
 if (args.Contains("--rendering-beacon", StringComparer.Ordinal))
 {
     RenderingR3Proof.RunBeaconGi(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-beacon"));

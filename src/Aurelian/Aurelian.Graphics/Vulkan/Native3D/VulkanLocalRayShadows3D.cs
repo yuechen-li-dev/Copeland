@@ -48,13 +48,12 @@ internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
     public ulong SamplingRevision { get; private set; }
     private bool disposed;
     public AurelianVulkanTexture Output { get; }
-    internal VulkanSceneAcceleration3D Scene => scene;
     internal AurelianVulkanBuffer Motion => motion;
     internal AurelianVulkanBuffer Normals => normals;
-    public SceneAccelerationStatistics3D Statistics => scene.Statistics;
 
     public VulkanLocalRayShadows3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
-        VulkanFrameInFlightSet frames, byte[] program, uint width, uint height, byte[]? sampledProgram = null, byte[]? spatialProgram = null)
+        VulkanFrameInFlightSet frames, VulkanSceneAcceleration3D scene, byte[] program, uint width, uint height,
+        byte[]? sampledProgram = null, byte[]? spatialProgram = null)
     {
         plant.Vk.GetPhysicalDeviceProperties(plant.PhysicalDevice, out PhysicalDeviceProperties properties);
         ulong pixels = (ulong)width * height;
@@ -72,7 +71,7 @@ internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
         this.spatialProgram = spatialProgram;
         this.width = width;
         this.height = height;
-        scene = new(plant);
+        this.scene = scene;
         try
         {
             rays = Buffer((4 + pixels * 12) * 4, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferDestination);
@@ -97,7 +96,7 @@ internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
         }
     }
 
-    public void Prepare(NativeInstanceSet3D instances, Matrix4x4 inverse, ReadOnlySpan<float> lights, int count, LocalLightSampling3D options, SceneAccelerationUpdateMode3D updateMode)
+    public void Prepare(Matrix4x4 inverse, ReadOnlySpan<float> lights, int count, LocalLightSampling3D options)
     {
         options.Validate(checked((int)(width * height)));
         for (int index = 0; index < count; index++)
@@ -141,11 +140,6 @@ internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
             sampling = options;
             priorLights = lights.ToArray();
         }
-        if (scene.RequiresRebuild(instances, updateMode))
-        {
-            frames.Drain();
-        }
-        scene.Prepare(instances, frames.Slot, updateMode);
         var words = new float[64 + 256 * 16];
         Lighting3DUniforms.Rows(inverse).CopyTo(words, 0);
         words[16] = width;
@@ -204,7 +198,6 @@ internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
 
     public void Record(VulkanCommandBufferLease command, AurelianVulkanTexture source, AurelianVulkanTexture normal)
     {
-        scene.RecordUpdate(command);
         // Previous frames use these GPU-only scratch buffers on this same queue.
         Barrier(command, AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit | AccessFlags.TransferReadBit,
             AccessFlags.TransferWriteBit | AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit, PipelineStageFlags.AllCommandsBit,
@@ -350,6 +343,5 @@ internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
         if (setLayout.Handle != 0) plant.Vk.DestroyDescriptorSetLayout(plant.Device, setLayout, null);
         Output?.Dispose();
         foreach (var buffer in buffers.AsEnumerable().Reverse()) buffer.Dispose();
-        scene.Dispose();
     }
 }

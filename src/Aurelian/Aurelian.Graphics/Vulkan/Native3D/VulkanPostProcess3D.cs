@@ -24,6 +24,7 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
     private readonly DescriptorSetLayout layout;
     private readonly Vulkan3DFrameBindings bindings;
     private readonly Sampler sampler;
+    private readonly bool lastInputSharesSampler;
     private readonly Sampler linearSampler;
     private readonly AurelianVulkanGraphicsPipeline pipeline;
     private readonly int inputCount;
@@ -36,7 +37,8 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
     {
         this.plant = plant;
         this.inputCount = inputCount;
-        Validate(program, inputCount);
+        lastInputSharesSampler = program.Resources.Count == inputCount * 2;
+        Validate(program, inputCount, lastInputSharesSampler);
         var outputs = new List<AurelianVulkanTexture> { output };
         if (secondOutput is not null)
         {
@@ -96,7 +98,8 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
         {
             if (Framebuffer.Descriptor.ColorAttachments.Contains(inputs[index]))
                 throw new InvalidOperationException("A fullscreen pass cannot sample its own render target.");
-            Vulkan3DPass.WriteImage(plant, bindings.Set, (uint)(1 + index * 2), inputs[index], sampler);
+            Sampler? inputSampler = lastInputSharesSampler && index == inputs.Length - 1 ? null : sampler;
+            Vulkan3DPass.WriteImage(plant, bindings.Set, (uint)(1 + index * 2), inputs[index], inputSampler);
         }
     }
 
@@ -120,21 +123,24 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
 
     public void SetLinearInput(int index, AurelianVulkanTexture texture)
     {
-        if (index < 0 || index >= inputCount || Framebuffer.Descriptor.ColorAttachments.Contains(texture))
+        if (index < 0 || index >= inputCount || lastInputSharesSampler && index == inputCount - 1
+            || Framebuffer.Descriptor.ColorAttachments.Contains(texture))
         {
             throw new ArgumentException("Linear fullscreen input must be an admitted input distinct from the output.");
         }
         Vulkan3DPass.WriteImage(plant, bindings.Set, (uint)(1 + index * 2), texture, linearSampler);
     }
 
-    private static void Validate(CompiledGraphicsProgram program, int count)
+    private static void Validate(CompiledGraphicsProgram program, int count, bool sharesSampler)
     {
-        bool valid = count is >= 1 and <= 16 && program.Material is { Set: 0, Binding: 0 } material
+        int pairedInputs = sharesSampler ? count - 1 : count;
+        int resourceCount = 1 + count + pairedInputs;
+        bool valid = pairedInputs is >= 1 and <= 16 && program.Material is { Set: 0, Binding: 0 } material
             && material.Size == material.Fields.Count * 16
             && material.Fields.All(field => field.PhysicalType == "float4")
             && material.Fields.Select(field => field.Offset).SequenceEqual(Enumerable.Range(0, material.Fields.Count).Select(index => index * 16))
             && program.VertexInputs.Count == 1 && program.VertexInputs[0].Location == 0
-            && program.VertexInputs[0].PhysicalType == "float2" && program.Resources.Count == 1 + count * 2;
+            && program.VertexInputs[0].PhysicalType == "float2" && program.Resources.Count == resourceCount;
         foreach (var resource in program.Resources)
         {
             var kind = CompiledGraphicsResourceKind.Sampler;
@@ -143,7 +149,7 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
             valid &= resource.Set == 0 && resource.Kind == kind
                 && resource.Visibility.SequenceEqual([CompiledGraphicsStage.Fragment]);
         }
-        valid &= program.Resources.Select(item => item.Binding).Order().SequenceEqual(Enumerable.Range(0, 1 + count * 2));
+        valid &= program.Resources.Select(item => item.Binding).Order().SequenceEqual(Enumerable.Range(0, resourceCount));
         if (!valid) throw new ArgumentException("Fullscreen shader must expose packed float4 uniforms and numbered image/sampler pairs.");
     }
 

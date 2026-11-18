@@ -35,6 +35,29 @@ public sealed class ComputeTextureTests
     }
 
     [Fact]
+    public void IntegerVisibilityTexelsLoadWithoutFloatConversion()
+    {
+        const string source = """
+            @compute @numthreads(8, 1, 1)
+            function Main(@builtin(dispatchThreadId) thread: uint3,
+                @binding(0) readonly Identity: Texture2D<uint2>,
+                @binding(1) readonly Surface: Texture2D<float4>,
+                @binding(2) readwrite Output: StorageBuffer<u32>): void {
+                let pixel = uint2(thread.x, thread.y);
+                let hit = Load(Identity, pixel);
+                let material = Load(Surface, pixel);
+                Output[thread.x] = hit.x ^ hit.y ^ Bitcast<u32>(material.w);
+            }
+            """;
+        var module = GpuComputeBinder.Compile(new([new("visibility-load.v.ts", source)]));
+        Assert.True(module.Success, string.Join("; ", module.Diagnostics.Select(item => item.Message)));
+        var compiled = VdMirComputeBackend.Compile(module);
+        Assert.True(compiled.SpirvValidated, compiled.DxcOutput + compiled.SpirvValidationOutput);
+        Assert.Contains("Texture2D<uint2> Identity", compiled.Hlsl);
+        Assert.Contains("OpImageFetch", compiled.SpirvDisassembly);
+    }
+
+    [Fact]
     public void OpaqueResourcesCannotEscapeThroughReturnsOrDescriptorArrayHelpers()
     {
         string returning = "function Escape(filter: Sampler): Sampler { return filter; }\n" + Source;

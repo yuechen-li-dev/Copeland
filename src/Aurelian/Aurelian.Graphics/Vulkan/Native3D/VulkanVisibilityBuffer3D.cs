@@ -53,6 +53,7 @@ internal sealed unsafe class VulkanVisibilityBuffer3D : IDisposable
     public AurelianVulkanGraphicsPipeline? AnalyticRasterPipeline { get; }
 
     public ulong IdentityBytes => (ulong)identities.Width * identities.Height * 8;
+    internal AurelianVulkanTexture Identity => identities;
     public ulong HzbBytes => hzb?.Bytes ?? 0;
     public ulong AtlasBytes { get; private set; }
     public ulong CommandCopyBytes => cullers.Aggregate(0UL, (sum, culler) => sum + culler.Arguments.SizeBytes);

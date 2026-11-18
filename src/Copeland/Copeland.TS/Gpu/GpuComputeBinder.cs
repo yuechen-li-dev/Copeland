@@ -120,7 +120,7 @@ public static partial class GpuComputeBinder
                         AddDiagnostic("COPE-GPU-RAYQUERY-0003", "SDSL-V4213", "ray-query",
                             "RayQueryTraceClosest is a compiler-owned command and cannot be redefined.", Span(source.Path, function.Identifier));
                     }
-                    if (function.Identifier.Text is "float2" or "float3" or "float4" or "Dot" or "Cross"
+                    if (function.Identifier.Text is "uint2" or "float2" or "float3" or "float4" or "Dot" or "Cross"
                         or "Length" or "Normalize" or "Load" or "Store" or "WordCount" or "Indices")
                     {
                         AddDiagnostic("COPE-GPU-SYMBOL-0001", "SDSL-V1509", "symbol",
@@ -751,7 +751,8 @@ public static partial class GpuComputeBinder
                     {
                         return new("field", recordField, Span(path, member), member.NameToken.Text, [target]);
                     }
-                    if (target.Type == "uint3" && member.NameToken.Text is "x" or "y" or "z")
+                    if (target.Type == "uint2" && member.NameToken.Text is "x" or "y"
+                        || target.Type == "uint3" && member.NameToken.Text is "x" or "y" or "z")
                     {
                         return new VdMirExpression("field", "u32", Span(path, member), member.NameToken.Text, [target]);
                     }
@@ -1150,7 +1151,7 @@ public static partial class GpuComputeBinder
             string? result = type switch
             {
                 IdentifierTypeSyntax identifier when _enums is not null && _enums.Contains(_modules.Resolve(path, identifier.Identifier.Text)) => _modules.Resolve(path, identifier.Identifier.Text),
-                IdentifierTypeSyntax identifier when identifier.Identifier.Text is "f32" or "u32" or "bool" or "uint3"
+                IdentifierTypeSyntax identifier when identifier.Identifier.Text is "f32" or "u32" or "bool" or "uint2" or "uint3"
                     or "float2" or "float3" or "float4" or "acceleration_structure" or "Sampler" => identifier.Identifier.Text,
                 PredefinedTypeSyntax predefined when predefined.Keyword.Kind == SyntaxKind.VoidKeyword => "void",
                 IdentifierTypeSyntax identifier when identifier.Identifier.Text == "void" => "void",

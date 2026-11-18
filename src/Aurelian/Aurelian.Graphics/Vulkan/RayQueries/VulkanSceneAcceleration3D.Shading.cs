@@ -14,16 +14,26 @@ internal sealed unsafe partial class VulkanSceneAcceleration3D
     private readonly Dictionary<NativeMesh3D, int> triangleOffsets = [];
     private readonly Dictionary<NativeMesh3D, bool> validatedMeshes = [];
     private NativeInstanceSet3D? shaded;
+    private NativeInstanceSet3D? diffuseValidated;
     private readonly NativeInstanceSet3D?[] shadedSlots = new NativeInstanceSet3D?[VulkanFrameInFlightSet.Count];
     private float[] triangleAtlas = [];
     public AurelianVulkanBuffer Shading { get; private set; } = null!;
 
-    public void PrepareShading(NativeInstanceSet3D source, int slot)
+    public void PrepareShading(NativeInstanceSet3D source, VulkanFrameInFlightSet frames, bool diffuse)
     {
-        bool newLayout = shaded is null || !source.Keys.SequenceEqual(shaded.Keys) || source.PackedInstances.Any(instance => !triangleOffsets.ContainsKey(instance.Mesh));
-        if (!ReferenceEquals(shadedSlots[slot], source)) ValidateSource(source);
+        int slot = frames.Slot;
+        if (diffuse && !ReferenceEquals(diffuseValidated, source))
+        {
+            if (source.Materials.Any(material => material.Unlit || material.SubsurfaceStrength > 0))
+                throw new NotSupportedException("AUR-GI-001: Retained diffuse hits require opaque materials without unlit or subsurface shading.");
+            diffuseValidated = source;
+        }
+        bool newLayout = shaded is null || !ReferenceEquals(shaded, source) && !source.ContinuesFrom(shaded)
+            && !source.Keys.SequenceEqual(shaded.Keys);
+        if (!ReferenceEquals(shadedSlots[slot], source)) ValidateMeshes(source);
         if (newLayout)
         {
+            if (shadingOwned.Count != 0) frames.Drain();
             foreach (var buffer in shadingOwned)
             {
                 buffer.Dispose();
@@ -93,13 +103,8 @@ internal sealed unsafe partial class VulkanSceneAcceleration3D
         Shading = shadingSlots[slot];
     }
 
-    private void ValidateSource(NativeInstanceSet3D source)
+    private void ValidateMeshes(NativeInstanceSet3D source)
     {
-        foreach (var material in source.Materials)
-        {
-            if (material.Unlit || material.SubsurfaceStrength > 0)
-                throw new NotSupportedException("AUR-GI-001: Retained diffuse hits require opaque materials without unlit or subsurface shading.");
-        }
         foreach (var mesh in source.PackedInstances.Select(instance => instance.Mesh).Distinct())
         {
             if (validatedMeshes.ContainsKey(mesh)) continue;
@@ -116,7 +121,7 @@ internal sealed unsafe partial class VulkanSceneAcceleration3D
                 var c = mesh.Vertices[(int)mesh.Indices[triangle + 2]];
                 Vector3 cross = Vector3.Cross(b.Position - a.Position, c.Position - a.Position);
                 if (cross.LengthSquared() < 1e-16f)
-                    throw new NotSupportedException("AUR-GI-001: Retained diffuse triangles must be nondegenerate.");
+                    throw new NotSupportedException("AUR-RAY-SCENE-003: Retained secondary shading requires nondegenerate triangles.");
                 Vector3 normal = Vector3.Normalize(cross);
                 if (a.Normal.LengthSquared() < 1e-12f || b.Normal.LengthSquared() < 1e-12f || c.Normal.LengthSquared() < 1e-12f
                     || Vector3.DistanceSquared(normal, Vector3.Normalize(a.Normal)) > 1e-8f

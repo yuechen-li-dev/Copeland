@@ -210,10 +210,10 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
         return sampler;
     }
 
-    internal static void WriteImage(AurelianVulkanPlant plant, DescriptorSet set, uint binding, AurelianVulkanTexture texture, Sampler sampler)
+    internal static void WriteImage(AurelianVulkanPlant plant, DescriptorSet set, uint binding, AurelianVulkanTexture texture, Sampler? sampler)
     {
         DescriptorImageInfo image = new(default, texture.NativeImageView!.Value, ImageLayout.ShaderReadOnlyOptimal);
-        DescriptorImageInfo filter = new(sampler, default, ImageLayout.Undefined);
+        DescriptorImageInfo filter = new(sampler.GetValueOrDefault(), default, ImageLayout.Undefined);
         WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[2];
         writes[0] = new()
         {
@@ -233,7 +233,7 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
             DescriptorCount = 1,
             PImageInfo = &filter,
         };
-        plant.Vk.UpdateDescriptorSets(plant.Device, 2, writes, 0, null);
+        plant.Vk.UpdateDescriptorSets(plant.Device, sampler.HasValue ? 2u : 1u, writes, 0, null);
     }
 
     internal static void SampleAfterRendering(AurelianVulkanPlant plant, VulkanCommandBufferLease command, AurelianVulkanTexture texture)

@@ -92,6 +92,10 @@ def evaluate(manifest_path):
                 raise ValueError(f"Local ray shadows failed to improve FLIP: {scene}")
             if edge_means[scene + "-ray"] >= edge_means[scene + "-unshadowed"]:
                 raise ValueError(f"Local ray shadows failed to improve reference-edge FLIP: {scene}")
+    elif manifest.get("Qualification") == "sharp-reflections":
+        for scene in ["mirror", "curved"]:
+            if means[scene + "-hardware"] >= means[scene + "-environment"] * .2:
+                raise ValueError(f"Sharp hardware reflections failed to improve native FLIP: {scene}")
     elif manifest.get("Qualification") == "area-tail":
         for scene in ["area-only", "key-tail", "many-area"]:
             if means[scene + "-hybrid-tail-1"] >= means[scene + "-hybrid"]:

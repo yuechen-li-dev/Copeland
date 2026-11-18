@@ -8,8 +8,10 @@ public static partial class GpuComputeBinder
 {
     private sealed partial class Binder
     {
-        private static bool IsSampledResource(string type) => type is "Texture2D<float4>" or "Sampler"
+        private static bool IsSampledResource(string type) => IsTexture(type) || type == "Sampler"
             || type.StartsWith("descriptor-array<", StringComparison.Ordinal);
+
+        private static bool IsTexture(string type) => type is "Texture2D<float4>" or "Texture2D<uint2>";
 
         private static int? SampledCount(string type) => type.StartsWith("descriptor-array<", StringComparison.Ordinal)
             ? int.Parse(type[(type.LastIndexOf(',') + 1)..^1], CultureInfo.InvariantCulture) : null;
@@ -18,10 +20,10 @@ public static partial class GpuComputeBinder
 
         private string BindSampledType(string path, GenericTypeSyntax syntax)
         {
-            if (syntax.Identifier.Text == "Texture2D" && syntax.TypeArguments.Count == 1
-                && BindType(path, syntax.TypeArguments[0], syntax.Identifier) == "float4")
+            if (syntax.Identifier.Text == "Texture2D" && syntax.TypeArguments.Count == 1)
             {
-                return "Texture2D<float4>";
+                string texture = $"Texture2D<{BindType(path, syntax.TypeArguments[0], syntax.Identifier)}>";
+                if (IsTexture(texture)) return texture;
             }
             if (syntax.Identifier.Text == "DescriptorArray" && syntax.TypeArguments.Count == 2
                 && syntax.TypeArguments[1] is LiteralTypeSyntax { LiteralToken.Value: int count } && count is >= 1 and <= 4096)
@@ -30,7 +32,7 @@ public static partial class GpuComputeBinder
                 if (element is "Texture2D<float4>" or "Sampler") return $"descriptor-array<{element},{count}>";
             }
             AddDiagnostic("COPE-GPU-TABLE-0001", "SDSL-V4600", "descriptor-array",
-                "Compute sampled resources require Texture2D<float4>, Sampler, or DescriptorArray of either with literal capacity 1..4096.", Span(path, syntax));
+                "Compute textures require float4 or uint2 elements. DescriptorArray admits float4 textures or samplers with literal capacity 1..4096.", Span(path, syntax));
             return "error";
         }
 
@@ -52,13 +54,20 @@ public static partial class GpuComputeBinder
 
         private VdMirExpression? BindSampledCall(string path, CallExpressionSyntax call, Dictionary<string, ValueBinding> scope)
         {
-            if (call.Target is not NameExpressionSyntax name || name.IdentifierToken.Text is not ("SampleLevel" or "NonUniform" or "Sample")) return null;
+            if (call.Target is not NameExpressionSyntax name || name.IdentifierToken.Text is not ("SampleLevel" or "NonUniform" or "Sample" or "Load")) return null;
             var arguments = call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray();
             if (name.IdentifierToken.Text == "NonUniform")
             {
                 if (arguments.Length == 1 && arguments[0].Type == "u32")
                     return new("intrinsic", "u32", Span(path, call), "NonUniformIndex", arguments);
                 AddDiagnostic("COPE-GPU-TABLE-0003", "SDSL-V4602", "descriptor-index", "NonUniform requires one u32 index.", Span(path, call));
+            }
+            else if (name.IdentifierToken.Text == "Load")
+            {
+                if (arguments.Length == 2 && IsTexture(arguments[0].Type) && arguments[1].Type == "uint2")
+                    return new("intrinsic", arguments[0].Type[10..^1], Span(path, call), "LoadTexture2D", arguments);
+                AddDiagnostic("COPE-GPU-SAMPLE-0001", "SDSL-V4118", "texture-sampling",
+                    "Compute texture loads require Load(Texture2D<float4> or Texture2D<uint2>, uint2).", Span(path, call));
             }
             else if (name.IdentifierToken.Text == "SampleLevel" && arguments.Length == 4
                 && arguments[0].Type == "Texture2D<float4>" && arguments[1].Type == "Sampler"

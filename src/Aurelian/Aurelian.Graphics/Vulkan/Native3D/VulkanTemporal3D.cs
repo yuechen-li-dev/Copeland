@@ -24,12 +24,14 @@ internal sealed class VulkanTemporal3D : IDisposable
     private bool valid;
     private Vector2 jitter;
     private Vector2 previousJitter;
+    public bool SupportsReflectionMask { get; }
 
     public VulkanTemporal3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
         VulkanCommandBufferPool commands, VulkanFenceBundle fences, CompiledGraphicsProgram program, uint width, uint height, VulkanFrameInFlightSet? frames = null)
     {
         this.width = width;
         this.height = height;
+        SupportsReflectionMask = program.Resources.Any(resource => resource.Binding == 7);
         try
         {
             using var uploader = new VulkanTextureUploader(plant, allocator, commands, fences);
@@ -41,7 +43,7 @@ internal sealed class VulkanTemporal3D : IDisposable
                 // Even a rejected first-frame sample must reference a defined image layout.
                 var upload = uploader.Upload(new(history[index], new byte[checked((int)(width * height * 16))], "temporal.initialize"));
                 if (!upload.Success) throw new InvalidOperationException(string.Join("; ", upload.Diagnostics.Select(item => item.Message)));
-                passes[index] = new(plant, allocator, program, history[index], 3, Filter.Nearest, frames: frames);
+                passes[index] = new(plant, allocator, program, history[index], SupportsReflectionMask ? 4 : 3, Filter.Nearest, frames: frames);
             }
         }
         catch
@@ -66,12 +68,14 @@ internal sealed class VulkanTemporal3D : IDisposable
     }
 
     public AurelianVulkanTexture Resolve(VulkanCommandBufferLease command, AurelianVulkanBuffer triangle,
-        AurelianVulkanTexture current, AurelianVulkanTexture motion, float historyWeight)
+        AurelianVulkanTexture current, AurelianVulkanTexture motion, float historyWeight,
+        AurelianVulkanTexture? reflection = null)
     {
         var pass = passes[writeIndex];
         Vector2 delta = previousJitter - jitter;
         pass.Configure([1f / width, 1f / height, valid ? 1 : 0, Math.Min(frame / (frame + 1f), historyWeight),
-            delta.X / width, delta.Y / height, 0, 0, jitter.X / width, jitter.Y / height, 0, 0], current, motion, history[1 - writeIndex]);
+            delta.X / width, delta.Y / height, 0, 0, jitter.X / width, jitter.Y / height, reflection is null ? 0 : 1, 0],
+            [current, motion, history[1 - writeIndex], .. SupportsReflectionMask ? new[] { reflection ?? motion } : []]);
         pass.Record(command, triangle);
         var result = history[writeIndex];
         writeIndex = 1 - writeIndex;

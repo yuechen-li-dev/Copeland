@@ -69,7 +69,7 @@ public static partial class GpuComputeBinder
                     return buffer.Kind == "name" && _resources.Any(resource => resource.Name == buffer.Value
                         && resource.Access == VdMirResourceAccess.Readonly) && Uniform(expression.Operands[1]);
                 }
-                return expression.Kind is "field" or "binary" or "unary"
+                return (expression.Kind is "field" or "binary" or "unary" || expression is { Kind: "call", Value: "U32" })
                     && (expression.Operands ?? []).All(Uniform);
             }
             return Uniform(value);

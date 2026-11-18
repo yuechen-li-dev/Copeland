@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using Aurelian.Graphics.Vulkan.Commanding;
 using Aurelian.Graphics.Vulkan.Device;
 using Aurelian.Graphics.Vulkan.NativeForwardTextured;
+using Aurelian.Graphics.Vulkan.RayQueries;
 using Aurelian.Graphics.Vulkan.Resources.Allocation;
 using Aurelian.Graphics.Vulkan.Resources.Buffers;
 using Aurelian.Graphics.Vulkan.Resources.Textures;
@@ -44,6 +45,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
     private readonly VulkanPostProcess3D aoPass;
     private readonly VulkanPostProcess3D denoisePass;
     private readonly VulkanPostProcess3D resolvePass;
+    private readonly bool resolveHasReflectionInput;
     private readonly AurelianVulkanTexture diffuseOutput;
     private readonly AurelianVulkanTexture[] cascadeMaps = new AurelianVulkanTexture[2];
     private readonly Vulkan3DPass[] cascadePasses = new Vulkan3DPass[2];
@@ -78,12 +80,20 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
     private ulong tailRevision;
     private AurelianVulkanTexture? qualifiedLighting;
     private VulkanLocalRayShadows3D? rayShadows;
+    private VulkanSceneAcceleration3D? rayScene;
+    private VulkanSharpReflection3D? reflections;
+    private VulkanBindlessMaterials3D? reflectionMaterials;
+    private AurelianVulkanTexture? reflectionIdentity;
+    private AurelianVulkanTexture? reflectionSky;
+    private string? reflectionSkyKey;
     private VulkanDynamicDiffuse3D? dynamicDiffuse;
     private string? environmentSourceKey;
     private DynamicDiffuseLighting3D diffuseSettings = new();
     private CompiledDiffuseProbeField3D? compiledProbes;
     public bool RayShadowsActive { get; private set; }
-    public Aurelian.Graphics.Vulkan.RayQueries.SceneAccelerationStatistics3D? RayStatistics => RayShadowsActive ? rayShadows?.Statistics : null;
+    public bool ReflectionsActive { get; private set; }
+    public AurelianVulkanTexture? ReflectionOutput => ReflectionsActive ? reflections!.Output : null;
+    public SceneAccelerationStatistics3D? RayStatistics => RayShadowsActive || ReflectionsActive ? rayScene?.Statistics : null;
     private ReflectionProbe3D? probe;
     public int ShadowCount { get; private set; }
 
@@ -128,7 +138,9 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
             tilePass = Own(new VulkanPostProcess3D(plant, allocator, programs.LightTiles, tiles, 1, Filter.Nearest, frames: frames));
             aoPass = Own(new VulkanPostProcess3D(plant, allocator, programs.AmbientOcclusion, rawAo, 2, Filter.Nearest, frames: frames));
             denoisePass = Own(new VulkanPostProcess3D(plant, allocator, programs.AmbientDenoise, filteredAo, 2, Filter.Nearest, frames: frames));
-            resolvePass = Own(new VulkanPostProcess3D(plant, allocator, programs.Resolve, Output, 16, Filter.Nearest, diffuseOutput, frames: frames, thirdOutput: rawTail));
+            resolveHasReflectionInput = programs.Resolve.Resources.Any(resource => resource.Binding == 33);
+            resolvePass = Own(new VulkanPostProcess3D(plant, allocator, programs.Resolve, Output,
+                resolveHasReflectionInput ? 17 : 16, Filter.Nearest, diffuseOutput, frames: frames, thirdOutput: rawTail));
             for (int index = 0; index < 2; index++)
             {
                 cascadeMaps[index] = Image(Lighting3DUniforms.ShadowSize, Lighting3DUniforms.ShadowSize,
@@ -232,13 +244,14 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
             throw new InvalidOperationException("Subsurface materials require the diffuse diffusion and merge programs.");
     }
 
-    public bool Prepare(EnvironmentLighting? asset, ReflectionProbe3D? reflectionProbe, IReadOnlyList<LocalLight3D> lights, int shadowBudget, bool rayShadowEnabled = false, DynamicDiffuseLighting3D? diffuseOptions = null, EnvironmentRadiance3D? environmentSource = null)
+    public bool Prepare(EnvironmentLighting? asset, ReflectionProbe3D? reflectionProbe, IReadOnlyList<LocalLight3D> lights, int shadowBudget,
+        bool rayShadowEnabled, DynamicDiffuseLighting3D diffuseOptions, EnvironmentRadiance3D? environmentSource, bool sharpReflections)
     {
         if (lights.Count > 256)
         {
             throw new ArgumentException("AUR-LIGHT-LOCAL-001: This light tile contract admits at most 256 local lights.");
         }
-        diffuseSettings = diffuseOptions ?? new();
+        diffuseSettings = diffuseOptions;
         diffuseSettings.Validate();
         bool hasArea = lights.Any(light => light.Kind == LocalLightKind.Sphere);
         if (hasArea && !rayShadowEnabled)
@@ -265,7 +278,9 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
             throw new ArgumentException("AUR-LIGHT-LOCAL-003: Requested local shadows exceed the declared local shadow budget.");
         }
         bool environmentChanged = environmentKey != asset?.ContentKey;
-        bool changed = environmentChanged || probe != reflectionProbe || rayModeChanged || environmentSourceKey != environmentSource?.ContentKey;
+        bool changed = environmentChanged || probe != reflectionProbe || rayModeChanged
+            || environmentSourceKey != environmentSource?.ContentKey || ReflectionsActive != sharpReflections;
+        ReflectionsActive = sharpReflections;
         environmentSourceKey = environmentSource?.ContentKey;
         probe = reflectionProbe;
         if (environmentChanged)
@@ -394,14 +409,29 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
         denoisePass.Record(command, triangle);
     }
 
-    public void PrepareRayShadows(NativeInstanceSet3D instances, Matrix4x4 inverse, LocalLightSampling3D options,
-        Aurelian.Graphics.Vulkan.RayQueries.SceneAccelerationUpdateMode3D updateMode, float responseModel, float emissionIntensity, VulkanBindlessMaterials3D? materialTable, Graphics3DSettings settings, EnvironmentRadiance3D? environmentSource)
+    public void PrepareRayLighting(NativeInstanceSet3D instances, Matrix4x4 inverse, LocalLightSampling3D options,
+        SceneAccelerationUpdateMode3D updateMode, float emissionIntensity, VulkanBindlessMaterials3D? materialTable,
+        AurelianVulkanTexture? identity, Graphics3DSettings settings, EnvironmentRadiance3D? environmentSource)
     {
+        if (ReflectionsActive)
+        {
+            if (frames is null || localPrograms.SharpReflections is null || materialTable is null || identity is null || !resolveHasReflectionInput)
+                throw new NotSupportedException("AUR-REFLECT-002: Sharp reflections require reflection-compatible trace and resolve programs and resident identity and material tables.");
+            reflections ??= Own(new VulkanSharpReflection3D(plant, allocator, frames, localPrograms.SharpReflections, Output.Width, Output.Height));
+            reflectionIdentity = identity;
+            reflectionMaterials = materialTable;
+            PrepareReflectionSky(environmentSource);
+        }
+        rayScene ??= Own(new VulkanSceneAcceleration3D(plant));
+        if (rayScene.RequiresRebuild(instances, updateMode)) frames!.Drain();
+        rayScene.Prepare(instances, frames!.Slot, updateMode);
+        bool diffuse = diffuseSettings.Mode != DynamicDiffuseMode3D.Off;
+        if (diffuse || ReflectionsActive) rayScene.PrepareShading(instances, frames, diffuse);
         if (!RayShadowsActive) return;
-        rayShadows ??= Own(new VulkanLocalRayShadows3D(plant, allocator, frames!, rayShadowProgram!, Output.Width, Output.Height, sampledProgram, spatialProgram));
+        rayShadows ??= Own(new VulkanLocalRayShadows3D(plant, allocator, frames!, rayScene, rayShadowProgram!, Output.Width, Output.Height, sampledProgram, spatialProgram));
         localSampling = options;
-        rayShadows.Prepare(instances, inverse, packedLights, priorLights.Length, options, updateMode);
-        if (diffuseSettings.Mode != DynamicDiffuseMode3D.Off)
+        rayShadows.Prepare(inverse, packedLights, priorLights.Length, options);
+        if (diffuse)
         {
             if (materialTable is null) throw new NotSupportedException("AUR-GI-005: Secondary materials require the shared resident visibility/material tables. Enable visibility buffers and bindless materials.");
             if (localPrograms.DynamicDiffuse is null) throw new NotSupportedException("AUR-GI-002: DynamicDiffuse3D program is required.");
@@ -410,8 +440,8 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
                 dynamicDiffuse = Own(new VulkanDynamicDiffuse3D(plant, allocator, frames!, localPrograms.DynamicDiffuse, Output.Width, Output.Height));
                 if (compiledProbes is not null) dynamicDiffuse.SetCompiled(compiledProbes);
             }
-            dynamicDiffuse.Prepare(rayShadows.Scene, instances, inverse, packedLights, priorLights.Length, diffuseSettings,
-                responseModel, emissionIntensity, rayShadows.Motion, rayShadows.Normals, materialTable, settings, environmentSource);
+            dynamicDiffuse.Prepare(rayScene, instances, inverse, packedLights, priorLights.Length, diffuseSettings,
+                (float)settings.DirectDiffuseModel, emissionIntensity, rayShadows.Motion, rayShadows.Normals, materialTable, settings, environmentSource);
         }
         if (options.ReconstructTail)
         {
@@ -451,8 +481,47 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
 
     public void RecordRayShadows(VulkanCommandBufferLease command)
     {
+        rayScene!.RecordUpdate(command);
         rayShadows!.Record(command, current.motion, Normal);
         if (diffuseSettings.Mode != DynamicDiffuseMode3D.Off) dynamicDiffuse!.Record(command);
+    }
+
+    public void RecordReflections(VulkanCommandBufferLease command)
+    {
+        if (!RayShadowsActive) rayScene!.RecordUpdate(command);
+        reflections!.Record(command, rayScene!, reflectionMaterials!,
+            [reflectionIdentity!, current.motion, current.surface, Normal, Emission, environment ?? fallback, reflectionSky ?? fallback],
+            current.clip, current.inverse, current.eye, current.settings, packedLights, priorLights.Length, current.lighting[11],
+            environment is not null, reflectionSky is not null, probe is not null);
+    }
+
+    public (float[] Radiance, float[] Hits) ReadReflectionsForQualification()
+    {
+        if (!ReflectionsActive) throw new InvalidOperationException("Sharp reflections are inactive.");
+        return reflections!.ReadForQualification();
+    }
+
+    private void PrepareReflectionSky(EnvironmentRadiance3D? source)
+    {
+        if (reflectionSkyKey == source?.ContentKey) return;
+        frames!.Drain();
+        AurelianVulkanTexture? replacement = null;
+        try
+        {
+            if (source is not null)
+            {
+                replacement = Data((uint)source.Width, (uint)source.Height, "sharp-reflection.sky");
+                Upload(replacement, source.Rgba.AsSpan());
+            }
+        }
+        catch
+        {
+            replacement?.Dispose();
+            throw;
+        }
+        reflectionSky?.Dispose();
+        reflectionSky = replacement;
+        reflectionSkyKey = source?.ContentKey;
     }
 
     public void RecordLightTiles(VulkanCommandBufferLease command, AurelianVulkanBuffer triangle)
@@ -487,9 +556,11 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
                 : (localSampling.Mode == LocalLightSamplingMode3D.Hybrid ? 3 : 2) + (localSampling.ReconstructTail ? 4 : 0)) : 0,
             probe?.Position.X ?? 0, probe?.Position.Y ?? 0, probe?.Position.Z ?? 0, diffuseSettings.Mode != DynamicDiffuseMode3D.Off ? 1 : 0,
             probe?.HalfSize.X ?? 1, probe?.HalfSize.Y ?? 1, probe?.HalfSize.Z ?? 1, probe is null ? 0 : 1,
-            .. Lighting3DUniforms.Rows(spotCameras[0]), .. Lighting3DUniforms.Rows(spotCameras[1]), .. CascadeUniforms(cascades)],
-            surface, motion, Normal, Emission, environment ?? fallback, lightData, lightTiles ? tiles : fallback, shadow, diffuseSettings.Mode != DynamicDiffuseMode3D.Off ? dynamicDiffuse!.Output : diffuse ?? fallback, ambient ? filteredAo : neutralAo,
-            spotMaps[0], spotMaps[1], cascadeMaps[0], cascadeMaps[1], Subsurface, RayShadowsActive ? rayShadows!.Output : fallback);
+            .. Lighting3DUniforms.Rows(spotCameras[0]), .. Lighting3DUniforms.Rows(spotCameras[1]), .. CascadeUniforms(cascades),
+            .. resolveHasReflectionInput ? new float[] { ReflectionsActive ? 1 : 0, 0, 0, 0 } : []],
+            [surface, motion, Normal, Emission, environment ?? fallback, lightData, lightTiles ? tiles : fallback, shadow, diffuseSettings.Mode != DynamicDiffuseMode3D.Off ? dynamicDiffuse!.Output : diffuse ?? fallback, ambient ? filteredAo : neutralAo,
+            spotMaps[0], spotMaps[1], cascadeMaps[0], cascadeMaps[1], Subsurface, RayShadowsActive ? rayShadows!.Output : fallback,
+            .. resolveHasReflectionInput ? new[] { ReflectionOutput ?? fallback } : []]);
         resolvePass.SetLinearInput(4, environment ?? fallback);
         resolvePass.Record(command, triangle);
         Resolved = Output;
@@ -598,6 +669,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
 
     public void Dispose()
     {
+        reflectionSky?.Dispose();
         environment?.Dispose();
         while (owned.TryPop(out var resource))
         {
