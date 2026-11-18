@@ -8,7 +8,7 @@ import { AnalyticRay, AnalyticHit, IntersectAnalytic } from "./AnalyticIntersect
 import { AffineAnalyticIntersection } from "./AffineAnalyticQuery3D";
 import { WorldAt, EncodeOcta, EnvironmentBandUv } from "./SurfaceLighting";
 import { Cross3, Unit, Dot3, DirectLightModel, HemisphereLight, SpecularFresnel } from "./Lighting3D";
-import { GlossyCoverage, GlossyIsSharp, SampleVisibleGgx, GgxVisibilityWeight } from "./GlossyReflection3D";
+import { GlossyCoverage, GlossyIsSharp, SampleVisibleGgx, GgxVisibilityWeight, VisibleGgxReflectionPdf, SampleReflectionCone, ReflectionGuideBit } from "./GlossyReflection3D";
 import { Read4 } from "./LocalLightSamplingMath3D";
 import { EmitterSample3D, SampleLocalEmitter, EmitterRandom } from "./LocalEmitter3D";
 
@@ -77,7 +77,8 @@ function SharpReflectionMain(@builtin(dispatchThreadId) thread: uint3,
     @binding(21) readonly LinearClamp: Sampler,
     @binding(22) readonly Textures: DescriptorArray<Texture2D<float4>, 4096>,
     @binding(23) readonly Samplers: DescriptorArray<Sampler, 64>,
-    @binding(24) readwrite ReflectionHits: StorageBuffer<u32>): void {
+    @binding(24) readwrite ReflectionHits: StorageBuffer<u32>,
+    @binding(25) readonly ProbeGuide: StorageBuffer<f32>): void {
     let raySlot: u32 = thread.x;
     let workIndex: u32 = raySlot + thread.y * U32(Parameters[27]);
     let width: u32 = U32(Parameters[20]);
@@ -137,6 +138,7 @@ function SharpReflectionMain(@builtin(dispatchThreadId) thread: uint3,
     if (nv <= 0.0) { return; }
     var direction: float3 = normal * (2.0 * nv) - view;
     var throughput: float3 = float3(1.0, 1.0, 1.0);
+    var usedGuide: bool = false;
     if (glossy) {
         let base: float3 = float3(receiver.x, receiver.y, receiver.z);
         throughput = SpecularFresnel(base, encoded.w, nv);
@@ -149,10 +151,40 @@ function SharpReflectionMain(@builtin(dispatchThreadId) thread: uint3,
             let x: f32 = EmitterRandom(key) + step * 0.7548776662;
             let y: f32 = EmitterRandom(key + 1) + step * 0.5698402910;
             let alpha: f32 = roughness * roughness;
-            let half: float3 = SampleVisibleGgx(normal, view, alpha, float2(x - Floor(x), y - Floor(y)));
+            let random: float2 = float2(x - Floor(x), y - Floor(y));
+            var guide: float3 = direction;
+            var mixWeight: f32 = 0.0;
+            var coneCosine: f32 = 0.988;
+            if (Parameters[28] > 1.5 && roughness >= 0.28) {
+                let hint: float4 = Read4(ProbeGuide, 0);
+                let displacement: float3 = float3(hint.x, hint.y, hint.z) - position;
+                let distanceSquared: f32 = Dot3(displacement, displacement);
+                if (hint.w > 0.0 && distanceSquared > 0.25) {
+                    guide = Unit(displacement);
+                    if (Dot3(guide, direction) > 0.89 && Dot3(guide, normal) > 0.12) {
+                        coneCosine = Clamp(Sqrt(distanceSquared / (distanceSquared + hint.w * hint.w)), 0.96, 0.9998);
+                        mixWeight = 0.48;
+                    }
+                }
+            }
+            var half: float3 = float3(0.0, 0.0, 0.0);
+            if (random.x < mixWeight) {
+                direction = SampleReflectionCone(guide, coneCosine, float2(random.x / mixWeight, random.y));
+                half = Unit(view + direction);
+            } else {
+                half = SampleVisibleGgx(normal, view, alpha, float2((random.x - mixWeight) / (1.0 - mixWeight), random.y));
+                direction = half * (2.0 * Max(0.0, Dot3(view, half))) - view;
+            }
             let vh: f32 = Max(0.0, Dot3(view, half));
-            direction = half * (2.0 * vh) - view;
             throughput = SpecularFresnel(base, encoded.w, vh) * GgxVisibilityWeight(nv, Dot3(normal, direction), alpha);
+            if (mixWeight > 0.0) {
+                let pdf: f32 = VisibleGgxReflectionPdf(nv, Clamp(Dot3(normal, half), 0.0, 1.0), alpha);
+                var guidePdf: f32 = 0.0;
+                if (Dot3(guide, direction) >= coneCosine) { guidePdf = 1.0 / (6.28318530718 * (1.0 - coneCosine)); }
+                // Both proposals trace hardware rays. Divide by the mixture PDF to preserve the GGX integral.
+                throughput = throughput * (pdf / (pdf * (1.0 - mixWeight) + guidePdf * mixWeight));
+                usedGuide = true;
+            }
         }
     }
     var geometric: float3 = GeometricNormal(identity, pixel, viewport, Geometry[identity.x - 1], Vertices, Indices, Parameters);
@@ -183,6 +215,7 @@ function SharpReflectionMain(@builtin(dispatchThreadId) thread: uint3,
         // Zero identifies a sky miss. Hits store distance in centimetres plus two.
         var distance: u32 = 0;
         if (Hits[hit + 2] > 0.5) { distance = U32(Hits[hit + 4] * 100.0 + 2.5); }
+        if (usedGuide) { distance = distance | ReflectionGuideBit; }
         ReflectionHits[index * 2 + 1] = distance;
     }
     var radiance: float3 = float3(0.0, 0.0, 0.0);

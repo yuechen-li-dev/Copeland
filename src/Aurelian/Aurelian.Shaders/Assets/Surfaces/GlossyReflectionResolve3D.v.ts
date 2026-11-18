@@ -1,4 +1,4 @@
-import { GlossyIsSharp } from "./GlossyReflection3D";
+import { GlossyIsSharp, ReflectionDistanceMask } from "./GlossyReflection3D";
 import { Add3, Dot3, Scale3, Sub3, Unit } from "./Lighting3D";
 import { WorldAt, EncodeOcta, DecodeOcta } from "./SurfaceLighting";
 
@@ -77,8 +77,8 @@ function HitWeight(center: uint2, neighbor: uint2): f32 {
     if (center.y == 1 || neighbor.y == 1) { return 1.0; }
     if (center.x == neighbor.x) { return 1.0; }
     if (center.x == 0 || neighbor.x == 0) { return 0.5; }
-    let a: f32 = Convert<f32>(center.y);
-    let b: f32 = Convert<f32>(neighbor.y);
+    let a: f32 = Convert<f32>(center.y & ReflectionDistanceMask);
+    let b: f32 = Convert<f32>(neighbor.y & ReflectionDistanceMask);
     return 0.7 / (1.0 + Abs(a - b) / Max(Min(a, b), 1.0));
 }
 

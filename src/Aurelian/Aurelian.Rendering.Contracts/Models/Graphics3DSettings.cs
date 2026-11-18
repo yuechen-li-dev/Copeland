@@ -64,6 +64,8 @@ public sealed record Graphics3DSettings
     public bool SharpReflections { get; init; }
     /// <summary>Sample glossy GGX reflections on the retained ray-query path. Raw exposes one sample for qualification.</summary>
     public GlossyReflectionMode3D GlossyReflections { get; init; }
+    /// <summary>Use fresh runtime diffuse probe observations to guide GGX sampling toward bright emissive geometry.</summary>
+    public bool GuideGlossyReflectionsWithProbes { get; init; }
     public bool LocalLightCulling { get; init; } = true;
     public int LocalShadowBudget { get; init; } = 2;
     public bool SolidPbr { get; init; } = true;

@@ -95,6 +95,8 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
     public bool RayShadowsActive { get; private set; }
     public bool ReflectionsActive { get; private set; }
     public bool ReconstructReflections { get; private set; }
+    public bool ReflectionGuideActive => ReflectionsActive && diffuseSettings.Mode == DynamicDiffuseMode3D.Runtime
+        && dynamicDiffuse?.ReflectionGuide is not null;
     public AurelianVulkanTexture? ReflectionOutput
     {
         get
@@ -485,6 +487,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
     public CompiledDiffuseProbeField3D CaptureCompiledDiffuseProbes() => dynamicDiffuse!.CaptureCompiled();
     public DiffuseRegionalObservation3D? CompletedDiffuseRegions => dynamicDiffuse?.CompletedRegions;
     public float[] ReadDiffuseCache() => dynamicDiffuse!.ReadCache();
+    public Vector4 ReadProbeGuide() => dynamicDiffuse!.ReadProbeGuide();
     public float[] ReadSecondaryWitness() => dynamicDiffuse!.ReadSecondaryWitness();
     public float[] ReadDiffuseOutput() => dynamicDiffuse!.ReadOutput();
     public void SetCompiledDiffuseProbes(CompiledDiffuseProbeField3D field)
@@ -522,7 +525,8 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
         reflections!.Record(command, rayScene!, reflectionMaterials!,
             [reflectionIdentity!, current.motion, current.surface, Normal, Emission, environment ?? fallback, reflectionSky ?? fallback],
             current.clip, current.inverse, current.eye, current.settings, packedLights, priorLights.Length, current.lighting[11],
-            environment is not null, reflectionSky is not null, probe is not null);
+            environment is not null, reflectionSky is not null, probe is not null,
+            ReflectionGuideActive ? dynamicDiffuse!.ReflectionGuide : null);
     }
 
     public void RecordReflectionReconstruction(VulkanCommandBufferLease command, AurelianVulkanBuffer triangle)

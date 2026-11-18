@@ -147,13 +147,13 @@ internal static partial class RenderingR3Proof
     }
 
     private static (ReferenceImage3D Mean, ReferenceImage3D First, ReferenceImage3D Four, double Delta) AccumulateGlossy(
-        VulkanSolid3DRenderer renderer, Native3DScene scene, Matrix4x4 camera)
+        VulkanSolid3DRenderer renderer, Native3DScene scene, Matrix4x4 camera, int samples = GlossyReferenceSamples)
     {
         var sum = new double[ReflectionWidth * ReflectionHeight * 3];
         ReferenceImage3D? first = null;
         ReferenceImage3D? four = null;
         double delta = 0;
-        for (int frame = 0; frame < GlossyReferenceSamples; frame++)
+        for (int frame = 0; frame < samples; frame++)
         {
             renderer.Render(scene, camera, ReflectionEye, Clear, capture: true);
             var image = renderer.ReadLightingForQualification();
@@ -162,7 +162,7 @@ internal static partial class RenderingR3Proof
             for (int index = 0; index < sum.Length; index++) sum[index] += image.LinearRgb[index];
             if (frame == 3) four = new(ReflectionWidth, ReflectionHeight, 1, sum.Select(value => (float)(value / 4)).ToArray());
         }
-        return (new(ReflectionWidth, ReflectionHeight, 1, sum.Select(value => (float)(value / GlossyReferenceSamples)).ToArray()), first!, four!, delta);
+        return (new(ReflectionWidth, ReflectionHeight, 1, sum.Select(value => (float)(value / samples)).ToArray()), first!, four!, delta);
     }
 
     private static object CheckGlossyIntegral(NativeInstanceSet3D scene, Matrix4x4 camera, ReferenceImage3D reference, float roughness)

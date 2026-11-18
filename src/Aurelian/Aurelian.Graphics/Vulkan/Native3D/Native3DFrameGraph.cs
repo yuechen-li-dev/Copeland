@@ -14,7 +14,7 @@ internal readonly record struct Native3DFeatures(bool Surface, bool Modern, bool
     bool Ambient, bool Tiles, bool Temporal, bool Bloom, bool Subsurface, bool Fog, bool Volume,
     bool Refraction, bool Transparency, bool Particles, bool AsyncParticles, bool GpuHistory,
     int LocalShadows, bool Alias, bool Visibility = false, bool VisibilityBuffer = false, bool HierarchicalZ = false, bool RayShadows = false,
-    bool PreserveColor = false, bool Reflections = false, bool ReflectionReconstruction = false);
+    bool PreserveColor = false, bool Reflections = false, bool ReflectionReconstruction = false, bool ReflectionGuide = false);
 
 /// <summary>Declarative authoring for the production renderer. The compiler publishes only resolved data.</summary>
 internal static class Native3DFrameGraph
@@ -149,6 +149,12 @@ internal static class Native3DFrameGraph
                 .Read(inputs).Read(lights).Read(identity!).Read(scene).Read(motion).Read(normal).Read(emission)
                 .Write(reflections, FrameAccess.TransferWrite);
             if (rayShadows is not null) trace.DependsOn(rayShadows);
+            if (features.ReflectionGuide)
+            {
+                var guide = graph.Resource("glossy-emitter-guide", "storage-float4", 1, 1, dedicated: true);
+                rayShadows!.Write(guide, FrameAccess.ComputeWrite);
+                trace.Read(guide);
+            }
             if (features.ReflectionReconstruction)
             {
                 var hits = Texture("glossy-reflection-hits", "rg32ui");

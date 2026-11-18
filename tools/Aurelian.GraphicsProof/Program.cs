@@ -32,6 +32,12 @@ if (args.Contains("--viewmodel", StringComparer.Ordinal))
     return;
 }
 
+if (args.Contains("--rendering-r5c", StringComparer.Ordinal))
+{
+    RenderingR3Proof.RunProbeReflections(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r5c"));
+    return;
+}
+
 if (args.Contains("--rendering-r5b", StringComparer.Ordinal))
 {
     RenderingR3Proof.RunGlossyReflections(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r5b"));

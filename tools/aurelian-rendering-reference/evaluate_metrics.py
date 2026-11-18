@@ -98,6 +98,13 @@ def evaluate(manifest_path):
             for reconstruction in ("full", "half"):
                 if means[f"{scene}-{reconstruction}"] >= means[f"{scene}-raw4"]:
                     raise ValueError(f"Glossy {reconstruction} reconstruction failed the four-ray FLIP control: {scene}")
+    elif manifest.get("Qualification") == "probe-guided-reflections":
+        for rate in ("full", "quarter"):
+            if means[f"{rate}-guided"] >= means[f"{rate}-hardware"] * .85:
+                raise ValueError(f"Probe guiding failed to improve native FLIP: {rate}")
+    elif manifest.get("Qualification") == "probe-reflection-experiment":
+        if len(results) < 4:
+            raise ValueError("Probe reflection comparison is missing captures")
     elif manifest.get("Qualification") == "sharp-reflections":
         for scene in ["mirror", "curved"]:
             if means[scene + "-hardware"] >= means[scene + "-environment"] * .2:

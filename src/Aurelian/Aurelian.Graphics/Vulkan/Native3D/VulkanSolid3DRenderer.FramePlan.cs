@@ -47,6 +47,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
     public float[] ReadSecondaryWitnessForQualification() => surfaceLighting!.ReadSecondaryWitness();
     public (float[] Radiance, float[] Hits) ReadReflectionsForQualification() => surfaceLighting!.ReadReflectionsForQualification();
     public (float[] Radiance, uint[] HitPairs) ReadGlossyReflectionsForQualification() => surfaceLighting!.ReadGlossyReflectionsForQualification();
+    public Vector4 ReadProbeGuideForQualification() => surfaceLighting!.ReadProbeGuide();
     public float[] ReadDiffuseCacheForQualification() => surfaceLighting!.ReadDiffuseCache();
     public float[] ReadDiffuseOutputForQualification() => surfaceLighting!.ReadDiffuseOutput();
     public bool EnableRayShadows { get; set; }
@@ -88,7 +89,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
             surfaceLighting?.ShadowCount ?? 0, planOptions.AliasTransientTextures, retainedModels?.HasVisibility == true,
             retainedModels?.VisibilityBufferActive == true, retainedModels?.HierarchicalZActive == true, surfaceLighting?.RayShadowsActive == true,
             preserveColor, surfaceLighting?.ReflectionsActive == true,
-            surfaceLighting is { ReflectionsActive: true, ReconstructReflections: true });
+            surfaceLighting is { ReflectionsActive: true, ReconstructReflections: true }, surfaceLighting?.ReflectionGuideActive == true);
         if (!framePlanCache.TryGetValue(features, out var plan))
         {
             plan = Native3DFrameGraph.Compile(features, (int)target.Width, (int)target.Height);

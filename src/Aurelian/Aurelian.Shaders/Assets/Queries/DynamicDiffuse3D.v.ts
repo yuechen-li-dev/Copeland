@@ -10,6 +10,7 @@ import { Read4, ReadSurfaceNormal } from "./LocalLightSamplingMath3D";
 import { EmitterSample3D, SampleLocalEmitter, EmitterRandom } from "./LocalEmitter3D";
 
 const GoldenAngle: f32 = 2.39996323;
+const MinimumGuideEmission: f32 = 3.0;
 
 enum DiffusePhase {
     UpdateRayCache,
@@ -168,7 +169,8 @@ function DynamicDiffuseMain(@builtin(dispatchThreadId) thread: uint3,
     @binding(22) readonly SkyParameters: StorageBuffer<f32>,
     @binding(23) readonly SkyRadiance: StorageBuffer<f32>,
     @binding(24) readonly RegionParameters: StorageBuffer<f32>,
-    @binding(25) readwrite ProbeMetrics: StorageBuffer<f32>): void {
+    @binding(25) readwrite ProbeMetrics: StorageBuffer<f32>,
+    @binding(26) readwrite ProbeGuides: StorageBuffer<f32>): void {
     let index: u32 = thread.x;
     let count: u32 = U32(Parameters[27]);
     let directions: u32 = U32(Parameters[28]);
@@ -364,6 +366,42 @@ function DynamicDiffuseMain(@builtin(dispatchThreadId) thread: uint3,
 
         }
         case DiffusePhase.ResolveReceivers => {
+            if (index == 0 && Parameters[50] > 0.5) {
+                // Fit one compact guide from probe hits on the same bright object.
+                var owner: f32 = 0.0;
+                var peak: f32 = MinimumGuideEmission;
+                for (let probe of BoundedIndices<512>(U32(Parameters[27]))) {
+                    let guide: u32 = 4 + probe * 8;
+                    let luminance: f32 = ProbeGuides[guide + 5];
+                    if (luminance > peak && ProbeGuides[guide + 3] >= 10.0) {
+                        peak = luminance;
+                        owner = ProbeGuides[guide + 4];
+                    }
+                }
+                var lower: float3 = float3(1.0e10, 1.0e10, 1.0e10);
+                var upper: float3 = float3(-1.0e10, -1.0e10, -1.0e10);
+                var witnesses: u32 = 0;
+                if (owner > 0.0) {
+                    for (let probe of BoundedIndices<512>(U32(Parameters[27]))) {
+                        let guide: u32 = 4 + probe * 8;
+                        if (ProbeGuides[guide + 4] == owner && ProbeGuides[guide + 5] >= peak * 0.65) {
+                            let p: float3 = float3(ProbeGuides[guide], ProbeGuides[guide + 1], ProbeGuides[guide + 2]);
+                            lower = float3(Min(lower.x, p.x), Min(lower.y, p.y), Min(lower.z, p.z));
+                            upper = float3(Max(upper.x, p.x), Max(upper.y, p.y), Max(upper.z, p.z));
+                            witnesses = witnesses + 1;
+                        }
+                    }
+                }
+                let center: float3 = (lower + upper) * 0.5;
+                let span: float3 = upper - lower;
+                ProbeGuides[0] = center.x;
+                ProbeGuides[1] = center.y;
+                ProbeGuides[2] = center.z;
+                ProbeGuides[3] = 0.0;
+                if (witnesses >= 2) {
+                    ProbeGuides[3] = Sqrt(Dot3(span, span)) * 0.5 + 0.14;
+                }
+            }
             let width: u32 = U32(Parameters[16]);
             let height: u32 = U32(Parameters[17]);
             if (index >= width * height) {
@@ -422,6 +460,39 @@ function DynamicDiffuseMain(@builtin(dispatchThreadId) thread: uint3,
             Output[index * 4 + 3] = total;
         }
         case DiffusePhase.MeasureProbes => {
+            if (Parameters[50] > 0.5 && index < count) {
+                let probe: u32 = index;
+                var peak: f32 = 0.0;
+                var energy: f32 = 0.0;
+                var position: float3 = float3(0.0, 0.0, 0.0);
+                var owner: f32 = 0.0;
+                for (let ray of BoundedIndices<128>(U32(Parameters[28]))) {
+                    let sample: u32 = probe * directions + ray;
+                    let light: float3 = float3(Next[sample * 4], Next[sample * 4 + 1], Next[sample * 4 + 2]);
+                    let luminance: f32 = Dot3(light, float3(0.2126, 0.7152, 0.0722));
+                    energy = energy + luminance;
+                    let packet: u32 = sample * 16;
+                    if (luminance > peak && Hits[packet + 2] > 0.5 && Hits[packet + 15] > 0.0) {
+                        // The source must emit. Specular peaks on receivers do not
+                        // provide stable targets for nearby glossy reflection rays.
+                        let material: u32 = U32(Hits[packet + 3]) * 32;
+                        let emitted: float3 = float3(Shading[material + 20], Shading[material + 21], Shading[material + 22]);
+                        if (Dot3(emitted, float3(0.2126, 0.7152, 0.0722)) * Parameters[45] >= MinimumGuideEmission) {
+                            peak = luminance;
+                            position = float3(Hits[packet + 8], Hits[packet + 9], Hits[packet + 10]);
+                            owner = Hits[packet + 3] + 1.0;
+                        }
+                    }
+                }
+                let guide: u32 = 4 + probe * 8;
+                ProbeGuides[guide] = position.x;
+                ProbeGuides[guide + 1] = position.y;
+                ProbeGuides[guide + 2] = position.z;
+                ProbeGuides[guide + 3] = peak / Max(energy / Convert<f32>(directions), 0.001);
+                ProbeGuides[guide + 4] = owner;
+                ProbeGuides[guide + 5] = peak;
+                return;
+            }
             if (Parameters[49] < 0.5 || index >= count) { return; }
             let base: u32 = index * 8;
             var difference: f32 = 0.0;

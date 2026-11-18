@@ -20,6 +20,8 @@ namespace Aurelian.Graphics.Vulkan.Native3D;
 /// All updates and receiver connectivity queries run on the ordinary frame queue.</summary>
 internal sealed unsafe partial class VulkanDynamicDiffuse3D : IDisposable
 {
+    // Upper bound for the emissive-luminance admission in DynamicDiffuse3D.v.ts.
+    private const float MinimumGuideEmission = 3;
     private readonly AurelianVulkanPlant plant;
     private readonly RawVulkanMemoryAllocator allocator;
     private readonly VulkanFrameInFlightSet frames;
@@ -29,7 +31,7 @@ internal sealed unsafe partial class VulkanDynamicDiffuse3D : IDisposable
     private readonly AurelianVulkanBuffer[,] parameters = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count, 4];
     private readonly DescriptorSet[,] sets = new DescriptorSet[VulkanFrameInFlightSet.Count, 4];
     private readonly VulkanBindlessMaterials3D?[] sampledTables = new VulkanBindlessMaterials3D?[VulkanFrameInFlightSet.Count];
-    private readonly AurelianVulkanBuffer rays, hits, occlusion, output;
+    private readonly AurelianVulkanBuffer rays, hits, occlusion, output, probeGuides;
     private AurelianVulkanBuffer witness = null!;
     private AurelianVulkanBuffer historyA = null!, historyB = null!, baseline = null!;
     private DynamicDiffuseLighting3D options = new();
@@ -40,12 +42,15 @@ internal sealed unsafe partial class VulkanDynamicDiffuse3D : IDisposable
     private float[] captureLights = [];
     private float captureResponseModel = float.NaN;
     private float captureEmissionIntensity = float.NaN;
+    private bool buildReflectionGuide;
     private DescriptorSetLayout setLayout;
     private DescriptorPool descriptorPool;
     private PipelineLayout pipelineLayout;
     private Pipeline pipeline;
     private bool disposed;
     public AurelianVulkanTexture Output { get; }
+
+    public AurelianVulkanBuffer? ReflectionGuide => buildReflectionGuide ? probeGuides : null;
 
     public VulkanDynamicDiffuse3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
         VulkanFrameInFlightSet frames, byte[] program, uint width, uint height)
@@ -66,6 +71,8 @@ internal sealed unsafe partial class VulkanDynamicDiffuse3D : IDisposable
             hits = Buffer(512 * 128 * 64, VulkanBufferUsage.Storage);
             occlusion = Buffer(capacity * 4, VulkanBufferUsage.Storage);
             output = Buffer((ulong)width * height * 16, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferSource);
+            // Four floats for the final sphere and eight per R4 probe observation.
+            probeGuides = Buffer((4 + 512 * 8) * 4, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferSource);
             for (int slot = 0; slot < VulkanFrameInFlightSet.Count; slot++)
                 for (int stage = 0; stage < 4; stage++)
                     parameters[slot, stage] = Buffer((64 + 256 * 16) * 4, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
@@ -170,12 +177,20 @@ internal sealed unsafe partial class VulkanDynamicDiffuse3D : IDisposable
         words[47] = settings.SecondaryMaterials ? 1 : 0;
         words[48] = settings.CaptureSecondaryWitness ? 1 : 0;
         words[49] = settings.RegionalPlan is not null && !compiledRegions ? 1 : 0;
+        // A complete update pairs every directional sample with this frame's hit,
+        // including after a TLAS refit. Compiled and partial fields lack that pairing.
+        buildReflectionGuide = lighting.GuideGlossyReflectionsWithProbes && lighting.GlossyReflections != GlossyReflectionMode3D.Off
+            && lighting.SurfaceDebugView == SurfaceDebugView3D.Shaded && settings.Mode == DynamicDiffuseMode3D.Runtime
+            && settings.SecondaryMaterials && settings.SecondaryTextureLod == 0 && grid.RaysPerProbe == settings.RaysPerProbePerFrame
+            && instances.Materials.Any(material => MathF.Max(material.Emissive.X, MathF.Max(material.Emissive.Y, material.Emissive.Z))
+                * emissionIntensity >= MinimumGuideEmission);
+        words[50] = buildReflectionGuide ? 1 : 0;
         lights.CopyTo(words.AsSpan(64));
         AccelerationStructureKHR top = scene.TopLevel;
         var structure = new WriteDescriptorSetAccelerationStructureKHR { SType = StructureType.WriteDescriptorSetAccelerationStructureKhr,
             AccelerationStructureCount = 1, PAccelerationStructures = &top };
-        DescriptorBufferInfo* info = stackalloc DescriptorBufferInfo[23];
-        WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[26];
+        DescriptorBufferInfo* info = stackalloc DescriptorBufferInfo[24];
+        WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[27];
         bool bindSampled = !ReferenceEquals(sampledTables[frames.Slot], materialTable);
         for (int phase = 0; phase < 4; phase++)
         {
@@ -184,7 +199,7 @@ internal sealed unsafe partial class VulkanDynamicDiffuse3D : IDisposable
             AurelianVulkanBuffer[] resources = [scene.Procedurals, rays, hits, scene.Instances, parameters[frames.Slot, phase],
                 motion, output, normals, sequence % 2 == 0 ? historyA : historyB, sequence % 2 == 0 ? historyB : historyA, baseline, scene.Shading, occlusion,
                 materialTable.MaterialRecords, materialTable.InstanceMaterials, materialTable.ResidentVertices,
-                materialTable.ResidentIndices, materialTable.ResidentInstances, witness, skyParameters[frames.Slot], environmentRadiance!, regionParameters[frames.Slot], probeMetrics];
+                materialTable.ResidentIndices, materialTable.ResidentInstances, witness, skyParameters[frames.Slot], environmentRadiance!, regionParameters[frames.Slot], probeMetrics, probeGuides];
             writes[0] = new() { SType = StructureType.WriteDescriptorSet, PNext = &structure,
                 DstSet = sets[frames.Slot, phase], DstBinding = 0, DescriptorCount = 1, DescriptorType = DescriptorType.AccelerationStructureKhr };
             for (int index = 0; index < resources.Length; index++)
@@ -200,18 +215,18 @@ internal sealed unsafe partial class VulkanDynamicDiffuse3D : IDisposable
                 fixed (DescriptorImageInfo* textures = materialTable.TextureDescriptors)
                 fixed (DescriptorImageInfo* samplers = materialTable.SamplerDescriptors)
                 {
-                    writes[24] = new() { SType = StructureType.WriteDescriptorSet, DstSet = sets[frames.Slot, phase],
+                    writes[25] = new() { SType = StructureType.WriteDescriptorSet, DstSet = sets[frames.Slot, phase],
                         DstBinding = 19, DescriptorCount = VulkanBindlessMaterials3D.TextureCapacity,
                         DescriptorType = DescriptorType.SampledImage, PImageInfo = textures };
-                    writes[25] = new() { SType = StructureType.WriteDescriptorSet, DstSet = sets[frames.Slot, phase],
+                    writes[26] = new() { SType = StructureType.WriteDescriptorSet, DstSet = sets[frames.Slot, phase],
                         DstBinding = 20, DescriptorCount = VulkanBindlessMaterials3D.SamplerCapacity,
                         DescriptorType = DescriptorType.Sampler, PImageInfo = samplers };
-                    plant.Vk.UpdateDescriptorSets(plant.Device, 26, writes, 0, null);
+                    plant.Vk.UpdateDescriptorSets(plant.Device, 27, writes, 0, null);
                 }
             }
             else
             {
-                plant.Vk.UpdateDescriptorSets(plant.Device, 24, writes, 0, null);
+                plant.Vk.UpdateDescriptorSets(plant.Device, 25, writes, 0, null);
             }
         }
         sampledTables[frames.Slot] = materialTable;
@@ -226,14 +241,17 @@ internal sealed unsafe partial class VulkanDynamicDiffuse3D : IDisposable
         Barrier(command, AccessFlags.TransferWriteBit, AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit);
         plant.Vk.CmdBindPipeline(command.CommandBuffer, PipelineBindPoint.Compute, pipeline);
         uint[] counts = [checked((uint)(options.Grid!.Count * options.Grid.RaysPerProbe)), checked((uint)options.Grid.Count * 64), width * height,
-            options.RegionalPlan is null ? 0 : (uint)options.Grid.Count];
+            buildReflectionGuide || options.RegionalPlan is not null ? (uint)options.Grid.Count : 0];
         if (options.RegionalPlan is { } regional && regional.Regions.All(region => region.Strategy == DiffuseRegionStrategy3D.Compiled))
         {
             counts[0] = 0;
             counts[1] = 0;
             counts[3] = 0;
         }
-        for (int phase = 0; phase < 4; phase++)
+        // Regional observations consume the resolved field. Reflection observations
+        // instead feed the emitter reduction at the start of receiver resolution.
+        ReadOnlySpan<int> phaseOrder = buildReflectionGuide ? [0, 1, 3, 2] : [0, 1, 2, 3];
+        foreach (int phase in phaseOrder)
         {
             if (counts[phase] == 0) continue;
             DescriptorSet set = sets[frames.Slot, phase];
@@ -268,6 +286,12 @@ internal sealed unsafe partial class VulkanDynamicDiffuse3D : IDisposable
     }
 
     public float[] ReadOutput() => Vulkan3DQualificationReadback.ReadBuffer(plant, frames, output);
+    public Vector4 ReadProbeGuide()
+    {
+        if (ReflectionGuide is null) throw new InvalidOperationException("Reflection guiding did not run for this frame.");
+        var guide = Vulkan3DQualificationReadback.ReadBuffer(plant, frames, probeGuides);
+        return new(guide[0], guide[1], guide[2], guide[3]);
+    }
 
     private void Transition(VulkanCommandBufferLease command, VulkanResourceLayout layout)
     {
@@ -326,8 +350,8 @@ internal sealed unsafe partial class VulkanDynamicDiffuse3D : IDisposable
 
     private void CreatePipeline(byte[] spirv)
     {
-        DescriptorSetLayoutBinding* bindings = stackalloc DescriptorSetLayoutBinding[26];
-        for (uint index = 0; index < 26; index++)
+        DescriptorSetLayoutBinding* bindings = stackalloc DescriptorSetLayoutBinding[27];
+        for (uint index = 0; index < 27; index++)
         {
             DescriptorType type = index switch
             {
@@ -344,11 +368,11 @@ internal sealed unsafe partial class VulkanDynamicDiffuse3D : IDisposable
             };
             bindings[index] = new(index, type, count, ShaderStageFlags.ComputeBit);
         }
-        var layout = new DescriptorSetLayoutCreateInfo { SType = StructureType.DescriptorSetLayoutCreateInfo, BindingCount = 26, PBindings = bindings };
+        var layout = new DescriptorSetLayoutCreateInfo { SType = StructureType.DescriptorSetLayoutCreateInfo, BindingCount = 27, PBindings = bindings };
         fixed (DescriptorSetLayout* value = &setLayout) Check(plant.Vk.CreateDescriptorSetLayout(plant.Device, &layout, null, value));
         DescriptorPoolSize* sizes = stackalloc DescriptorPoolSize[4];
         sizes[0] = new(DescriptorType.AccelerationStructureKhr, VulkanFrameInFlightSet.Count * 4);
-        sizes[1] = new(DescriptorType.StorageBuffer, 23 * VulkanFrameInFlightSet.Count * 4);
+        sizes[1] = new(DescriptorType.StorageBuffer, 24 * VulkanFrameInFlightSet.Count * 4);
         sizes[2] = new(DescriptorType.SampledImage, VulkanBindlessMaterials3D.TextureCapacity * VulkanFrameInFlightSet.Count * 4);
         sizes[3] = new(DescriptorType.Sampler, VulkanBindlessMaterials3D.SamplerCapacity * VulkanFrameInFlightSet.Count * 4);
         var pool = new DescriptorPoolCreateInfo { SType = StructureType.DescriptorPoolCreateInfo,
