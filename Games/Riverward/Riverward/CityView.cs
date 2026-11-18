@@ -6,7 +6,7 @@ using Aurelian.Strategy;
 
 namespace Riverward;
 
-internal sealed class CityView
+internal sealed partial class CityView
 {
     internal static readonly Vector4 Green = new(.20f, .82f, .50f, 1);
     internal static readonly Vector4 Red = new(.93f, .22f, .12f, 1);
@@ -111,6 +111,7 @@ internal sealed class CityView
             {
                 DrawBlock(vertices, cell, block, city.Report.Blocks[cell]);
             }
+            UpdateFerryRoute(city.Report.FerryStops);
             town = [.. vertices];
             renderedRevision = city.Revision;
         }
@@ -136,12 +137,21 @@ internal sealed class CityView
                 {
                     Outline(overlay, cell, Red, .78f, .12f);
                 }
+                if (preview?.Forecast is { } forecast && !forecast.FerryStops.SequenceEqual(city.Report.FerryStops))
+                {
+                    bool opening = forecast.FerryStops.Length >= city.Report.FerryStops.Length;
+                    DrawFerryLine(overlay, FerryPath(opening ? forecast.FerryStops : city.Report.FerryStops), opening ? Green : Red);
+                }
+                else if (tool == Tool.Inspect && (CityMap.IsWater(target.Cell) || activeStops.Any(stop => stop.Land == target.Cell)))
+                {
+                    DrawFerryLine(overlay, ferryPath, new(.28f, .78f, .70f, 1));
+                }
             }
             scene = new([.. Terrain, .. town, .. overlay], []);
             renderedHover = (tool, hover);
         }
         var (matrix, eye) = Camera(request.Aspect);
-        return new(scene, matrix, eye);
+        return new(PresentFerry(scene, city), matrix, eye);
     }
 
     private static Native3DVertex[] MakeTerrain()
@@ -193,16 +203,23 @@ internal sealed class CityView
     {
         Vector2 a = CityMap.Bridge.A.Position(CityMap.Radius);
         Vector2 b = CityMap.Bridge.B.Position(CityMap.Radius);
-        PrimitiveGeometry3D.AddBox(vertices, World((a + b) * .5f, -.02f),
-            new((b.X - a.X) * .5f, .12f, .52f), Paving);
+        Vector2 start = Vector2.Lerp(a, b, .13f);
+        Vector2 end = Vector2.Lerp(a, b, .87f);
+        PrimitiveGeometry3D.AddBox(vertices, World((start + end) * .5f, .35f),
+            new((end.X - start.X) * .5f, .09f, .52f), Paving);
+        Vector2 width = new(0, .52f);
+        PrimitiveGeometry3D.AddQuad(vertices, World(a - width, .13f), World(a + width, .13f),
+            World(start + width, .44f), World(start - width, .44f), Vector3.UnitY, Paving);
+        PrimitiveGeometry3D.AddQuad(vertices, World(end - width, .44f), World(end + width, .44f),
+            World(b + width, .13f), World(b - width, .13f), Vector3.UnitY, Paving);
         foreach (float offset in new[] { -.48f, .48f })
         {
             Vector2 rail = new(0, offset);
-            Strip(vertices, a + rail, b + rail, .45f, .06f, Stone);
+            Strip(vertices, start + rail, end + rail, .77f, .06f, Stone);
             for (int post = 0; post <= 4; post++)
             {
-                PrimitiveGeometry3D.AddBox(vertices, World(Vector2.Lerp(a, b, post / 4f) + rail, .25f),
-                    new(.08f, .22f, .08f), Stone);
+                PrimitiveGeometry3D.AddBox(vertices, World(Vector2.Lerp(start, end, post / 4f) + rail, .59f),
+                    new(.08f, .19f, .08f), Stone);
             }
         }
     }
@@ -222,6 +239,11 @@ internal sealed class CityView
         Box(vertices, origin, 0, .05f, 0, 2.03f, .05f, 1.65f, block == Block.Park ? new(.35f, .53f, .23f, 1) : Paving);
         switch (block)
         {
+            case Block.Dock:
+            case Block.FishMarket:
+            case Block.Boardwalk:
+                DrawWaterfront(vertices, cell, block, status.Ferry);
+                break;
             case Block.Homes when status.Residents > 8:
                 DrawBuilding(vertices, origin + new Vector2(-.57f, -.2f), .76f, .93f, 2.85f, Stone, new(.53f, .23f, .13f, 1));
                 DrawBuilding(vertices, origin + new Vector2(1.02f, .29f), .62f, .69f, 1.91f, new(.72f, .50f, .33f, 1), new(.57f, .27f, .16f, 1));

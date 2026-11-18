@@ -33,4 +33,14 @@ internal static class CityMap
     internal static bool CanBuild(HexCell cell) => Contains(cell) && !IsWater(cell) && cell != TownHall;
     internal static bool CanLayStreet(HexEdge edge) => StreetFrontage.ContainsKey(edge);
     internal static IReadOnlyList<HexCell> Frontage(HexEdge edge) => StreetFrontage[edge];
+
+    internal static HexCell? WaterAtShore(HexCell cell)
+    {
+        if (Math.Abs(cell.Q) != 1 || !Contains(cell))
+        {
+            return null;
+        }
+        HexCell water = cell.Neighbor(cell.Q < 0 ? 5 : 2);
+        return Contains(water) ? water : null;
+    }
 }

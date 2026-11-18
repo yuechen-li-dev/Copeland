@@ -8,6 +8,9 @@ internal enum Block
     Workshop,
     Market,
     Park,
+    Dock,
+    FishMarket,
+    Boardwalk,
 }
 
 internal enum Tool
@@ -19,6 +22,9 @@ internal enum Tool
     Market,
     Park,
     Clear,
+    Dock,
+    FishMarket,
+    Boardwalk,
 }
 
 internal readonly record struct CityTarget(HexCell Cell, HexEdge Edge, bool Street = false);
@@ -27,9 +33,11 @@ internal sealed record Placement(
     string Message, bool Allowed = false, int Cost = 0, CityReport? Forecast = null,
     HexCell[]? Improved = null, HexCell[]? Worsened = null);
 
-internal readonly record struct BlockReport(bool Access, int Appeal, int Capacity, int Customers, int Jobs, int Residents, int Parks, int Noise);
+internal readonly record struct BlockReport(bool Access, int Appeal, int Capacity, int Customers, int Jobs, int Residents,
+    int Parks, int Noise, int Happiness, int Boardwalks, int Shops, bool Ferry, int Trips, int Net);
 
-internal sealed record CityReport(Dictionary<HexCell, BlockReport> Blocks, int Residents, int Housing, int Jobs, int Employed, int Income, int Upkeep)
+internal sealed record CityReport(Dictionary<HexCell, BlockReport> Blocks, int Residents, int Housing, int Jobs, int Employed,
+    int Income, int Upkeep, int Happiness, FerryStop[] FerryStops, int FerryTrips)
 {
     internal int Balance => Income - Upkeep;
 }
@@ -37,6 +45,8 @@ internal sealed record CityReport(Dictionary<HexCell, BlockReport> Blocks, int R
 internal sealed class City
 {
     internal const int Goal = 24;
+    internal const int HappinessGoal = 72;
+    internal const int SurplusGoal = 30;
     internal const int RequiredMonths = 3;
     internal const int MonthTicks = 360;
 
@@ -71,6 +81,9 @@ internal sealed class City
         Tool.Workshop => Block.Workshop,
         Tool.Market => Block.Market,
         Tool.Park => Block.Park,
+        Tool.Dock => Block.Dock,
+        Tool.FishMarket => Block.FishMarket,
+        Tool.Boardwalk => Block.Boardwalk,
         _ => null,
     };
 
@@ -82,8 +95,15 @@ internal sealed class City
         Tool.Park => 65,
         Tool.Streets => 12,
         Tool.Clear => 10,
+        Tool.Dock => 60,
+        Tool.FishMarket => 95,
+        Tool.Boardwalk => 90,
         _ => 0,
     };
+
+    internal static string Label(Tool tool) => tool == Tool.FishMarket ? "Fish market" : tool.ToString();
+
+    private static bool RequiresShore(Block kind) => kind is Block.Dock or Block.FishMarket or Block.Boardwalk;
 
     internal Placement Preview(Tool tool, CityTarget target) => Change(tool, target, commit: false);
     internal Placement Build(Tool tool, CityTarget target) => Change(tool, target, commit: true);
@@ -121,6 +141,10 @@ internal sealed class City
             if (!CityMap.CanBuild(cell))
             {
                 return new("Choose a land block.");
+            }
+            if (BlockFor(tool) is { } kind && RequiresShore(kind) && CityMap.WaterAtShore(cell) is null)
+            {
+                return new("Choose a block on the riverbank.");
             }
             if (tool == Tool.Clear && !blocks.ContainsKey(cell))
             {
@@ -169,7 +193,8 @@ internal sealed class City
                 continue;
             }
             if (after.Capacity < before.Capacity || after.Customers < before.Customers || after.Jobs < before.Jobs
-                || after.Appeal < before.Appeal || (before.Access && !after.Access))
+                || after.Appeal < before.Appeal || after.Happiness < before.Happiness || after.Net < before.Net
+                || (before.Access && !after.Access) || (before.Ferry && !after.Ferry))
             {
                 worsened.Add(key);
             }
@@ -185,8 +210,9 @@ internal sealed class City
                 $"Clearing displaces {households[cell]} households.",
             Tool.Clear => changeStreet ? "Remove street segment" : "Clear block",
             Tool.Streets => "Build street segment",
-            _ when !forecast.Blocks[cell].Access && tool != Tool.Park => $"{tool} needs a street to Town Hall.",
-            _ => $"Build {tool.ToString().ToLowerInvariant()}",
+            Tool.Dock when !forecast.Blocks[cell].Ferry => DockHint(cell, nextStreets, forecast.Blocks[cell].Access),
+            _ when !forecast.Blocks[cell].Access && tool is not (Tool.Park or Tool.Boardwalk) => $"{Label(tool)} needs access.",
+            _ => $"Build {Label(tool).ToLowerInvariant()}",
         };
         if (commit)
         {
@@ -198,6 +224,16 @@ internal sealed class City
             Revision++;
         }
         return new(message, true, cost, forecast, [.. improved], [.. worsened]);
+    }
+
+    private static string DockHint(HexCell cell, HashSet<HexEdge> streets, bool rooted)
+    {
+        bool paved = Enumerable.Range(0, HexCell.SideCount).Any(side => streets.Contains(cell.Edge(side)));
+        if (!paved)
+        {
+            return "Lay a street along this dock.";
+        }
+        return rooted ? "Build a second dock with a street." : "Connect a dock to Town Hall.";
     }
 
     internal void Advance(int ticks)
@@ -228,7 +264,7 @@ internal sealed class City
         }
         Report = Evaluate(blocks, streets, households);
         Cash += Report.Balance;
-        if (Report.Employed >= Goal && Report.Balance > 0)
+        if (Report.Employed >= Goal && Report.Happiness >= HappinessGoal && Report.Balance >= SurplusGoal)
         {
             Streak = Math.Min(Streak + 1, RequiredMonths);
             Won |= Streak == RequiredMonths;
@@ -242,17 +278,22 @@ internal sealed class City
 
     private static CityReport Evaluate(Dictionary<HexCell, Block> blocks, HashSet<HexEdge> streets, Dictionary<HexCell, int> households)
     {
-        HashSet<HexCell> connected = ConnectedFrontage(streets);
+        CityAccess access = CityAccess.Evaluate(blocks, streets);
+        CityCommerce commerce = CityCommerce.Evaluate(access, blocks, households);
+        var docks = access.Stops.Select(stop => stop.Land).ToHashSet();
         var statuses = new Dictionary<HexCell, BlockReport>();
-        int employedCandidates = 0;
+        int employedCandidates = households.Where(pair => access.Connected.Contains(pair.Key)).Sum(pair => pair.Value);
         int upkeep = streets.Count;
         int sales = 0;
         foreach ((HexCell cell, Block block) in blocks.OrderBy(pair => pair.Key.R).ThenBy(pair => pair.Key.Q))
         {
-            bool access = connected.Contains(cell);
+            bool street = access.Connected.Contains(cell);
             int parks = 0;
+            int boardwalks = 0;
             int noise = 0;
             int customers = 0;
+            int shops = 0;
+            bool nearbyFerry = false;
             for (int side = 0; side < HexCell.SideCount; side++)
             {
                 HexCell neighbor = cell.Neighbor(side);
@@ -265,88 +306,96 @@ internal sealed class City
                     case Block.Park:
                         parks++;
                         break;
+                    case Block.Boardwalk:
+                        boardwalks++;
+                        break;
+                    case Block.Dock when docks.Contains(neighbor):
+                        nearbyFerry = true;
+                        break;
                     case Block.Workshop:
                         noise++;
                         break;
-                    case Block.Homes when access && connected.Contains(neighbor):
+                    case Block.Homes when access.Connected.Contains(neighbor):
                         customers += households.GetValueOrDefault(neighbor);
+                        break;
+                    case Block.Market when access.Connected.Contains(neighbor):
+                    case Block.FishMarket when access.Connected.Contains(neighbor) || AdjacentToDock(neighbor, docks):
+                        shops++;
                         break;
                 }
             }
             int residents = households.GetValueOrDefault(cell);
-            int appeal = 2 * (parks - noise);
-            int capacity = 0;
-            int jobs = 0;
+            int appeal = 2 * (parks + boardwalks - noise);
+            bool servedByFerry = block == Block.Dock ? docks.Contains(cell) : nearbyFerry;
+            bool connected = street || (block is Block.FishMarket or Block.Boardwalk && nearbyFerry);
+            int capacity = block == Block.Homes && connected ? (appeal >= 2 ? 16 : 8) : 0;
+            int trips = block == Block.Dock ? commerce.Departures.GetValueOrDefault(cell) : commerce.Visitors.GetValueOrDefault(cell);
             int served = 0;
+            int revenue = 0;
+            int expenses = 0;
+            int jobs = block == Block.Workshop && connected ? 14 : 0;
             switch (block)
             {
-                case Block.Homes when access:
-                    capacity = appeal >= 2 ? 16 : 8;
-                    employedCandidates += residents;
-                    break;
                 case Block.Workshop:
-                    jobs = access ? 14 : 0;
-                    upkeep += 13;
+                    expenses = 13;
                     break;
                 case Block.Market:
-                    served = Math.Min(12, customers);
-                    sales += served * 5;
-                    upkeep += 17;
+                    served = connected ? Math.Min(12, customers) : 0;
+                    revenue = served * 5;
+                    expenses = 17;
                     break;
                 case Block.Park:
-                    upkeep += 8;
+                    expenses = 8;
+                    break;
+                case Block.Dock:
+                    revenue = trips;
+                    expenses = servedByFerry ? 10 : 6;
+                    break;
+                case Block.FishMarket:
+                    served = connected ? Math.Min(18, customers + trips) : 0;
+                    revenue = served * (nearbyFerry ? 7 : 5);
+                    expenses = 18;
+                    break;
+                case Block.Boardwalk:
+                    revenue = 2 * trips;
+                    expenses = 12;
                     break;
             }
-            statuses.Add(cell, new(access, block == Block.Homes ? appeal : 0, capacity, served, jobs, residents,
-                block == Block.Homes ? parks : 0, block == Block.Homes ? noise : 0));
+            sales += revenue;
+            upkeep += expenses;
+            statuses.Add(cell, block == Block.Homes
+                ? new(connected, appeal, capacity, served, jobs, residents, parks, noise, 0, boardwalks, shops, nearbyFerry, 0, 0)
+                : new(connected, 0, 0, served, jobs, 0, 0, 0, 0, 0, 0, servedByFerry, trips, revenue - expenses));
         }
         int jobsTotal = statuses.Values.Sum(detail => detail.Jobs);
         int employed = Math.Min(employedCandidates, jobsTotal);
-        return new(statuses, households.Values.Sum(), statuses.Values.Sum(detail => detail.Capacity),
-            jobsTotal, employed, employed * 4 + sales, upkeep);
+        int employment = employedCandidates > 0 ? employed * 16 / employedCandidates : jobsTotal > 0 ? 16 : 0;
+        int weightedHappiness = 0;
+        foreach (HexCell cell in blocks.Keys.Where(cell => blocks[cell] == Block.Homes))
+        {
+            BlockReport home = statuses[cell];
+            int happiness = Math.Clamp((home.Access ? 52 + employment : 24) + 8 * Math.Min(home.Parks, 2)
+                + 18 * Math.Min(home.Boardwalks, 1) + 6 * Math.Min(home.Shops, 1)
+                + (home.Ferry ? 5 : 0) - 10 * home.Noise, 0, 100);
+            statuses[cell] = home with { Happiness = happiness };
+            weightedHappiness += happiness * home.Residents;
+        }
+        int population = households.Values.Sum();
+        return new(statuses, population, statuses.Values.Sum(detail => detail.Capacity),
+            jobsTotal, employed, employed * 4 + sales, upkeep, population > 0 ? weightedHappiness / population : 0,
+            access.Stops, commerce.Departures.Values.Sum());
     }
 
-    private static HashSet<HexCell> ConnectedFrontage(HashSet<HexEdge> streets)
+    private static bool AdjacentToDock(HexCell cell, HashSet<HexCell> docks)
     {
-        var junctions = new Dictionary<HexCorner, List<HexEdge>>();
-        foreach (HexEdge edge in streets.Append(CityMap.Bridge))
+        for (int side = 0; side < HexCell.SideCount; side++)
         {
-            AddEdge(edge.A, edge);
-            AddEdge(edge.B, edge);
-        }
-        var reachable = new HashSet<HexCell>();
-        var visited = new HashSet<HexCorner> { CityMap.InitialStreets[2].A };
-        var queue = new Queue<HexCorner>(visited);
-        while (queue.TryDequeue(out HexCorner corner))
-        {
-            if (!junctions.TryGetValue(corner, out List<HexEdge>? branches))
+            if (docks.Contains(cell.Neighbor(side)))
             {
-                continue;
-            }
-            foreach (HexEdge edge in branches)
-            {
-                if (edge != CityMap.Bridge)
-                {
-                    reachable.UnionWith(CityMap.Frontage(edge));
-                }
-                HexCorner other = edge.A == corner ? edge.B : edge.A;
-                if (visited.Add(other))
-                {
-                    queue.Enqueue(other);
-                }
+                return true;
             }
         }
-        return reachable;
-
-        void AddEdge(HexCorner corner, HexEdge edge)
-        {
-            if (!junctions.TryGetValue(corner, out List<HexEdge>? edges))
-            {
-                edges = [];
-                junctions.Add(corner, edges);
-            }
-            edges.Add(edge);
-        }
+        return false;
     }
 
     internal CitySnapshot Capture() => new(Cash, Month, MonthProgress, Streak, Won,
@@ -358,6 +407,7 @@ internal sealed class City
         if (snapshot.Blocks is null || snapshot.Streets is null || snapshot.Month < 1 || snapshot.MonthProgress is < 0 or >= MonthTicks
             || snapshot.Streak is < 0 or > RequiredMonths || (snapshot.Streak == RequiredMonths && !snapshot.Won)
             || snapshot.Blocks.Any(block => !CityMap.CanBuild(block.Cell) || !Enum.IsDefined(block.Kind)
+                || (RequiresShore(block.Kind) && CityMap.WaterAtShore(block.Cell) is null)
                 || block.Residents is < 0 or > 16 || (block.Kind != Block.Homes && block.Residents != 0))
             || snapshot.Blocks.Select(block => block.Cell).Distinct().Count() != snapshot.Blocks.Length
             || snapshot.Streets.Any(edge => !CityMap.CanLayStreet(edge)) || snapshot.Streets.Distinct().Count() != snapshot.Streets.Length)

@@ -12,7 +12,7 @@ internal readonly record struct HudRect(double Left, double Top, double Width, d
 
 internal static class CityHud
 {
-    internal const int ButtonWidth = 108;
+    internal const int ButtonWidth = 94;
     private const uint Panel = 0x122823F4;
     private const uint Pale = 0xF2E8CEFF;
     private const uint Muted = 0xBFD1B9FF;
@@ -20,10 +20,14 @@ internal static class CityHud
     private const uint Positive = 0x9EE6ADFF;
     private const uint Negative = 0xFFAC91FF;
     private static readonly Tool[] Tools = Enum.GetValues<Tool>();
-    private static readonly uint[] ToolMarks = [0xE7D7ADFF, 0xB7C1BFFF, 0xDF9770FF, 0xD7AD91FF, 0x7FC4D1FF, 0x90BD73FF, 0xE2A08CFF];
+    private static readonly uint[] ToolMarks =
+    [
+        0xE7D7ADFF, 0xB7C1BFFF, 0xDF9770FF, 0xD7AD91FF, 0x7FC4D1FF,
+        0x90BD73FF, 0xE2A08CFF, 0x7ADDBFFF, 0x8BDCF6FF, 0xF6BE78FF,
+    ];
 
     internal static HudRect Toolbar(int width, int height) => new((width - Tools.Length * ButtonWidth) / 2.0, height - 70, Tools.Length * ButtonWidth, 58);
-    private static HudRect Summary(int width) => new(12, 12, width - 24, 61);
+    private static HudRect Summary(int width) => new(12, 12, width - 24, 82);
     private static HudRect Details(int height) => new(12, height - 219, 320, 138);
     private static HudRect Controls(int width, int height) => new(width - 468, height - 100, 456, 25);
 
@@ -35,15 +39,30 @@ internal static class CityHud
     {
         HudRect summary = Summary(hud.Width);
         AddPanel(hud, summary);
-        hud.Text("Riverward", 28, 21, 154, 28, Pale, GameHudTextSize.Medium);
+        hud.Text("Riverward", 28, 21, 147, 28, Pale, GameHudTextSize.Medium);
         string time = paused ? "Paused" : fast ? "3x speed" : "Running";
         hud.Text($"Month {city.Month}  /  {time}", 28, 49, 170, 20, Amber);
-        hud.Text($"${city.Cash}", 194, 23, 112, 25, Pale, GameHudTextSize.Medium);
-        hud.Text($"{Dollars(city.Report.Balance)} / month", 194, 49, 136, 20, city.Report.Balance >= 0 ? Positive : Negative);
-        hud.Text($"{city.Report.Residents} housed  /  {city.Report.Housing} capacity", 345, 25, 244, 20, Pale);
-        hud.Text($"{city.Report.Employed} employed  /  {city.Report.Jobs} jobs", 345, 49, 244, 20, Muted);
-        hud.Text(city.Won ? "Town established" : $"Employ {City.Goal} households", 603, 25, 320, 20, city.Won ? Positive : Pale);
-        hud.Text($"Profitable months at target  {city.Streak}/{City.RequiredMonths}", 603, 49, 327, 20, Muted);
+        hud.Text($"${city.Cash}", 186, 23, 134, 25, Pale, GameHudTextSize.Medium);
+        uint balanceColor = Pale;
+        if (city.Report.Balance >= City.SurplusGoal)
+        {
+            balanceColor = Positive;
+        }
+        else if (city.Report.Balance < 0)
+        {
+            balanceColor = Negative;
+        }
+        hud.Text($"{Dollars(city.Report.Balance)} / month", 186, 49, 140, 20, balanceColor);
+        hud.Text($"{city.Report.Residents} housed  /  {city.Report.Housing} capacity", 335, 25, 223, 20, Pale);
+        hud.Text($"{city.Report.Employed} employed  /  {city.Report.Jobs} jobs", 335, 47, 223, 20, Pale);
+        hud.Text($"{city.Report.Happiness}% happy", 335, 69, 183, 20, city.Report.Happiness >= City.HappinessGoal ? Positive : Pale);
+        hud.Text(city.Won ? "Town established" : $"Town goals  /  {city.Streak}/{City.RequiredMonths} months",
+            576, 25, 360, 20, city.Won ? Positive : Amber);
+        hud.Text($"{City.Goal} employed  /  {City.HappinessGoal}% happy  /  +${City.SurplusGoal} monthly", 576, 47, 356, 20, Pale);
+        if (city.Report.FerryStops.Length > 0)
+        {
+            hud.Text($"Ferry  /  {city.Report.FerryStops.Length} stops  /  {city.Report.FerryTrips} visitor trips", 576, 69, 351, 20, Muted);
+        }
 
         HudRect bar = Toolbar(hud.Width, hud.Height);
         AddPanel(hud, bar);
@@ -53,10 +72,10 @@ internal static class CityHud
             double left = bar.Left + index * ButtonWidth;
             bool active = tool == button;
             hud.Panel(left + 2, bar.Top + 2, ButtonWidth - 4, bar.Height - 4, active ? 0x43674EFFu : 0x233C32FFu);
-            hud.Panel(left + 11, bar.Top + 12, 5, 15, ToolMarks[index]);
-            hud.Text(button.ToString(), left + 22, bar.Top + 11, ButtonWidth - 25, 20, Pale);
+            hud.Panel(left + 8, bar.Top + 8, 17, 3, ToolMarks[index]);
+            hud.Text(City.Label(button), left + 8, bar.Top + 15, ButtonWidth - 12, 20, Pale);
             string price = City.Cost(button) == 0 ? $"{index}" : $"{index}   ${City.Cost(button)}";
-            hud.Text(price, left + 22, bar.Top + 34, ButtonWidth - 25, 20, active ? Pale : Muted);
+            hud.Text(price, left + 8, bar.Top + 36, ButtonWidth - 12, 20, active ? Pale : Muted);
         }
 
         HudRect details = Details(hud.Height);
@@ -64,8 +83,8 @@ internal static class CityHud
         string[] lines = Describe(city, tool, hover, selected, preview, notice);
         for (int row = 0; row < lines.Length; row++)
         {
-            hud.Text(lines[row], details.Left + 12, details.Top + 9 + row * 22,
-                details.Width - 22, 22, row == 0 ? Amber : Pale);
+            hud.Text(lines[row], details.Left + 12, details.Top + 9 + row * 19,
+                details.Width - 22, 20, row == 0 ? Amber : Pale);
         }
         AddPanel(hud, Controls(hud.Width, hud.Height));
         hud.Text("WASD pan  Q/E orbit  Wheel zoom  Space pause  F speed",
@@ -78,21 +97,27 @@ internal static class CityHud
         {
             string effects = $"Housing {Delta(forecast.Housing - city.Report.Housing)}  Jobs {Delta(forecast.Jobs - city.Report.Jobs)}";
             string balance = $"Budget {Dollars(forecast.Balance - city.Report.Balance)} / month";
+            string happiness = $"Happiness {Delta(forecast.Happiness - city.Report.Happiness)} pts";
             string neighbors = $"{preview.Improved!.Length} blocks gain  /  {preview.Worsened!.Length} lose";
             string impact = neighbors;
-            if (tool == Tool.Market && forecast.Blocks.TryGetValue(site.Cell, out BlockReport market))
+            if (forecast.Blocks.TryGetValue(site.Cell, out BlockReport place))
             {
-                impact = $"Serves {market.Customers}/12 nearby households";
+                impact = tool switch
+                {
+                    Tool.Market => $"Serves {place.Customers}/12 nearby households",
+                    Tool.Park => $"+2 appeal  /  {preview.Improved!.Length} blocks gain",
+                    Tool.Boardwalk => $"+18 local happiness  /  {place.Trips} visitors",
+                    Tool.FishMarket => $"{place.Customers}/18 customers  /  {place.Trips} ferry visitors",
+                    Tool.Dock or Tool.Streets when forecast.FerryStops.Length != city.Report.FerryStops.Length =>
+                        $"{forecast.FerryStops.Length} ferry stops  /  {forecast.FerryTrips} visitor trips",
+                    _ => neighbors,
+                };
             }
-            if (tool == Tool.Park)
-            {
-                impact = $"+2 appeal  /  {preview.Improved!.Length} blocks gain";
-            }
-            return [tool.ToString(), preview.Message, effects, balance, impact];
+            return [City.Label(tool), preview.Message, effects, balance, happiness, impact];
         }
         if (preview is not null)
         {
-            return [tool.ToString(), preview.Message, notice];
+            return [City.Label(tool), preview.Message, notice];
         }
         if (tool == Tool.Inspect && (hover?.Cell ?? selected) is { } cell)
         {
@@ -103,11 +128,20 @@ internal static class CityHud
                 return block switch
                 {
                     Block.Homes => ["Homes", access, $"{details.Residents} households / {details.Capacity} capacity",
-                        $"Appeal {Delta(details.Appeal)}  /  {details.Parks} parks, {details.Noise} workshops",
-                        "Apartments need +2 appeal."],
+                        $"{details.Happiness}% happy  /  {details.Shops} shops  /  {details.Noise} noise",
+                        $"Appeal {Delta(details.Appeal)}  /  {details.Parks} parks  /  {details.Boardwalks} walks",
+                        details.Ferry ? "Ferry within walking distance." : "Apartments need +2 appeal."],
                     Block.Workshop => ["Workshop", access, $"{details.Jobs} jobs", "-2 appeal to adjacent homes"],
                     Block.Market => ["Market", access, $"Serves {details.Customers}/12 nearby households", "$5 income per customer"],
                     Block.Park => ["Park", "+2 appeal to adjacent homes", "$8 monthly upkeep"],
+                    Block.Dock => ["Dock", details.Ferry ? "Ferry in service" : "Waiting for ferry service",
+                        $"{details.Trips}/12 visitor departures", $"{Dollars(details.Net)} / month",
+                        "Stops need street frontage."],
+                    Block.FishMarket => ["Fish market", details.Access ? "Open" : "Needs street or ferry access",
+                        $"{details.Customers}/18 customers  /  {details.Trips} ferry visitors", $"{Dollars(details.Net)} / month",
+                        details.Ferry ? "$7 per sale with a working dock" : "$5 per sale. $7 beside an active dock."],
+                    Block.Boardwalk => ["Boardwalk", "+2 appeal and +18 happiness nearby",
+                        $"{details.Trips} ferry visitors  /  $2 each", $"{Dollars(details.Net)} / month"],
                     _ => [],
                 };
             }
@@ -115,7 +149,7 @@ internal static class CityHud
             {
                 return ["Town Hall", "Streets connect here.", "The bridge links both banks."];
             }
-            return CityMap.IsWater(cell) ? ["River", "Use the bridge to reach both banks."] : ["Empty block", "Choose a building tool."];
+            return CityMap.IsWater(cell) ? ["River", "Build docks to run a ferry line."] : ["Empty block", "Choose a building tool."];
         }
         return tool switch
         {
@@ -125,6 +159,9 @@ internal static class CityHud
             Tool.Workshop => ["Workshop", "Connected workshops supply 14 jobs.", "Keep noise away from homes."],
             Tool.Market => ["Market", "Place beside occupied homes.", "Connect them to Town Hall by street."],
             Tool.Park => ["Park", "Place beside homes for +2 appeal."],
+            Tool.Dock => ["Dock", "Place on the riverbank with a street.", "Two paved docks start a ferry line.", "One must link to Town Hall by land."],
+            Tool.FishMarket => ["Fish market", "Sell to nearby homes and ferry riders.", "Build beside a dock for better sales."],
+            Tool.Boardwalk => ["Boardwalk", "Homes nearby gain appeal and fun.", "Ferry visitors earn concession fees."],
             _ => ["Inspect", "Point at a block to see its details.", "Choose a tool to preview its effect.", "Space starts city time."],
         };
     }

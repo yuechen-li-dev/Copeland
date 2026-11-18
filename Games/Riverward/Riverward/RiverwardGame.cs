@@ -14,6 +14,7 @@ internal sealed class RiverwardGame : IGame
     [
         KeyboardKey.Number0, KeyboardKey.Number1, KeyboardKey.Number2, KeyboardKey.Number3,
         KeyboardKey.Number4, KeyboardKey.Number5, KeyboardKey.Number6,
+        KeyboardKey.Number7, KeyboardKey.Number8, KeyboardKey.Number9,
     ];
 
     private City city = new();
@@ -29,8 +30,17 @@ internal sealed class RiverwardGame : IGame
 
     public RiverwardGame()
     {
-        Saves = GameSaveSchema.Create(RiverwardJson.Default.CitySnapshot, "riverward-river-town",
-            () => city.Capture(), City.Validate, Restore);
+        Saves = new GameSaveSchema<CitySnapshot>(RiverwardJson.Default.CitySnapshot, "riverward-river-town",
+            () => city.Capture(), City.Validate, Restore)
+            {
+                Version = 2,
+                Migrations = [new GameSaveMigration(1, state =>
+                {
+                    state["Streak"] = 0;
+                    state["Won"] = false;
+                    return state;
+                })],
+            };
     }
 
     public GameManifest Manifest { get; } = new("riverward", "Riverward", new GameInputLayout(
@@ -43,7 +53,7 @@ internal sealed class RiverwardGame : IGame
         new("orbit.right", "Rotate right", GameControl.Key(KeyboardKey.E)),
         new("time.pause", "Pause city time", GameControl.Key(KeyboardKey.Space)),
         new("time.fast", "Change city speed", GameControl.Key(KeyboardKey.F)),
-        .. ToolKeys.Select((key, index) => new GameInputAction($"tool.{index}", ((Tool)index).ToString(), GameControl.Key(key))),
+        .. ToolKeys.Select((key, index) => new GameInputAction($"tool.{index}", City.Label((Tool)index), GameControl.Key(key))),
     ]) { Pointer = true })
     {
         Tagline = "Build a town on both banks.",
@@ -234,6 +244,9 @@ internal sealed class RiverwardGame : IGame
         facts.Set("city.jobs", city.Report.Jobs);
         facts.Set("city.employed", city.Report.Employed);
         facts.Set("city.balance", city.Report.Balance);
+        facts.Set("city.happiness", city.Report.Happiness);
+        facts.Set("city.ferry.stops", city.Report.FerryStops.Length);
+        facts.Set("city.ferry.trips", city.Report.FerryTrips);
         facts.Set("city.streak", city.Streak);
         facts.Set("city.won", city.Won);
         facts.Set("city.paused", paused);
@@ -241,6 +254,9 @@ internal sealed class RiverwardGame : IGame
         facts.Set("hover", hover is { } target ? CellName(target.Cell) : "");
         facts.Set("preview.allowed", preview?.Allowed == true);
         facts.Set("preview.housing", preview?.Forecast?.Housing ?? city.Report.Housing);
+        facts.Set("preview.happiness", preview?.Forecast?.Happiness ?? city.Report.Happiness);
+        facts.Set("preview.ferry.stops", preview?.Forecast?.FerryStops.Length ?? city.Report.FerryStops.Length);
+        facts.Set("preview.ferry.trips", preview?.Forecast?.FerryTrips ?? city.Report.FerryTrips);
         facts.Set("preview.improved", preview?.Improved?.Length ?? 0);
         facts.Set("preview.worsened", preview?.Worsened?.Length ?? 0);
         foreach ((HexCell cell, Block block) in city.Blocks)
@@ -253,6 +269,10 @@ internal sealed class RiverwardGame : IGame
             facts.Set($"{key}.appeal", status.Appeal);
             facts.Set($"{key}.capacity", status.Capacity);
             facts.Set($"{key}.customers", status.Customers);
+            facts.Set($"{key}.happiness", status.Happiness);
+            facts.Set($"{key}.ferry", status.Ferry);
+            facts.Set($"{key}.trips", status.Trips);
+            facts.Set($"{key}.net", status.Net);
         }
     }
 

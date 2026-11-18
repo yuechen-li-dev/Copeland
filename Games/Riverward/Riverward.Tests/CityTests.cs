@@ -79,6 +79,7 @@ public sealed class CityTests
         else
         {
             Place(city, Tool.Homes, westernBlock);
+            Place(city, Tool.Market, new(-1, 0));
         }
         for (int tick = 0; tick < City.MonthTicks * 8; tick += 3)
         {
@@ -87,6 +88,66 @@ public sealed class CityTests
         Assert.True(city.Won);
         Assert.Equal(densify ? 28 : 24, city.Report.Employed);
         Assert.Equal(densify, city.Report.Blocks[CityMap.FirstHomes].Residents > 8);
+    }
+
+    [Fact]
+    public void SecondDockConnectsAnIsolatedStreetAndSendsVisitorsToItsFishMarket()
+    {
+        var city = new City();
+        HexCell origin = new(-1, 0);
+        HexCell destination = new(1, -3);
+        HexCell fishMarket = new(1, -2);
+        HexCell workshop = new(2, -3);
+        Assert.False(city.Preview(Tool.Dock, new(new HexCell(-3, 0), default)).Allowed);
+        Place(city, Tool.Dock, origin);
+        Street(city, destination, 5);
+        Place(city, Tool.Workshop, workshop);
+        Place(city, Tool.FishMarket, fishMarket);
+        Assert.Equal(14, city.Report.Jobs);
+        Assert.Empty(city.Report.FerryStops);
+        Assert.Equal(-18, city.Report.Blocks[fishMarket].Net);
+
+        Placement preview = city.Preview(Tool.Dock, new(destination, default));
+        Assert.True(preview.Allowed);
+        Assert.Equal(28, preview.Forecast!.Jobs);
+        Assert.Equal(2, preview.Forecast.FerryStops.Length);
+        Assert.Equal(10, preview.Forecast.FerryTrips);
+        Assert.Equal(52, preview.Forecast.Blocks[fishMarket].Net);
+        Assert.Contains(workshop, preview.Improved!);
+        Assert.Equal(14, city.Report.Jobs);
+
+        Place(city, Tool.Dock, destination);
+        Assert.Equal(preview.Forecast.Blocks.ToArray(), city.Report.Blocks.ToArray());
+        HexEdge frontage = destination.Edge(5);
+        Placement demolition = city.Build(Tool.Clear, new(destination, frontage, Street: true));
+        Assert.True(demolition.Allowed);
+        Assert.Equal(14, city.Report.Jobs);
+        Assert.Equal(0, city.Report.FerryTrips);
+        Assert.Equal(-18, city.Report.Blocks[fishMarket].Net);
+        Assert.Contains(fishMarket, demolition.Worsened!);
+    }
+
+    [Fact]
+    public void BoardwalkRelievesUnhappinessAndSharesTheFerryVisitorMarket()
+    {
+        var city = new City();
+        HexCell origin = new(-1, 0);
+        HexCell destination = new(1, -3);
+        HexCell fishMarket = new(1, -2);
+        HexCell touristBoardwalk = new(1, -4);
+        Place(city, Tool.Dock, origin);
+        Street(city, destination, 5);
+        Place(city, Tool.Dock, destination);
+        Place(city, Tool.FishMarket, fishMarket);
+        int before = city.Report.Happiness;
+        Place(city, Tool.Boardwalk, new(-1, 1));
+        Assert.Equal(18, city.Report.Blocks[CityMap.SecondHomes].Happiness - before);
+        Assert.Equal(24, city.Report.Housing);
+        Place(city, Tool.Boardwalk, touristBoardwalk);
+        Assert.Equal(10, city.Report.FerryTrips);
+        Assert.Equal(5, city.Report.Blocks[fishMarket].Trips);
+        Assert.Equal(5, city.Report.Blocks[touristBoardwalk].Trips);
+        Assert.Equal(-2, city.Report.Blocks[touristBoardwalk].Net);
     }
 
     [Fact]
