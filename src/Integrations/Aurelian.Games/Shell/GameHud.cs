@@ -1,3 +1,4 @@
+using System.Numerics;
 using Machina.Core.Authoring;
 using Machina.Core.Lowering;
 using Machina.Core.Measurement;
@@ -23,6 +24,15 @@ public enum GameHudTextSize
 public sealed class GameHud
 {
     internal readonly List<GameHudItem> Items = [];
+
+    /// <summary>Physical pixels per logical HUD unit. Use this to map a free cursor to a HUD control.</summary>
+    public static double SurfaceScale(Vector2 surface) => Math.Min(surface.X / 960.0, surface.Y / 600.0);
+
+    public static (int Width, int Height) SurfaceSize(Vector2 surface)
+    {
+        double scale = SurfaceScale(surface);
+        return ((int)Math.Floor(surface.X / scale), (int)Math.Floor(surface.Y / scale));
+    }
 
     internal GameHud(int width, int height)
     {

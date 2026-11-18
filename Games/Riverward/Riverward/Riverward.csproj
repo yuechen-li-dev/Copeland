@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Games/Aurelian.Games.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Strategy/Aurelian.Strategy.csproj" />
+    <InternalsVisibleTo Include="Riverward.Tests" />
+  </ItemGroup>
+</Project>

@@ -317,8 +317,6 @@ public static class GameApp
     private sealed class NativeGameSession : IAurelianGameApplication, IAurelianHostCompositor, IAurelianHostInput, IGamePlaytestSurface
     {
         public string DescribeRendering() => graphics.DescribeRendering();
-        private const double ReferenceWidth = 960;
-        private const double ReferenceHeight = 600;
         private readonly GameSession session;
         private readonly IWindow window;
         private readonly NativeGameGraphics graphics;
@@ -461,7 +459,7 @@ public static class GameApp
 
         private void UpdateScale()
         {
-            graphics.Menus.Scale = Math.Min(graphics.Width / ReferenceWidth, graphics.Height / ReferenceHeight);
+            graphics.Menus.Scale = GameHud.SurfaceScale(new(graphics.Width, graphics.Height));
             session.Input.SetPointerSurface(new System.Numerics.Vector2(window.Size.X, window.Size.Y),
                 new System.Numerics.Vector2(graphics.Width, graphics.Height));
         }

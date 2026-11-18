@@ -6,7 +6,7 @@ This directory contains playable applications and game-owned domain code. Games 
 
 For a new C# game, implement the [shared game shell](../docs/Aurelian/game-shell.md) contract, or use the [composable game starter](../docs/Aurelian/game-starter.md) for a first/third-person shooter. Reference `src/Integrations/Aurelian.Games/Aurelian.Games.csproj` for the shell; the FPS/TPS starter adds `Aurelian.Games.Humanoid` and selects concepts with `GameStarter.Run`. The shell's `IGame`/`GameApp.Run` path supplies menus, settings, save integration, audio, input, and native or headless playtesting. The checked-in [starter application](Starter/Aurelian.Starter/Program.cs) is the runnable example; use `starter.cmd` to launch it.
 
-The concepts currently cover a first/third-person 3D shooter foundation. The starter guide lists supported fragments and their bounds. All eight applications below run on `IGame` and `GameApp`. Their normal launches share menus, persisted settings, resizable Vulkan windows, focus pause and playtesting. Specialized historical proof commands remain separate qualification tools.
+The concepts currently cover a first/third-person 3D shooter foundation. The starter guide lists supported fragments and their bounds. The applications below run on `IGame` and `GameApp`. Their normal launches share menus, persisted settings, resizable Vulkan windows, focus pause and playtesting. Specialized historical proof commands remain separate qualification tools.
 
 ## Run an existing application
 
@@ -19,6 +19,7 @@ Run launchers from the repository root. The table identifies the project entry p
 | Mossward strategy | `Strategy/Aurelian.StrategyDemo` | `dotnet run --project Games/Strategy/Aurelian.StrategyDemo -c Release` |
 | TinyFarm | `TinyFarm/TinyFarm` | `Play-TinyFarm.cmd` |
 | Composable starter | `Starter/Aurelian.Starter` | `starter.cmd` |
+| Riverward city builder | `Riverward/Riverward` | `riverward.cmd` |
 | Character animation lab | `CharacterLab/Aurelian.CharacterLab` | `characterlab.cmd` |
 | Cloudstep 3D platformer | `Cloudstep/Cloudstep` | `cloudstep.cmd` |
 | Hearth fire and smoke showcase | `Hearth/Hearth` | `hearth.cmd` |

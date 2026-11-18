@@ -57,6 +57,8 @@
   <Folder Name="/Games/">
     <Project Path="Games/CharacterLab/Aurelian.CharacterLab/Aurelian.CharacterLab.csproj" />
     <Project Path="Games/Starter/Aurelian.Starter/Aurelian.Starter.csproj" />
+    <Project Path="Games/Riverward/Riverward/Riverward.csproj" />
+    <Project Path="Games/Riverward/Riverward.Tests/Riverward.Tests.csproj" />
     <Project Path="Games/TinyFarm/TinyFarm.InputMan/TinyFarm.InputMan.csproj" />
     <Project Path="Games/Beacon3D/Aurelian.Beacon3D/Aurelian.Beacon3D.csproj" />
     <Project Path="Games/Strategy/Aurelian.StrategyDemo/Aurelian.StrategyDemo.csproj" />
