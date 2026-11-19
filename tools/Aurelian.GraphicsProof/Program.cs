@@ -32,6 +32,12 @@ if (args.Contains("--viewmodel", StringComparer.Ordinal))
     return;
 }
 
+if (args.Contains("--rendering-r7-eye", StringComparer.Ordinal))
+{
+    RenderingR3Proof.RunEyeExposure(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r7-eye"));
+    return;
+}
+
 if (args.Contains("--rendering-r6", StringComparer.Ordinal))
 {
     RenderingR3Proof.RunResolutionScaling(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r6"));

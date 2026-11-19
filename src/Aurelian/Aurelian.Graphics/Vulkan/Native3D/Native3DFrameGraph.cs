@@ -7,14 +7,15 @@ internal enum Native3DPass
     Uploads, Particles, DirectionalShadows, LocalShadows, Geometry, AmbientOcclusion, LightTiles,
     SurfaceResolve, Subsurface, Atmosphere, Refraction, Transparency, Temporal, Bloom, Output, HistoryCopy,
     RayShadows, Visibility, IdentityRaster, HzbSeedRaster, HzbSeedPyramid, HzbFinalCull, HzbHistoryPyramid, Reflections,
-    ReflectionReconstruction,
+    ReflectionReconstruction, EyeExposure,
 }
 
 internal readonly record struct Native3DFeatures(bool Surface, bool Modern, bool Motion, bool Shadows,
     bool Ambient, bool Tiles, bool Temporal, bool Bloom, bool Subsurface, bool Fog, bool Volume,
     bool Refraction, bool Transparency, bool Particles, bool AsyncParticles, bool GpuHistory,
     int LocalShadows, bool Alias, bool Visibility = false, bool VisibilityBuffer = false, bool HierarchicalZ = false, bool RayShadows = false,
-    bool PreserveColor = false, bool Reflections = false, bool ReflectionReconstruction = false, bool ReflectionGuide = false);
+    bool PreserveColor = false, bool Reflections = false, bool ReflectionReconstruction = false, bool ReflectionGuide = false,
+    bool EyeExposure = false);
 
 /// <summary>Declarative authoring for the production renderer. The compiler publishes only resolved data.</summary>
 internal static class Native3DFrameGraph
@@ -235,6 +236,13 @@ internal static class Native3DFrameGraph
             graph.Export(history);
             scene = temporal;
         }
+        FrameResource? exposure = null;
+        if (features.EyeExposure)
+        {
+            exposure = graph.Resource("eye-exposure-state", "buffer", 1, 1, FrameLifetime.History, initialized: true);
+            graph.Pass("eye-exposure", (int)Native3DPass.EyeExposure).Read(scene).Write(exposure, FrameAccess.HistoryReadWrite);
+            graph.Export(exposure);
+        }
         FrameResource? glow = null;
         if (features.Bloom)
         {
@@ -247,6 +255,7 @@ internal static class Native3DFrameGraph
         {
             var pass = graph.Pass("display-output", (int)Native3DPass.Output).Read(scene).Write(output);
             if (glow is not null) pass.Read(glow);
+            if (exposure is not null) pass.Read(exposure);
         }
         if (features.GpuHistory)
         {

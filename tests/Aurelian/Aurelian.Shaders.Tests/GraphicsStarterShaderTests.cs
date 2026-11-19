@@ -11,6 +11,7 @@ public sealed class GraphicsStarterShaderTests
     [InlineData("Solid3D.v.ts", 304, 5)]
     [InlineData("Shadow3D.v.ts", 64, 1)]
     [InlineData("ToneMap3D.v.ts", 16, 5)]
+    [InlineData("EyeToneMap3D.v.ts", 16, 6)]
     [InlineData("TemporalResolve3D.v.ts", 48, 9)]
     [InlineData("Bloom3D.v.ts", 32, 5)]
     [InlineData("SurfaceSolid3D.v.ts", 304, 1)]
@@ -43,11 +44,7 @@ public sealed class GraphicsStarterShaderTests
     [InlineData("DiffuseProbeConnections3D.v.ts", 128, 3)]
     public void StarterPassesCompileToValidatedSpirvWithTheirResourceContracts(string name, int uniformBytes, int resourceCount)
     {
-        var sources = GpuSourceLoader.Load(name, path =>
-        {
-            string full = Path.Combine(AppContext.BaseDirectory, "Assets", path);
-            return File.Exists(full) ? File.ReadAllText(full) : null;
-        });
+        var sources = GpuSourceLoader.Load(name, ReadSource);
         foreach (var source in sources)
         {
             var syntax = Copeland.TS.Syntax.SyntaxTree.Parse(source.Source, source.Path);
@@ -70,11 +67,13 @@ public sealed class GraphicsStarterShaderTests
     [Fact]
     public void PowerIntrinsicRejectsVectorArgumentsWithATypeDiagnostic()
     {
-        GpuSourceFile source = Read("ToneMap3D.v.ts");
-        var module = GpuGraphicsBinder.Compile(new([source with
+        var module = GpuGraphicsBinder.Compile(new(GpuSourceLoader.Load("ToneMap3D.v.ts", path =>
         {
-            Source = source.Source.Replace("Pow(x, 1.0 / 2.4)", "Pow(float2(x, x), 1.0 / 2.4)", StringComparison.Ordinal),
-        }]));
+            string? source = ReadSource(path);
+            return path == "ToneMapColor3D.v.ts"
+                ? source?.Replace("Pow(x, 1.0 / 2.4)", "Pow(float2(x, x), 1.0 / 2.4)", StringComparison.Ordinal)
+                : source;
+        })));
         Assert.False(module.Success);
         Assert.Contains(module.Diagnostics, item => item.Code == "COPE-GPU-MATH-0001");
     }
@@ -95,4 +94,10 @@ public sealed class GraphicsStarterShaderTests
 
     private static GpuSourceFile Read(string name) => new(name,
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", name)));
+
+    private static string? ReadSource(string name)
+    {
+        string path = Path.Combine(AppContext.BaseDirectory, "Assets", name);
+        return File.Exists(path) ? File.ReadAllText(path) : null;
+    }
 }

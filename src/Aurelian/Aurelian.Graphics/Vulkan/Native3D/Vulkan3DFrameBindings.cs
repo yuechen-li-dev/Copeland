@@ -24,7 +24,7 @@ internal sealed unsafe class Vulkan3DFrameBindings : IDisposable
     private readonly DescriptorSet[] sets;
 
     public Vulkan3DFrameBindings(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
-        DescriptorSetLayout layout, int bytes, uint imageCount, VulkanFrameInFlightSet? frames)
+        DescriptorSetLayout layout, int bytes, uint imageCount, VulkanFrameInFlightSet? frames, bool storage = false)
     {
         this.plant = plant;
         this.frames = frames;
@@ -38,7 +38,7 @@ internal sealed unsafe class Vulkan3DFrameBindings : IDisposable
             {
                 uniforms[index] = VulkanNativeForwardTexturedRenderer.CreateMappedBuffer(plant, allocator,
                     (ulong)bytes, VulkanBufferUsage.Uniform, VulkanMemoryUsage.CpuToGpu, "frame.uniform");
-                (pools[index], sets[index]) = Vulkan3DPass.AllocateSet(plant, layout, uniforms[index], imageCount);
+                (pools[index], sets[index]) = Vulkan3DPass.AllocateSet(plant, layout, uniforms[index], imageCount, storage);
             }
         }
         catch

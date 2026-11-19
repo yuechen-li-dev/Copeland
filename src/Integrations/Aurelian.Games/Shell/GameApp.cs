@@ -28,6 +28,7 @@ public sealed record GameLaunchOptions
     public string? Output { get; init; }
     public string? SaveRoot { get; init; }
     public bool RayQueries { get; init; }
+    public bool EyeExposure { get; init; }
     public RenderScale3D RenderScale { get; init; }
     public double? DynamicGpuBudgetMilliseconds { get; init; }
     public GameResolution? Resolution { get; init; }
@@ -38,7 +39,7 @@ public sealed record GameLaunchOptions
 
     /// <summary>
     /// --headless, --playtest-script PATH, --playtest-stdio, --launch-smoke, --visible, --output DIR, --save-root DIR,
-    /// --gpu-rays, --resolution WxH, --render-scale native|2/3|1/2|dynamic, --gpu-budget-ms MS,
+    /// --gpu-rays, --eye-exposure, --resolution WxH, --render-scale native|2/3|1/2|dynamic, --gpu-budget-ms MS,
     /// --windowed, --borderless, --fullscreen,
     /// --quality low|medium|high, --basic-graphics.
     /// Unknown arguments are ignored so games can add their own.
@@ -110,6 +111,7 @@ public sealed record GameLaunchOptions
             Output = Option(args, "--output"),
             SaveRoot = Option(args, "--save-root"),
             RayQueries = args.Contains("--gpu-rays", StringComparer.Ordinal),
+            EyeExposure = args.Contains("--eye-exposure", StringComparer.Ordinal),
             RenderScale = scale switch
             {
                 null or "native" or "dynamic" => RenderScale3D.Native,
@@ -228,11 +230,12 @@ public static class GameApp
         using IInputContext input = window.CreateInput();
         using var graphics = new NativeGameGraphics(window, manifest.Title, visible, session.Context.Assets,
             enableRayQueries: launch.RayQueries, vSync: initial.VSync, enableFramesInFlight: !launch.Playtest,
-            renderScale: launch.RenderScale, dynamicGpuBudgetMilliseconds: launch.DynamicGpuBudgetMilliseconds);
+            renderScale: launch.RenderScale, dynamicGpuBudgetMilliseconds: launch.DynamicGpuBudgetMilliseconds,
+            enableEyeExposure: launch.EyeExposure || manifest.Graphics.EyeExposure is not null);
         var menus = new GameMenuView(graphics.Font);
         using var native = new NativeGameSession(session, window, input, graphics, menus,
             manageFocus: !launch.Playtest, retainedGeometry: !launch.Playtest);
-        var display = new WindowDisplay(window, graphics, manifest, native);
+        var display = new WindowDisplay(window, graphics, manifest, native, launch.EyeExposure);
         session.Game.AttachGraphics(graphics);
         try
         {
@@ -289,7 +292,8 @@ public static class GameApp
     }
 
     /// <summary>Window mode, resolution, vsync and quality for a Silk window and its Vulkan graphics.</summary>
-    private sealed class WindowDisplay(IWindow window, NativeGameGraphics graphics, GameManifest manifest, NativeGameSession native)
+    private sealed class WindowDisplay(IWindow window, NativeGameGraphics graphics, GameManifest manifest, NativeGameSession native,
+        bool eyeExposure)
         : IGameDisplay
     {
         public IReadOnlyList<GameResolution> Resolutions
@@ -339,7 +343,12 @@ public static class GameApp
                     break;
             }
             window.DoEvents();
-            graphics.Settings = settings.ApplyQuality(manifest.Graphics);
+            var world = settings.ApplyQuality(manifest.Graphics);
+            if (eyeExposure && world.EyeExposure is null)
+            {
+                world = world with { EyeExposure = new() };
+            }
+            graphics.Settings = world;
             graphics.EnableAdaptiveVisibility = settings.AdaptiveQuality;
             native.RequestVSync(settings.VSync);
             native.SyncSurface();

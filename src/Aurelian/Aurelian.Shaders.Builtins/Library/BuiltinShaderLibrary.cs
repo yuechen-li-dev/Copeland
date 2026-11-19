@@ -121,6 +121,10 @@ public static class BuiltinShaderLibrary
         new("TemporalPolicy.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Module),
         new("TemporalResolve3D.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Graphics),
         new("ToneMap3D.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Graphics),
+        new("ToneMapColor3D.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Module),
+        new("EyeToneMap3D.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Graphics),
+        new("EyeHistogram3D.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Compute),
+        new("EyeAdapt3D.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Compute),
 
         new("HumanoidSkinning.v.ts", ShaderFamily.Deformation, ShaderSourceKind.Compute),
         new("Cloth3D.v.ts", ShaderFamily.Deformation, ShaderSourceKind.Compute),

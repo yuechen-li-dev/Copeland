@@ -108,6 +108,7 @@ public sealed class NativeGameGraphics : IDisposable
     private readonly bool enableFramesInFlight;
     private RenderScale3D renderScale;
     private readonly Dictionary<RenderScale3D, WorldRenderer> worldRenderers = [];
+    private readonly EyeExposurePrograms? eyeExposurePrograms;
     private WorldRenderer ActiveWorld => worldRenderers[renderScale];
     private long? firstResolutionSubmission;
     private long lastResolutionSample;
@@ -126,7 +127,7 @@ public sealed class NativeGameGraphics : IDisposable
 
     public NativeGameGraphics(IWindow window, string title, bool visible, GameAssets? assets = null, bool enableRayQueries = false,
         bool vSync = true, bool enableFramesInFlight = true, RenderScale3D renderScale = RenderScale3D.Native,
-        double? dynamicGpuBudgetMilliseconds = null)
+        double? dynamicGpuBudgetMilliseconds = null, bool enableEyeExposure = false)
     {
         assets ??= new();
         this.assets = assets;
@@ -174,6 +175,11 @@ public sealed class NativeGameGraphics : IDisposable
                 throw new InvalidOperationException(string.Join("; ", initialized.Diagnostics.Select(item => item.Message)));
             }
             Plant = Own(initialized.Plant!);
+            if (enableEyeExposure)
+            {
+                eyeExposurePrograms = new(assets.ComputeShader("EyeHistogram3D.v.ts"), assets.ComputeShader("EyeAdapt3D.v.ts"),
+                    assets.Shader("EyeToneMap3D.v.ts"), Own(new VulkanEyeExposureState3D(Plant)));
+            }
             VisibilityPolicy = new(Plant.Facts.HierarchicalZEnabled);
             Font = AurelianNativeUiFont.Create(assets.FontDirectory());
             CreateSurfaceResources(ReadFramebufferExtent());
@@ -340,7 +346,7 @@ public sealed class NativeGameGraphics : IDisposable
 
     public Native3DFrameResult Render(Native3DVertex[] vertices, Matrix4x4 camera, bool capture = false)
     {
-        if (ResolutionPolicy is null)
+        if (ResolutionPolicy is null && eyeExposurePrograms is null)
         {
             return Renderer.Render(vertices, camera, Clear, capture);
         }
@@ -357,6 +363,10 @@ public sealed class NativeGameGraphics : IDisposable
         if (ResolutionPolicy is { } resolution)
         {
             ApplyRenderScale(resolution.Tick(elapsed));
+        }
+        if (eyeExposurePrograms is not null)
+        {
+            Renderer.EyeExposureElapsedSeconds = (float)Math.Min(elapsed.TotalSeconds, .1);
         }
         if (EnableAdaptiveVisibility)
             VisibilityPolicy.BeforeFrame(Renderer, scene, camera, elapsed);
@@ -514,7 +524,7 @@ public sealed class NativeGameGraphics : IDisposable
         renderScale = scale;
         RestoreRenderState(state);
         // Correspondence from a dormant renderer predates the last presented frame.
-        Renderer.ResetTemporalHistory();
+        Renderer.ResetTemporalHistory(resetEyeExposure: false);
         firstResolutionSubmission = null;
         ResolutionScaleChanges++;
     }
@@ -628,7 +638,7 @@ public sealed class NativeGameGraphics : IDisposable
                     HybridResolve = assets.Shader("HybridResolve3D.v.ts"),
                 },
                 HierarchicalZ = new(assets.ComputeShader("HzbCull3D.v.ts"), assets.ComputeShader("HzbReduce3D.v.ts")),
-            }, renderScale: scale)
+            }, renderScale: scale, eyeExposurePrograms: eyeExposurePrograms)
         {
             FrameMode = enableFramesInFlight ? Native3DFrameMode.Interactive : Native3DFrameMode.Capture,
         };

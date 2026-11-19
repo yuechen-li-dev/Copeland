@@ -53,6 +53,7 @@ try {
         'src/Aurelian/Aurelian.Shaders/Assets/Lighting/EnvironmentCompile3D.v.ts',
         'src/Aurelian/Aurelian.Shaders/Assets/Queries/ReferenceEnvironment3D.v.ts',
         'src/Aurelian/Aurelian.Shaders/Assets/PostProcessing/ToneMap3D.v.ts',
+        'src/Aurelian/Aurelian.Shaders/Assets/PostProcessing/ToneMapColor3D.v.ts',
         'src/Aurelian/Aurelian.Shaders/Assets/Surfaces/AnalyticIntersections3D.v.ts',
         'src/Aurelian/Aurelian.Shaders/Assets/Surfaces/AnalyticGeometry3D.v.ts',
         'src/Aurelian/Aurelian.Shaders/Assets/Surfaces/AnalyticRaster3D.v.ts',

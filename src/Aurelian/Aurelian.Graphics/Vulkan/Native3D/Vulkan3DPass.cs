@@ -30,10 +30,10 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
 
     public Vulkan3DPass(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator, CompiledGraphicsProgram program,
         AurelianVulkanTexture color, uint width, uint height, bool shadow, AurelianVulkanTexture? sampled = null,
-        VulkanFrameInFlightSet? frames = null)
+        VulkanFrameInFlightSet? frames = null, AurelianVulkanBuffer? exposure = null)
     {
         this.plant = plant;
-        Validate(program, shadow, sampled is not null);
+        Validate(program, shadow, sampled is not null, exposure is not null);
         try
         {
             var pass = VulkanRenderPassFactory.Create(plant, new(
@@ -61,14 +61,15 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
             }
             int bytes = program.Material?.Size ?? throw new ArgumentException("3D pass requires a material uniform.", nameof(program));
             bindings = Own(new Vulkan3DFrameBindings(plant, allocator, layout, bytes,
-                sampled is null ? 0u : (uint)((program.Resources.Count - 1) / 2), frames));
+                sampled is null ? 0u : (uint)((program.Resources.Count - 1) / 2), frames, exposure is not null));
             if (sampled is not null)
             {
                 sampler = CreateSampler(plant, Filter.Linear);
                 foreach (DescriptorSet set in bindings.Sets)
                 {
                     WriteImage(plant, set, 1, sampled, sampler);
-                    if (program.Resources.Count == 5) WriteImage(plant, set, 3, sampled, sampler);
+                    if (program.Resources.Count >= 5) WriteImage(plant, set, 3, sampled, sampler);
+                    if (exposure is not null) WriteStorageBuffer(plant, set, 5, exposure);
                 }
             }
         }
@@ -84,23 +85,33 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
     public AurelianVulkanRenderPass Pass { get; }
     public AurelianVulkanFramebuffer Framebuffer { get; }
 
-    private static void Validate(CompiledGraphicsProgram program, bool shadow, bool sampled)
+    private static void Validate(CompiledGraphicsProgram program, bool shadow, bool sampled, bool exposure)
     {
         string[] fields = shadow ? ["clipX", "clipY", "clipZ", "clipW"] : ["parameters"];
         var material = program.Material;
+        bool resourceCountMatches = program.Resources.Count is 3 or 5;
+        if (shadow)
+        {
+            resourceCountMatches = !exposure && program.Resources.Count == 1;
+        }
+        else if (exposure)
+        {
+            resourceCountMatches = program.Resources.Count == 6;
+        }
         bool valid = material is not null && material.Size == fields.Length * 16 && material.Set == 0 && material.Binding == 0
             && material.Fields.Select(item => item.Name).SequenceEqual(fields)
             && material.Fields.All(item => item.PhysicalType == "float4")
             && material.Fields.Select(item => item.Offset).SequenceEqual(Enumerable.Range(0, fields.Length).Select(index => index * 16))
             && program.VertexInputs.Count == 1 && program.VertexInputs[0].Location == 0
             && program.VertexInputs[0].PhysicalType == (shadow ? "float3" : "float2")
-            && (shadow ? program.Resources.Count == 1 : program.Resources.Count is 3 or 5) && sampled == !shadow;
+            && resourceCountMatches && sampled == !shadow;
         foreach (var resource in program.Resources)
         {
             CompiledGraphicsResourceKind expected = resource.Binding switch
             {
                 0 => CompiledGraphicsResourceKind.UniformBuffer,
                 1 or 3 => CompiledGraphicsResourceKind.Texture2D,
+                5 => CompiledGraphicsResourceKind.StorageBuffer,
                 _ => CompiledGraphicsResourceKind.Sampler,
             };
             valid &= resource.Set == 0 && resource.Binding >= 0 && resource.Binding < program.Resources.Count && resource.Kind == expected
@@ -147,19 +158,25 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
     }
 
     internal static (DescriptorPool Pool, DescriptorSet Set) AllocateSet(AurelianVulkanPlant plant,
-        DescriptorSetLayout layout, AurelianVulkanBuffer uniform, uint imageCount)
+        DescriptorSetLayout layout, AurelianVulkanBuffer uniform, uint imageCount, bool storage = false)
     {
-        DescriptorPoolSize* sizes = stackalloc DescriptorPoolSize[3]
+        DescriptorPoolSize* sizes = stackalloc DescriptorPoolSize[4]
         {
             new(DescriptorType.UniformBuffer, 1),
             new(DescriptorType.SampledImage, imageCount),
             new(DescriptorType.Sampler, imageCount),
+            new(DescriptorType.StorageBuffer, 1),
         };
+        uint poolSizeCount = storage ? 4u : 3u;
+        if (imageCount == 0)
+        {
+            poolSizeCount = 1;
+        }
         DescriptorPoolCreateInfo info = new()
         {
             SType = StructureType.DescriptorPoolCreateInfo,
             MaxSets = 1,
-            PoolSizeCount = imageCount == 0 ? 1u : 3u,
+            PoolSizeCount = poolSizeCount,
             PPoolSizes = sizes,
         };
         Require(plant.Vk.CreateDescriptorPool(plant.Device, &info, null, out DescriptorPool pool) == Result.Success, "3D descriptor pool failed.");
@@ -208,6 +225,14 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
         };
         Require(plant.Vk.CreateSampler(plant.Device, &info, null, out Sampler sampler) == Result.Success, "3D sampler creation failed.");
         return sampler;
+    }
+
+    internal static void WriteStorageBuffer(AurelianVulkanPlant plant, DescriptorSet set, uint binding, AurelianVulkanBuffer buffer)
+    {
+        DescriptorBufferInfo info = new(buffer.NativeBuffer, 0, buffer.SizeBytes);
+        WriteDescriptorSet write = new() { SType = StructureType.WriteDescriptorSet, DstSet = set, DstBinding = binding,
+            DescriptorType = DescriptorType.StorageBuffer, DescriptorCount = 1, PBufferInfo = &info };
+        plant.Vk.UpdateDescriptorSets(plant.Device, 1, &write, 0, null);
     }
 
     internal static void WriteImage(AurelianVulkanPlant plant, DescriptorSet set, uint binding, AurelianVulkanTexture texture, Sampler? sampler)

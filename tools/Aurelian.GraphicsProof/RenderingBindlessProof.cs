@@ -111,7 +111,7 @@ internal static class RenderingBindlessProof
 
     internal static VulkanSolid3DRenderer CreateRenderer(AurelianVulkanPlant plant, GameAssets assets, VulkanNativeFrameTarget target,
         bool enableCulling = false, VisibilityBufferPrograms? visibilityPrograms = null, bool rayShadows = false,
-        RenderScale3D renderScale = RenderScale3D.Native, bool particles = false)
+        RenderScale3D renderScale = RenderScale3D.Native, bool particles = false, EyeExposurePrograms? eyeExposure = null)
         => new(plant, assets.Shader("SurfaceSolid3D.v.ts"), target,
             modelProgram: assets.Shader("SurfaceModel3D.v.ts"), shadowProgram: assets.Shader("Shadow3D.v.ts"),
             outputProgram: assets.Shader("ToneMap3D.v.ts"), temporalProgram: assets.Shader("TemporalResolve3D.v.ts"),
@@ -144,7 +144,7 @@ internal static class RenderingBindlessProof
                 HierarchicalZ = new(assets.ComputeShader("HzbCull3D.v.ts"), assets.ComputeShader("HzbReduce3D.v.ts")),
                 Visibility = enableCulling ? new(assets.ComputeShader("VisibilityCull3D.v.ts"),
                     assets.ComputeShader("VisibilityScan3D.v.ts"), assets.ComputeShader("VisibilityScatter3D.v.ts")) : null,
-            }, renderScale: renderScale);
+            }, renderScale: renderScale, eyeExposurePrograms: eyeExposure);
 
     private static IReadOnlyList<object> CheckCulledSceneRevisions(AurelianVulkanPlant plant, GameAssets assets, string output)
     {

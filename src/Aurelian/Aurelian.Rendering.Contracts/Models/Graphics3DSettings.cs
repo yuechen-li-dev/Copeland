@@ -91,6 +91,8 @@ public sealed record Graphics3DSettings
     public Vector3 SkyAmbient { get; init; } = new(.22f, .30f, .43f);
     public Vector3 GroundAmbient { get; init; } = new(.07f, .055f, .04f);
     public float Exposure { get; init; } = 1;
+    /// <summary>Optional adaptive gain before display mapping. Exposure remains the manual gain when this is null.</summary>
+    public EyeExposure3D? EyeExposure { get; init; }
     public float SolidRoughness { get; init; } = .65f;
     public float SolidMetallic { get; init; }
     public float ShadowRadius { get; init; } = 24;
@@ -108,6 +110,7 @@ public sealed record Graphics3DSettings
         Fog.Validate();
         ArgumentNullException.ThrowIfNull(Volumetrics);
         Volumetrics.Validate();
+        EyeExposure?.Validate();
         if (!Enum.IsDefined(AntiAliasing) || !Enum.IsDefined(SurfaceDebugView) || !Enum.IsDefined(DirectDiffuseModel)
             || !Enum.IsDefined(GlossyReflections)
             || !Range(TemporalHistoryWeight, 0, .95f) || !Range(BloomIntensity, 0, 1)

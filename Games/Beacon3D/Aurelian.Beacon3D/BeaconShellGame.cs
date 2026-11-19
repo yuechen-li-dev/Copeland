@@ -70,6 +70,7 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
         diffuseReady = false;
         game = new BeaconGame(humanoid: humanoid);
         Presentation.Reset(game);
+        ResetEyeOnCut();
         if (rays is not null)
         {
             game.UseRayQueries(rays);
@@ -90,11 +91,24 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
         }
         int oldShots = game.Shots;
         bool wasReloading = game.Reloading;
+        var previousView = game.View;
         game.Step(new BeaconInput(input.Axis("back", "forward"), input.Axis("left", "right"),
             input.Axis("turn.left", "turn.right"), input.Axis("look.down", "look.up"),
             input.WasPressed("jump"), input.Look.X, input.Look.Y, input.IsDown("fire"),
             input.WasPressed("reload"), input.WasPressed("view"), input.IsDown("sprint")), tick.Seconds);
+        if (previousView != game.View)
+        {
+            ResetEyeOnCut();
+        }
         Presentation.Step(game, input.IsDown("aim"), input.IsDown("sprint"), tick.Seconds, oldShots, wasReloading);
+    }
+
+    private void ResetEyeOnCut()
+    {
+        if (attachedGraphics is { Settings.EyeExposure: not null } graphics)
+        {
+            graphics.Renderer.ResetTemporalHistory();
+        }
     }
 
     public GameView View(GameViewRequest request)

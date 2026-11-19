@@ -89,6 +89,9 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
     private readonly Sampler shadowSampler;
     private readonly Vulkan3DPass? shadowPass;
     private readonly Vulkan3DPass? outputPass;
+    private readonly Vulkan3DPass? eyeOutputPass;
+    private readonly VulkanEyeExposure3D? eyeMeter;
+    private readonly VulkanEyeExposureState3D? eyeState;
     private readonly AurelianVulkanBuffer? outputVertices;
     private readonly Vulkan3DGpuTimings? gpuTimings;
     private bool disposed;
@@ -113,6 +116,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
     public Native3DFrameMode FrameMode { get; set; } = Native3DFrameMode.Capture;
 
     public Graphics3DSettings Settings { get; set; } = Graphics3DSettings.Default;
+    public float EyeExposureElapsedSeconds { get; set; } = 1f / 60;
 
     public uint RenderWidth { get; }
     public uint RenderHeight { get; }
@@ -129,7 +133,8 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         CompiledGraphicsProgram? temporalProgram = null,
         CompiledGraphicsProgram? bloomProgram = null,
         SurfaceLightingPrograms? surfacePrograms = null, RetainedModel3DPrograms? retainedPrograms = null, FramePlanOptions? framePlans = null,
-        bool preserveColor = false, RenderScale3D renderScale = RenderScale3D.Native)
+        bool preserveColor = false, RenderScale3D renderScale = RenderScale3D.Native,
+        EyeExposurePrograms? eyeExposurePrograms = null)
     {
         ArgumentNullException.ThrowIfNull(plant);
         ArgumentNullException.ThrowIfNull(program);
@@ -155,6 +160,10 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         motionOutput = program.VertexInputs.Count == 4;
         cameraBytes = program.Material!.Size;
         outputHasBloom = outputProgram?.Resources.Count == 5;
+        if (eyeExposurePrograms is not null && !outputHasBloom)
+        {
+            throw new ArgumentException("Eye exposure requires the bloom-aware HDR output contract.", nameof(eyeExposurePrograms));
+        }
         if (temporalProgram is not null && (!motionOutput || outputProgram is null || modelProgram?.VertexInputs.Count == 5))
             throw new ArgumentException("Temporal resolve requires HDR output and motion-capable geometry shaders.");
         Settings = Graphics3DSettings.Default with
@@ -182,7 +191,8 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
                 gpuTimings = new(plant, ["directional-shadow", "linear-lighting", "temporal-resolve", "bloom", "tone-map-output",
                     .. surfaceOnly ? new[] { "ambient-occlusion", "local-light-culling", "surface-lighting", "local-shadows", "subsurface-diffusion", "atmosphere", "transparency", "refraction", "particles-update", "visibility-cull", "visibility-raster",
                         "hzb-seed-depth", "hzb-seed-pyramid", "hzb-final-cull", "hzb-history-pyramid", "sharp-reflections",
-                        "glossy-reflection-reconstruction" } : []], frames);
+                        "glossy-reflection-reconstruction" } : [],
+                    .. eyeExposurePrograms is null ? Array.Empty<string>() : ["eye-exposure"]], frames);
                 hdr = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, RenderWidth, RenderHeight,
                     VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferSource,
                     VulkanMemoryUsage.GpuOnly, "solid3d.hdr", VulkanTextureFormat.Rgba16Float);
@@ -191,6 +201,13 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
                     VulkanMemoryUsage.GpuOnly, "solid3d.shadow", VulkanTextureFormat.R32Float);
                 shadowPass = new(plant, allocator, shadowProgram!, shadowMap, Lighting3DUniforms.ShadowSize, Lighting3DUniforms.ShadowSize, true, frames: frames);
                 outputPass = new(plant, allocator, outputProgram, target.Texture, target.Width, target.Height, false, hdr, frames);
+                if (eyeExposurePrograms is not null)
+                {
+                    eyeState = eyeExposurePrograms.State;
+                    eyeMeter = new(plant, allocator, frames, eyeExposurePrograms);
+                    eyeOutputPass = new(plant, allocator, eyeExposurePrograms.Output, target.Texture, target.Width, target.Height,
+                        false, hdr, frames, exposure: eyeState.Buffer);
+                }
                 outputVertices = VulkanNativeForwardTexturedRenderer.CreateMappedBuffer(plant, allocator, 24,
                     VulkanBufferUsage.Vertex, VulkanMemoryUsage.CpuToGpu, "solid3d.output-triangle");
                 float[] triangle = [-1, -1, 3, -1, -1, 3];
@@ -451,6 +468,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             lightDirection, temporalRevision, lightingRevision, waterFrame, useWaterReflection, sourceInstances);
         FramePlan plan = GetFramePlan(state);
         var execution = ExecutePlan(plan, state, capture);
+        if (state.Settings.EyeExposure is not null) eyeState!.RecordStep();
         long recordedAt = execution.RecordedAt;
         long submittedAt = execution.SubmittedAt;
         var cpuTimings = new Native3DFrameCpuTimings(frameSequence++, frameSlot,
@@ -562,10 +580,16 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             {
                 ToneMapping = false,
                 Exposure = 1,
+                EyeExposure = null,
                 BloomIntensity = 0,
                 AntiAliasing = AntiAliasing3D.None,
             };
         }
+        if (settings.EyeExposure is not null && (eyeMeter is null || !float.IsFinite(EyeExposureElapsedSeconds) || EyeExposureElapsedSeconds < 0))
+        {
+            throw new InvalidOperationException("Adaptive eye exposure requires its programs and a finite, nonnegative elapsed time.");
+        }
+        if (settings.EyeExposure is null) eyeState?.Reset();
         bool useTemporal = settings.AntiAliasing == AntiAliasing3D.Temporal;
         if (useTemporal && temporal is null) throw new InvalidOperationException("Temporal AA requires TemporalResolve3D at renderer creation.");
         if (useTemporal && gpuGeometry is not null && (gpuGeometry.Buffer.Usage & VulkanBufferUsage.TransferSource) == 0)
@@ -818,10 +842,20 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
     }
 
     /// <summary>Call for camera cuts, teleports, or replacement of raw vertex correspondence.</summary>
-    public void ResetTemporalHistory()
+    public void ResetTemporalHistory() => ResetTemporalHistory(resetEyeExposure: true);
+
+    public void ResetTemporalHistory(bool resetEyeExposure)
     {
+        if (resetEyeExposure) eyeState?.Reset();
         surfaceLighting?.ResetLightSampling();
         InvalidateSurfaceHistory();
+    }
+
+    public EyeExposureMeasurement ReadEyeExposureForQualification()
+    {
+        if (eyeState is not { Valid: true }) throw new InvalidOperationException("No adaptive exposure frame has been recorded.");
+        float[] exposure = Vulkan3DQualificationReadback.ReadBuffer(plant, frames, eyeState.Buffer);
+        return new(exposure[0], exposure[1], exposure[2], exposure[3]);
     }
 
     private void InvalidateSurfaceHistory()
@@ -1017,6 +1051,8 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         retainedModels?.Dispose();
         modelRenderer?.Dispose();
         outputPass?.Dispose();
+        eyeOutputPass?.Dispose();
+        eyeMeter?.Dispose();
         shadowPass?.Dispose();
         outputVertices?.Dispose();
         pipeline?.Dispose();
