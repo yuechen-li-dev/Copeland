@@ -1,3 +1,4 @@
+import { ResidentMaterialKey, ApplySurfaceDecals } from "./SurfaceDecals3D";
 import { EnvironmentUv } from "./EnvironmentCoordinates3D";
 import { SecondaryAttributes } from "./SecondarySurface3D";
 import { ResidentVertex, ResidentInstance, ResidentAttributes, DirectionRow, PointRow } from "./ResidentGeometry3D";
@@ -65,7 +66,7 @@ function SharpReflectionMain(@builtin(dispatchThreadId) thread: uint3,
     @binding(7) readwrite Occlusion: StorageBuffer<f32>,
     @binding(8) readwrite Output: StorageBuffer<f32>,
     @binding(9) readonly Materials: StorageBuffer<BindlessMaterialRecord>,
-    @binding(10) readonly InstanceMaterials: StorageBuffer<u32>,
+    @binding(10) readonly InstanceSurfaces: StorageBuffer<f32>,
     @binding(11) readonly Vertices: StorageBuffer<ResidentVertex>,
     @binding(12) readonly Indices: StorageBuffer<u32>,
     @binding(13) readonly Geometry: StorageBuffer<ResidentInstance>,
@@ -275,7 +276,9 @@ function SharpReflectionMain(@builtin(dispatchThreadId) thread: uint3,
         }
     } else {
         let instanceId: u32 = U32(Hits[hit + 3]);
-        let entry: BindlessMaterialRecord = Materials[InstanceMaterials[instanceId]];
+        let surfaceKey: f32 = InstanceSurfaces[instanceId];
+        let range: u32 = U32(Max(0.0, -surfaceKey));
+        let entry: BindlessMaterialRecord = Materials[U32(ResidentMaterialKey(InstanceSurfaces, surfaceKey, range))];
         let front: bool = Hits[hit + 15] > 0.0;
         if (front || entry.surface.flags.z > 0.5) {
             let attributes: ResidentAttributes = SecondaryAttributes(Hits, Procedurals, raySlot, Geometry[instanceId], Vertices, Indices);
@@ -285,8 +288,9 @@ function SharpReflectionMain(@builtin(dispatchThreadId) thread: uint3,
             let normalSample: float4 = SampleLevel(Textures[NonUniform(entry.normalTexture)], Samplers[NonUniform(entry.normalSampler)], uv, 0.0);
             let metalSample: float4 = SampleLevel(Textures[NonUniform(entry.metalTexture)], Samplers[NonUniform(entry.metalSampler)], uv, 0.0);
             let occlusionSample: float4 = SampleLevel(Textures[NonUniform(entry.occlusionTexture)], Samplers[NonUniform(entry.occlusionSampler)], uv, 0.0);
-            let surface: SurfaceData = EvaluateSurfaceSamples(attributes.normal, attributes.tangent, front,
+            let baseSurface: SurfaceData = EvaluateSurfaceSamples(attributes.normal, attributes.tangent, front,
                 entry.surface, baseSample * entry.surface.baseColor * attributes.color, emissiveSample, normalSample, metalSample, occlusionSample);
+            let surface: SurfaceData = ApplySurfaceDecals(InstanceSurfaces, range, attributes.world, attributes.normal, front, baseSurface);
             let base: float3 = float3(surface.color.x, surface.color.y, surface.color.z);
             radiance = float3(surface.emission.x, surface.emission.y, surface.emission.z) * Parameters[23];
             if (surface.emission.w < 0.0) {

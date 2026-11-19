@@ -260,7 +260,7 @@ internal sealed unsafe class VulkanSharpReflection3D : IDisposable
             PAccelerationStructures = &top,
         };
         AurelianVulkanBuffer[] buffers = [scene.Procedurals, scene.Instances, scene.Shading, parameters[slot], rays, hits, occlusion, radiance,
-            materials.MaterialRecords, materials.InstanceMaterials, materials.ResidentVertices, materials.ResidentIndices, materials.ResidentInstances];
+            materials.MaterialRecords, materials.InstanceSurfaces, materials.ResidentVertices, materials.ResidentIndices, materials.ResidentInstances];
         WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[(int)DescriptorCount];
         DescriptorBufferInfo* bufferInfos = stackalloc DescriptorBufferInfo[(int)(BufferCount + AuxiliaryBufferCount)];
         DescriptorImageInfo* imageInfos = stackalloc DescriptorImageInfo[(int)ImageCount + 1];

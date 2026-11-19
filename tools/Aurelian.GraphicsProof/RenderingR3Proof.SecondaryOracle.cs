@@ -212,7 +212,8 @@ internal static partial class RenderingR3Proof
     }
 
     private static (CompiledDiffuseProbeField3D Field, object Witness) SecondaryOracleField(NativeInstanceSet3D scene,
-        DiffuseProbeGrid grid, float[] witness, LocalLight3D[] lights)
+        DiffuseProbeGrid grid, float[] witness, LocalLight3D[] lights,
+        Func<SceneInstance3D, Vector3, CpuSecondary, CpuSecondary>? decorate = null)
     {
         float[] data = new float[grid.Count * (grid.RaysPerProbe + 64) * 4];
         double maximumNormal = 0;
@@ -240,6 +241,7 @@ internal static partial class RenderingR3Proof
             Vector3 point = new(witness[offset + 20], witness[offset + 21], witness[offset + 22]);
             Vector3 geometric = new(witness[offset + 16], witness[offset + 17], witness[offset + 18]);
             var surface = SecondaryOracle(instance, point, geometric, witness[offset + 2] > 0);
+            if (decorate is not null) surface = decorate(instance, point, surface);
             if (instance.Identity == "secondary-source")
             {
                 compared++;

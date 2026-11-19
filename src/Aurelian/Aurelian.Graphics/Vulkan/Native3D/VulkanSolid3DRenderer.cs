@@ -45,6 +45,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
     private float previousWaterTime;
     private bool previousWaterReflection;
     private ImmutableArray<WaterImpulse3D> previousWaterImpulses = [];
+    private ImmutableArray<SurfaceDecal3D> previousDecals = [];
     internal AurelianVulkanTexture UnfoggedReflectionOutput => surfaceLighting!.UnfoggedOutput!;
     private const int MaximumVertices = 65_536;
     private readonly AurelianVulkanPlant plant;
@@ -419,11 +420,13 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             {
                 Models = [.. scene.Models, .. scene.Instances.Select(instance => instance.Expand())],
                 Instances = [],
+                Decals = [],
             }, worldToClip, eye, clearColor, Settings, Environment, ReflectionProbe, LocalLights);
         }
         return RenderFrame(scene.Geometry, worldToClip, clearColor, capture, scene.Models, eye, gpuGeometry,
             temporalRevision: scene.TemporalRevision, lightingRevision: scene.LightingRevision,
-            waterFrame: scene.WaterFrame, useWaterReflection: scene.WaterReflection is not null, sourceInstances: scene.Instances);
+            waterFrame: scene.WaterFrame, useWaterReflection: scene.WaterReflection is not null,
+            sourceInstances: scene.Instances, decals: scene.Decals);
     }
 
     private static void ValidateWater(IReadOnlyList<NativeModel3DBatch> batches, Vector3 eye)
@@ -473,9 +476,11 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         string? lightingRevision = null,
         WaterFrame3D? waterFrame = null,
         bool useWaterReflection = false,
-        IReadOnlyList<SceneInstance3D>? sourceInstances = null)
+        IReadOnlyList<SceneInstance3D>? sourceInstances = null,
+        ImmutableArray<SurfaceDecal3D> decals = default)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
+        if (decals.IsDefault) decals = [];
         target.ValidateExternalPass(plant);
         long frameStarted = Stopwatch.GetTimestamp();
         int frameSlot = frames.Slot;
@@ -484,7 +489,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         Native3DCompletedGpuFrame? completedGpuFrame = gpuTimings?.ReadCompletedFrame();
         ReadQueueEvidence();
         FrameState state = PrepareFrame(geometry, worldToClip, clearColor, capture, models, eye, gpuGeometry,
-            lightDirection, temporalRevision, lightingRevision, waterFrame, useWaterReflection, sourceInstances);
+            lightDirection, temporalRevision, lightingRevision, waterFrame, useWaterReflection, sourceInstances, decals);
         FramePlan plan = GetFramePlan(state);
         var execution = ExecutePlan(plan, state, capture);
         lastOpticalColor = state.Resolved;
@@ -520,6 +525,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         previousWaterTime = waterFrame.Time;
         previousWaterReflection = useWaterReflection;
         previousWaterImpulses = waterFrame.Impulses;
+        previousDecals = decals;
         previousSettings = settings;
         previousStaticEmissionIntensity = StaticEmissionIntensity;
         previousRevision = temporalRevision;
@@ -567,7 +573,8 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         string? lightingRevision = null,
         WaterFrame3D? waterFrame = null,
         bool useWaterReflection = false,
-        IReadOnlyList<SceneInstance3D>? sourceInstances = null)
+        IReadOnlyList<SceneInstance3D>? sourceInstances = null,
+        ImmutableArray<SurfaceDecal3D> decals = default)
     {
         models ??= [];
         sourceInstances ??= [];
@@ -622,6 +629,10 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             throw new InvalidOperationException("Ocular glare requires OcularGlare3D at renderer creation.");
         var modelKeys = models.Select(model => (model.TemporalIdentity, model.Vertices.Length, model.Material)).ToArray();
         var resident = sourceInstances as NativeInstanceSet3D;
+        bool useBindless = retainedModels?.CanUseBindless(sourceInstances, EnableBindlessMaterials) == true;
+        if (!decals.IsEmpty && !useBindless)
+            throw new NotSupportedException("AUR-DECAL-005: Surface projectors require bindless NativeInstanceSet3D receivers.");
+        bool decalsChanged = !decals.AsSpan().SequenceEqual(previousDecals.AsSpan());
         bool hasAnalytic = resident?.HasAnalytic ?? sourceInstances.Any(instance => instance.Mesh.PrimitiveKind != AnalyticPrimitiveKind3D.Triangles);
         if (hasAnalytic && (resident is null || !EnableVisibilityBuffer || retainedModels?.CanUseHybrid != true
             || settings.Shadows || !EnableRayShadows && LocalLights.Any(light => light.CastShadows)))
@@ -633,7 +644,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             || !(ReferenceEquals(resident, previousResidentSet) || resident?.Continues(previousResidentSet) == true)
             || !modelKeys.SequenceEqual(previousModels) || previousGeometry.Length != geometry.Length || previousRevision != temporalRevision
             || previousSettings != settings || previousStaticEmissionIntensity != StaticEmissionIntensity
-            || lastGpuSource != gpuGeometry?.Buffer;
+            || lastGpuSource != gpuGeometry?.Buffer || decalsChanged;
         if (settings.Volumetrics.Enabled && previousLightingRevision != lightingRevision)
             correspondenceChanged = true;
         if (!float.IsFinite(StaticEmissionIntensity) || StaticEmissionIntensity < 0)
@@ -777,7 +788,6 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         {
             if (modelRenderer is null) throw new InvalidOperationException("StaticModel3D shader was not configured.");
         }
-        bool useBindless = retainedModels?.CanUseBindless(sourceInstances, EnableBindlessMaterials) == true;
         if (EnableHierarchicalZ && (!EnableVisibilityBuffer || retainedModels?.CanUseHierarchicalZ != true))
             throw new NotSupportedException("AUR-HZB-004: Two-phase HZB requires visibility-buffer mode, culling/reduction programs and an admitted device.");
         if (EnableVisibilityBuffer && (!useBindless || retainedModels?.CanUseVisibilityBuffer != true
@@ -790,12 +800,12 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         modelRenderer?.Upload(models, worldToClip, eye, lighting, previousClip, resetHistory,
             resident?.Materials ?? sourceInstances.Select(instance => instance.Material).ToArray(), bindlessRetained: useBindless);
         retainedModels?.Upload(sourceInstances, resetHistory, useBindless, EnableVisibilityBuffer, EnableHierarchicalZ, RasterAdmissionMode);
-        retainedModels?.UpdateBindlessFrame(worldToClip, eye, lighting, previousClip);
+        retainedModels?.UpdateBindlessFrame(worldToClip, eye, lighting, previousClip, decals);
         if (surfaceLighting is not null && (surfaceLighting.RayShadowsActive || surfaceLighting.ReflectionsActive))
         {
             Matrix4x4.Invert(worldToClip, out Matrix4x4 rayInverse);
             surfaceLighting.PrepareRayLighting(resident!, rayInverse, LocalLightSampling, RaySceneUpdateMode, StaticEmissionIntensity,
-                retainedModels?.SecondaryMaterialTable, retainedModels?.VisibilityIdentity, settings, EnvironmentSource);
+                retainedModels?.SecondaryMaterialTable, retainedModels?.VisibilityIdentity, settings, EnvironmentSource, decalsChanged);
         }
         if (hasParticles)
         {

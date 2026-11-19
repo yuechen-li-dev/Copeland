@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Aurelian.Rendering.Contracts.Models;
@@ -17,6 +18,8 @@ public sealed record NativeModel3DBatch(NativeModel3DVertex[] Vertices, ModelMat
 public sealed record Native3DScene(Native3DVertex[] Geometry, IReadOnlyList<NativeModel3DBatch> Models)
 {
     public IReadOnlyList<SceneInstance3D> Instances { get; init; } = [];
+    /// <summary>Resident surface projectors applied in authoring order on each receiver.</summary>
+    public ImmutableArray<SurfaceDecal3D> Decals { get; init; } = [];
     /// <summary>Change when vertex correspondence changes; transforms and animation retain this key.</summary>
     public string? TemporalRevision { get; init; }
     /// <summary>Change when opaque shadow casters move or deform. Scene composition supplies transforms automatically.</summary>

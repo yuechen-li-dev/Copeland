@@ -1,3 +1,4 @@
+import { ResidentMaterialKey, ApplySurfaceDecals } from "./SurfaceDecals3D";
 import { PackAnisotropy } from "./OpenPbrAnisotropy3D";
 import { BindlessMaterialRecord } from "./ResidentMaterial3D";
 import { ResidentVertex, ResidentInstance, ResidentAttributes, TransformResidentVertex, ProjectPoint,
@@ -40,7 +41,7 @@ record StaticModelMaterial {
 stream MaterialResources { @binding(0) material: StaticModelMaterial; }
 stream TableResources {
     @binding(1) materials: StorageBuffer<BindlessMaterialRecord>;
-    @binding(2) instanceMaterials: StorageBuffer<u32>;
+    @binding(2) instanceSurfaces: StorageBuffer<f32>;
     @binding(3) textures: DescriptorArray<Texture2D<float4>, 4096>;
     @binding(4) samplers: DescriptorArray<Sampler, 64>;
     @binding(5) vertices: StorageBuffer<ResidentVertex>;
@@ -91,9 +92,11 @@ function PixelMain(input: Varyings, uniforms: MaterialResources, tables: TableRe
             uvDy: float2(gradient.z, gradient.w), valid: 1 };
     }
     if (resolved.valid == 0) { Discard(); }
-    let material: BindlessMaterialRecord = tables.materials[tables.instanceMaterials[instanceId]];
+    let surfaceKey: f32 = tables.instanceSurfaces[instanceId];
+    let range: u32 = Convert<u32>(Max(0.0, -surfaceKey));
+    let material: BindlessMaterialRecord = tables.materials[Convert<u32>(ResidentMaterialKey(tables.instanceSurfaces, surfaceKey, range))];
     let tangent: float4 = resolved.attributes.tangent;
-    let surface: SurfaceData = EvaluateSurfaceMaterialGrad(resolved.attributes.normal,
+    let baseSurface: SurfaceData = EvaluateSurfaceMaterialGrad(resolved.attributes.normal,
         resolved.attributes.color, resolved.attributes.uv, resolved.uvDx, resolved.uvDy, tangent, hit.y % 2 == 0, material.surface,
         tables.textures[NonUniform(material.baseTexture)], tables.samplers[NonUniform(material.baseSampler)],
         tables.textures[NonUniform(material.metalTexture)], tables.samplers[NonUniform(material.metalSampler)],
@@ -101,6 +104,7 @@ function PixelMain(input: Varyings, uniforms: MaterialResources, tables: TableRe
         tables.textures[NonUniform(material.occlusionTexture)], tables.samplers[NonUniform(material.occlusionSampler)],
         tables.textures[NonUniform(material.emissiveTexture)], tables.samplers[NonUniform(material.emissiveSampler)]);
     let world: float3 = resolved.attributes.world;
+    let surface: SurfaceData = ApplySurfaceDecals(tables.instanceSurfaces, range, world, resolved.attributes.normal, hit.y % 2 == 0, baseSurface);
     let previous: float3 = resolved.attributes.previous;
     let currentClip: float4 = ProjectPoint(world, uniforms.material.clipX, uniforms.material.clipY, uniforms.material.clipZ, uniforms.material.clipW);
     let previousClip: float4 = ProjectPoint(previous, uniforms.material.previousX, uniforms.material.previousY, uniforms.material.previousZ, uniforms.material.previousW);

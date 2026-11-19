@@ -66,6 +66,7 @@ public static class BuiltinShaderLibrary
         new("ResidentMaterial3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Module),
         new("ResidentGeometry3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Module),
         new("SurfaceMaterial3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Module),
+        new("SurfaceDecals3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Module),
         new("VisibilityTypes.v.ts", ShaderFamily.Queries, ShaderSourceKind.Module),
         new("HzbTypes.v.ts", ShaderFamily.Queries, ShaderSourceKind.Module),
         new("HzbCull3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),

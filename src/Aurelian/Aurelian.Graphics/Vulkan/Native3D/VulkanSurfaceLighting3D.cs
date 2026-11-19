@@ -445,7 +445,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
 
     public void PrepareRayLighting(NativeInstanceSet3D instances, Matrix4x4 inverse, LocalLightSampling3D options,
         SceneAccelerationUpdateMode3D updateMode, float emissionIntensity, VulkanBindlessMaterials3D? materialTable,
-        AurelianVulkanTexture? identity, Graphics3DSettings settings, EnvironmentRadiance3D? environmentSource)
+        AurelianVulkanTexture? identity, Graphics3DSettings settings, EnvironmentRadiance3D? environmentSource, bool decalsChanged)
     {
         if (ReflectionsActive)
         {
@@ -491,7 +491,8 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
                 if (compiledProbes is not null) dynamicDiffuse.SetCompiled(compiledProbes);
             }
             dynamicDiffuse.Prepare(rayScene, instances, inverse, packedLights, priorLights.Length, diffuseSettings,
-                (float)settings.DirectDiffuseModel, emissionIntensity, rayShadows.Motion, rayShadows.Normals, materialTable, settings, environmentSource);
+                (float)settings.DirectDiffuseModel, emissionIntensity, rayShadows.Motion, rayShadows.Normals, materialTable,
+                settings, environmentSource, decalsChanged);
         }
         if (options.ReconstructTail)
         {

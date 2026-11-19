@@ -68,6 +68,12 @@ if (args.Contains("--rendering-r8-anisotropy", StringComparer.Ordinal))
     return;
 }
 
+if (args.Contains("--rendering-r8-decals", StringComparer.Ordinal))
+{
+    RenderingR3Proof.RunDecals(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r8-decals"));
+    return;
+}
+
 if (args.Contains("--rendering-r6", StringComparer.Ordinal))
 {
     RenderingR3Proof.RunResolutionScaling(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r6"));

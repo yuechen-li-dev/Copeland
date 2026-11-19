@@ -105,7 +105,8 @@ internal sealed unsafe partial class VulkanDynamicDiffuse3D : IDisposable
 
     public void Prepare(VulkanSceneAcceleration3D scene, NativeInstanceSet3D instances, Matrix4x4 inverse,
         ReadOnlySpan<float> lights, int count, DynamicDiffuseLighting3D settings, float responseModel, float emissionIntensity,
-        AurelianVulkanBuffer motion, AurelianVulkanBuffer normals, VulkanBindlessMaterials3D materialTable, Graphics3DSettings lighting, EnvironmentRadiance3D? environmentSource)
+        AurelianVulkanBuffer motion, AurelianVulkanBuffer normals, VulkanBindlessMaterials3D materialTable,
+        Graphics3DSettings lighting, EnvironmentRadiance3D? environmentSource, bool decalsChanged)
     {
         settings.Validate();
         var grid = settings.Grid!;
@@ -127,7 +128,7 @@ internal sealed unsafe partial class VulkanDynamicDiffuse3D : IDisposable
             stationaryFrames = 0;
             ResetRegionalState();
         }
-        if (options.Mode != settings.Mode || (settings.RegionalPlan is null && options.RaysPerProbePerFrame != settings.RaysPerProbePerFrame)
+        if (decalsChanged || options.Mode != settings.Mode || (settings.RegionalPlan is null && options.RaysPerProbePerFrame != settings.RaysPerProbePerFrame)
             || options.SecondaryMaterials != settings.SecondaryMaterials || options.SecondaryTextureLod != settings.SecondaryTextureLod)
         {
             sequence = 0;
@@ -185,6 +186,7 @@ internal sealed unsafe partial class VulkanDynamicDiffuse3D : IDisposable
             && instances.Materials.Any(material => MathF.Max(material.Emissive.X, MathF.Max(material.Emissive.Y, material.Emissive.Z))
                 * emissionIntensity >= MinimumGuideEmission);
         words[50] = buildReflectionGuide ? 1 : 0;
+        words[51] = materialTable.HasDecals ? 1 : 0;
         lights.CopyTo(words.AsSpan(64));
         AccelerationStructureKHR top = scene.TopLevel;
         var structure = new WriteDescriptorSetAccelerationStructureKHR { SType = StructureType.WriteDescriptorSetAccelerationStructureKhr,
@@ -198,7 +200,7 @@ internal sealed unsafe partial class VulkanDynamicDiffuse3D : IDisposable
             Write(parameters[frames.Slot, phase], words);
             AurelianVulkanBuffer[] resources = [scene.Procedurals, rays, hits, scene.Instances, parameters[frames.Slot, phase],
                 motion, output, normals, sequence % 2 == 0 ? historyA : historyB, sequence % 2 == 0 ? historyB : historyA, baseline, scene.Shading, occlusion,
-                materialTable.MaterialRecords, materialTable.InstanceMaterials, materialTable.ResidentVertices,
+                materialTable.MaterialRecords, materialTable.InstanceSurfaces, materialTable.ResidentVertices,
                 materialTable.ResidentIndices, materialTable.ResidentInstances, witness, skyParameters[frames.Slot], environmentRadiance!, regionParameters[frames.Slot], probeMetrics, probeGuides];
             writes[0] = new() { SType = StructureType.WriteDescriptorSet, PNext = &structure,
                 DstSet = sets[frames.Slot, phase], DstBinding = 0, DescriptorCount = 1, DescriptorType = DescriptorType.AccelerationStructureKhr };

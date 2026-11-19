@@ -1,3 +1,4 @@
+import { ResidentMaterialKey } from "./SurfaceDecals3D";
 import { BindlessMaterialRecord } from "./ResidentMaterial3D";
 import { ResidentVertex, ResidentInstance, ResidentAttributes, PointRow } from "./ResidentGeometry3D";
 import { TestSurfaceCoverage } from "./SurfaceMaterial3D";
@@ -53,7 +54,7 @@ stream VertexInput {
 stream MaterialResources { @binding(0) material: StaticModelMaterial; }
 stream TableResources {
     @binding(1) materials: StorageBuffer<BindlessMaterialRecord>;
-    @binding(2) instanceMaterials: StorageBuffer<u32>;
+    @binding(2) instanceSurfaces: StorageBuffer<f32>;
     @binding(3) textures: DescriptorArray<Texture2D<float4>, 4096>;
     @binding(4) samplers: DescriptorArray<Sampler, 64>;
     @binding(5) vertices: StorageBuffer<ResidentVertex>;
@@ -130,7 +131,9 @@ function PixelMain(input: VisibilityVaryings, uniforms: MaterialResources, table
         PointRow(uniforms.material.clipZ, attributes.world), PointRow(uniforms.material.clipW, attributes.world));
     let depth: f32 = clip.z / clip.w;
     if (clip.w <= 0.0 || depth < 0.0 || depth > 1.0) { Discard(); }
-    let material: BindlessMaterialRecord = tables.materials[tables.instanceMaterials[input.instance]];
+    let surfaceKey: f32 = tables.instanceSurfaces[input.instance];
+    let range: u32 = Convert<u32>(Max(0.0, -surfaceKey));
+    let material: BindlessMaterialRecord = tables.materials[Convert<u32>(ResidentMaterialKey(tables.instanceSurfaces, surfaceKey, range))];
     let front: bool = Dot3(hit.normal, ray.direction) < 0.0;
     var baseSample: float4 = float4(1.0, 1.0, 1.0, 1.0);
     if (material.surface.flags.y > 0.5) {

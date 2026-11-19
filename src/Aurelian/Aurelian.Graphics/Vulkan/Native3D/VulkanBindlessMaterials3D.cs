@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Aurelian.Graphics.Vulkan.Commanding;
@@ -21,7 +22,14 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
     public const int SamplerCapacity = 64;
     private const int MaterialStride = 160;
     private readonly AurelianVulkanPlant plant;
+    private readonly RawVulkanMemoryAllocator allocator;
     private readonly VulkanFrameInFlightSet frames;
+    private readonly NativeInstanceSet3D source;
+    private readonly float[] materialIndices;
+    private readonly AurelianVulkanBuffer instanceTable;
+    private Dictionary<string, int>? decalReceivers;
+    private readonly ImmutableArray<SurfaceDecal3D>[] decalSnapshots = new ImmutableArray<SurfaceDecal3D>[VulkanFrameInFlightSet.Count];
+    private readonly AurelianVulkanBuffer?[] decalTables = new AurelianVulkanBuffer?[VulkanFrameInFlightSet.Count];
     private readonly List<AurelianVulkanBuffer> buffers = [];
     private readonly AurelianVulkanBuffer[] uniforms = new AurelianVulkanBuffer[VulkanFrameInFlightSet.Count];
     private readonly DescriptorSet[] sets = new DescriptorSet[VulkanFrameInFlightSet.Count];
@@ -29,7 +37,8 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
     public DescriptorSetLayout Layout { get; private set; }
     public DescriptorSet Set => sets[frames.Slot];
     internal AurelianVulkanBuffer MaterialRecords { get; private set; } = null!;
-    internal AurelianVulkanBuffer InstanceMaterials { get; private set; } = null!;
+    internal bool HasDecals => !decalSnapshots[frames.Slot].IsDefaultOrEmpty;
+    internal AurelianVulkanBuffer InstanceSurfaces => HasDecals ? decalTables[frames.Slot]! : instanceTable;
     internal DescriptorImageInfo[] TextureDescriptors { get; private set; } = [];
     internal DescriptorImageInfo[] SamplerDescriptors { get; private set; } = [];
     private readonly Dictionary<(uint Binding, int Slot), AurelianVulkanBuffer> visibilityStorage = [];
@@ -44,7 +53,9 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
         VulkanModel3DBatches owner, CompiledGraphicsProgram program, NativeInstanceSet3D source, bool visibility = false)
     {
         this.plant = plant;
+        this.allocator = allocator;
         this.frames = frames;
+        this.source = source;
         Validate(program, visibility);
         ValidateCapacity(source);
         try
@@ -61,8 +72,8 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
             var samplers = new List<Sampler>();
             var textureIndices = new Dictionary<AurelianVulkanTexture, uint>();
             var samplerIndices = new Dictionary<Sampler, uint>();
-            var materialIndices = source.Materials.Select((material, index) => (material, index))
-                .ToDictionary(item => item.material, item => (uint)item.index);
+            var materialLookup = source.Materials.Select((material, index) => (material, index))
+                .ToDictionary(item => item.material, item => (float)item.index);
             byte[] records = new byte[source.Materials.Length * MaterialStride];
             for (int index = 0; index < source.Materials.Length; index++)
             {
@@ -102,11 +113,10 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
             SamplerCount = samplers.Count;
             if (TextureCount > TextureCapacity || SamplerCount > SamplerCapacity)
                 throw new InvalidDataException("AUR-BINDLESS-002: Resident texture or sampler table exceeds its declared capacity.");
-            uint[] instanceMaterials = source.PackedInstances.Select(instance => materialIndices[instance.Material]).ToArray();
+            materialIndices = source.PackedInstances.Select(instance => materialLookup[instance.Material]).ToArray();
             var materialBuffer = Upload(records);
             MaterialRecords = materialBuffer;
-            var instanceBuffer = Upload(MemoryMarshal.AsBytes(instanceMaterials.AsSpan()).ToArray());
-            InstanceMaterials = instanceBuffer;
+            instanceTable = Upload(MemoryMarshal.AsBytes(materialIndices.AsSpan()).ToArray());
             DescriptorPoolSize* sizes = stackalloc DescriptorPoolSize[4]
             {
                 new(DescriptorType.UniformBuffer, 2), new(DescriptorType.StorageBuffer, visibility ? 12u : 4u),
@@ -135,7 +145,7 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
                 sets[slot] = set;
                 WriteBuffer(set, 0, uniforms[slot], DescriptorType.UniformBuffer);
                 WriteBuffer(set, 1, materialBuffer, DescriptorType.StorageBuffer);
-                WriteBuffer(set, 2, instanceBuffer, DescriptorType.StorageBuffer);
+                WriteBuffer(set, 2, instanceTable, DescriptorType.StorageBuffer);
                 fixed (DescriptorImageInfo* images = imageInfos)
                 fixed (DescriptorImageInfo* filters = samplerInfos)
                 {
@@ -165,6 +175,34 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
             if (!upload.Success) throw new InvalidOperationException("AUR-BINDLESS-003: Table upload failed.");
             return buffer;
         }
+    }
+
+    public void UpdateDecals(ImmutableArray<SurfaceDecal3D> decals)
+    {
+        int slot = frames.Slot;
+        if (decals.AsSpan().SequenceEqual(decalSnapshots[slot].AsSpan())) return;
+        AurelianVulkanBuffer table = instanceTable;
+        if (!decals.IsEmpty)
+        {
+            decalReceivers ??= source.PackedInstances.Select((instance, index) => (instance.Identity, index))
+                .ToDictionary(item => item.Identity, item => item.index, StringComparer.Ordinal);
+            float[] words = ResidentSurfaceTable3D.Pack(materialIndices, decalReceivers, decals);
+            var bytes = MemoryMarshal.AsBytes(words.AsSpan());
+            var buffer = decalTables[slot];
+            if (buffer is null || buffer.SizeBytes < (ulong)bytes.Length)
+            {
+                ulong capacity = Math.Max((ulong)bytes.Length, (buffer?.SizeBytes ?? 0) * 2);
+                var replacement = VulkanNativeForwardTexturedRenderer.CreateMappedBuffer(plant, allocator, capacity,
+                    VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu, "bindless.decal-surfaces");
+                buffer?.Dispose();
+                decalTables[slot] = buffer = replacement;
+            }
+            if (!buffer.Write(bytes).Success)
+                throw new InvalidOperationException("AUR-DECAL-004: Resident projector upload failed.");
+            table = buffer;
+        }
+        WriteBuffer(sets[slot], 2, table, DescriptorType.StorageBuffer);
+        decalSnapshots[slot] = decals;
     }
 
     public void UpdateFrame(Matrix4x4 clip, Vector3 eye, float[] lighting, Matrix4x4 previousClip, Vector2 viewport = default)
@@ -231,7 +269,7 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
         foreach (char lane in "xyzw") expected.Add(new("sheen." + lane, "f32", expected.Count * 4));
         foreach (char lane in "xyzw") expected.Add(new("anisotropy." + lane, "f32", expected.Count * 4));
         if (!resources[1].StorageLayout!.Fields.SequenceEqual(expected)
-            || !resources[2].StorageLayout!.Fields.SequenceEqual([new CompiledStorageField("", "u32", 0)])
+            || !resources[2].StorageLayout!.Fields.SequenceEqual([new CompiledStorageField("", "f32", 0)])
             || resources[0].Kind != CompiledGraphicsResourceKind.UniformBuffer
             || resources[1].Kind != CompiledGraphicsResourceKind.StorageBuffer || resources[2].Kind != CompiledGraphicsResourceKind.StorageBuffer
             || resources[3].Kind != CompiledGraphicsResourceKind.Texture2D || resources[4].Kind != CompiledGraphicsResourceKind.Sampler
@@ -273,5 +311,6 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
         if (pool.Handle != 0) plant.Vk.DestroyDescriptorPool(plant.Device, pool, null);
         if (Layout.Handle != 0) plant.Vk.DestroyDescriptorSetLayout(plant.Device, Layout, null);
         foreach (var buffer in buffers) buffer.Dispose();
+        foreach (var table in decalTables) table?.Dispose();
     }
 }

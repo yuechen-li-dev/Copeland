@@ -1,3 +1,4 @@
+import { ResidentMaterialKey, ApplySurfaceDecals } from "./SurfaceDecals3D";
 import { ReadEnvironmentRadiance, EnvironmentSamplePdf, SampleEnvironmentDirection } from "./EnvironmentSampling3D";
 import { SecondaryAttributes } from "./SecondarySurface3D";
 import { ResidentVertex, ResidentInstance, ResidentAttributes } from "./ResidentGeometry3D";
@@ -159,7 +160,7 @@ function DynamicDiffuseMain(@builtin(dispatchThreadId) thread: uint3,
     @binding(12) readonly Shading: StorageBuffer<f32>,
     @binding(13) readwrite Occlusion: StorageBuffer<f32>,
     @binding(14) readonly Materials: StorageBuffer<BindlessMaterialRecord>,
-    @binding(15) readonly InstanceMaterials: StorageBuffer<u32>,
+    @binding(15) readonly InstanceSurfaces: StorageBuffer<f32>,
     @binding(16) readonly Vertices: StorageBuffer<ResidentVertex>,
     @binding(17) readonly Indices: StorageBuffer<u32>,
     @binding(18) readonly Geometry: StorageBuffer<ResidentInstance>,
@@ -230,9 +231,15 @@ function DynamicDiffuseMain(@builtin(dispatchThreadId) thread: uint3,
                     var surfaceUv: float2 = float2(0.0, 0.0);
                     var surfaceOcclusion: f32 = 1.0;
                     let instanceId: u32 = U32(Hits[hit + 3]);
-                    if (Shading[material + 25] > 0.5 && Parameters[47] > 0.5) {
+                    var surfaceKey: f32 = 0.0;
+                    let textured: bool = Shading[material + 25] > 0.5;
+                    if (Parameters[47] > 0.5 && (textured || Parameters[51] > 0.5)) {
+                        surfaceKey = InstanceSurfaces[instanceId];
+                    }
+                    if (Parameters[47] > 0.5 && (textured || surfaceKey < 0.0)) {
                         let attributes: ResidentAttributes = SecondaryAttributes(Hits, Procedurals, index, Geometry[instanceId], Vertices, Indices);
-                        let entry: BindlessMaterialRecord = Materials[InstanceMaterials[instanceId]];
+                        let range: u32 = U32(Max(0.0, -surfaceKey));
+                        let entry: BindlessMaterialRecord = Materials[U32(ResidentMaterialKey(InstanceSurfaces, surfaceKey, range))];
                         let uv: float2 = attributes.uv;
                         let lod: f32 = Parameters[46];
                         let baseSample: float4 = SampleLevel(Textures[NonUniform(entry.baseTexture)], Samplers[NonUniform(entry.baseSampler)], uv, lod);
@@ -240,8 +247,10 @@ function DynamicDiffuseMain(@builtin(dispatchThreadId) thread: uint3,
                         let normalSample: float4 = SampleLevel(Textures[NonUniform(entry.normalTexture)], Samplers[NonUniform(entry.normalSampler)], uv, lod);
                         let metalSample: float4 = SampleLevel(Textures[NonUniform(entry.metalTexture)], Samplers[NonUniform(entry.metalSampler)], uv, lod);
                         let occlusionSample: float4 = SampleLevel(Textures[NonUniform(entry.occlusionTexture)], Samplers[NonUniform(entry.occlusionSampler)], uv, lod);
-                        let surface: SurfaceData = EvaluateSurfaceSamples(attributes.normal, attributes.tangent, Hits[hit + 15] > 0.0,
+                        let baseSurface: SurfaceData = EvaluateSurfaceSamples(attributes.normal, attributes.tangent, Hits[hit + 15] > 0.0,
                             entry.surface, baseSample * entry.surface.baseColor * attributes.color, emissiveSample, normalSample, metalSample, occlusionSample);
+                        let surface: SurfaceData = ApplySurfaceDecals(InstanceSurfaces, range, attributes.world, attributes.normal,
+                            Hits[hit + 15] > 0.0, baseSurface);
                         base = float3(surface.color.x, surface.color.y, surface.color.z);
                         normal = float3(surface.normal.x, surface.normal.y, surface.normal.z);
                         if (Dot3(normal, geometric) <= 0.0) { normal = geometric; }

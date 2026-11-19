@@ -1,3 +1,4 @@
+import { ResidentMaterialKey } from "./SurfaceDecals3D";
 import { BindlessMaterialRecord } from "./ResidentMaterial3D";
 import { ResidentVertex, ResidentInstance, PointRow } from "./ResidentGeometry3D";
 import { TestSurfaceCoverage } from "./SurfaceMaterial3D";
@@ -50,7 +51,7 @@ stream VertexInput {
 stream MaterialResources { @binding(0) material: StaticModelMaterial; }
 stream TableResources {
     @binding(1) materials: StorageBuffer<BindlessMaterialRecord>;
-    @binding(2) instanceMaterials: StorageBuffer<u32>;
+    @binding(2) instanceSurfaces: StorageBuffer<f32>;
     @binding(3) textures: DescriptorArray<Texture2D<float4>, 4096>;
     @binding(4) samplers: DescriptorArray<Sampler, 64>;
     @binding(5) vertices: StorageBuffer<ResidentVertex>;
@@ -87,7 +88,9 @@ function VertexMain(input: VertexInput, uniforms: MaterialResources, tables: Tab
 }
 @pixel
 function PixelMain(input: VisibilityVaryings, tables: TableResources, builtins: PixelBuiltins): VisibilityOutput {
-    let material: BindlessMaterialRecord = tables.materials[tables.instanceMaterials[input.instance]];
+    let surfaceKey: f32 = tables.instanceSurfaces[input.instance];
+    let range: u32 = Convert<u32>(Max(0.0, -surfaceKey));
+    let material: BindlessMaterialRecord = tables.materials[Convert<u32>(ResidentMaterialKey(tables.instanceSurfaces, surfaceKey, range))];
     // Coverage is the only material work in visibility rasterization.
     var baseSample: float4 = float4(1.0, 1.0, 1.0, 1.0);
     if (material.surface.flags.y > 0.5) {

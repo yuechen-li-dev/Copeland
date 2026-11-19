@@ -59,10 +59,12 @@ internal sealed unsafe partial class VulkanRetainedModels3D
         }
     }
 
-    public void UpdateBindlessFrame(Matrix4x4 clip, Vector3 eye, float[] lighting, Matrix4x4 previousClip)
+    public void UpdateBindlessFrame(Matrix4x4 clip, Vector3 eye, float[] lighting, Matrix4x4 previousClip,
+        ImmutableArray<SurfaceDecal3D> decals)
     {
         if (!BindlessActive) return;
         bindlessTable!.UpdateFrame(clip, eye, lighting, previousClip, new(visibilityWidth, visibilityHeight));
+        bindlessTable.UpdateDecals(decals);
         visibilityBuffer?.UpdateHzbFrame(clip);
         Statistics = Statistics with
         {

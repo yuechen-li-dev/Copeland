@@ -1,3 +1,4 @@
+import { ResidentMaterialKey, ApplySurfaceDecals } from "./SurfaceDecals3D";
 import { PackAnisotropy } from "./OpenPbrAnisotropy3D";
 import { BindlessMaterialRecord } from "./ResidentMaterial3D";
 import { TemporalProjection } from "./TemporalGeometry";
@@ -55,7 +56,7 @@ stream VertexInput {
 stream MaterialResources { @binding(0) material: StaticModelMaterial; }
 stream TableResources {
     @binding(1) materials: StorageBuffer<BindlessMaterialRecord>;
-    @binding(2) instanceMaterials: StorageBuffer<u32>;
+    @binding(2) instanceSurfaces: StorageBuffer<f32>;
     @binding(3) textures: DescriptorArray<Texture2D<float4>, 4096>;
     @binding(4) samplers: DescriptorArray<Sampler, 64>;
 }
@@ -79,7 +80,7 @@ stream ModelVaryings {
     @location(4) tangent: float4;
     @location(5) currentClip: float4;
     @location(6) previousClip: float4;
-    @location(7) @interpolation(flat) materialId: u32;
+    @location(7) @interpolation(flat) surfaceKey: f32;
 }
 
 function PointRow(row: float4, point: float3): f32 {
@@ -101,7 +102,7 @@ function VertexMain(input: VertexInput, uniforms: MaterialResources, tables: Tab
         DirectionRow(input.worldY, localTangent), DirectionRow(input.worldZ, localTangent));
     let tangent: float3 = Unit(Sub3(transformedTangent, Scale3(normal, Dot3(normal, transformedTangent))));
     return {
-        materialId: tables.instanceMaterials[builtins.instance],
+        surfaceKey: tables.instanceSurfaces[builtins.instance],
         position: float4(PointRow(uniforms.material.clipX, world), PointRow(uniforms.material.clipY, world),
             PointRow(uniforms.material.clipZ, world), PointRow(uniforms.material.clipW, world)),
         currentClip: float4(PointRow(uniforms.material.clipX, world), PointRow(uniforms.material.clipY, world),
@@ -117,13 +118,15 @@ function VertexMain(input: VertexInput, uniforms: MaterialResources, tables: Tab
 }
 @pixel
 function PixelMain(input: ModelVaryings, tables: TableResources, builtins: PixelBuiltins): ModelOutput {
-    let material: BindlessMaterialRecord = tables.materials[input.materialId];
-    let surface: SurfaceData = EvaluateSurfaceMaterial(input.normal, input.color, input.uv, input.tangent, builtins.frontFace, material.surface,
+    let range: u32 = Convert<u32>(Max(0.0, -input.surfaceKey));
+    let material: BindlessMaterialRecord = tables.materials[Convert<u32>(ResidentMaterialKey(tables.instanceSurfaces, input.surfaceKey, range))];
+    let baseSurface: SurfaceData = EvaluateSurfaceMaterial(input.normal, input.color, input.uv, input.tangent, builtins.frontFace, material.surface,
         tables.textures[NonUniform(material.baseTexture)], tables.samplers[NonUniform(material.baseSampler)],
         tables.textures[NonUniform(material.metalTexture)], tables.samplers[NonUniform(material.metalSampler)],
         tables.textures[NonUniform(material.normalTexture)], tables.samplers[NonUniform(material.normalSampler)],
         tables.textures[NonUniform(material.occlusionTexture)], tables.samplers[NonUniform(material.occlusionSampler)],
         tables.textures[NonUniform(material.emissiveTexture)], tables.samplers[NonUniform(material.emissiveSampler)]);
+    let surface: SurfaceData = ApplySurfaceDecals(tables.instanceSurfaces, range, input.world, input.normal, builtins.frontFace, baseSurface);
     return { color: surface.color, motion: TemporalProjection(input.currentClip, input.previousClip),
         normal: surface.normal, emission: surface.emission, subsurface: surface.subsurface, sheen: material.sheen,
         anisotropy: PackAnisotropy(surface.normal, input.tangent, material.anisotropy) };
