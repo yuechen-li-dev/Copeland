@@ -104,9 +104,14 @@ public sealed unsafe partial class VulkanSolid3DRenderer
         {
             AdditionalClearColors = motionOutput ? [new VulkanColorClearValue(0, 0, 1, 1),
             .. surfaceOnly ? new[] { new VulkanColorClearValue(0, 1, 0, 0), new VulkanColorClearValue(0, 0, 0, 1),
-                new VulkanColorClearValue(0, 0, 0, 0), new VulkanColorClearValue(0, 0, 0, 0) } : []] : []
+                new VulkanColorClearValue(0, 0, 0, 0), new VulkanColorClearValue(0, 0, 0, 0),
+                VulkanColorClearValue.UInt(0, 0) } : []] : []
         });
-        Require(begin.Success, "3D render pass begin failed.");
+        if (!begin.Success)
+        {
+            throw new InvalidOperationException("3D render pass begin failed. "
+                + string.Join(" ", begin.Diagnostics.Select(item => item.Message)));
+        }
         DescriptorSet set = descriptorSet;
         plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Graphics,
             pipeline.NativePipelineLayout, 0, 1, &set, 0, null);

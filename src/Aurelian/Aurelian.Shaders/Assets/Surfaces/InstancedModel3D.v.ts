@@ -31,6 +31,7 @@ record StaticModelMaterial {
     previousZ: float4;
     previousW: float4;
     sheen: float4;
+    anisotropy: float4;
 }
 
 stream VertexInput {

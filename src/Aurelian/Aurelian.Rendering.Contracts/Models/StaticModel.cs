@@ -43,6 +43,7 @@ public sealed record ModelMaterial(string Slot)
     public WaterSurface3D? Water { get; init; }
     public Clearcoat3D? Clearcoat { get; init; }
     public Sheen3D? Sheen { get; init; }
+    public SpecularAnisotropy3D? SpecularAnisotropy { get; init; }
     public float SubsurfaceStrength { get; init; }
     public Vector3 SubsurfaceColor { get; init; } = new(1, .35f, .15f);
     public float SubsurfaceRadius { get; init; } = .02f;
@@ -58,6 +59,7 @@ public sealed record ModelMaterial(string Slot)
         Water?.Validate();
         Clearcoat?.Validate();
         Sheen?.Validate();
+        SpecularAnisotropy?.Validate();
         if (Clearcoat is { Active: true } && (AlphaBlend || Transmission > 0 || Unlit || SubsurfaceStrength > 0))
         {
             throw new InvalidDataException($"AUR-COAT-002: Clearcoat in '{Slot}' requires a lit opaque or masked surface without subsurface diffusion.");
@@ -65,6 +67,10 @@ public sealed record ModelMaterial(string Slot)
         if (Sheen is { Active: true } && (AlphaBlend || Transmission > 0 || Unlit || SubsurfaceStrength > 0))
         {
             throw new InvalidDataException($"AUR-SHEEN-002: Sheen in '{Slot}' requires a lit opaque or masked surface without subsurface diffusion.");
+        }
+        if (SpecularAnisotropy is { Active: true } && (AlphaBlend || Transmission > 0 || Unlit || SubsurfaceStrength > 0))
+        {
+            throw new InvalidDataException($"AUR-ANISO-002: Anisotropy in '{Slot}' requires a lit opaque or masked surface without subsurface diffusion.");
         }
         if (Water is not null && (Transmission != 1 || Thickness != 0 || DoubleSided))
         {

@@ -1,3 +1,4 @@
+import { PackAnisotropy } from "./OpenPbrAnisotropy3D";
 import { SurfaceMaterial, SurfaceData, EvaluateSurfaceMaterial } from "./SurfaceMaterial3D";
 import { TemporalProjection } from "./TemporalGeometry";
 import { Unit, Sub3, ShadowVisibility, Dot3, Scale3, Mul3, DirectLight, HemisphereLight, Add3, Cross3, LimitRadiance } from "./Lighting3D";
@@ -34,6 +35,7 @@ record StaticModelMaterial {
     previousZ: float4;
     previousW: float4;
     sheen: float4;
+    anisotropy: float4;
 }
 
 stream VertexInput {
@@ -79,6 +81,7 @@ stream ModelOutput {
     @target(3) emission: float4;
     @target(4) subsurface: float4;
     @target(5) sheen: float4;
+    @target(6) anisotropy: u32;
 }
 
 function Row(row: float4, p: WorldPosition3): f32 {
@@ -111,5 +114,6 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
         resources.normalMap, resources.normalSampler, resources.occlusionMap, resources.occlusionSampler,
         resources.emissiveMap, resources.emissiveSampler);
     return { color: surface.color, motion: TemporalProjection(input.currentClip, input.previousClip),
-        normal: surface.normal, emission: surface.emission, subsurface: surface.subsurface, sheen: uniforms.material.sheen };
+        normal: surface.normal, emission: surface.emission, subsurface: surface.subsurface, sheen: uniforms.material.sheen,
+        anisotropy: PackAnisotropy(surface.normal, input.tangent, uniforms.material.anisotropy) };
 }

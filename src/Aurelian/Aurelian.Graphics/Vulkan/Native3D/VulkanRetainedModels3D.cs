@@ -75,7 +75,7 @@ internal sealed unsafe partial class VulkanRetainedModels3D : IDisposable
         geometryPass = pass;
         visibilityWidth = width;
         visibilityHeight = height;
-        if (modelProgram.PixelTargets.Count != 6 || modelProgram.Material?.Size != programs.Vertex.Material?.Size)
+        if (modelProgram.PixelTargets.Count != 7 || modelProgram.Material?.Size != programs.Vertex.Material?.Size)
         {
             throw new ArgumentException("AUR-MESH-005: Retained models require the shared surface material ABI.");
         }

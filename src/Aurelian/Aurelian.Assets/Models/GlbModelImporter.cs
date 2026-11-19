@@ -152,7 +152,7 @@ public static class GlbModelImporter
             {
                 if (extension.GetString() is not ("KHR_materials_unlit" or "KHR_materials_emissive_strength"
                     or "KHR_materials_transmission" or "KHR_materials_volume" or "KHR_materials_ior"
-                    or "KHR_materials_clearcoat" or "KHR_materials_sheen"))
+                    or "KHR_materials_clearcoat" or "KHR_materials_sheen" or "KHR_materials_anisotropy"))
                     throw new InvalidDataException($"Unsupported GLB extension '{extension.GetString()}' in {collection}.");
             }
         }
@@ -178,6 +178,11 @@ public static class GlbModelImporter
                 {
                     throw new InvalidDataException("AUR-SHEEN-003: The static profile supports constant sheen color and roughness.");
                 }
+                if (extensions.TryGetProperty("KHR_materials_anisotropy", out JsonElement anisotropy)
+                    && anisotropy.TryGetProperty("anisotropyTexture", out _))
+                {
+                    throw new InvalidDataException("AUR-ANISO-003: The static profile supports constant anisotropy strength and rotation.");
+                }
             }
         }
     }
@@ -192,6 +197,7 @@ public static class GlbModelImporter
         MaterialChannel? thickness = source.FindChannel("VolumeThickness");
         MaterialChannel? attenuation = source.FindChannel("VolumeAttenuation");
         MaterialChannel? coat = source.FindChannel("ClearCoat");
+        MaterialChannel? anisotropy = source.FindChannel("Anisotropy");
         float attenuationDistance = attenuation?.GetFactor("AttenuationDistance") ?? float.MaxValue;
         return new ModelMaterial(slot)
         {
@@ -213,6 +219,9 @@ public static class GlbModelImporter
             Clearcoat = coat is null ? null : new(coat.Value.GetFactor("ClearCoatFactor"),
                 source.FindChannel("ClearCoatRoughness")?.GetFactor("RoughnessFactor") ?? 0),
             Sheen = ReadSheen(source),
+            SpecularAnisotropy = anisotropy is { } directional
+                ? new(directional.GetFactor("AnisotropyStrength"), directional.GetFactor("AnisotropyRotation"), AnisotropyConvention3D.Gltf)
+                : null,
             AttenuationColor = attenuation is { } absorption ? new Vector3(absorption.Color.X, absorption.Color.Y, absorption.Color.Z) : Vector3.One,
             AttenuationDistance = attenuationDistance == float.MaxValue || float.IsPositiveInfinity(attenuationDistance) ? 0 : attenuationDistance * importScale,
             BaseColorTexture = ReadTexture(color, images, diagnostics, path),
@@ -301,6 +310,8 @@ public static class GlbModelImporter
             throw new InvalidDataException($"Textured primitive in '{material.Slot}' has no TEXCOORD_0 accessor.");
         if (material.NormalTexture is not null && tangents is null)
             throw new InvalidDataException($"Normal-mapped primitive in '{material.Slot}' has no TANGENT accessor; enable tangent export.");
+        if (material.SpecularAnisotropy is { Active: true } && tangents is null)
+            throw new InvalidDataException($"AUR-ANISO-004: Anisotropic primitive in '{material.Slot}' requires authored TANGENT.");
         var vertices = ImmutableArray.CreateBuilder<ModelVertex>(positions.Count);
         for (int index = 0; index < positions.Count; index++)
         {

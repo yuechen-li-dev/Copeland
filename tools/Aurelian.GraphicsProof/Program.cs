@@ -62,6 +62,12 @@ if (args.Contains("--rendering-r8-sheen", StringComparer.Ordinal))
     return;
 }
 
+if (args.Contains("--rendering-r8-anisotropy", StringComparer.Ordinal))
+{
+    RenderingClearcoatProof.RunAnisotropy(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r8-anisotropy"));
+    return;
+}
+
 if (args.Contains("--rendering-r6", StringComparer.Ordinal))
 {
     RenderingR3Proof.RunResolutionScaling(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r6"));

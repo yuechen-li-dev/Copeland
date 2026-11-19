@@ -78,7 +78,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
         this.frames = frames;
         Validate(program, weightedTransparency, refraction);
         temporal = program.VertexInputs.Count == 6;
-        surfaceOnly = program.PixelTargets.Count == 6;
+        surfaceOnly = program.PixelTargets.Count == 7;
         refractive = refraction;
         transparent = weightedTransparency;
         resourceCount = program.Resources.Count;
@@ -170,6 +170,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
             Surface surface = GetSurface(material);
             ModelMaterial m = material;
             Vector4 sheen = surfaceOnly ? PackSheen(m) : default;
+            Vector4 anisotropy = surfaceOnly ? AnisotropyAlbedo3D.Pack(m.SpecularAnisotropy) : default;
             float[] data = [clip.M11, clip.M21, clip.M31, clip.M41, clip.M12, clip.M22, clip.M32, clip.M42,
                 clip.M13, clip.M23, clip.M33, clip.M43, clip.M14, clip.M24, clip.M34, clip.M44,
                 eye.X, eye.Y, eye.Z, 1, m.BaseColor.X, m.BaseColor.Y, m.BaseColor.Z, m.BaseColor.W,
@@ -185,7 +186,8 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
                 .. refractive ? additionalUniforms[124..160] : [],
                 .. refractive ? Water3DUniforms.Waves(m.Water) : [],
                 .. refractive ? additionalUniforms[160..] : [],
-                .. surfaceOnly ? new float[] { sheen.X, sheen.Y, sheen.Z, sheen.W } : []];
+                .. surfaceOnly ? new float[] { sheen.X, sheen.Y, sheen.Z, sheen.W,
+                    anisotropy.X, anisotropy.Y, anisotropy.Z, anisotropy.W } : []];
             if (surfaceOnly)
             {
                 // SurfaceModel has an explicit profile in the same packed slot
@@ -198,7 +200,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
             }
             if (!surfaceOnly && !transparent && !refractive
                 && (m.AlphaBlend || m.SubsurfaceStrength > 0 || m.Transmission > 0
-                    || m.Clearcoat is { Active: true } || m.Sheen is { Active: true }))
+                    || m.Clearcoat is { Active: true } || m.Sheen is { Active: true } || m.SpecularAnisotropy is { Active: true }))
                 throw new InvalidOperationException("Blend, subsurface and layered materials require the shared surface renderer.");
             if (transparent || refractive)
             {
@@ -451,7 +453,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
     {
         string[] fields = ["clipX", "clipY", "clipZ", "clipW", "eye", "baseColor", "factors", "emissiveAlpha", "flags", "light", "sun", "sky", "ground",
             "shadowX", "shadowY", "shadowZ", "shadowW", "shadowParameters"];
-        if (program.PixelTargets.Count == 6) fields[12] = "subsurfaceProfile";
+        if (program.PixelTargets.Count == 7) fields[12] = "subsurfaceProfile";
         string[] inputs = ["float3", "float3", "float4", "float2", "float4"];
         bool temporal = program.VertexInputs.Count == 6;
         if (temporal)
@@ -459,7 +461,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
             fields = [.. fields, "previousX", "previousY", "previousZ", "previousW"];
             inputs = [.. inputs, "float3"];
         }
-        if (program.PixelTargets.Count == 6) fields = [.. fields, "sheen"];
+        if (program.PixelTargets.Count == 7) fields = [.. fields, "sheen", "anisotropy"];
         if (transparent || refractive)
         {
             fields = [.. fields, "cascadeMidX", "cascadeMidY", "cascadeMidZ", "cascadeMidW",
@@ -475,13 +477,13 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
                     .. Enumerable.Range(0, 8).SelectMany(index => new[] { $"impulse{index}", $"impulse{index}Behavior" })];
         }
         bool valid = program.Material is { Binding: 0, Set: 0 } material && material.Size == fields.Length * 16
-            && (refractive ? program.PixelTargets.Count == 3 : transparent ? program.PixelTargets.Count == 2 : program.PixelTargets.Count is 1 or 2 or 6)
+            && (refractive ? program.PixelTargets.Count == 3 : transparent ? program.PixelTargets.Count == 2 : program.PixelTargets.Count is 1 or 2 or 7)
             && material.Fields.Select(item => item.Name).SequenceEqual(fields)
             && material.Fields.All(item => item.PhysicalType == "float4")
             && material.Fields.Select(item => item.Offset).SequenceEqual(Enumerable.Range(0, fields.Length).Select(index => index * 16))
             && program.VertexInputs.OrderBy(item => item.Location).Select(item => item.PhysicalType).SequenceEqual(inputs)
             && program.VertexInputs.Select(item => item.Location).Order().SequenceEqual(Enumerable.Range(0, inputs.Length))
-            && program.Resources.Count == (refractive ? 33 : transparent ? 29 : program.PixelTargets.Count == 6 ? 11 : 13);
+            && program.Resources.Count == (refractive ? 33 : transparent ? 29 : program.PixelTargets.Count == 7 ? 11 : 13);
         foreach (CompiledGraphicsResource resource in program.Resources)
         {
             CompiledGraphicsResourceKind kind = CompiledGraphicsResourceKind.Sampler;

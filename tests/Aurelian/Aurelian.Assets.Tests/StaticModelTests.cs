@@ -13,6 +13,50 @@ public sealed class StaticModelTests
     private static string Asset(string name) => Path.Combine(AppContext.BaseDirectory, "Assets", name);
 
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void AnisotropyPreservesGltfFactorsAndRequiresAnAuthoredTangent(bool textured, bool missingTangent)
+    {
+        using var files = new TemporaryAssets();
+        byte[] source = Mutate(File.ReadAllBytes(Asset("crate.glb")), json =>
+        {
+            const string extension = "KHR_materials_anisotropy";
+            const string coat = "KHR_materials_clearcoat";
+            const string sheen = "KHR_materials_sheen";
+            json["extensionsUsed"] = new JsonArray(extension, coat, sheen);
+            json["extensionsRequired"] = new JsonArray(extension, coat, sheen);
+            var anisotropy = new JsonObject { ["anisotropyStrength"] = .64f, ["anisotropyRotation"] = -.73f };
+            if (textured) anisotropy["anisotropyTexture"] = new JsonObject { ["index"] = 0 };
+            if (missingTangent)
+            {
+                json["meshes"]![0]!["primitives"]![0]!["attributes"]!.AsObject().Remove("TANGENT");
+            }
+            json["materials"]![0]!["extensions"] = new JsonObject
+            {
+                [extension] = anisotropy,
+                [coat] = new JsonObject { ["clearcoatFactor"] = .31f, ["clearcoatRoughnessFactor"] = .19f },
+                [sheen] = new JsonObject { ["sheenColorFactor"] = new JsonArray(.12f, .4f, .65f), ["sheenRoughnessFactor"] = .28f },
+            };
+        });
+        File.WriteAllBytes(files.ModelPath, source);
+        var result = GlbModelImporter.Load("brushed", files.ModelPath);
+        if (textured || missingTangent)
+        {
+            Assert.False(result.Success);
+            string code = textured ? "AUR-ANISO-003" : "AUR-ANISO-004";
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains(code, StringComparison.Ordinal));
+            return;
+        }
+
+        Assert.True(result.Success, ModelAssetCatalog.Describe(result.Diagnostics));
+        var material = result.Model!.Occurrences.First(item => item.Primitive.Material.Slot == "panel").Primitive.Material;
+        Assert.Equal(new SpecularAnisotropy3D(.64f, -.73f, AnisotropyConvention3D.Gltf), material.SpecularAnisotropy);
+        Assert.Equal(new Clearcoat3D(.31f, .19f), material.Clearcoat);
+        Assert.Equal(.28f, material.Sheen!.Roughness);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void SheenImportsOverClearcoatAndReportsUnsupportedTextures(bool textured)

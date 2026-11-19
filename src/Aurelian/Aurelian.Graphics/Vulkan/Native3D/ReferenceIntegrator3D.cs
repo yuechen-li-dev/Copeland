@@ -13,6 +13,8 @@ public sealed record ReferenceMaterial3D(Vector3 BaseColor, float Roughness = .5
 {
     public Clearcoat3D? Clearcoat { get; init; }
     public Sheen3D? Sheen { get; init; }
+    public SpecularAnisotropy3D? SpecularAnisotropy { get; init; }
+    public Vector4 AnisotropyTangent { get; init; } = new(1, 0, 0, 1);
 }
 
 public sealed record ReferenceTriangle3D(Vector3 A, Vector3 B, Vector3 C, ReferenceMaterial3D Material);
@@ -29,7 +31,7 @@ public sealed record ReferenceImage3D(int Width, int Height, int Samples, float[
 /// resident on the GPU. Nothing registers this work with the interactive frame renderer.</summary>
 public sealed class ReferenceIntegrator3D : IDisposable
 {
-    private const int MaterialStride = 20;
+    private const int MaterialStride = 28;
     private readonly VulkanRayQueryScene queries;
     private readonly ReferenceCapture3D capture;
     private int samples;
@@ -99,11 +101,19 @@ public sealed class ReferenceIntegrator3D : IDisposable
         int coatOffset = localOffset + localLights.Length * 16;
         bool hasCoat = materials.Any(NeedsDirectionalAlbedo) || spheres.Any(shape => NeedsDirectionalAlbedo(shape.Material))
             || analytic.Any(shape => NeedsDirectionalAlbedo(shape.Material));
-        float[] parameters = new float[coatOffset + (hasCoat ? ClearcoatAlbedo3D.Coefficients.Length : 0)];
+        bool hasAnisotropy = materials.Any(HasAnisotropy) || spheres.Any(shape => HasAnisotropy(shape.Material))
+            || analytic.Any(shape => HasAnisotropy(shape.Material));
+        int anisotropyOffset = coatOffset + (hasCoat ? ClearcoatAlbedo3D.Coefficients.Length : 0);
+        float[] parameters = new float[anisotropyOffset + (hasAnisotropy ? AnisotropyAlbedo3D.Coefficients.Length : 0)];
         if (hasCoat)
         {
             parameters[51] = coatOffset;
             ClearcoatAlbedo3D.Coefficients.CopyTo(parameters.AsSpan(coatOffset));
+        }
+        if (hasAnisotropy)
+        {
+            parameters[52] = anisotropyOffset;
+            AnisotropyAlbedo3D.Coefficients.CopyTo(parameters.AsSpan(anisotropyOffset));
         }
         parameters[49] = localLights.Length;
         parameters[50] = localOffset;
@@ -229,6 +239,7 @@ public sealed class ReferenceIntegrator3D : IDisposable
     {
         material.Clearcoat?.Validate();
         material.Sheen?.Validate();
+        material.SpecularAnisotropy?.Validate();
         RequireNonnegative(material.BaseColor);
         RequireNonnegative(material.Emission);
         if (material.BaseColor.X > 1 || material.BaseColor.Y > 1 || material.BaseColor.Z > 1
@@ -259,7 +270,25 @@ public sealed class ReferenceIntegrator3D : IDisposable
             Write3(data, offset + 16, sheen.Color);
             data[offset + 19] = sheen.Roughness;
         }
+        if (HasAnisotropy(material))
+        {
+            Vector4 tangent = material.AnisotropyTangent;
+            RequireFinite(new(tangent.X, tangent.Y, tangent.Z));
+            if (MathF.Abs(tangent.W) != 1)
+                throw new InvalidDataException("AUR-ANISO-006: Reference tangent handedness must be +1 or -1.");
+            var anisotropy = AnisotropyAlbedo3D.Pack(material.SpecularAnisotropy);
+            data[offset + 20] = tangent.X;
+            data[offset + 21] = tangent.Y;
+            data[offset + 22] = tangent.Z;
+            data[offset + 23] = tangent.W;
+            data[offset + 24] = anisotropy.X;
+            data[offset + 25] = anisotropy.Y;
+            data[offset + 26] = anisotropy.Z;
+            data[offset + 27] = anisotropy.W;
+        }
     }
+
+    private static bool HasAnisotropy(ReferenceMaterial3D material) => material.SpecularAnisotropy is { Active: true };
 
     private static bool NeedsDirectionalAlbedo(ReferenceMaterial3D material)
         => material.Clearcoat is { Active: true } || material.Sheen is { Active: true };

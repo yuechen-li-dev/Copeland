@@ -38,6 +38,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
     public int TransientPhysicalImages => transientTextures.PhysicalImages;
     public bool SupportsClearcoat => clearcoatAlbedo is not null;
     public bool SupportsSheen { get; }
+    public bool SupportsAnisotropy => anisotropyAlbedo is not null;
 
     private sealed record SurfaceFrame(AurelianVulkanTexture surface, AurelianVulkanTexture motion,
         AurelianVulkanTexture shadow, AurelianVulkanTexture? diffuse, Matrix4x4 clip, Matrix4x4 inverse,
@@ -49,6 +50,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
     private readonly VulkanPostProcess3D resolvePass;
     private readonly bool resolveHasReflectionInput;
     private readonly AurelianVulkanTexture? clearcoatAlbedo;
+    private readonly AurelianVulkanTexture? anisotropyAlbedo;
     private readonly AurelianVulkanTexture diffuseOutput;
     private readonly AurelianVulkanTexture[] cascadeMaps = new AurelianVulkanTexture[2];
     private readonly Vulkan3DPass[] cascadePasses = new Vulkan3DPass[2];
@@ -134,6 +136,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
             Emission = Image(width, height, "surface.emission", VulkanTextureFormat.Rgba16Float);
             Subsurface = Image(width, height, "surface.subsurface", VulkanTextureFormat.Rgba16Float);
             Sheen = Image(width, height, "surface.sheen", VulkanTextureFormat.Rgba16Float);
+            Anisotropy = Image(width, height, "surface.anisotropy", VulkanTextureFormat.R32UInt);
             diffuseOutput = Image(width, height, "surface.diffuse", VulkanTextureFormat.Rgba16Float);
             Output = Image(width, height, "surface.lighting", VulkanTextureFormat.Rgba16Float);
             rawTail = Image(width, height, "surface.local-tail", VulkanTextureFormat.Rgba16Float);
@@ -161,8 +164,14 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
                 Upload(clearcoatAlbedo, ClearcoatAlbedo3D.TextureData());
             }
             SupportsSheen = programs.Resolve.Resources.Any(resource => resource.Binding == 35);
+            if (programs.Resolve.Resources.Any(resource => resource.Binding == 37))
+            {
+                anisotropyAlbedo = Own(Data(AnisotropyAlbedo3D.Width, AnisotropyAlbedo3D.Height, "surface.anisotropy-albedo"));
+                Upload(anisotropyAlbedo, AnisotropyAlbedo3D.TextureData());
+            }
             resolvePass = Own(new VulkanPostProcess3D(plant, allocator, programs.Resolve, Output,
-                (resolveHasReflectionInput ? 17 : 16) + (clearcoatAlbedo is null ? 0 : 1) + (SupportsSheen ? 1 : 0),
+                (resolveHasReflectionInput ? 17 : 16) + (clearcoatAlbedo is null ? 0 : 1) + (SupportsSheen ? 1 : 0)
+                + (SupportsAnisotropy ? 2 : 0),
                 Filter.Nearest, diffuseOutput, frames: frames, thirdOutput: rawTail));
             for (int index = 0; index < 2; index++)
             {
@@ -208,6 +217,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
 
     public AurelianVulkanTexture Subsurface { get; }
     public AurelianVulkanTexture Sheen { get; }
+    public AurelianVulkanTexture Anisotropy { get; }
     public AurelianVulkanTexture Normal { get; }
     public Vulkan3DPass CascadePass(int index) => cascadePasses[index];
     public void FinishCascade(VulkanCommandBufferLease command, int index)
@@ -623,7 +633,8 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
             spotMaps[0], spotMaps[1], cascadeMaps[0], cascadeMaps[1], Subsurface, RayShadowsActive ? rayShadows!.Output : fallback,
             .. resolveHasReflectionInput ? new[] { ReflectionOutput ?? fallback } : [],
             .. clearcoatAlbedo is null ? [] : new[] { clearcoatAlbedo },
-            .. SupportsSheen ? new[] { Sheen } : []]);
+            .. SupportsSheen ? new[] { Sheen } : [],
+            .. anisotropyAlbedo is null ? [] : new[] { Anisotropy, anisotropyAlbedo }]);
         resolvePass.SetLinearInput(4, environment ?? fallback);
         resolvePass.Record(command, triangle);
         Resolved = Output;

@@ -93,6 +93,11 @@ export function CoatedLightResponse(base: float3, normal: float3, view: float3, 
 export function BoundedSubstrate(base: float3, normal: float3, view: float3, light: float3,
     metallic: f32, roughness: f32, model: f32, substrate: CoatSubstrate): float3 {
     let factors: float2 = GgxFactors(roughness, normal, view, light);
+    return BoundedSubstrateWithFactors(base, normal, view, light, metallic, roughness, model, substrate, factors, 0.006);
+}
+
+export function BoundedSubstrateWithFactors(base: float3, normal: float3, view: float3, light: float3,
+    metallic: f32, roughness: f32, model: f32, substrate: CoatSubstrate, factors: float2, albedoReserve: f32): float3 {
     let fresnel: float3 = Add3(Scale3(substrate.f0, 1.0 - factors.y),
         float3(substrate.f90 * factors.y, substrate.f90 * factors.y, substrate.f90 * factors.y));
     let specular: float3 = Scale3(fresnel, factors.x);
@@ -100,7 +105,7 @@ export function BoundedSubstrate(base: float3, normal: float3, view: float3, lig
     var diffuseModel: f32 = model;
     if (model > 0.5 && model < 2.5) { diffuseModel = 3.0; }
     let diffuse: float3 = DiffuseResponse(base, normal, view, light, roughness, diffuseModel);
-    let margin: f32 = 0.006 * substrate.f90;
+    let margin: f32 = albedoReserve * substrate.f90;
     let remaining: float3 = float3(Max(0.0, 1.0 - substrate.albedo.x - margin),
         Max(0.0, 1.0 - substrate.albedo.y - margin), Max(0.0, 1.0 - substrate.albedo.z - margin));
     let cosine: f32 = Max(0.0, Dot3(normal, light));

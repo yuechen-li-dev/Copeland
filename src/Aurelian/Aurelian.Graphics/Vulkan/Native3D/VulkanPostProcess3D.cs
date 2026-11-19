@@ -136,7 +136,7 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
     private static void Validate(CompiledGraphicsProgram program, int count, int pairedInputs)
     {
         int resourceCount = 1 + count + pairedInputs;
-        bool valid = pairedInputs is >= 1 and <= 16 && count - pairedInputs is >= 0 and <= 3
+        bool valid = pairedInputs is >= 1 and <= 16 && count - pairedInputs is >= 0 and <= 5
             && program.Material is { Set: 0, Binding: 0 } material
             && material.Size == material.Fields.Count * 16
             && material.Fields.All(field => field.PhysicalType == "float4")

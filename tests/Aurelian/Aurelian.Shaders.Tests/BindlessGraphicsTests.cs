@@ -13,6 +13,7 @@ public sealed class BindlessGraphicsTests
     [InlineData("BindlessModel3D.v.ts")]
     [InlineData("VisibilityRaster3D.v.ts")]
     [InlineData("VisibilityResolve3D.v.ts")]
+    [InlineData("HybridResolve3D.v.ts")]
     public void SharedSurfacePathsCompileThroughTheCanonicalBackend(string name)
     {
         var module = GpuGraphicsBinder.Compile(new(BuiltinShaderLibrary.LoadSources(name)));
@@ -22,10 +23,11 @@ public sealed class BindlessGraphicsTests
         Assert.True(backend.Pixel.SpirvValidated, backend.Pixel.DxcOutput + backend.Pixel.SpirvValidationOutput);
         if (name == "BindlessModel3D.v.ts")
         {
-            Assert.Equal(VdMirGraphicsModule.GraphicsTablesM1FeatureLevel, module.FeatureLevel);
+            Assert.Equal(VdMirGraphicsModule.GraphicsVisibilityM1FeatureLevel, module.FeatureLevel);
             var program = CompiledGraphicsProgramExporter.Export(module, backend);
             Assert.Equal(4096, program.Resources.Single(resource => resource.Name == "textures").DescriptorCount);
-            Assert.Equal(144, program.Resources.Single(resource => resource.Name == "materials").StorageLayout!.Stride);
+            Assert.Equal(160, program.Resources.Single(resource => resource.Name == "materials").StorageLayout!.Stride);
+            Assert.Equal("u32", program.PixelTargets.Single(target => target.Target == 6).PhysicalType);
             Assert.Contains("NonUniform", backend.Pixel.SpirvDisassembly);
         }
     }

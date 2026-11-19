@@ -1,3 +1,4 @@
+import { PackAnisotropy } from "./OpenPbrAnisotropy3D";
 import { BindlessMaterialRecord } from "./ResidentMaterial3D";
 import { ResidentVertex, ResidentInstance, ResidentAttributes, TransformResidentVertex, ProjectPoint,
     Weighted2, Weighted3, Weighted4, Cross2 } from "./ResidentGeometry3D";
@@ -57,6 +58,7 @@ stream ModelOutput {
     @target(3) emission: float4;
     @target(4) subsurface: float4;
     @target(5) sheen: float4;
+    @target(6) anisotropy: u32;
 }
 @vertex
 function VertexMain(input: VertexInput): Varyings {
@@ -87,5 +89,6 @@ function PixelMain(input: Varyings, uniforms: MaterialResources, tables: TableRe
     let currentClip: float4 = ProjectPoint(world, uniforms.material.clipX, uniforms.material.clipY, uniforms.material.clipZ, uniforms.material.clipW);
     let previousClip: float4 = ProjectPoint(previous, uniforms.material.previousX, uniforms.material.previousY, uniforms.material.previousZ, uniforms.material.previousW);
     return { depth: currentClip.z / currentClip.w, color: surface.color, motion: TemporalProjection(currentClip, previousClip),
-        normal: surface.normal, emission: surface.emission, subsurface: surface.subsurface, sheen: material.sheen };
+        normal: surface.normal, emission: surface.emission, subsurface: surface.subsurface, sheen: material.sheen,
+        anisotropy: PackAnisotropy(surface.normal, tangent, material.anisotropy) };
 }

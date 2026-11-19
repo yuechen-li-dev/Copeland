@@ -3,11 +3,13 @@ import { LocalAttenuation } from "./SurfaceLighting";
 import { Dot3, Cross3, Unit } from "./Lighting3D";
 import { CoatLayer, CoatSubstrate, CoatLookup, CoatBase, OpenPbrCoat } from "./OpenPbrCoat3D";
 import { SheenLayer, OpenPbrSheen, LayeredLightResponse, SampleSheen, SheenPdf } from "./OpenPbrSheen3D";
+import { AnisotropyLayer, AnisotropyDirection, OpenPbrAnisotropy, AnisotropyLookup,
+    AnisotropicReflectionPdf, SampleAnisotropicGgx } from "./OpenPbrAnisotropy3D";
 import { SampleVisibleGgx, VisibleGgxReflectionPdf } from "./GlossyReflection3D";
 import { AffineAnalyticIntersection } from "./AffineAnalyticQuery3D";
 import { ReferenceEnvironment, ReferenceEnvironmentPdf, SampleReferenceEnvironment } from "./ReferenceEnvironment3D";
 
-const MaterialStride: u32 = 20;
+const MaterialStride: u32 = 28;
 
 // Counter-based integer randomness: sample identity is independent of submission batches.
 function Random(key: u32): f32 {
@@ -48,14 +50,39 @@ function CoatCoefficients(readonly data: StorageBuffer<f32>, nv: f32, roughness:
         (a.y + (b.y - a.y) * tx) * (1.0 - ty) + (c.y + (d.y - c.y) * tx) * ty);
 }
 
+function AnisotropyCoefficients(readonly data: StorageBuffer<f32>, coordinates: float4): float2 {
+    let lower: float4 = float4(Floor(coordinates.x), Floor(coordinates.y), Floor(coordinates.z), Floor(coordinates.w));
+    let fraction: float4 = float4(coordinates.x - lower.x, coordinates.y - lower.y,
+        coordinates.z - lower.z, coordinates.w - lower.w);
+    let offset: u32 = U32(data[52]);
+    var first: f32 = 0.0;
+    var second: f32 = 0.0;
+    for (let corner of BoundedIndices<16>(16)) {
+        let dx: f32 = Convert<f32>(corner & 1);
+        let dy: f32 = Convert<f32>((corner >> 1) & 1);
+        let dz: f32 = Convert<f32>((corner >> 2) & 1);
+        let dw: f32 = Convert<f32>((corner >> 3) & 1);
+        let x: u32 = U32(Min(lower.x + dx, 40.0));
+        let y: u32 = U32(Min(lower.y + dy, 24.0));
+        let z: u32 = U32(Min(lower.z + dz, 8.0));
+        let w: u32 = U32(Min(lower.w + dw, 24.0));
+        let at: u32 = offset + (((w * 25 + y) * 9 + z) * 41 + x) * 2;
+        let weight: f32 = (1.0 - Abs(fraction.x - dx)) * (1.0 - Abs(fraction.y - dy))
+            * (1.0 - Abs(fraction.z - dz)) * (1.0 - Abs(fraction.w - dw));
+        first = first + weight * data[at];
+        second = second + weight * data[at + 1];
+    }
+    return float2(first, second);
+}
+
 function LayeredPdf(normal: float3, view: float3, light: float3, roughness: f32,
-    coat: CoatLayer, substrate: CoatSubstrate, sheen: SheenLayer): f32 {
+    coat: CoatLayer, substrate: CoatSubstrate, sheen: SheenLayer, anisotropy: AnisotropyLayer): f32 {
     let nl: f32 = Dot3(normal, light);
     if (nl <= 0.0) { return 0.0; }
     let cosine: f32 = nl / 3.14159265;
     var pdf: f32 = cosine;
     var count: f32 = 1.0;
-    if (coat.weight > 0.0 || sheen.active) {
+    if (coat.weight > 0.0 || sheen.active || anisotropy.active) {
         let nv: f32 = Max(Dot3(normal, view), 0.001);
         let half: float3 = Unit(view + light);
         let nh: f32 = Clamp(Dot3(normal, half), 0.0, 1.0);
@@ -64,7 +91,11 @@ function LayeredPdf(normal: float3, view: float3, light: float3, roughness: f32,
             count = count + 1.0;
         }
         if (substrate.f90 > 0.0) {
-            pdf = pdf + VisibleGgxReflectionPdf(nv, nh, roughness * roughness);
+            if (anisotropy.active) {
+                pdf = pdf + AnisotropicReflectionPdf(anisotropy, normal, view, light);
+            } else {
+                pdf = pdf + VisibleGgxReflectionPdf(nv, nh, roughness * roughness);
+            }
             count = count + 1.0;
         }
     }
@@ -76,7 +107,7 @@ function LayeredPdf(normal: float3, view: float3, light: float3, roughness: f32,
 }
 
 function SampleLayered(normal: float3, view: float3, cosine: float3, roughness: f32, coat: CoatLayer,
-    substrate: CoatSubstrate, sheen: SheenLayer, selector: f32, sample: float2): float3 {
+    substrate: CoatSubstrate, sheen: SheenLayer, anisotropy: AnisotropyLayer, selector: f32, sample: float2): float3 {
     var count: f32 = 1.0;
     if (coat.weight > 0.0) { count = count + 1.0; }
     if (substrate.f90 > 0.0) { count = count + 1.0; }
@@ -85,7 +116,13 @@ function SampleLayered(normal: float3, view: float3, cosine: float3, roughness: 
     if (slot == 0.0) { return cosine; }
     if (sheen.budget >= 0.0001 && slot == count - 1.0) { return SampleSheen(sheen, normal, sample); }
     var alpha: f32 = coat.roughness * coat.roughness;
-    if (substrate.f90 > 0.0 && slot == 1.0) { alpha = roughness * roughness; }
+    if (substrate.f90 > 0.0 && slot == 1.0) {
+        if (anisotropy.active) {
+            let half: float3 = SampleAnisotropicGgx(anisotropy, normal, view, sample);
+            return Unit(half * (2.0 * Dot3(view, half)) - view);
+        }
+        alpha = roughness * roughness;
+    }
     let half: float3 = SampleVisibleGgx(normal, view, alpha, sample);
     return Unit(half * (2.0 * Dot3(view, half)) - view);
 }
@@ -229,10 +266,24 @@ function ReferenceMain(@builtin(dispatchThreadId) thread: uint3,
                         let sheenProfile: float4 = float4(Parameters[material + 16], Parameters[material + 17],
                             Parameters[material + 18], Parameters[material + 19]);
                         let sheen: SheenLayer = OpenPbrSheen(Parameters[material + 11], sheenProfile, normal, view);
-                        if (coat.weight > 0.0 || sheen.active) {
+                        var anisotropy: AnisotropyLayer = OpenPbrAnisotropy(normal, normal, roughness, 0.0, false);
+                        let strength: f32 = Parameters[material + 26];
+                        if (strength > 0.0) {
+                            let tangent: float4 = float4(Parameters[material + 20], Parameters[material + 21],
+                                Parameters[material + 22], Parameters[material + 23]);
+                            let direction: float3 = AnisotropyDirection(normal, tangent,
+                                float2(Parameters[material + 24], Parameters[material + 25]));
+                            anisotropy = OpenPbrAnisotropy(normal, direction, roughness, strength, Parameters[material + 27] > 0.5);
+                        }
+                        if (coat.weight > 0.0 || sheen.active || anisotropy.active) {
                             let nv: f32 = Dot3(normal, view);
                             if (coat.weight > 0.0) { coat = OpenPbrCoat(coatProfile, CoatCoefficients(Parameters, nv, coatProfile.y)); }
-                            substrate = CoatBase(base, metallic, dielectric, CoatCoefficients(Parameters, nv, roughness));
+                            if (anisotropy.active) {
+                                substrate = CoatBase(base, metallic, dielectric,
+                                    AnisotropyCoefficients(Parameters, AnisotropyLookup(anisotropy, normal, view)));
+                            } else {
+                                substrate = CoatBase(base, metallic, dielectric, CoatCoefficients(Parameters, nv, roughness));
+                            }
                         }
                         let sun: float3 = Read3(Parameters, 24);
                         let sunDirection: float3 = Read3(Parameters, 20);
@@ -241,7 +292,7 @@ function ReferenceMain(@builtin(dispatchThreadId) thread: uint3,
                             RayQueryTraceClosest(Scene, Procedurals, Rays, Hits, Triangles, pixel, AffineAnalyticIntersection);
                             if (Bitcast<u32>(Hits[hit]) == 0) {
                                 let response: float3 = LayeredLightResponse(base, normal, view,
-                                    sunDirection, metallic, roughness, dielectric, model, coat, substrate, sheen);
+                                    sunDirection, metallic, roughness, dielectric, model, coat, substrate, sheen, anisotropy);
                                 radiance = radiance + throughput * response * sun;
                             }
                         }
@@ -273,7 +324,7 @@ function ReferenceMain(@builtin(dispatchThreadId) thread: uint3,
                                             }
                                             if (visible) {
                                                 let response: float3 = LayeredLightResponse(base, normal, view,
-                                                    incoming, metallic, roughness, dielectric, model, coat, substrate, sheen);
+                                                    incoming, metallic, roughness, dielectric, model, coat, substrate, sheen, anisotropy);
                                                 radiance = radiance + throughput * response * Read3(Parameters, offset + 4) * (Parameters[offset + 7] * attenuation);
                                             }
                                         }
@@ -297,9 +348,9 @@ function ReferenceMain(@builtin(dispatchThreadId) thread: uint3,
                                 RayQueryTraceClosest(Scene, Procedurals, Rays, Hits, Triangles, pixel, AffineAnalyticIntersection);
                                 if (Bitcast<u32>(Hits[hit]) == 0) {
                                     let lightPdf: f32 = range * range / (lightArea * cosLight);
-                                    let bsdfPdf: f32 = LayeredPdf(normal, view, incoming, roughness, coat, substrate, sheen);
+                                    let bsdfPdf: f32 = LayeredPdf(normal, view, incoming, roughness, coat, substrate, sheen, anisotropy);
                                     let response: float3 = LayeredLightResponse(base, normal, view,
-                                        incoming, metallic, roughness, dielectric, model, coat, substrate, sheen);
+                                        incoming, metallic, roughness, dielectric, model, coat, substrate, sheen, anisotropy);
                                     let neeWeight: f32 = PowerWeight(lightPdf, bsdfPdf);
                                     radiance = radiance + throughput * response * emitter.emission * (neeWeight / lightPdf);
                                 }
@@ -314,9 +365,9 @@ function ReferenceMain(@builtin(dispatchThreadId) thread: uint3,
                                 RayQueryTraceClosest(Scene, Procedurals, Rays, Hits, Triangles, pixel, AffineAnalyticIntersection);
                                 if (Bitcast<u32>(Hits[hit]) == 0) {
                                     let lightPdf: f32 = ReferenceEnvironmentPdf(Parameters, incoming);
-                                    let bsdfPdf: f32 = LayeredPdf(normal, view, incoming, roughness, coat, substrate, sheen);
+                                    let bsdfPdf: f32 = LayeredPdf(normal, view, incoming, roughness, coat, substrate, sheen, anisotropy);
                                     let response: float3 = LayeredLightResponse(base, normal, view,
-                                        incoming, metallic, roughness, dielectric, model, coat, substrate, sheen);
+                                        incoming, metallic, roughness, dielectric, model, coat, substrate, sheen, anisotropy);
                                     radiance = radiance + throughput * response * ReferenceEnvironment(Environment, Parameters, incoming)
                                         * (PowerWeight(lightPdf, bsdfPdf) / lightPdf);
                                 }
@@ -332,14 +383,14 @@ function ReferenceMain(@builtin(dispatchThreadId) thread: uint3,
                         let bitangent: float3 = Cross3(normal, tangent);
                         var outgoing: float3 = Unit(tangent * (radius * Cos(angle)) + bitangent * (radius * Sin(angle))
                             + normal * Sqrt(Max(1.0 - radius * radius, 0.0)));
-                        if (coat.weight > 0.0 || sheen.active) {
+                        if (coat.weight > 0.0 || sheen.active || anisotropy.active) {
                             let coatKey: u32 = randomBase + 0x46d2994b;
-                            outgoing = SampleLayered(normal, view, outgoing, roughness, coat, substrate, sheen, Random(coatKey),
+                            outgoing = SampleLayered(normal, view, outgoing, roughness, coat, substrate, sheen, anisotropy, Random(coatKey),
                                 float2(Random(coatKey + 1), Random(coatKey + 2)));
                         }
-                        previousPdf = LayeredPdf(normal, view, outgoing, roughness, coat, substrate, sheen);
+                        previousPdf = LayeredPdf(normal, view, outgoing, roughness, coat, substrate, sheen, anisotropy);
                         let response: float3 = LayeredLightResponse(base, normal, view,
-                            outgoing, metallic, roughness, dielectric, model, coat, substrate, sheen);
+                            outgoing, metallic, roughness, dielectric, model, coat, substrate, sheen, anisotropy);
                         throughput = throughput * response / Max(previousPdf, 0.00000001);
                         if (Dot3(throughput, throughput) == 0.0) {
                             active = false;

@@ -1,3 +1,4 @@
+import { PackAnisotropy } from "./OpenPbrAnisotropy3D";
 import { BindlessMaterialRecord } from "./ResidentMaterial3D";
 import { TemporalProjection } from "./TemporalGeometry";
 import { SurfaceMaterial, SurfaceData, EvaluateSurfaceMaterial } from "./SurfaceMaterial3D";
@@ -67,6 +68,7 @@ stream ModelOutput {
     @target(3) emission: float4;
     @target(4) subsurface: float4;
     @target(5) sheen: float4;
+    @target(6) anisotropy: u32;
 }
 stream ModelVaryings {
     @builtin(position) position: ClipPosition4;
@@ -123,5 +125,6 @@ function PixelMain(input: ModelVaryings, tables: TableResources, builtins: Pixel
         tables.textures[NonUniform(material.occlusionTexture)], tables.samplers[NonUniform(material.occlusionSampler)],
         tables.textures[NonUniform(material.emissiveTexture)], tables.samplers[NonUniform(material.emissiveSampler)]);
     return { color: surface.color, motion: TemporalProjection(input.currentClip, input.previousClip),
-        normal: surface.normal, emission: surface.emission, subsurface: surface.subsurface, sheen: material.sheen };
+        normal: surface.normal, emission: surface.emission, subsurface: surface.subsurface, sheen: material.sheen,
+        anisotropy: PackAnisotropy(surface.normal, input.tangent, material.anisotropy) };
 }

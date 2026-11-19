@@ -1,5 +1,7 @@
 import { Add3, Cross3, Dot3, Scale3, Sub3, Unit } from "./Lighting3D";
-import { CoatLayer, CoatSubstrate, CoatedLightResponse, BoundedSubstrate } from "./OpenPbrCoat3D";
+import { CoatLayer, CoatSubstrate, CoatedLightResponse, BoundedSubstrate, BoundedSubstrateWithFactors,
+    LayerCoat, CoatSpecular, CoatTransmission } from "./OpenPbrCoat3D";
+import { AnisotropyLayer, AnisotropicGgxFactors, AnisotropyAlbedoReserve } from "./OpenPbrAnisotropy3D";
 
 export record SheenLayer {
     active: bool;
@@ -66,13 +68,22 @@ export function SheenAxis(sheen: SheenLayer, normal: float3): float3 {
 
 export function LayeredLightResponse(base: float3, normal: float3, view: float3, light: float3,
     metallic: f32, roughness: f32, dielectric: f32, model: f32, coat: CoatLayer, substrate: CoatSubstrate,
-    sheen: SheenLayer): float3 {
-    if (!sheen.active) {
+    sheen: SheenLayer, anisotropy: AnisotropyLayer): float3 {
+    if (!sheen.active && !anisotropy.active) {
         return CoatedLightResponse(base, normal, view, light, metallic, roughness, dielectric, model, coat, substrate);
     }
-    var lower: float3 = BoundedSubstrate(base, normal, view, light, metallic, roughness, model, substrate);
+    var lower: float3 = float3(0.0, 0.0, 0.0);
+    if (anisotropy.active) {
+        lower = BoundedSubstrateWithFactors(base, normal, view, light, metallic, roughness, model, substrate,
+            AnisotropicGgxFactors(anisotropy, normal, view, light), AnisotropyAlbedoReserve(anisotropy, normal, view));
+    } else {
+        lower = BoundedSubstrate(base, normal, view, light, metallic, roughness, model, substrate);
+    }
     if (coat.weight > 0.0) {
-        lower = CoatedLightResponse(base, normal, view, light, metallic, roughness, dielectric, model, coat, substrate);
+        lower = LayerCoat(lower, CoatSpecular(coat, normal, view, light), CoatTransmission(coat));
+    }
+    if (!sheen.active) {
+        return lower;
     }
     // Gray transmission. Tint only the portion reflected by the fibers.
     return Add3(Scale3(lower, 1.0 - sheen.budget), Scale3(sheen.tint, sheen.budget * SheenPdf(sheen, normal, light)));

@@ -10,6 +10,7 @@
     <ProjectReference Include="../Aurelian.Diagnostics/Aurelian.Diagnostics.csproj" />
     <ProjectReference Include="../Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
     <EmbeddedResource Include="Vulkan/Native3D/Assets/ClearcoatDfg.bin" LogicalName="Aurelian.Graphics.ClearcoatDfg" />
+    <EmbeddedResource Include="Vulkan/Native3D/Assets/AnisotropyDfg.bin" LogicalName="Aurelian.Graphics.AnisotropyDfg" />
   </ItemGroup>
 
   <ItemGroup>

@@ -19,7 +19,7 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
 {
     public const int TextureCapacity = 4096;
     public const int SamplerCapacity = 64;
-    private const int MaterialStride = 144;
+    private const int MaterialStride = 160;
     private readonly AurelianVulkanPlant plant;
     private readonly VulkanFrameInFlightSet frames;
     private readonly List<AurelianVulkanBuffer> buffers = [];
@@ -78,6 +78,8 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
                 Span<uint> indices = MemoryMarshal.Cast<byte, uint>(record[80..128]);
                 Vector4 sheen = VulkanModel3DBatches.PackSheen(material);
                 MemoryMarshal.Write(record[128..], in sheen);
+                Vector4 anisotropy = AnisotropyAlbedo3D.Pack(material.SpecularAnisotropy);
+                MemoryMarshal.Write(record[144..], in anisotropy);
                 for (int channel = 0; channel < 5; channel++)
                 {
                     if (!textureIndices.TryGetValue(channels.Images[channel], out uint texture))
@@ -205,7 +207,7 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
     {
         var resources = program.Resources.OrderBy(resource => resource.Binding).ToArray();
         int resourceCount = visibility ? 10 : 5;
-        if (program.Material?.Size != 352 || resources.Length != resourceCount || program.PixelTargets.Count != 6
+        if (program.Material?.Size != 352 || resources.Length != resourceCount || program.PixelTargets.Count != 7
             || !resources.Select(resource => resource.Binding).SequenceEqual(Enumerable.Range(0, resourceCount))
             || resources[1].StorageLayout is not { Stride: MaterialStride } || resources[2].StorageLayout is not { Stride: 4 }
             || resources[3].DescriptorCount != TextureCapacity || resources[4].DescriptorCount != SamplerCapacity)
@@ -227,6 +229,7 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
             expected.Add(new(name, "u32", expected.Count * 4));
         }
         foreach (char lane in "xyzw") expected.Add(new("sheen." + lane, "f32", expected.Count * 4));
+        foreach (char lane in "xyzw") expected.Add(new("anisotropy." + lane, "f32", expected.Count * 4));
         if (!resources[1].StorageLayout!.Fields.SequenceEqual(expected)
             || !resources[2].StorageLayout!.Fields.SequenceEqual([new CompiledStorageField("", "u32", 0)])
             || resources[0].Kind != CompiledGraphicsResourceKind.UniformBuffer

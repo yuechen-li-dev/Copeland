@@ -15,4 +15,5 @@ export record BindlessMaterialRecord {
     reserved0: u32;
     reserved1: u32;
     sheen: float4;
+    anisotropy: float4;
 }
