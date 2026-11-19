@@ -78,6 +78,8 @@ public static class BuiltinShaderLibrary
         new("LocalTailCompose3D.v.ts", ShaderFamily.Lighting, ShaderSourceKind.Graphics),
         new("LocalEmitter3D.v.ts", ShaderFamily.Lighting, ShaderSourceKind.Module),
         new("SurfaceResolve3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Graphics),
+        new("OpenPbrCoat3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Module),
+        new("OpenPbrSheen3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Module),
         new("SurfaceLighting.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Module),
         new("SubsurfaceDiffuse3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Graphics),
         new("SubsurfaceMerge3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Graphics),

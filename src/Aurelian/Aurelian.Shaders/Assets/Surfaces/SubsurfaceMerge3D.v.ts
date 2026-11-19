@@ -38,6 +38,7 @@ function PixelMain(input: Varyings, resources: Resources): Output {
     let original: float4 = Sample(resources.diffuse, resources.diffuseSampler, input.uv);
     let blurred: float4 = Sample(resources.blurred, resources.blurredSampler, input.uv);
     let profile: float4 = Sample(resources.profile, resources.profileSampler, input.uv);
+    if (profile.w <= 0.0) { return { color: scene }; }
     return { color: float4(Max(scene.x + (blurred.x - original.x) * profile.x, 0.0),
         Max(scene.y + (blurred.y - original.y) * profile.y, 0.0),
         Max(scene.z + (blurred.z - original.z) * profile.z, 0.0), scene.w) };

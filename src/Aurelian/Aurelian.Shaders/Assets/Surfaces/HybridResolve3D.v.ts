@@ -58,6 +58,7 @@ stream ModelOutput {
     @target(2) normal: float4;
     @target(3) emission: float4;
     @target(4) subsurface: float4;
+    @target(5) sheen: float4;
 }
 @vertex
 function VertexMain(input: VertexInput): Varyings {
@@ -102,5 +103,5 @@ function PixelMain(input: Varyings, uniforms: MaterialResources, tables: TableRe
     let currentClip: float4 = ProjectPoint(world, uniforms.material.clipX, uniforms.material.clipY, uniforms.material.clipZ, uniforms.material.clipW);
     let previousClip: float4 = ProjectPoint(previous, uniforms.material.previousX, uniforms.material.previousY, uniforms.material.previousZ, uniforms.material.previousW);
     return { depth: currentClip.z / currentClip.w, color: surface.color, motion: TemporalProjection(currentClip, previousClip),
-        normal: surface.normal, emission: surface.emission, subsurface: surface.subsurface };
+        normal: surface.normal, emission: surface.emission, subsurface: surface.subsurface, sheen: material.sheen };
 }

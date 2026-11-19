@@ -9,7 +9,11 @@ namespace Aurelian.Graphics.Vulkan.Native3D;
 /// Capture admits emissive triangles, directional sun and an HDR source environment.</summary>
 public sealed record ReferenceMaterial3D(Vector3 BaseColor, float Roughness = .5f,
     float Metallic = 0, float Dielectric = .04f, DirectDiffuseModel3D DiffuseModel = DirectDiffuseModel3D.Lambert,
-    Vector3 Emission = default, bool TwoSidedEmission = false);
+    Vector3 Emission = default, bool TwoSidedEmission = false)
+{
+    public Clearcoat3D? Clearcoat { get; init; }
+    public Sheen3D? Sheen { get; init; }
+}
 
 public sealed record ReferenceTriangle3D(Vector3 A, Vector3 B, Vector3 C, ReferenceMaterial3D Material);
 public sealed record ReferenceSphere3D(Vector3 Center, float Radius, ReferenceMaterial3D Material);
@@ -25,6 +29,7 @@ public sealed record ReferenceImage3D(int Width, int Height, int Samples, float[
 /// resident on the GPU. Nothing registers this work with the interactive frame renderer.</summary>
 public sealed class ReferenceIntegrator3D : IDisposable
 {
+    private const int MaterialStride = 20;
     private readonly VulkanRayQueryScene queries;
     private readonly ReferenceCapture3D capture;
     private int samples;
@@ -85,13 +90,21 @@ public sealed class ReferenceIntegrator3D : IDisposable
             materials.Add(emitter);
             materials.Add(emitter);
         }
-        int emitterTable = 64 + (geometry.Count + spheres.Count + analytic.Count) * 16;
+        int emitterTable = 64 + (geometry.Count + spheres.Count + analytic.Count) * MaterialStride;
         int distributionOffset = emitterTable + geometry.Count;
         LocalLight3D[] localLights = lighting.LocalLights?.ToArray() ?? [];
         if (localLights.Length > 256) throw new ArgumentException("AUR-REF-013: Capture admits at most 256 local lights.");
         foreach (LocalLight3D local in localLights) local.Validate();
         int localOffset = distributionOffset + environmentCdf.Length;
-        float[] parameters = new float[localOffset + localLights.Length * 16];
+        int coatOffset = localOffset + localLights.Length * 16;
+        bool hasCoat = materials.Any(NeedsDirectionalAlbedo) || spheres.Any(shape => NeedsDirectionalAlbedo(shape.Material))
+            || analytic.Any(shape => NeedsDirectionalAlbedo(shape.Material));
+        float[] parameters = new float[coatOffset + (hasCoat ? ClearcoatAlbedo3D.Coefficients.Length : 0)];
+        if (hasCoat)
+        {
+            parameters[51] = coatOffset;
+            ClearcoatAlbedo3D.Coefficients.CopyTo(parameters.AsSpan(coatOffset));
+        }
         parameters[49] = localLights.Length;
         parameters[50] = localOffset;
         for (int index = 0; index < localLights.Length; index++)
@@ -148,7 +161,7 @@ public sealed class ReferenceIntegrator3D : IDisposable
                 if (!float.IsFinite(nextArea) || nextArea <= totalArea)
                     throw new ArgumentException("AUR-REF-009: Emission areas exceed float32 CDF precision.");
                 totalArea = nextArea;
-                parameters[64 + index * 16 + 10] = totalArea;
+                parameters[64 + index * MaterialStride + 10] = totalArea;
                 parameters[emitterTable + emitterCount++] = index;
             }
         }
@@ -214,6 +227,8 @@ public sealed class ReferenceIntegrator3D : IDisposable
 
     private static void WriteMaterial(float[] data, int index, ReferenceMaterial3D material)
     {
+        material.Clearcoat?.Validate();
+        material.Sheen?.Validate();
         RequireNonnegative(material.BaseColor);
         RequireNonnegative(material.Emission);
         if (material.BaseColor.X > 1 || material.BaseColor.Y > 1 || material.BaseColor.Z > 1
@@ -224,7 +239,7 @@ public sealed class ReferenceIntegrator3D : IDisposable
         {
             throw new ArgumentException("AUR-REF-007: Unsupported material parameters.");
         }
-        int offset = 64 + index * 16;
+        int offset = 64 + index * MaterialStride;
         Write3(data, offset, material.BaseColor);
         data[offset + 3] = material.Roughness;
         Write3(data, offset + 4, material.Emission);
@@ -232,7 +247,22 @@ public sealed class ReferenceIntegrator3D : IDisposable
         data[offset + 8] = material.Dielectric;
         data[offset + 9] = (float)material.DiffuseModel;
         data[offset + 12] = material.TwoSidedEmission ? 1 : 0;
+        if (material.Clearcoat is { Active: true } coat)
+        {
+            data[offset + 13] = coat.Weight;
+            data[offset + 14] = coat.Roughness;
+            data[offset + 15] = -coat.IndexOfRefraction;
+        }
+        if (material.Sheen is { Active: true } sheen)
+        {
+            data[offset + 11] = sheen.Weight;
+            Write3(data, offset + 16, sheen.Color);
+            data[offset + 19] = sheen.Roughness;
+        }
     }
+
+    private static bool NeedsDirectionalAlbedo(ReferenceMaterial3D material)
+        => material.Clearcoat is { Active: true } || material.Sheen is { Active: true };
 
     private static void Write3(float[] data, int offset, Vector3 value)
     {

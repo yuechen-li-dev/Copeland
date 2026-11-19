@@ -41,6 +41,8 @@ public sealed record ModelMaterial(string Slot)
     /// <summary>World metres; zero explicitly means no volume absorption.</summary>
     public float AttenuationDistance { get; init; }
     public WaterSurface3D? Water { get; init; }
+    public Clearcoat3D? Clearcoat { get; init; }
+    public Sheen3D? Sheen { get; init; }
     public float SubsurfaceStrength { get; init; }
     public Vector3 SubsurfaceColor { get; init; } = new(1, .35f, .15f);
     public float SubsurfaceRadius { get; init; } = .02f;
@@ -54,6 +56,16 @@ public sealed record ModelMaterial(string Slot)
     public void Validate()
     {
         Water?.Validate();
+        Clearcoat?.Validate();
+        Sheen?.Validate();
+        if (Clearcoat is { Active: true } && (AlphaBlend || Transmission > 0 || Unlit || SubsurfaceStrength > 0))
+        {
+            throw new InvalidDataException($"AUR-COAT-002: Clearcoat in '{Slot}' requires a lit opaque or masked surface without subsurface diffusion.");
+        }
+        if (Sheen is { Active: true } && (AlphaBlend || Transmission > 0 || Unlit || SubsurfaceStrength > 0))
+        {
+            throw new InvalidDataException($"AUR-SHEEN-002: Sheen in '{Slot}' requires a lit opaque or masked surface without subsurface diffusion.");
+        }
         if (Water is not null && (Transmission != 1 || Thickness != 0 || DoubleSided))
         {
             throw new InvalidDataException("AUR-WATER-005: Water requires full transmission, zero slab thickness and an above-water surface.");

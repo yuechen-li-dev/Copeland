@@ -43,6 +43,7 @@ internal static class Native3DFrameGraph
         var normal = Texture("surface-normal");
         var emission = Texture("surface-emission");
         var profile = Texture("subsurface-profile");
+        var sheen = Texture("sheen-profile");
         FrameResource Shadow(string name, int size, bool initialized = false) => graph.Resource(name, "r32f", size, size,
             initialized ? FrameLifetime.Imported : FrameLifetime.Transient, initialized, dedicated: true);
         var shadow = Shadow("directional-shadow", features.Shadows ? (int)Lighting3DUniforms.ShadowSize : 1, initialized: !features.Shadows);
@@ -137,7 +138,7 @@ internal static class Native3DFrameGraph
         else if (arguments is not null) geometry.Read(arguments, FrameAccess.Indirect);
         if (!features.Surface) geometry.Read(shadow);
         if (features.Motion) geometry.Write(motion);
-        if (features.Surface) geometry.Write(normal).Write(emission).Write(profile);
+        if (features.Surface) geometry.Write(normal).Write(emission).Write(profile).Write(sheen);
 
         FramePassBuilder? rayShadows = null;
         if (features.RayShadows)
@@ -186,7 +187,7 @@ internal static class Native3DFrameGraph
             var lit = Texture("surface-lighting");
             var diffuse = Texture("surface.diffuse", allowUnused: true, aliasable: true);
             var resolve = graph.Pass("surface-resolve", (int)Native3DPass.SurfaceResolve)
-                .Read(scene).Read(motion).Read(normal).Read(emission).Read(profile).Read(lights)
+                .Read(scene).Read(motion).Read(normal).Read(emission).Read(profile).Read(sheen).Read(lights)
                 .Read(shadow).Read(cascade1).Read(cascade2).Read(spot1).Read(spot2).Read(inputs).Write(lit).Write(diffuse);
             if (features.RayShadows) resolve.Read(rayVisibility);
             if (reflections is not null) resolve.Read(reflections);

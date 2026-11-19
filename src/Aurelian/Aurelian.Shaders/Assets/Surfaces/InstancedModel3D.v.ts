@@ -30,6 +30,7 @@ record StaticModelMaterial {
     previousY: float4;
     previousZ: float4;
     previousW: float4;
+    sheen: float4;
 }
 
 stream VertexInput {

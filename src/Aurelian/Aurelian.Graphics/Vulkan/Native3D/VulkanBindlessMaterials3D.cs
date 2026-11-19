@@ -19,6 +19,7 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
 {
     public const int TextureCapacity = 4096;
     public const int SamplerCapacity = 64;
+    private const int MaterialStride = 144;
     private readonly AurelianVulkanPlant plant;
     private readonly VulkanFrameInFlightSet frames;
     private readonly List<AurelianVulkanBuffer> buffers = [];
@@ -62,19 +63,21 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
             var samplerIndices = new Dictionary<Sampler, uint>();
             var materialIndices = source.Materials.Select((material, index) => (material, index))
                 .ToDictionary(item => item.material, item => (uint)item.index);
-            byte[] records = new byte[source.Materials.Length * 128];
+            byte[] records = new byte[source.Materials.Length * MaterialStride];
             for (int index = 0; index < source.Materials.Length; index++)
             {
                 ModelMaterial material = source.Materials[index];
                 var channels = owner.GetChannels(material);
-                Span<byte> record = records.AsSpan(index * 128, 128);
+                Span<byte> record = records.AsSpan(index * MaterialStride, MaterialStride);
                 Vector4[] values = [material.BaseColor,
                     new(material.Metallic, material.Roughness, material.NormalTexture is null ? 0 : material.NormalScale, material.OcclusionStrength),
                     new(material.Emissive, material.AlphaCutoff),
                     new(material.Unlit ? 1 : 0, material.AlphaMask ? 1 : 0, material.DoubleSided ? 1 : 0, material.PackedSurfaceFlags),
-                    new(material.SubsurfaceColor * material.SubsurfaceStrength, material.SubsurfaceStrength > 0 ? material.SubsurfaceRadius : 0)];
+                    VulkanModel3DBatches.PackSurfaceProfile(material)];
                 MemoryMarshal.AsBytes(values.AsSpan()).CopyTo(record);
-                Span<uint> indices = MemoryMarshal.Cast<byte, uint>(record[80..]);
+                Span<uint> indices = MemoryMarshal.Cast<byte, uint>(record[80..128]);
+                Vector4 sheen = VulkanModel3DBatches.PackSheen(material);
+                MemoryMarshal.Write(record[128..], in sheen);
                 for (int channel = 0; channel < 5; channel++)
                 {
                     if (!textureIndices.TryGetValue(channels.Images[channel], out uint texture))
@@ -202,9 +205,9 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
     {
         var resources = program.Resources.OrderBy(resource => resource.Binding).ToArray();
         int resourceCount = visibility ? 10 : 5;
-        if (program.Material?.Size != 352 || resources.Length != resourceCount || program.PixelTargets.Count != 5
+        if (program.Material?.Size != 352 || resources.Length != resourceCount || program.PixelTargets.Count != 6
             || !resources.Select(resource => resource.Binding).SequenceEqual(Enumerable.Range(0, resourceCount))
-            || resources[1].StorageLayout is not { Stride: 128 } || resources[2].StorageLayout is not { Stride: 4 }
+            || resources[1].StorageLayout is not { Stride: MaterialStride } || resources[2].StorageLayout is not { Stride: 4 }
             || resources[3].DescriptorCount != TextureCapacity || resources[4].DescriptorCount != SamplerCapacity)
             throw new ArgumentException("AUR-BINDLESS-001: Program does not implement the admitted frame/material/table ABI.");
         if (visibility && (resources.Skip(5).Take(4).Any(resource => resource.Kind != CompiledGraphicsResourceKind.StorageBuffer)
@@ -223,6 +226,7 @@ internal sealed unsafe class VulkanBindlessMaterials3D : IDisposable
         {
             expected.Add(new(name, "u32", expected.Count * 4));
         }
+        foreach (char lane in "xyzw") expected.Add(new("sheen." + lane, "f32", expected.Count * 4));
         if (!resources[1].StorageLayout!.Fields.SequenceEqual(expected)
             || !resources[2].StorageLayout!.Fields.SequenceEqual([new CompiledStorageField("", "u32", 0)])
             || resources[0].Kind != CompiledGraphicsResourceKind.UniformBuffer

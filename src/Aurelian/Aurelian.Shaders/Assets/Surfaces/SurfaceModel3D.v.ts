@@ -33,6 +33,7 @@ record StaticModelMaterial {
     previousY: float4;
     previousZ: float4;
     previousW: float4;
+    sheen: float4;
 }
 
 stream VertexInput {
@@ -77,6 +78,7 @@ stream ModelOutput {
     @target(2) normal: float4;
     @target(3) emission: float4;
     @target(4) subsurface: float4;
+    @target(5) sheen: float4;
 }
 
 function Row(row: float4, p: WorldPosition3): f32 {
@@ -109,5 +111,5 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
         resources.normalMap, resources.normalSampler, resources.occlusionMap, resources.occlusionSampler,
         resources.emissiveMap, resources.emissiveSampler);
     return { color: surface.color, motion: TemporalProjection(input.currentClip, input.previousClip),
-        normal: surface.normal, emission: surface.emission, subsurface: surface.subsurface };
+        normal: surface.normal, emission: surface.emission, subsurface: surface.subsurface, sheen: uniforms.material.sheen };
 }

@@ -151,7 +151,8 @@ public static class GlbModelImporter
             foreach (JsonElement extension in extensions.EnumerateArray())
             {
                 if (extension.GetString() is not ("KHR_materials_unlit" or "KHR_materials_emissive_strength"
-                    or "KHR_materials_transmission" or "KHR_materials_volume" or "KHR_materials_ior"))
+                    or "KHR_materials_transmission" or "KHR_materials_volume" or "KHR_materials_ior"
+                    or "KHR_materials_clearcoat" or "KHR_materials_sheen"))
                     throw new InvalidDataException($"Unsupported GLB extension '{extension.GetString()}' in {collection}.");
             }
         }
@@ -166,6 +167,17 @@ public static class GlbModelImporter
                     || extensions.TryGetProperty("KHR_materials_volume", out JsonElement volume)
                     && volume.TryGetProperty("thicknessTexture", out _))
                     throw new InvalidDataException("AA3111: Transmission and volume thickness textures are not supported; author constant factors for this profile.");
+                if (extensions.TryGetProperty("KHR_materials_clearcoat", out JsonElement coat)
+                    && (coat.TryGetProperty("clearcoatTexture", out _) || coat.TryGetProperty("clearcoatRoughnessTexture", out _)
+                        || coat.TryGetProperty("clearcoatNormalTexture", out _)))
+                {
+                    throw new InvalidDataException("AUR-COAT-003: The static profile supports constant clearcoat weight and roughness.");
+                }
+                if (extensions.TryGetProperty("KHR_materials_sheen", out JsonElement sheen)
+                    && (sheen.TryGetProperty("sheenColorTexture", out _) || sheen.TryGetProperty("sheenRoughnessTexture", out _)))
+                {
+                    throw new InvalidDataException("AUR-SHEEN-003: The static profile supports constant sheen color and roughness.");
+                }
             }
         }
     }
@@ -179,6 +191,7 @@ public static class GlbModelImporter
         MaterialChannel? transmission = source.FindChannel("Transmission");
         MaterialChannel? thickness = source.FindChannel("VolumeThickness");
         MaterialChannel? attenuation = source.FindChannel("VolumeAttenuation");
+        MaterialChannel? coat = source.FindChannel("ClearCoat");
         float attenuationDistance = attenuation?.GetFactor("AttenuationDistance") ?? float.MaxValue;
         return new ModelMaterial(slot)
         {
@@ -197,6 +210,9 @@ public static class GlbModelImporter
             Transmission = transmission?.GetFactor("TransmissionFactor") ?? 0,
             IndexOfRefraction = source.IndexOfRefraction,
             Thickness = thickness?.GetFactor("ThicknessFactor") ?? 0,
+            Clearcoat = coat is null ? null : new(coat.Value.GetFactor("ClearCoatFactor"),
+                source.FindChannel("ClearCoatRoughness")?.GetFactor("RoughnessFactor") ?? 0),
+            Sheen = ReadSheen(source),
             AttenuationColor = attenuation is { } absorption ? new Vector3(absorption.Color.X, absorption.Color.Y, absorption.Color.Z) : Vector3.One,
             AttenuationDistance = attenuationDistance == float.MaxValue || float.IsPositiveInfinity(attenuationDistance) ? 0 : attenuationDistance * importScale,
             BaseColorTexture = ReadTexture(color, images, diagnostics, path),
@@ -205,6 +221,17 @@ public static class GlbModelImporter
             OcclusionTexture = ReadTexture(source.FindChannel("Occlusion"), images, diagnostics, path),
             EmissiveTexture = ReadTexture(emissive, images, diagnostics, path),
         };
+    }
+
+    private static Sheen3D? ReadSheen(Material source)
+    {
+        if (source.FindChannel("SheenColor") is not { } channel) return null;
+        var factor = new Vector3(channel.Color.X, channel.Color.Y, channel.Color.Z);
+        float roughness = source.FindChannel("SheenRoughness")?.GetFactor("RoughnessFactor") ?? 0;
+        // Match glTF's max-channel attenuation convention while keeping the
+        // original linear reflection color as OpenPBR coverage times tint.
+        float weight = MathF.Max(factor.X, MathF.Max(factor.Y, factor.Z));
+        return new(weight > 0 ? factor / weight : Vector3.Zero, roughness, weight);
     }
 
     private static ModelTextureBinding? ReadTexture(MaterialChannel? channel, Dictionary<int, ModelTexture> images,

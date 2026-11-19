@@ -14,4 +14,5 @@ export record BindlessMaterialRecord {
     emissiveSampler: u32;
     reserved0: u32;
     reserved1: u32;
+    sheen: float4;
 }

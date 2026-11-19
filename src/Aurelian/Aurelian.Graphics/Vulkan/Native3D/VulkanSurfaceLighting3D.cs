@@ -36,6 +36,8 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
     public AurelianVulkanTexture Resolved { get; private set; } = null!;
     public ulong TransientTextureBytes => transientTextures.AllocatedBytes;
     public int TransientPhysicalImages => transientTextures.PhysicalImages;
+    public bool SupportsClearcoat => clearcoatAlbedo is not null;
+    public bool SupportsSheen { get; }
 
     private sealed record SurfaceFrame(AurelianVulkanTexture surface, AurelianVulkanTexture motion,
         AurelianVulkanTexture shadow, AurelianVulkanTexture? diffuse, Matrix4x4 clip, Matrix4x4 inverse,
@@ -46,6 +48,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
     private readonly VulkanPostProcess3D denoisePass;
     private readonly VulkanPostProcess3D resolvePass;
     private readonly bool resolveHasReflectionInput;
+    private readonly AurelianVulkanTexture? clearcoatAlbedo;
     private readonly AurelianVulkanTexture diffuseOutput;
     private readonly AurelianVulkanTexture[] cascadeMaps = new AurelianVulkanTexture[2];
     private readonly Vulkan3DPass[] cascadePasses = new Vulkan3DPass[2];
@@ -130,6 +133,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
             Normal = Image(width, height, "surface.normal", VulkanTextureFormat.Rgba16Float);
             Emission = Image(width, height, "surface.emission", VulkanTextureFormat.Rgba16Float);
             Subsurface = Image(width, height, "surface.subsurface", VulkanTextureFormat.Rgba16Float);
+            Sheen = Image(width, height, "surface.sheen", VulkanTextureFormat.Rgba16Float);
             diffuseOutput = Image(width, height, "surface.diffuse", VulkanTextureFormat.Rgba16Float);
             Output = Image(width, height, "surface.lighting", VulkanTextureFormat.Rgba16Float);
             rawTail = Image(width, height, "surface.local-tail", VulkanTextureFormat.Rgba16Float);
@@ -151,8 +155,15 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
             aoPass = Own(new VulkanPostProcess3D(plant, allocator, programs.AmbientOcclusion, rawAo, 2, Filter.Nearest, frames: frames));
             denoisePass = Own(new VulkanPostProcess3D(plant, allocator, programs.AmbientDenoise, filteredAo, 2, Filter.Nearest, frames: frames));
             resolveHasReflectionInput = programs.Resolve.Resources.Any(resource => resource.Binding == 33);
+            if (programs.Resolve.Resources.Any(resource => resource.Binding == 34))
+            {
+                clearcoatAlbedo = Own(Data(ClearcoatAlbedo3D.Size, ClearcoatAlbedo3D.Size, "surface.clearcoat-albedo"));
+                Upload(clearcoatAlbedo, ClearcoatAlbedo3D.TextureData());
+            }
+            SupportsSheen = programs.Resolve.Resources.Any(resource => resource.Binding == 35);
             resolvePass = Own(new VulkanPostProcess3D(plant, allocator, programs.Resolve, Output,
-                resolveHasReflectionInput ? 17 : 16, Filter.Nearest, diffuseOutput, frames: frames, thirdOutput: rawTail));
+                (resolveHasReflectionInput ? 17 : 16) + (clearcoatAlbedo is null ? 0 : 1) + (SupportsSheen ? 1 : 0),
+                Filter.Nearest, diffuseOutput, frames: frames, thirdOutput: rawTail));
             for (int index = 0; index < 2; index++)
             {
                 cascadeMaps[index] = Image(Lighting3DUniforms.ShadowSize, Lighting3DUniforms.ShadowSize,
@@ -196,6 +207,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
     }
 
     public AurelianVulkanTexture Subsurface { get; }
+    public AurelianVulkanTexture Sheen { get; }
     public AurelianVulkanTexture Normal { get; }
     public Vulkan3DPass CascadePass(int index) => cascadePasses[index];
     public void FinishCascade(VulkanCommandBufferLease command, int index)
@@ -609,7 +621,9 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
             .. resolveHasReflectionInput ? new float[] { ReflectionsActive ? 1 : 0, 0, 0, 0 } : []],
             [surface, motion, Normal, Emission, environment ?? fallback, lightData, lightTiles ? tiles : fallback, shadow, diffuseSettings.Mode != DynamicDiffuseMode3D.Off ? dynamicDiffuse!.Output : diffuse ?? fallback, ambient ? filteredAo : neutralAo,
             spotMaps[0], spotMaps[1], cascadeMaps[0], cascadeMaps[1], Subsurface, RayShadowsActive ? rayShadows!.Output : fallback,
-            .. resolveHasReflectionInput ? new[] { ReflectionOutput ?? fallback } : []]);
+            .. resolveHasReflectionInput ? new[] { ReflectionOutput ?? fallback } : [],
+            .. clearcoatAlbedo is null ? [] : new[] { clearcoatAlbedo },
+            .. SupportsSheen ? new[] { Sheen } : []]);
         resolvePass.SetLinearInput(4, environment ?? fallback);
         resolvePass.Record(command, triangle);
         Resolved = Output;

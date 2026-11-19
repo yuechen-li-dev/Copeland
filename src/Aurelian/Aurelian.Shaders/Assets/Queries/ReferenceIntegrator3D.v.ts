@@ -1,8 +1,13 @@
 import { EmitterSample3D, SampleLocalEmitter } from "./LocalEmitter3D";
 import { LocalAttenuation } from "./SurfaceLighting";
-import { DirectLightResponseModel, Dot3, Cross3, Unit } from "./Lighting3D";
+import { Dot3, Cross3, Unit } from "./Lighting3D";
+import { CoatLayer, CoatSubstrate, CoatLookup, CoatBase, OpenPbrCoat } from "./OpenPbrCoat3D";
+import { SheenLayer, OpenPbrSheen, LayeredLightResponse, SampleSheen, SheenPdf } from "./OpenPbrSheen3D";
+import { SampleVisibleGgx, VisibleGgxReflectionPdf } from "./GlossyReflection3D";
 import { AffineAnalyticIntersection } from "./AffineAnalyticQuery3D";
 import { ReferenceEnvironment, ReferenceEnvironmentPdf, SampleReferenceEnvironment } from "./ReferenceEnvironment3D";
+
+const MaterialStride: u32 = 20;
 
 // Counter-based integer randomness: sample identity is independent of submission batches.
 function Random(key: u32): f32 {
@@ -17,6 +22,72 @@ function PowerWeight(first: f32, second: f32): f32 {
 }
 function Read3(readonly data: StorageBuffer<f32>, offset: u32): float3 {
     return float3(data[offset], data[offset + 1], data[offset + 2]);
+}
+
+function CoatCell(readonly data: StorageBuffer<f32>, offset: u32, x: u32, y: u32): float2 {
+    let index: u32 = offset + 2 * (x + y * 64);
+    return float2(data[index], data[index + 1]);
+}
+
+function CoatCoefficients(readonly data: StorageBuffer<f32>, nv: f32, roughness: f32): float2 {
+    let uv: float2 = CoatLookup(nv, roughness);
+    let x: f32 = uv.x * 63.0;
+    let y: f32 = uv.y * 63.0;
+    let x0: u32 = U32(x);
+    let y0: u32 = U32(y);
+    let x1: u32 = U32(Min(x + 1.0, 63.0));
+    let y1: u32 = U32(Min(y + 1.0, 63.0));
+    let tx: f32 = x - Convert<f32>(x0);
+    let ty: f32 = y - Convert<f32>(y0);
+    let offset: u32 = U32(data[51]);
+    let a: float2 = CoatCell(data, offset, x0, y0);
+    let b: float2 = CoatCell(data, offset, x1, y0);
+    let c: float2 = CoatCell(data, offset, x0, y1);
+    let d: float2 = CoatCell(data, offset, x1, y1);
+    return float2((a.x + (b.x - a.x) * tx) * (1.0 - ty) + (c.x + (d.x - c.x) * tx) * ty,
+        (a.y + (b.y - a.y) * tx) * (1.0 - ty) + (c.y + (d.y - c.y) * tx) * ty);
+}
+
+function LayeredPdf(normal: float3, view: float3, light: float3, roughness: f32,
+    coat: CoatLayer, substrate: CoatSubstrate, sheen: SheenLayer): f32 {
+    let nl: f32 = Dot3(normal, light);
+    if (nl <= 0.0) { return 0.0; }
+    let cosine: f32 = nl / 3.14159265;
+    var pdf: f32 = cosine;
+    var count: f32 = 1.0;
+    if (coat.weight > 0.0 || sheen.active) {
+        let nv: f32 = Max(Dot3(normal, view), 0.001);
+        let half: float3 = Unit(view + light);
+        let nh: f32 = Clamp(Dot3(normal, half), 0.0, 1.0);
+        if (coat.weight > 0.0) {
+            pdf = pdf + VisibleGgxReflectionPdf(nv, nh, coat.roughness * coat.roughness);
+            count = count + 1.0;
+        }
+        if (substrate.f90 > 0.0) {
+            pdf = pdf + VisibleGgxReflectionPdf(nv, nh, roughness * roughness);
+            count = count + 1.0;
+        }
+    }
+    if (sheen.budget >= 0.0001) {
+        pdf = pdf + SheenPdf(sheen, normal, light);
+        count = count + 1.0;
+    }
+    return pdf / count;
+}
+
+function SampleLayered(normal: float3, view: float3, cosine: float3, roughness: f32, coat: CoatLayer,
+    substrate: CoatSubstrate, sheen: SheenLayer, selector: f32, sample: float2): float3 {
+    var count: f32 = 1.0;
+    if (coat.weight > 0.0) { count = count + 1.0; }
+    if (substrate.f90 > 0.0) { count = count + 1.0; }
+    if (sheen.budget >= 0.0001) { count = count + 1.0; }
+    let slot: f32 = Min(Floor(selector * count), count - 1.0);
+    if (slot == 0.0) { return cosine; }
+    if (sheen.budget >= 0.0001 && slot == count - 1.0) { return SampleSheen(sheen, normal, sample); }
+    var alpha: f32 = coat.roughness * coat.roughness;
+    if (substrate.f90 > 0.0 && slot == 1.0) { alpha = roughness * roughness; }
+    let half: float3 = SampleVisibleGgx(normal, view, alpha, sample);
+    return Unit(half * (2.0 * Dot3(view, half)) - view);
 }
 function SetRay(readwrite rays: StorageBuffer<f32>, offset: u32, origin: float3, direction: float3, range: f32): void {
     rays[offset] = origin.x;
@@ -46,7 +117,7 @@ function SampleEmitter(readonly triangles: StorageBuffer<f32>, readonly paramete
         if (lower < upper) {
             let middle: u32 = (lower + upper) / 2;
             let primitive: u32 = U32(parameters[emitterTable + middle]);
-            let cumulative: f32 = parameters[64 + primitive * 16 + 10];
+            let cumulative: f32 = parameters[64 + primitive * MaterialStride + 10];
             if (target < cumulative) {
                 upper = middle;
             } else {
@@ -62,7 +133,7 @@ function SampleEmitter(readonly triangles: StorageBuffer<f32>, readonly paramete
     let c: float3 = Read3(triangles, vertex + 8);
     let radius: f32 = Sqrt(Random(key + 1));
     let v: f32 = Random(key + 2);
-    let material: u32 = 64 + selected * 16;
+    let material: u32 = 64 + selected * MaterialStride;
     return { position: a * (1.0 - radius) + b * (radius * (1.0 - v)) + c * (radius * v),
         normal: Unit(Cross3(b - a, c - a)), emission: Read3(parameters, material + 4),
         twoSided: parameters[material + 12] };
@@ -124,9 +195,9 @@ function ReferenceMain(@builtin(dispatchThreadId) thread: uint3,
                     active = false;
                 } else {
                     let primitive: u32 = Bitcast<u32>(Hits[hit + 1]);
-                    var material: u32 = 64 + primitive * 16;
+                    var material: u32 = 64 + primitive * MaterialStride;
                     if (kind == 2) {
-                        material = material + U32(Parameters[35]) * 16;
+                        material = material + U32(Parameters[35]) * MaterialStride;
                     }
                     let base: float3 = Read3(Parameters, material);
                     let roughness: f32 = Parameters[material + 3];
@@ -136,6 +207,7 @@ function ReferenceMain(@builtin(dispatchThreadId) thread: uint3,
                     let model: f32 = Parameters[material + 9];
                     let point: float3 = float3(Hits[hit + 8], Hits[hit + 9], Hits[hit + 10]);
                     let normal: float3 = float3(Hits[hit + 12], Hits[hit + 13], Hits[hit + 14]);
+                    let view: float3 = direction * -1.0;
                     let distance: f32 = Hits[hit + 4];
                     var lightCosine: f32 = Max(Dot3(normal, direction * -1.0) * Hits[hit + 15], 0.0);
                     if (Parameters[material + 12] > 0.5) {
@@ -151,14 +223,25 @@ function ReferenceMain(@builtin(dispatchThreadId) thread: uint3,
                         }
                     }
                     if (bounce < U32(Parameters[2])) {
+                        let coatProfile: float4 = float4(Parameters[material + 13], Parameters[material + 14], 0.0, Parameters[material + 15]);
+                        var coat: CoatLayer = OpenPbrCoat(coatProfile, float2(0.0, 0.0));
+                        var substrate: CoatSubstrate = CoatBase(base, metallic, dielectric, float2(0.0, 0.0));
+                        let sheenProfile: float4 = float4(Parameters[material + 16], Parameters[material + 17],
+                            Parameters[material + 18], Parameters[material + 19]);
+                        let sheen: SheenLayer = OpenPbrSheen(Parameters[material + 11], sheenProfile, normal, view);
+                        if (coat.weight > 0.0 || sheen.active) {
+                            let nv: f32 = Dot3(normal, view);
+                            if (coat.weight > 0.0) { coat = OpenPbrCoat(coatProfile, CoatCoefficients(Parameters, nv, coatProfile.y)); }
+                            substrate = CoatBase(base, metallic, dielectric, CoatCoefficients(Parameters, nv, roughness));
+                        }
                         let sun: float3 = Read3(Parameters, 24);
                         let sunDirection: float3 = Read3(Parameters, 20);
                         if (Dot3(sun, sun) > 0.0 && Dot3(normal, sunDirection) > 0.0 && (bounce > 0 || Parameters[46] < 0.5)) {
                             SetRay(Rays, ray, point, sunDirection, 100000.0);
                             RayQueryTraceClosest(Scene, Procedurals, Rays, Hits, Triangles, pixel, AffineAnalyticIntersection);
                             if (Bitcast<u32>(Hits[hit]) == 0) {
-                                let response: float3 = DirectLightResponseModel(base, normal, direction * -1.0,
-                                    sunDirection, metallic, roughness, dielectric, model);
+                                let response: float3 = LayeredLightResponse(base, normal, view,
+                                    sunDirection, metallic, roughness, dielectric, model, coat, substrate, sheen);
                                 radiance = radiance + throughput * response * sun;
                             }
                         }
@@ -189,8 +272,8 @@ function ReferenceMain(@builtin(dispatchThreadId) thread: uint3,
                                                 visible = Hits[hit + 2] == 0.0;
                                             }
                                             if (visible) {
-                                                let response: float3 = DirectLightResponseModel(base, normal, direction * -1.0,
-                                                    incoming, metallic, roughness, dielectric, model);
+                                                let response: float3 = LayeredLightResponse(base, normal, view,
+                                                    incoming, metallic, roughness, dielectric, model, coat, substrate, sheen);
                                                 radiance = radiance + throughput * response * Read3(Parameters, offset + 4) * (Parameters[offset + 7] * attenuation);
                                             }
                                         }
@@ -214,9 +297,9 @@ function ReferenceMain(@builtin(dispatchThreadId) thread: uint3,
                                 RayQueryTraceClosest(Scene, Procedurals, Rays, Hits, Triangles, pixel, AffineAnalyticIntersection);
                                 if (Bitcast<u32>(Hits[hit]) == 0) {
                                     let lightPdf: f32 = range * range / (lightArea * cosLight);
-                                    let bsdfPdf: f32 = cosSurface / 3.14159265;
-                                    let response: float3 = DirectLightResponseModel(base, normal, direction * -1.0,
-                                        incoming, metallic, roughness, dielectric, model);
+                                    let bsdfPdf: f32 = LayeredPdf(normal, view, incoming, roughness, coat, substrate, sheen);
+                                    let response: float3 = LayeredLightResponse(base, normal, view,
+                                        incoming, metallic, roughness, dielectric, model, coat, substrate, sheen);
                                     let neeWeight: f32 = PowerWeight(lightPdf, bsdfPdf);
                                     radiance = radiance + throughput * response * emitter.emission * (neeWeight / lightPdf);
                                 }
@@ -231,9 +314,9 @@ function ReferenceMain(@builtin(dispatchThreadId) thread: uint3,
                                 RayQueryTraceClosest(Scene, Procedurals, Rays, Hits, Triangles, pixel, AffineAnalyticIntersection);
                                 if (Bitcast<u32>(Hits[hit]) == 0) {
                                     let lightPdf: f32 = ReferenceEnvironmentPdf(Parameters, incoming);
-                                    let bsdfPdf: f32 = Max(Dot3(normal, incoming), 0.0) / 3.14159265;
-                                    let response: float3 = DirectLightResponseModel(base, normal, direction * -1.0,
-                                        incoming, metallic, roughness, dielectric, model);
+                                    let bsdfPdf: f32 = LayeredPdf(normal, view, incoming, roughness, coat, substrate, sheen);
+                                    let response: float3 = LayeredLightResponse(base, normal, view,
+                                        incoming, metallic, roughness, dielectric, model, coat, substrate, sheen);
                                     radiance = radiance + throughput * response * ReferenceEnvironment(Environment, Parameters, incoming)
                                         * (PowerWeight(lightPdf, bsdfPdf) / lightPdf);
                                 }
@@ -247,11 +330,16 @@ function ReferenceMain(@builtin(dispatchThreadId) thread: uint3,
                         }
                         let tangent: float3 = Unit(Cross3(axis, normal));
                         let bitangent: float3 = Cross3(normal, tangent);
-                        let outgoing: float3 = Unit(tangent * (radius * Cos(angle)) + bitangent * (radius * Sin(angle))
+                        var outgoing: float3 = Unit(tangent * (radius * Cos(angle)) + bitangent * (radius * Sin(angle))
                             + normal * Sqrt(Max(1.0 - radius * radius, 0.0)));
-                        previousPdf = Max(Dot3(normal, outgoing), 0.0) / 3.14159265;
-                        let response: float3 = DirectLightResponseModel(base, normal, direction * -1.0,
-                            outgoing, metallic, roughness, dielectric, model);
+                        if (coat.weight > 0.0 || sheen.active) {
+                            let coatKey: u32 = randomBase + 0x46d2994b;
+                            outgoing = SampleLayered(normal, view, outgoing, roughness, coat, substrate, sheen, Random(coatKey),
+                                float2(Random(coatKey + 1), Random(coatKey + 2)));
+                        }
+                        previousPdf = LayeredPdf(normal, view, outgoing, roughness, coat, substrate, sheen);
+                        let response: float3 = LayeredLightResponse(base, normal, view,
+                            outgoing, metallic, roughness, dielectric, model, coat, substrate, sheen);
                         throughput = throughput * response / Max(previousPdf, 0.00000001);
                         if (Dot3(throughput, throughput) == 0.0) {
                             active = false;

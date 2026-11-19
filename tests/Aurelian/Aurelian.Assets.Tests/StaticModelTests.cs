@@ -12,6 +12,77 @@ public sealed class StaticModelTests
 {
     private static string Asset(string name) => Path.Combine(AppContext.BaseDirectory, "Assets", name);
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SheenImportsOverClearcoatAndReportsUnsupportedTextures(bool textured)
+    {
+        using var files = new TemporaryAssets();
+        byte[] source = Mutate(File.ReadAllBytes(Asset("crate.glb")), json =>
+        {
+            const string fuzzExtension = "KHR_materials_sheen";
+            const string coatExtension = "KHR_materials_clearcoat";
+            json["extensionsUsed"] = new JsonArray(fuzzExtension, coatExtension);
+            json["extensionsRequired"] = new JsonArray(fuzzExtension, coatExtension);
+            var sheen = new JsonObject { ["sheenColorFactor"] = new JsonArray(.13f, .48f, .91f), ["sheenRoughnessFactor"] = .57f };
+            if (textured)
+            {
+                sheen["sheenRoughnessTexture"] = new JsonObject { ["index"] = 0 };
+            }
+            json["materials"]![0]!["extensions"] = new JsonObject
+            {
+                [fuzzExtension] = sheen,
+                [coatExtension] = new JsonObject { ["clearcoatFactor"] = .31f, ["clearcoatRoughnessFactor"] = .19f },
+            };
+        });
+        File.WriteAllBytes(files.ModelPath, source);
+        var result = GlbModelImporter.Load("fabric", files.ModelPath);
+        if (textured)
+        {
+            Assert.False(result.Success);
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("AUR-SHEEN-003", StringComparison.Ordinal));
+            return;
+        }
+        Assert.True(result.Success, ModelAssetCatalog.Describe(result.Diagnostics));
+        var material = result.Model!.Occurrences.First(item => item.Primitive.Material.Slot == "panel").Primitive.Material;
+        Assert.NotNull(material.Sheen);
+        Assert.Equal(.91f, material.Sheen.Weight);
+        Assert.Equal(.57f, material.Sheen.Roughness);
+        Assert.True(Vector3.Distance(new(.13f, .48f, .91f), material.Sheen.Color * material.Sheen.Weight) < .000001f);
+        Assert.Equal(new Clearcoat3D(.31f, .19f), material.Clearcoat);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ClearcoatImportsConstantFactorsAndDiagnosesUnsupportedTextures(bool textured)
+    {
+        using var files = new TemporaryAssets();
+        byte[] source = Mutate(File.ReadAllBytes(Asset("crate.glb")), json =>
+        {
+            const string extension = "KHR_materials_clearcoat";
+            json["extensionsUsed"] = new JsonArray(extension);
+            json["extensionsRequired"] = new JsonArray(extension);
+            var coat = new JsonObject { ["clearcoatFactor"] = .73f, ["clearcoatRoughnessFactor"] = .12f };
+            if (textured)
+            {
+                coat["clearcoatNormalTexture"] = new JsonObject { ["index"] = 0 };
+            }
+            json["materials"]![0]!["extensions"] = new JsonObject { [extension] = coat };
+        });
+        File.WriteAllBytes(files.ModelPath, source);
+        var result = GlbModelImporter.Load("coated-crate", files.ModelPath);
+        if (textured)
+        {
+            Assert.False(result.Success);
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("AUR-COAT-003", StringComparison.Ordinal));
+            return;
+        }
+        Assert.True(result.Success, ModelAssetCatalog.Describe(result.Diagnostics));
+        ModelMaterial material = result.Model!.Occurrences.First(item => item.Primitive.Material.Slot == "panel").Primitive.Material;
+        Assert.Equal(new Clearcoat3D(.73f, .12f, 1.5f), material.Clearcoat);
+    }
+
     [Fact]
     public void TransmissionVolumeAndIorImportWithExplicitWorldUnits()
     {

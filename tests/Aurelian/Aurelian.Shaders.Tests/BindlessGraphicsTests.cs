@@ -25,7 +25,7 @@ public sealed class BindlessGraphicsTests
             Assert.Equal(VdMirGraphicsModule.GraphicsTablesM1FeatureLevel, module.FeatureLevel);
             var program = CompiledGraphicsProgramExporter.Export(module, backend);
             Assert.Equal(4096, program.Resources.Single(resource => resource.Name == "textures").DescriptorCount);
-            Assert.Equal(128, program.Resources.Single(resource => resource.Name == "materials").StorageLayout!.Stride);
+            Assert.Equal(144, program.Resources.Single(resource => resource.Name == "materials").StorageLayout!.Stride);
             Assert.Contains("NonUniform", backend.Pixel.SpirvDisassembly);
         }
     }

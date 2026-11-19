@@ -103,7 +103,8 @@ public sealed unsafe partial class VulkanSolid3DRenderer
                     NativeSrgbTransfer.Decode(clearColor.Blue), clearColor.Alpha))
         {
             AdditionalClearColors = motionOutput ? [new VulkanColorClearValue(0, 0, 1, 1),
-            .. surfaceOnly ? new[] { new VulkanColorClearValue(0, 1, 0, 0), new VulkanColorClearValue(0, 0, 0, 1), new VulkanColorClearValue(0, 0, 0, 0) } : []] : []
+            .. surfaceOnly ? new[] { new VulkanColorClearValue(0, 1, 0, 0), new VulkanColorClearValue(0, 0, 0, 1),
+                new VulkanColorClearValue(0, 0, 0, 0), new VulkanColorClearValue(0, 0, 0, 0) } : []] : []
         });
         Require(begin.Success, "3D render pass begin failed.");
         DescriptorSet set = descriptorSet;

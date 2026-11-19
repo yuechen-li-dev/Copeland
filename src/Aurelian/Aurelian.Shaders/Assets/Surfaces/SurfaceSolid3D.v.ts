@@ -52,6 +52,7 @@ stream SolidOutput {
     @target(2) normal: float4;
     @target(3) emission: float4;
     @target(4) subsurface: float4;
+    @target(5) sheen: float4;
 }
 function ProjectRow(row: float4, p: WorldPosition3): f32 {
     return row.x * p.x + row.y * p.y + row.z * p.z + row.w;
@@ -85,5 +86,6 @@ function PixelMain(input: SolidVaryings, resources: CameraResources): SolidOutpu
         normal: float4(n.x, n.y, n.z, resources.camera.surface.y),
         emission: float4(0.0, 0.0, 0.0, flag),
         subsurface: float4(0.0, 0.0, 0.0, 0.0),
+        sheen: float4(0.0, 0.0, 0.0, 0.0),
     };
 }

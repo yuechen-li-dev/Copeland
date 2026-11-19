@@ -50,6 +50,18 @@ if (args.Contains("--rendering-r7-low-light", StringComparer.Ordinal))
     return;
 }
 
+if (args.Contains("--rendering-r8-coat", StringComparer.Ordinal))
+{
+    RenderingClearcoatProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r8-coat"));
+    return;
+}
+
+if (args.Contains("--rendering-r8-sheen", StringComparer.Ordinal))
+{
+    RenderingClearcoatProof.RunSheen(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r8-sheen"));
+    return;
+}
+
 if (args.Contains("--rendering-r6", StringComparer.Ordinal))
 {
     RenderingR3Proof.RunResolutionScaling(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r6"));

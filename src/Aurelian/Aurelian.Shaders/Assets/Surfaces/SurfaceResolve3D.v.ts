@@ -1,6 +1,8 @@
 import { EmitterSample3D, SampleLocalEmitter } from "./LocalEmitter3D";
-import { WorldAt, EnvironmentResponse, EnvironmentSurfaceResponseWeighted, EnvironmentDiffuse, EnvironmentDiffuseWeighted, MaskAllows, BoxReflection, LocalAttenuation } from "./SurfaceLighting";
-import { Unit, Sub3, Add3, Scale3, Mul3, Dot3, DirectLightModel, DirectDiffuseModel, HemisphereLight, SpecularFresnel, ShadowVisibility, PlaneShadowVisibility, LimitRadiance } from "./Lighting3D";
+import { WorldAt, Band, EncodeOcta, PrefilteredEnvironment, EnvironmentSurfaceResponseWeighted, EnvironmentDiffuse, EnvironmentDiffuseWeighted, MaskAllows, BoxReflection, LocalAttenuation } from "./SurfaceLighting";
+import { Unit, Sub3, Add3, Scale3, Mul3, Dot3, DirectDiffuseModel, HemisphereLight, SpecularFresnel, ShadowVisibility, PlaneShadowVisibility, LimitRadiance } from "./Lighting3D";
+import { CoatLayer, CoatSubstrate, CoatLookup, CoatBase, OpenPbrCoat, CoatSpecular, CoatTransmission } from "./OpenPbrCoat3D";
+import { SheenLayer, OpenPbrSheen, SheenAxis, SheenPdf, LayeredLightResponse } from "./OpenPbrSheen3D";
 import { CompiledDiffuse } from "./CompiledDiffuseLighting";
 
 @space(clip.position)
@@ -84,6 +86,8 @@ stream Resources {
     @binding(31) rayVisibility: Texture2D<float4>;
     @binding(32) rayVisibilitySampler: Sampler;
     @binding(33) reflection: Texture2D<float4>;
+    @binding(34) coatAlbedo: Texture2D<float4>;
+    @binding(35) sheen: Texture2D<float4>;
 }
 stream Input { @location(0) position: float2; }
 stream Varyings {
@@ -171,8 +175,22 @@ function PixelMain(input: Varyings, resources: Resources): Output {
     let light: float3 = Unit(float3(resources.material.light.x, resources.material.light.y, resources.material.light.z));
     let sun: float3 = float3(resources.material.sun.x, resources.material.sun.y, resources.material.sun.z);
     let visibility: f32 = DirectionalVisibility(resources, p, normal);
-    var direct: float3 = Scale3(Mul3(DirectLightModel(base, normal, view, light, n.w, material.w, resources.material.ground.w), sun), resources.material.sun.w * visibility);
     let profile: float4 = Sample(resources.subsurface, resources.subsurfaceSampler, input.uv);
+    var coat: CoatLayer = OpenPbrCoat(profile, float2(0.0, 0.0));
+    var substrate: CoatSubstrate = CoatBase(base, n.w, 0.04, float2(0.0, 0.0));
+    var sheen: SheenLayer = OpenPbrSheen(0.0, float4(0.0, 0.0, 0.0, 0.0), normal, view);
+    if (profile.w < -1.0) {
+        let nv: f32 = Dot3(normal, view);
+        if (coat.weight > 0.0) { coat = OpenPbrCoat(profile, CoatCoefficients(resources, nv, profile.y)); }
+        if (profile.z > 0.0) {
+            sheen = OpenPbrSheen(profile.z, Sample(resources.sheen, resources.subsurfaceSampler, input.uv), normal, view);
+        }
+        substrate = CoatBase(base, n.w, 0.04, CoatCoefficients(resources, nv, material.w));
+    }
+    let transmission: f32 = CoatTransmission(coat);
+    let stackTransmission: f32 = transmission * (1.0 - sheen.budget);
+    var direct: float3 = Scale3(Mul3(LayeredLightResponse(base, normal, view, light, n.w, material.w,
+        0.04, resources.material.ground.w, coat, substrate, sheen), sun), resources.material.sun.w * visibility);
     var diffuseDirect: float3 = float3(0.0, 0.0, 0.0);
     var diffuseAmbient: float3 = float3(0.0, 0.0, 0.0);
     if (profile.w > 0.0) {
@@ -194,6 +212,12 @@ function PixelMain(input: Varyings, resources: Resources): Output {
         let diffuseHemisphere: float3 = Scale3(Mul3(base, Add3(Scale3(sky, blend), Scale3(ground, 1.0 - blend))), 1.0 - n.w);
         ambient = Add3(Scale3(ambient, 1.0 - reflectionWeight), Scale3(diffuseHemisphere, reflectionWeight));
     }
+    if ((coat.weight > 0.0 || sheen.active) && resources.material.parameters.y < 0.5) {
+        let mirror: float3 = Sub3(Scale3(normal, 2.0 * Max(Dot3(normal, view), 0.0)), view);
+        let spread: float3 = Add3(Scale3(mirror, 1.0 - material.w), Scale3(normal, material.w));
+        ambient = CoatedAmbientBase(base, n.w, substrate.albedo, HemisphereGradient(normal, sky, ground),
+            HemisphereGradient(spread, sky, ground), 1.0, 1.0 - reflectionWeight);
+    }
     if (resources.material.parameters.y > 0.5) {
         let reflected: float3 = BoxReflection(p, Sub3(Scale3(normal, 2.0 * Max(Dot3(normal, view), 0.0)), view),
             resources.material.probePosition, resources.material.probeBounds);
@@ -205,11 +229,16 @@ function PixelMain(input: Varyings, resources: Resources): Output {
         }
         let nv: f32 = Max(Dot3(normal, view), 0.0001);
         ambient = float3(0.0, 0.0, 0.0);
-        if (reflectionWeight < 1.0) {
+        if (coat.weight > 0.0 || sheen.active) {
+            let diffuseRadiance: float3 = Band(resources.environment, resources.environmentSampler, EncodeOcta(normal), 6.0);
+            let specularRadiance: float3 = PrefilteredEnvironment(resources.environment, resources.environmentSampler, EncodeOcta(reflected), material.w);
+            ambient = Scale3(CoatedAmbientBase(base, n.w, substrate.albedo, diffuseRadiance, specularRadiance,
+                diffuseWeight, 1.0 - reflectionWeight), resources.material.parameters.z);
+        } else if (reflectionWeight < 1.0) {
             ambient = Scale3(EnvironmentSurfaceResponseWeighted(resources.environment, resources.environmentSampler, base, normal, reflected,
                 nv, n.w, material.w, 0.04, diffuseWeight), resources.material.parameters.z * (1.0 - reflectionWeight));
         }
-        if (reflectionWeight > 0.0) {
+        if (coat.weight <= 0.0 && !sheen.active && reflectionWeight > 0.0) {
             ambient = Add3(ambient, Scale3(EnvironmentDiffuseWeighted(resources.environment, resources.environmentSampler, base, normal,
                 nv, n.w, material.w, diffuseWeight), resources.material.parameters.z * reflectionWeight));
         }
@@ -226,6 +255,14 @@ function PixelMain(input: Varyings, resources: Resources): Output {
             ambient = Mul3(base, float3(response.x, response.y, response.z));
             diffuseDirect = direct;
             diffuseAmbient = ambient;
+            if (coat.weight > 0.0) {
+                let coatSun: f32 = CoatSpecular(coat, normal, view, light) * resources.material.sun.w * visibility;
+                direct = Add3(Scale3(direct, transmission), Scale3(sun, coatSun));
+            }
+            if (sheen.active) {
+                let fuzzSun: f32 = sheen.budget * SheenPdf(sheen, normal, light) * resources.material.sun.w * visibility;
+                direct = Add3(Scale3(direct, 1.0 - sheen.budget), Scale3(Mul3(sun, sheen.tint), fuzzSun));
+            }
         }
     }
     var stochasticTail: float3 = float3(0.0, 0.0, 0.0);
@@ -264,7 +301,7 @@ function PixelMain(input: Varyings, resources: Resources): Output {
                         diffuseDirect = Add3(diffuseDirect, Scale3(Mul3(DirectDiffuseModel(base, normal, view, direction, n.w, material.w, resources.material.ground.w),
                             float3(color.x, color.y, color.z)), color.w * attenuation));
                     }
-                    let contribution: float3 = Scale3(Mul3(DirectLightModel(base, normal, view, direction, n.w, material.w, resources.material.ground.w),
+                    let contribution: float3 = Scale3(Mul3(LayeredLightResponse(base, normal, view, direction, n.w, material.w, 0.04, resources.material.ground.w, coat, substrate, sheen),
                         float3(color.x, color.y, color.z)), color.w * attenuation);
                     if (sample >= exactCount) { stochasticTail = Add3(stochasticTail, contribution); }
                     if (sample < exactCount || resources.material.surfaceTexels.w < 5.5) {
@@ -303,13 +340,28 @@ function PixelMain(input: Varyings, resources: Resources): Output {
                                 diffuseDirect = Add3(diffuseDirect, Scale3(Mul3(DirectDiffuseModel(base, normal, view, direction, n.w, material.w, resources.material.ground.w),
                                     float3(color.x, color.y, color.z)), color.w * attenuation));
                             }
-                            direct = Add3(direct, Scale3(Mul3(DirectLightModel(base, normal, view, direction, n.w, material.w, resources.material.ground.w),
+                            direct = Add3(direct, Scale3(Mul3(LayeredLightResponse(base, normal, view, direction, n.w, material.w, 0.04, resources.material.ground.w, coat, substrate, sheen),
                                 float3(color.x, color.y, color.z)), color.w * attenuation));
                         }
                     }
                 }
             }
         }
+    }
+    if (coat.weight > 0.0) {
+        ambient = Add3(Scale3(ambient, transmission), CoatEnvironment(resources, p, normal, view, sky, ground, coat));
+    }
+    if (sheen.active) {
+        let axis: float3 = SheenAxis(sheen, normal);
+        var radiance: float3 = HemisphereGradient(axis, sky, ground);
+        // The constant environment is exact. Directional HDR uses the existing
+        // prefiltered atlas as an approximation of the warped-cosine integral.
+        if (resources.material.parameters.y > 0.5) {
+            let reflected: float3 = BoxReflection(p, axis, resources.material.probePosition, resources.material.probeBounds);
+            radiance = Scale3(PrefilteredEnvironment(resources.environment, resources.environmentSampler, EncodeOcta(reflected), sheen.roughness),
+                resources.material.parameters.z);
+        }
+        ambient = Add3(Scale3(ambient, 1.0 - sheen.budget), Scale3(Mul3(sheen.tint, radiance), sheen.budget));
     }
     let indirect: float3 = Scale3(ambient, emission.w * Occlusion(resources, input.uv, p));
     var bounce: float3 = float3(0.0, 0.0, 0.0);
@@ -318,15 +370,16 @@ function PixelMain(input: Varyings, resources: Resources): Output {
     if (resources.material.probePosition.w > 0.5) {
         let gi: float4 = Sample(resources.diffuse, resources.diffuseSampler, input.uv);
         bounce = Scale3(Mul3(base, float3(gi.x, gi.y, gi.z)), (1.0 - n.w) * 0.96);
+        if (coat.weight > 0.0 || sheen.active) { bounce = Scale3(bounce, stackTransmission); }
     }
     var lit: float3 = Add3(Add3(Add3(direct, indirect), emitted), bounce);
     if (reflection.w > 0.0) {
         let fresnel: float3 = SpecularFresnel(base, n.w, Max(Dot3(normal, view), 0.0));
-        lit = Add3(lit, Scale3(Mul3(float3(reflection.x, reflection.y, reflection.z), fresnel), reflection.w));
+        lit = Add3(lit, Scale3(Mul3(float3(reflection.x, reflection.y, reflection.z), fresnel), reflection.w * stackTransmission));
     }
     if (reflection.w < 0.0) {
         // The GGX estimator already includes the sample's Fresnel and visibility.
-        lit = Add3(lit, Scale3(float3(reflection.x, reflection.y, reflection.z), reflectionWeight));
+        lit = Add3(lit, Scale3(float3(reflection.x, reflection.y, reflection.z), reflectionWeight * stackTransmission));
     }
     let diffuse: float3 = Add3(bounce, Add3(diffuseDirect, Scale3(diffuseAmbient, emission.w * Occlusion(resources, input.uv, p))));
     return {
@@ -334,6 +387,36 @@ function PixelMain(input: Varyings, resources: Resources): Output {
         color: LimitRadiance(float4(lit.x, lit.y, lit.z, 1.0)),
         diffuse: LimitRadiance(float4(diffuse.x, diffuse.y, diffuse.z, 1.0)),
     };
+}
+
+function CoatCoefficients(resources: Resources, nv: f32, roughness: f32): float2 {
+    let uv: float2 = CoatLookup(nv, roughness);
+    let sample: float4 = Sample(resources.coatAlbedo, resources.environmentSampler,
+        float2((uv.x * 63.0 + 0.5) / 64.0, (uv.y * 63.0 + 0.5) / 64.0));
+    return float2(sample.x, sample.y);
+}
+
+function HemisphereGradient(direction: float3, sky: float3, ground: float3): float3 {
+    let blend: f32 = Clamp(direction.y * 0.5 + 0.5, 0.0, 1.0);
+    return Add3(Scale3(sky, blend), Scale3(ground, 1.0 - blend));
+}
+
+function CoatedAmbientBase(base: float3, metallic: f32, specular: float3, diffuseRadiance: float3,
+    specularRadiance: float3, diffuseWeight: f32, specularWeight: f32): float3 {
+    let diffuse: float3 = Scale3(Mul3(base, Sub3(float3(1.0, 1.0, 1.0), specular)), (1.0 - metallic) * diffuseWeight);
+    return Add3(Mul3(diffuse, diffuseRadiance), Scale3(Mul3(specular, specularRadiance), specularWeight));
+}
+
+function CoatEnvironment(resources: Resources, position: float3, normal: float3, view: float3,
+    sky: float3, ground: float3, coat: CoatLayer): float3 {
+    let mirror: float3 = Sub3(Scale3(normal, 2.0 * Max(Dot3(normal, view), 0.0)), view);
+    if (resources.material.parameters.y > 0.5) {
+        let direction: float3 = BoxReflection(position, mirror, resources.material.probePosition, resources.material.probeBounds);
+        return Scale3(PrefilteredEnvironment(resources.environment, resources.environmentSampler, EncodeOcta(direction), coat.roughness),
+            coat.weight * coat.albedo * resources.material.parameters.z);
+    }
+    let scattered: float3 = Add3(Scale3(mirror, 1.0 - coat.roughness), Scale3(normal, coat.roughness));
+    return Scale3(HemisphereGradient(scattered, sky, ground), coat.weight * coat.albedo);
 }
 
 enum ShadowSource {

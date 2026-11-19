@@ -78,7 +78,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
         this.frames = frames;
         Validate(program, weightedTransparency, refraction);
         temporal = program.VertexInputs.Count == 6;
-        surfaceOnly = program.PixelTargets.Count == 5;
+        surfaceOnly = program.PixelTargets.Count == 6;
         refractive = refraction;
         transparent = weightedTransparency;
         resourceCount = program.Resources.Count;
@@ -169,6 +169,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
         {
             Surface surface = GetSurface(material);
             ModelMaterial m = material;
+            Vector4 sheen = surfaceOnly ? PackSheen(m) : default;
             float[] data = [clip.M11, clip.M21, clip.M31, clip.M41, clip.M12, clip.M22, clip.M32, clip.M42,
                 clip.M13, clip.M23, clip.M33, clip.M43, clip.M14, clip.M24, clip.M34, clip.M44,
                 eye.X, eye.Y, eye.Z, 1, m.BaseColor.X, m.BaseColor.Y, m.BaseColor.Z, m.BaseColor.W,
@@ -183,18 +184,22 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
                 .. refractive ? Water3DUniforms.Profile(m.Water) : [],
                 .. refractive ? additionalUniforms[124..160] : [],
                 .. refractive ? Water3DUniforms.Waves(m.Water) : [],
-                .. refractive ? additionalUniforms[160..] : []];
+                .. refractive ? additionalUniforms[160..] : [],
+                .. surfaceOnly ? new float[] { sheen.X, sheen.Y, sheen.Z, sheen.W } : []];
             if (surfaceOnly)
             {
                 // SurfaceModel has an explicit profile in the same packed slot
                 // that forward-only shaders use for ground ambient radiance.
-                data[48] = m.SubsurfaceColor.X * m.SubsurfaceStrength;
-                data[49] = m.SubsurfaceColor.Y * m.SubsurfaceStrength;
-                data[50] = m.SubsurfaceColor.Z * m.SubsurfaceStrength;
-                data[51] = m.SubsurfaceStrength > 0 ? m.SubsurfaceRadius : 0;
+                var profile = PackSurfaceProfile(m);
+                data[48] = profile.X;
+                data[49] = profile.Y;
+                data[50] = profile.Z;
+                data[51] = profile.W;
             }
-            if (!surfaceOnly && !transparent && !refractive && (m.AlphaBlend || m.SubsurfaceStrength > 0 || m.Transmission > 0))
-                throw new InvalidOperationException("Blend and subsurface materials require the shared surface renderer.");
+            if (!surfaceOnly && !transparent && !refractive
+                && (m.AlphaBlend || m.SubsurfaceStrength > 0 || m.Transmission > 0
+                    || m.Clearcoat is { Active: true } || m.Sheen is { Active: true }))
+                throw new InvalidOperationException("Blend, subsurface and layered materials require the shared surface renderer.");
             if (transparent || refractive)
             {
                 for (int index = 0; index < additionalInputs.Length; index++)
@@ -446,7 +451,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
     {
         string[] fields = ["clipX", "clipY", "clipZ", "clipW", "eye", "baseColor", "factors", "emissiveAlpha", "flags", "light", "sun", "sky", "ground",
             "shadowX", "shadowY", "shadowZ", "shadowW", "shadowParameters"];
-        if (program.PixelTargets.Count == 5) fields[12] = "subsurfaceProfile";
+        if (program.PixelTargets.Count == 6) fields[12] = "subsurfaceProfile";
         string[] inputs = ["float3", "float3", "float4", "float2", "float4"];
         bool temporal = program.VertexInputs.Count == 6;
         if (temporal)
@@ -454,6 +459,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
             fields = [.. fields, "previousX", "previousY", "previousZ", "previousW"];
             inputs = [.. inputs, "float3"];
         }
+        if (program.PixelTargets.Count == 6) fields = [.. fields, "sheen"];
         if (transparent || refractive)
         {
             fields = [.. fields, "cascadeMidX", "cascadeMidY", "cascadeMidZ", "cascadeMidW",
@@ -469,13 +475,13 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
                     .. Enumerable.Range(0, 8).SelectMany(index => new[] { $"impulse{index}", $"impulse{index}Behavior" })];
         }
         bool valid = program.Material is { Binding: 0, Set: 0 } material && material.Size == fields.Length * 16
-            && (refractive ? program.PixelTargets.Count == 3 : transparent ? program.PixelTargets.Count == 2 : program.PixelTargets.Count is 1 or 2 or 5)
+            && (refractive ? program.PixelTargets.Count == 3 : transparent ? program.PixelTargets.Count == 2 : program.PixelTargets.Count is 1 or 2 or 6)
             && material.Fields.Select(item => item.Name).SequenceEqual(fields)
             && material.Fields.All(item => item.PhysicalType == "float4")
             && material.Fields.Select(item => item.Offset).SequenceEqual(Enumerable.Range(0, fields.Length).Select(index => index * 16))
             && program.VertexInputs.OrderBy(item => item.Location).Select(item => item.PhysicalType).SequenceEqual(inputs)
             && program.VertexInputs.Select(item => item.Location).Order().SequenceEqual(Enumerable.Range(0, inputs.Length))
-            && program.Resources.Count == (refractive ? 33 : transparent ? 29 : program.PixelTargets.Count == 5 ? 11 : 13);
+            && program.Resources.Count == (refractive ? 33 : transparent ? 29 : program.PixelTargets.Count == 6 ? 11 : 13);
         foreach (CompiledGraphicsResource resource in program.Resources)
         {
             CompiledGraphicsResourceKind kind = CompiledGraphicsResourceKind.Sampler;
@@ -530,5 +536,24 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
     }
 
     private static bool Finite(Vector3 value) => float.IsFinite(value.X) && float.IsFinite(value.Y) && float.IsFinite(value.Z);
+    internal static Vector4 PackSurfaceProfile(ModelMaterial material)
+    {
+        // A negative tag selects outer layers. Positive W carries the diffusion radius.
+        float sheenWeight = material.Sheen?.Weight ?? 0;
+        if (material.Clearcoat is { Active: true } coat)
+        {
+            return new(coat.Weight, coat.Roughness, sheenWeight, -coat.IndexOfRefraction);
+        }
+        if (sheenWeight > 0)
+        {
+            return new(0, 0, sheenWeight, -4);
+        }
+        return new(material.SubsurfaceColor * material.SubsurfaceStrength,
+            material.SubsurfaceStrength > 0 ? material.SubsurfaceRadius : 0);
+    }
+
+    internal static Vector4 PackSheen(ModelMaterial material)
+        => material.Sheen is { Active: true } sheen ? new(sheen.Color, sheen.Roughness) : Vector4.Zero;
+
     private static bool Finite(Vector4 value) => float.IsFinite(value.X) && float.IsFinite(value.Y) && float.IsFinite(value.Z) && float.IsFinite(value.W);
 }
