@@ -105,6 +105,10 @@ def evaluate(manifest_path):
     elif manifest.get("Qualification") in ("probe-reflection-experiment", "screen-reflection-experiment"):
         if len(results) < 4:
             raise ValueError("Reflection comparison is missing captures")
+    elif manifest.get("Qualification") == "ocular-glare":
+        for specimen in ("point-321x181-50", "point-640x360-38", "point-640x360-72"):
+            if means[f"{specimen}-ocular"] >= means[f"{specimen}-bloom"]:
+                raise ValueError(f"Ocular scattering failed the photopic reference FLIP control for {specimen}")
     elif manifest.get("Qualification") == "resolution-scaling":
         for scale in ("two-thirds", "half"):
             for scene in ("thin-static", "thin-motion"):

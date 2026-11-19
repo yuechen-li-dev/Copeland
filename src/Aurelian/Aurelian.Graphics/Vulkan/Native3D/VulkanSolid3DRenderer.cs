@@ -74,6 +74,9 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
     private readonly AurelianVulkanTexture? motion;
     private readonly VulkanTemporal3D? temporal;
     private readonly VulkanBloom3D? bloom;
+    private readonly VulkanOcularGlare3D? ocularGlare;
+    private AurelianVulkanTexture? lastOpticalColor;
+    private AurelianVulkanTexture? lastBloomColor;
     private AurelianVulkanBuffer? previousGpu;
     private AurelianVulkanBuffer? lastGpuSource;
     private Native3DVertex[] previousGeometry = [];
@@ -134,7 +137,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         CompiledGraphicsProgram? bloomProgram = null,
         SurfaceLightingPrograms? surfacePrograms = null, RetainedModel3DPrograms? retainedPrograms = null, FramePlanOptions? framePlans = null,
         bool preserveColor = false, RenderScale3D renderScale = RenderScale3D.Native,
-        EyeExposurePrograms? eyeExposurePrograms = null)
+        EyeExposurePrograms? eyeExposurePrograms = null, CompiledGraphicsProgram? ocularGlareProgram = null)
     {
         ArgumentNullException.ThrowIfNull(plant);
         ArgumentNullException.ThrowIfNull(program);
@@ -164,6 +167,10 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         {
             throw new ArgumentException("Eye exposure requires the bloom-aware HDR output contract.", nameof(eyeExposurePrograms));
         }
+        if (ocularGlareProgram is not null && outputProgram is null)
+        {
+            throw new ArgumentException("Ocular glare requires HDR world output.", nameof(ocularGlareProgram));
+        }
         if (temporalProgram is not null && (!motionOutput || outputProgram is null || modelProgram?.VertexInputs.Count == 5))
             throw new ArgumentException("Temporal resolve requires HDR output and motion-capable geometry shaders.");
         Settings = Graphics3DSettings.Default with
@@ -192,7 +199,8 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
                     .. surfaceOnly ? new[] { "ambient-occlusion", "local-light-culling", "surface-lighting", "local-shadows", "subsurface-diffusion", "atmosphere", "transparency", "refraction", "particles-update", "visibility-cull", "visibility-raster",
                         "hzb-seed-depth", "hzb-seed-pyramid", "hzb-final-cull", "hzb-history-pyramid", "sharp-reflections",
                         "glossy-reflection-reconstruction" } : [],
-                    .. eyeExposurePrograms is null ? Array.Empty<string>() : ["eye-exposure"]], frames);
+                    .. eyeExposurePrograms is null ? Array.Empty<string>() : ["eye-exposure"],
+                    .. ocularGlareProgram is null ? Array.Empty<string>() : ["ocular-glare"]], frames);
                 hdr = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, RenderWidth, RenderHeight,
                     VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferSource,
                     VulkanMemoryUsage.GpuOnly, "solid3d.hdr", VulkanTextureFormat.Rgba16Float);
@@ -241,6 +249,10 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             {
                 if (!outputHasBloom || hdr is null) throw new ArgumentException("Bloom requires the HDR bloom-aware output shader.");
                 bloom = new(plant, allocator, bloomProgram, target.Width, target.Height, frames);
+            }
+            if (ocularGlareProgram is not null)
+            {
+                ocularGlare = new(plant, allocator, ocularGlareProgram, target.Width, target.Height, frames);
             }
             if (surfacePrograms is not null)
             {
@@ -468,6 +480,8 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             lightDirection, temporalRevision, lightingRevision, waterFrame, useWaterReflection, sourceInstances);
         FramePlan plan = GetFramePlan(state);
         var execution = ExecutePlan(plan, state, capture);
+        lastOpticalColor = state.Resolved;
+        lastBloomColor = state.Glow;
         if (state.Settings.EyeExposure is not null) eyeState!.RecordStep();
         long recordedAt = execution.RecordedAt;
         long submittedAt = execution.SubmittedAt;
@@ -582,6 +596,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
                 Exposure = 1,
                 EyeExposure = null,
                 BloomIntensity = 0,
+                OcularGlare = null,
                 AntiAliasing = AntiAliasing3D.None,
             };
         }
@@ -594,7 +609,10 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         if (useTemporal && temporal is null) throw new InvalidOperationException("Temporal AA requires TemporalResolve3D at renderer creation.");
         if (useTemporal && gpuGeometry is not null && (gpuGeometry.Buffer.Usage & VulkanBufferUsage.TransferSource) == 0)
             throw new InvalidOperationException("Temporal GPU geometry requires TransferSource usage to retain previous positions without readback.");
-        if (settings.BloomIntensity > 0 && bloom is null) throw new InvalidOperationException("Bloom requires Bloom3D at renderer creation.");
+        if (settings.OcularGlare is null && settings.BloomIntensity > 0 && bloom is null)
+            throw new InvalidOperationException("Bloom requires Bloom3D at renderer creation.");
+        if (settings.OcularGlare is { Strength: > 0 } && ocularGlare is null)
+            throw new InvalidOperationException("Ocular glare requires OcularGlare3D at renderer creation.");
         var modelKeys = models.Select(model => (model.TemporalIdentity, model.Vertices.Length, model.Material)).ToArray();
         var resident = sourceInstances as NativeInstanceSet3D;
         bool hasAnalytic = resident?.HasAnalytic ?? sourceInstances.Any(instance => instance.Mesh.PrimitiveKind != AnalyticPrimitiveKind3D.Triangles);
@@ -855,7 +873,21 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
     {
         if (eyeState is not { Valid: true }) throw new InvalidOperationException("No adaptive exposure frame has been recorded.");
         float[] exposure = Vulkan3DQualificationReadback.ReadBuffer(plant, frames, eyeState.Buffer);
-        return new(exposure[0], exposure[1], exposure[2], exposure[3]);
+        return new(exposure[0], exposure[1], exposure[2], exposure[3]) { AdaptedLogLuminance = exposure[4] };
+    }
+
+    /// <summary>Read transfer-readable RGBA16F output after optical scattering, plus the separate legacy bloom texture when present.</summary>
+    public (ReferenceImage3D Color, ReferenceImage3D? Bloom) ReadOpticalOutputForQualification()
+    {
+        if (lastOpticalColor is null)
+            throw new InvalidOperationException("No HDR optical output has been rendered.");
+        if ((lastOpticalColor.Usage & VulkanTextureUsage.TransferSource) == 0)
+            throw new NotSupportedException("The active optical output does not support qualification readback.");
+        var color = Vulkan3DQualificationReadback.ReadTexture(plant, frames, lastOpticalColor);
+        var glow = lastBloomColor is not null && !ReferenceEquals(lastBloomColor, lastOpticalColor)
+            ? Vulkan3DQualificationReadback.ReadTexture(plant, frames, lastBloomColor)
+            : null;
+        return (color, glow);
     }
 
     private void InvalidateSurfaceHistory()
@@ -1041,6 +1073,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         surfaceLighting?.Dispose();
         temporal?.Dispose();
         bloom?.Dispose();
+        ocularGlare?.Dispose();
         foreach (var buffer in previousVertexFrames) buffer?.Dispose();
         previousGpu?.Dispose();
         motion?.Dispose();

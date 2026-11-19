@@ -14,7 +14,10 @@ using Silk.NET.Vulkan;
 namespace Aurelian.Graphics.Vulkan.Native3D;
 
 public sealed record EyeExposurePrograms(byte[] Histogram, byte[] Adapt, CompiledGraphicsProgram Output, VulkanEyeExposureState3D State);
-public readonly record struct EyeExposureMeasurement(float AppliedEv, float TargetEv, float MeteredLogLuminance, float MeterWeight);
+public readonly record struct EyeExposureMeasurement(float AppliedEv, float TargetEv, float MeteredLogLuminance, float MeterWeight)
+{
+    public float AdaptedLogLuminance { get; init; }
+}
 
 /// <summary>One GPU-resident adaptation state per view, shared by all its render scales.</summary>
 public sealed class VulkanEyeExposureState3D : IDisposable
@@ -28,7 +31,7 @@ public sealed class VulkanEyeExposureState3D : IDisposable
     {
         Plant = plant;
         allocator = new(plant);
-        var allocation = VulkanBufferFactory.Create(plant, allocator, new(plant.Context.Id, 16,
+        var allocation = VulkanBufferFactory.Create(plant, allocator, new(plant.Context.Id, 32,
             VulkanBufferUsage.Storage | VulkanBufferUsage.TransferSource, VulkanMemoryUsage.GpuOnly, "eye.exposure"));
         if (!allocation.Success)
         {

@@ -87,7 +87,9 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
 
     private static void Validate(CompiledGraphicsProgram program, bool shadow, bool sampled, bool exposure)
     {
-        string[] fields = shadow ? ["clipX", "clipY", "clipZ", "clipW"] : ["parameters"];
+        string[] fields = ["parameters"];
+        if (shadow) fields = ["clipX", "clipY", "clipZ", "clipW"];
+        else if (exposure) fields = ["parameters", "lowLight"];
         var material = program.Material;
         bool resourceCountMatches = program.Resources.Count is 3 or 5;
         if (shadow)
@@ -210,7 +212,8 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
         }
     }
 
-    internal static Sampler CreateSampler(AurelianVulkanPlant plant, Filter filter)
+    internal static Sampler CreateSampler(AurelianVulkanPlant plant, Filter filter,
+        SamplerAddressMode address = SamplerAddressMode.ClampToEdge)
     {
         SamplerCreateInfo info = new()
         {
@@ -218,9 +221,10 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
             MagFilter = filter,
             MinFilter = filter,
             MipmapMode = SamplerMipmapMode.Nearest,
-            AddressModeU = SamplerAddressMode.ClampToEdge,
-            AddressModeV = SamplerAddressMode.ClampToEdge,
-            AddressModeW = SamplerAddressMode.ClampToEdge,
+            AddressModeU = address,
+            AddressModeV = address,
+            AddressModeW = address,
+            BorderColor = BorderColor.FloatTransparentBlack,
             MaxLod = 0,
         };
         Require(plant.Vk.CreateSampler(plant.Device, &info, null, out Sampler sampler) == Result.Success, "3D sampler creation failed.");

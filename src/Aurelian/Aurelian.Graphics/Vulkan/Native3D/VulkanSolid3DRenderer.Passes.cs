@@ -208,6 +208,14 @@ public sealed unsafe partial class VulkanSolid3DRenderer
         gpuTimings?.Mark(command, query + 1);
     }
 
+    private void RecordOcularGlare(VulkanCommandBufferLease command, FrameState state)
+    {
+        uint query = (uint)GlareTimingIndex * 2;
+        gpuTimings?.Mark(command, query);
+        state.Resolved = ocularGlare!.Record(command, outputVertices!, state.Resolved!, state.LogicalCamera, state.Settings.OcularGlare!);
+        gpuTimings?.Mark(command, query + 1);
+    }
+
     private void RecordOutput(VulkanCommandBufferLease command, FrameState state)
     {
         var settings = state.Settings;
@@ -217,14 +225,22 @@ public sealed unsafe partial class VulkanSolid3DRenderer
         if (displayPass is not null)
         {
             Vulkan3DPass.SampleAfterRendering(plant, command, state.Resolved!);
-            if (outputHasBloom || ScaledOutput)
+            if (outputHasBloom || ScaledOutput || ocularGlare is not null)
                 displayPass.SetOutputTextures(state.Resolved!, outputHasBloom ? state.Glow ?? state.Resolved! : null);
             bool encodeSrgb = target.TextureFormat is not (VulkanTextureFormat.Rgba8Srgb or VulkanTextureFormat.Bgra8Srgb);
             float toneControl = settings.ToneMapping
                 ? 1 + settings.ToneMapColorRetention + (settings.ToneMapGamutCompression ? 2 : 0)
                 : 0;
-            displayPass.Upload([settings.Exposure, toneControl,
-                encodeSrgb ? 1 : 0, settings.BloomIntensity]);
+            float bloomIntensity = settings.OcularGlare is null ? settings.BloomIntensity : 0;
+            if (settings.EyeExposure is { } eye)
+            {
+                displayPass.Upload([settings.Exposure, toneControl, encodeSrgb ? 1 : 0, bloomIntensity,
+                    eye.LowLight?.Strength ?? 0, eye.LowLight?.PhotopicLuminance ?? 1, 0, 0]);
+            }
+            else
+            {
+                displayPass.Upload([settings.Exposure, toneControl, encodeSrgb ? 1 : 0, bloomIntensity]);
+            }
             var outputBegin = encoder.Begin(plant, command, new(displayPass.Pass, displayPass.Framebuffer, new(0, 0, 0, 1)));
             Require(outputBegin.Success, "Tone mapping pass begin failed.");
             displayPass.Draw(command, outputBegin.Scope!.Value, outputVertices!, 3);

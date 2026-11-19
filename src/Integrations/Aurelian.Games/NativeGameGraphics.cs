@@ -109,6 +109,7 @@ public sealed class NativeGameGraphics : IDisposable
     private RenderScale3D renderScale;
     private readonly Dictionary<RenderScale3D, WorldRenderer> worldRenderers = [];
     private readonly EyeExposurePrograms? eyeExposurePrograms;
+    private readonly Aurelian.Rendering.Contracts.Shaders.CompiledGraphicsProgram? ocularGlareProgram;
     private WorldRenderer ActiveWorld => worldRenderers[renderScale];
     private long? firstResolutionSubmission;
     private long lastResolutionSample;
@@ -127,7 +128,7 @@ public sealed class NativeGameGraphics : IDisposable
 
     public NativeGameGraphics(IWindow window, string title, bool visible, GameAssets? assets = null, bool enableRayQueries = false,
         bool vSync = true, bool enableFramesInFlight = true, RenderScale3D renderScale = RenderScale3D.Native,
-        double? dynamicGpuBudgetMilliseconds = null, bool enableEyeExposure = false)
+        double? dynamicGpuBudgetMilliseconds = null, bool enableEyeExposure = false, bool enableOcularGlare = false)
     {
         assets ??= new();
         this.assets = assets;
@@ -175,6 +176,10 @@ public sealed class NativeGameGraphics : IDisposable
                 throw new InvalidOperationException(string.Join("; ", initialized.Diagnostics.Select(item => item.Message)));
             }
             Plant = Own(initialized.Plant!);
+            if (enableOcularGlare)
+            {
+                ocularGlareProgram = assets.Shader("OcularGlare3D.v.ts");
+            }
             if (enableEyeExposure)
             {
                 eyeExposurePrograms = new(assets.ComputeShader("EyeHistogram3D.v.ts"), assets.ComputeShader("EyeAdapt3D.v.ts"),
@@ -400,7 +405,7 @@ public sealed class NativeGameGraphics : IDisposable
             ? FormattableString.Invariant($" BudgetMs={policy.BudgetMilliseconds:F2} GpuMs={policy.SmoothedGpuMilliseconds:F2} Switches={ResolutionScaleChanges} Samples={policy.AcceptedSamples}")
             : "";
         return $"World:\n{world}\nViewmodel:\n{foreground}\nRenderScale={renderScale} Raster={Renderer.RenderWidth}x{Renderer.RenderHeight}{resolution}\nAdaptiveQuality={EnableAdaptiveVisibility} "
-            + $"Hzb={Renderer.EnableHierarchicalZ} LodPixelError={Renderer.LodPixelError}\nVisibilityCosts={costs}";
+            + $"Hzb={Renderer.EnableHierarchicalZ} LodPixelError={Renderer.LodPixelError}\nLowLightVision={Renderer.Settings.EyeExposure?.LowLight is { Strength: > 0 }}\nVisibilityCosts={costs}";
     }
 
     public static void WritePng(string path, int width, int height, byte[] pixels)
@@ -638,7 +643,7 @@ public sealed class NativeGameGraphics : IDisposable
                     HybridResolve = assets.Shader("HybridResolve3D.v.ts"),
                 },
                 HierarchicalZ = new(assets.ComputeShader("HzbCull3D.v.ts"), assets.ComputeShader("HzbReduce3D.v.ts")),
-            }, renderScale: scale, eyeExposurePrograms: eyeExposurePrograms)
+            }, renderScale: scale, eyeExposurePrograms: eyeExposurePrograms, ocularGlareProgram: ocularGlareProgram)
         {
             FrameMode = enableFramesInFlight ? Native3DFrameMode.Interactive : Native3DFrameMode.Capture,
         };

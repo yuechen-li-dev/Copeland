@@ -33,11 +33,20 @@ function EyeAdaptMain(@builtin(groupIndex) lane: u32,
     let metered: f32 = sum / Max(high - low, 0.000001);
     let target: f32 = Clamp(gain.x - metered, gain.y, gain.z);
     var adapted: f32 = target;
+    var adaptedLuminance: f32 = metered;
     if (timing.w < 0.5) {
         let previous: f32 = Exposure[0].x;
         var tau: f32 = meter.w;
         if (target < previous) { tau = meter.z; }
         adapted = Clamp(previous + (target - previous) * (1.0 - Exp(-timing.z / tau)), gain.y, gain.z);
+
+        // Track retinal adaptation in scene units even when display gain has reached a limit.
+        let previousLuminance: f32 = Exposure[1].x;
+        var luminanceTau: f32 = meter.w;
+        if (metered > previousLuminance) { luminanceTau = meter.z; }
+        adaptedLuminance = previousLuminance + (metered - previousLuminance)
+            * (1.0 - Exp(-timing.z / luminanceTau));
     }
     Exposure[0] = float4(adapted, target, metered, total);
+    Exposure[1] = float4(adaptedLuminance, 0.0, 0.0, 0.0);
 }

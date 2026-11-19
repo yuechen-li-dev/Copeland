@@ -33,7 +33,7 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
     public VulkanPostProcess3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
         CompiledGraphicsProgram program, AurelianVulkanTexture output, int inputCount, Filter filter = Filter.Linear,
         AurelianVulkanTexture? secondOutput = null, VulkanFrameInFlightSet? frames = null,
-        AurelianVulkanTexture? thirdOutput = null)
+        AurelianVulkanTexture? thirdOutput = null, SamplerAddressMode address = SamplerAddressMode.ClampToEdge)
     {
         this.plant = plant;
         this.inputCount = inputCount;
@@ -76,8 +76,8 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
             pipeline = Own(created.Pipeline!);
             bindings = Own(new Vulkan3DFrameBindings(plant, allocator, layout,
                 program.Material!.Size, (uint)inputCount, frames));
-            sampler = Vulkan3DPass.CreateSampler(plant, filter);
-            linearSampler = Vulkan3DPass.CreateSampler(plant, Filter.Linear);
+            sampler = Vulkan3DPass.CreateSampler(plant, filter, address);
+            linearSampler = Vulkan3DPass.CreateSampler(plant, Filter.Linear, address);
         }
         catch
         {

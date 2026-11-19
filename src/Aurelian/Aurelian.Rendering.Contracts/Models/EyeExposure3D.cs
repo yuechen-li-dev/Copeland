@@ -15,9 +15,11 @@ public sealed record EyeExposure3D
     public Vector2 MeterCenter { get; init; } = new(.5f);
     public float MeterRadius { get; init; } = .5f;
     public float PeripheralWeight { get; init; } = .1f;
+    public LowLightVision3D? LowLight { get; init; }
 
     internal void Validate()
     {
+        LowLight?.Validate();
         if (!InRange(CompensationEv, -12, 12)
             || !InRange(MinimumEv, -12, 12) || !InRange(MaximumEv, MinimumEv, 12)
             || !InRange(BrightTimeConstant, .01f, 120) || !InRange(DarkTimeConstant, .01f, 120)

@@ -176,23 +176,7 @@ internal static partial class RenderingR3Proof
         const int width = 960;
         const int height = 540;
         using var game = new BeaconGame();
-        var scene = new BeaconResidentScene3D().Build(game, includeViewmodel: false);
-        var box = scene.Instances.First(instance => instance.Mesh.Identity == "beacon/unit-box").Mesh;
-        var walls = new ModelMaterial("r7/meter-room") { BaseColor = new(.1f, .13f, .14f, 1), DoubleSided = true };
-        var floor = new ModelMaterial("r7/meter-floor") { BaseColor = new(.065f, .085f, .09f, 1), DoubleSided = true };
-        SceneInstance3D Room(string name, Vector3 center, Vector3 halfSize, ModelMaterial material)
-            => new("r7/" + name, box, material, Matrix4x4.CreateScale(halfSize) * Matrix4x4.CreateTranslation(center));
-        scene = scene with
-        {
-            Instances = new NativeInstanceSet3D([
-                .. scene.Instances,
-                Room("left", new(-1.4f, 1.2f, 9), new(.10f, 1.2f, 2.25f), walls),
-                Room("right", new(1.4f, 1.2f, 9), new(.10f, 1.2f, 2.25f), walls),
-                Room("roof", new(0, 2.45f, 9), new(1.5f, .1f, 2.25f), walls),
-                Room("back", new(0, 1.2f, 11.2f), new(1.5f, 1.2f, .1f), walls),
-                Room("floor", new(0, .04f, 9), new(1.5f, .04f, 2.2f), floor),
-            ]),
-        };
+        var scene = BuildEyeRoom(game);
         using var target = new VulkanNativeFrameTarget(plant, width, height);
         using var renderer = RenderingBindlessProof.CreateRenderer(plant, assets, target, eyeExposure: programs);
         renderer.EnableVisibilityBuffer = true;
@@ -265,13 +249,37 @@ internal static partial class RenderingR3Proof
         return sum / count;
     }
 
+    private static Native3DScene BuildEyeRoom(BeaconGame game)
+    {
+        var scene = new BeaconResidentScene3D().Build(game, includeViewmodel: false);
+        var box = scene.Instances.First(instance => instance.Mesh.Identity == "beacon/unit-box").Mesh;
+        var walls = new ModelMaterial("r7/meter-room") { BaseColor = new(.1f, .13f, .14f, 1), DoubleSided = true };
+        var floor = new ModelMaterial("r7/meter-floor") { BaseColor = new(.065f, .085f, .09f, 1), DoubleSided = true };
+        SceneInstance3D Room(string name, Vector3 center, Vector3 halfSize, ModelMaterial material)
+            => new("r7/" + name, box, material, Matrix4x4.CreateScale(halfSize) * Matrix4x4.CreateTranslation(center));
+        return scene with
+        {
+            Instances = new NativeInstanceSet3D([
+                .. scene.Instances,
+                Room("left", new(-1.4f, 1.2f, 9), new(.10f, 1.2f, 2.25f), walls),
+                Room("right", new(1.4f, 1.2f, 9), new(.10f, 1.2f, 2.25f), walls),
+                Room("roof", new(0, 2.45f, 9), new(1.5f, .1f, 2.25f), walls),
+                Room("back", new(0, 1.2f, 11.2f), new(1.5f, 1.2f, .1f), walls),
+                Room("floor", new(0, .04f, 9), new(1.5f, .04f, 2.2f), floor),
+            ]),
+        };
+    }
+
     private static Native3DVertex[] EyeRectangle(float left, float right, float linearLuminance)
+        => EyeRectangle(left, right, new Vector3(linearLuminance));
+
+    private static Native3DVertex[] EyeRectangle(float left, float right, Vector3 rgb)
     {
         Vector3 a = new(left, -1, .5f);
         Vector3 b = new(right, -1, .5f);
         Vector3 c = new(right, 1, .5f);
         Vector3 d = new(left, 1, .5f);
-        Vector4 color = new(linearLuminance, linearLuminance, linearLuminance, 1);
+        Vector4 color = new(rgb, 1);
         return new[] { a, b, c, a, c, d }.Select(vertex => new Native3DVertex(vertex, Vector3.UnitZ, color)).ToArray();
     }
 }

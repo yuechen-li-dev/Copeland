@@ -250,7 +250,70 @@ internal static class RainNightDemo
         }
     }
 
-    private static VulkanSolid3DRenderer CreateRenderer(AurelianVulkanPlant plant, VulkanNativeFrameTarget target, GameAssets assets)
+    internal static object CompareLowLight(AurelianVulkanPlant plant, GameAssets assets, EyeExposurePrograms eye, string output)
+    {
+        using var authored = SceneCompiler.Compile(CreateStreet(out _)).Mount();
+        var scene = AtTime(SceneGeometry3D.BuildScene(authored.Project()) with
+        {
+            WaterReflection = new(PuddleHeight),
+        }, 3.65f);
+        using var target = new VulkanNativeFrameTarget(plant, Width, Height);
+        using var particles = new VulkanParticles3D(plant, assets.ComputeShader("Particles3D.v.ts"),
+            maximumEmitters: 2, particlesPerEmitter: 8192);
+        using var renderer = CreateRenderer(plant, target, assets, eye);
+        Configure(renderer, particles);
+        renderer.ParticleEmitters = Rain(3.65f);
+        var authoredGrade = renderer.Settings with { AntiAliasing = AntiAliasing3D.Temporal };
+        var fixedGain = new EyeExposure3D { MinimumEv = 0, MaximumEv = 0 };
+        var camera = Camera(Eye, Width, Height);
+        var neutralAmbient = authoredGrade with
+        {
+            SunColor = Neutral(authoredGrade.SunColor),
+            SkyAmbient = Neutral(authoredGrade.SkyAmbient),
+            GroundAmbient = Neutral(authoredGrade.GroundAmbient),
+            Fog = authoredGrade.Fog with { Color = Neutral(authoredGrade.Fog.Color) },
+            Volumetrics = authoredGrade.Volumetrics with { AmbientRadiance = Neutral(authoredGrade.Volumetrics.AmbientRadiance) },
+        };
+        var candidates = new (string Name, Graphics3DSettings Grade, EyeExposure3D? Profile)[]
+        {
+            ("authored", authoredGrade, null), ("fixed-exposure", authoredGrade, fixedGain),
+            ("subtle", authoredGrade, fixedGain with { LowLight = new() { Strength = .35f } }),
+            ("rod-cone", authoredGrade, fixedGain with { LowLight = new() }),
+            ("full", authoredGrade, fixedGain with { LowLight = new() { Strength = 1 } }),
+            ("neutral-ambient", neutralAmbient, fixedGain),
+            ("neutral-ambient-rod-cone", neutralAmbient, fixedGain with { LowLight = new() }),
+        };
+        var results = new List<object>();
+        string? authoredHash = null;
+        foreach (var (name, grade, profile) in candidates)
+        {
+            renderer.Settings = grade with { EyeExposure = profile };
+            renderer.ResetTemporalHistory();
+            for (int frame = 0; frame < 12; frame++)
+            {
+                renderer.Render(scene, camera, Eye, Clear);
+            }
+            var result = renderer.Render(scene, camera, Eye, Clear, capture: true);
+            NativeGameGraphics.WritePng(Path.Combine(output, $"wet-night-{name}.png"), Width, Height, result.Pixels!);
+            if (profile is null)
+            {
+                authoredHash = result.PixelSha256;
+            }
+            else if (name == "fixed-exposure")
+            {
+                Require(result.PixelSha256 == authoredHash, "Fixed eye gain changed the authored Wet Night control.");
+            }
+            var meter = profile is null ? (EyeExposureMeasurement?)null : renderer.ReadEyeExposureForQualification();
+            results.Add(new { Name = name, Profile = profile?.LowLight, Meter = meter, PixelSha256 = result.PixelSha256 });
+        }
+        return new { Width, Height, ComparedAtFixedExposure = true, Results = results };
+
+        static Vector3 Neutral(Vector3 color)
+            => new(Vector3.Dot(color, new Vector3(.2126f, .7152f, .0722f)));
+    }
+
+    private static VulkanSolid3DRenderer CreateRenderer(AurelianVulkanPlant plant, VulkanNativeFrameTarget target, GameAssets assets,
+        EyeExposurePrograms? eye = null)
     {
         return new(plant, assets.Shader("SurfaceSolid3D.v.ts"), target,
             modelProgram: assets.Shader("SurfaceModel3D.v.ts"), shadowProgram: assets.Shader("Shadow3D.v.ts"),
@@ -269,7 +332,7 @@ internal static class RainNightDemo
                 TransparentModel = assets.Shader("TransparentModel3D.v.ts"),
                 TransparencyResolve = assets.Shader("TransparencyResolve3D.v.ts"),
                 ParticleBillboards = assets.Shader("ParticleBillboard3D.v.ts"),
-            });
+            }, eyeExposurePrograms: eye);
     }
 
     private static void Configure(VulkanSolid3DRenderer renderer, VulkanParticles3D particles)

@@ -7,7 +7,7 @@ internal enum Native3DPass
     Uploads, Particles, DirectionalShadows, LocalShadows, Geometry, AmbientOcclusion, LightTiles,
     SurfaceResolve, Subsurface, Atmosphere, Refraction, Transparency, Temporal, Bloom, Output, HistoryCopy,
     RayShadows, Visibility, IdentityRaster, HzbSeedRaster, HzbSeedPyramid, HzbFinalCull, HzbHistoryPyramid, Reflections,
-    ReflectionReconstruction, EyeExposure,
+    ReflectionReconstruction, EyeExposure, OcularGlare,
 }
 
 internal readonly record struct Native3DFeatures(bool Surface, bool Modern, bool Motion, bool Shadows,
@@ -15,7 +15,7 @@ internal readonly record struct Native3DFeatures(bool Surface, bool Modern, bool
     bool Refraction, bool Transparency, bool Particles, bool AsyncParticles, bool GpuHistory,
     int LocalShadows, bool Alias, bool Visibility = false, bool VisibilityBuffer = false, bool HierarchicalZ = false, bool RayShadows = false,
     bool PreserveColor = false, bool Reflections = false, bool ReflectionReconstruction = false, bool ReflectionGuide = false,
-    bool EyeExposure = false);
+    bool EyeExposure = false, bool OcularGlare = false);
 
 /// <summary>Declarative authoring for the production renderer. The compiler publishes only resolved data.</summary>
 internal static class Native3DFrameGraph
@@ -237,11 +237,19 @@ internal static class Native3DFrameGraph
             scene = temporal;
         }
         FrameResource? exposure = null;
+        FramePassBuilder? eyeMeter = null;
         if (features.EyeExposure)
         {
             exposure = graph.Resource("eye-exposure-state", "buffer", 1, 1, FrameLifetime.History, initialized: true);
-            graph.Pass("eye-exposure", (int)Native3DPass.EyeExposure).Read(scene).Write(exposure, FrameAccess.HistoryReadWrite);
+            eyeMeter = graph.Pass("eye-exposure", (int)Native3DPass.EyeExposure).Read(scene).Write(exposure, FrameAccess.HistoryReadWrite);
             graph.Export(exposure);
+        }
+        if (features.OcularGlare)
+        {
+            var scattered = graph.Resource("ocular-glare-color", "rgba16f", outputWidth, outputHeight, dedicated: true);
+            var scatter = graph.Pass("ocular-glare", (int)Native3DPass.OcularGlare).Read(scene).Write(scattered);
+            if (eyeMeter is not null) scatter.DependsOn(eyeMeter);
+            scene = scattered;
         }
         FrameResource? glow = null;
         if (features.Bloom)

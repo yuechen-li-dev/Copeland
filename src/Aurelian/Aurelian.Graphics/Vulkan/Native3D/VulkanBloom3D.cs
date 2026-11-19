@@ -27,7 +27,7 @@ internal sealed class VulkanBloom3D : IDisposable
                 width = Math.Max(width / 2, 1);
                 height = Math.Max(height / 2, 1);
                 var image = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, width, height,
-                    VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource, VulkanMemoryUsage.GpuOnly,
+                    VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferSource, VulkanMemoryUsage.GpuOnly,
                     "bloom.down", VulkanTextureFormat.Rgba16Float);
                 down.Add(image);
                 downPasses.Add(new(plant, allocator, program, image, 2, frames: frames));
@@ -36,7 +36,7 @@ internal sealed class VulkanBloom3D : IDisposable
             for (int level = 0; level < down.Count - 1; level++)
             {
                 var image = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, down[level].Width, down[level].Height,
-                    VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource, VulkanMemoryUsage.GpuOnly,
+                    VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferSource, VulkanMemoryUsage.GpuOnly,
                     "bloom.up", VulkanTextureFormat.Rgba16Float);
                 up.Add(image);
                 upPasses.Add(new(plant, allocator, program, image, 2, frames: frames));

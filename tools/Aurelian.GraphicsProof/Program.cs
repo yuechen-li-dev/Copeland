@@ -32,9 +32,21 @@ if (args.Contains("--viewmodel", StringComparer.Ordinal))
     return;
 }
 
+if (args.Contains("--rendering-r7-glare", StringComparer.Ordinal))
+{
+    RenderingR3Proof.RunOcularGlare(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r7-glare"));
+    return;
+}
+
 if (args.Contains("--rendering-r7-eye", StringComparer.Ordinal))
 {
     RenderingR3Proof.RunEyeExposure(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r7-eye"));
+    return;
+}
+
+if (args.Contains("--rendering-r7-low-light", StringComparer.Ordinal))
+{
+    RenderingR3Proof.RunLowLightVision(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r7-low-light"));
     return;
 }
 

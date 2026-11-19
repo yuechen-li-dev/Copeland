@@ -63,6 +63,8 @@ public sealed record Graphics3DSettings
     public float BloomIntensity { get; init; } = .08f;
     public float BloomThreshold { get; init; } = 1;
     public float BloomKnee { get; init; } = .5f;
+    /// <summary>When set, use ocular scattering for the HDR optical pass.</summary>
+    public OcularGlare3D? OcularGlare { get; init; }
     public float AmbientOcclusionStrength { get; init; }
     public float AmbientOcclusionRadius { get; init; } = .8f;
     public SurfaceDebugView3D SurfaceDebugView { get; init; }
@@ -111,6 +113,7 @@ public sealed record Graphics3DSettings
         ArgumentNullException.ThrowIfNull(Volumetrics);
         Volumetrics.Validate();
         EyeExposure?.Validate();
+        OcularGlare?.Validate();
         if (!Enum.IsDefined(AntiAliasing) || !Enum.IsDefined(SurfaceDebugView) || !Enum.IsDefined(DirectDiffuseModel)
             || !Enum.IsDefined(GlossyReflections)
             || !Range(TemporalHistoryWeight, 0, .95f) || !Range(BloomIntensity, 0, 1)

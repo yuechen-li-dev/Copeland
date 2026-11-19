@@ -82,7 +82,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
         var features = new Native3DFeatures(surfaceOnly, outputPass is not null, motionOutput, shadowPass is not null,
             !planOptions.OptimizeInactivePasses || state.Settings.AmbientOcclusionStrength > 0,
             !planOptions.OptimizeInactivePasses || state.Settings.LocalLightCulling && LocalLights.Count > 0,
-            state.UseTemporal || ScaledOutput, state.Settings.BloomIntensity > 0, shaded && state.HasSubsurface,
+            state.UseTemporal || ScaledOutput, state.Settings.OcularGlare is null && state.Settings.BloomIntensity > 0, shaded && state.HasSubsurface,
             shaded && state.Settings.Fog.Density > 0, state.Settings.Volumetrics.Enabled,
             shaded && state.HasRefraction, shaded && state.HasTransparency, shaded && state.HasParticles,
             planOptions.AsyncParticleUpdates && plant.ComputeQueue.HasValue, state.UseTemporal && state.GpuGeometry is not null,
@@ -90,7 +90,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
             retainedModels?.VisibilityBufferActive == true, retainedModels?.HierarchicalZActive == true, surfaceLighting?.RayShadowsActive == true,
             preserveColor, surfaceLighting?.ReflectionsActive == true,
             surfaceLighting is { ReflectionsActive: true, ReconstructReflections: true }, surfaceLighting?.ReflectionGuideActive == true,
-            state.Settings.EyeExposure is not null);
+            state.Settings.EyeExposure is not null, state.Settings.OcularGlare is { Strength: > 0 });
         if (!framePlanCache.TryGetValue(features, out var plan))
         {
             plan = Native3DFrameGraph.Compile(features, (int)RenderWidth, (int)RenderHeight, (int)target.Width, (int)target.Height);
@@ -312,6 +312,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
             case Native3DPass.Temporal: RecordTemporal(command, state); break;
             case Native3DPass.Bloom: RecordBloom(command, state); break;
             case Native3DPass.EyeExposure: RecordEyeExposure(command, state); break;
+            case Native3DPass.OcularGlare: RecordOcularGlare(command, state); break;
             case Native3DPass.Output: RecordOutput(command, state); break;
             case Native3DPass.HistoryCopy: CopyPreviousGpu(command, state.GpuGeometry!); break;
             case Native3DPass.Visibility:
@@ -339,6 +340,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
     }
 
     private int EyeTimingIndex => surfaceOnly ? 22 : 5;
+    private int GlareTimingIndex => EyeTimingIndex + (eyeState is null ? 0 : 1);
 
     private int TimingIndex(Native3DPass pass) => pass switch
     {
@@ -349,7 +351,8 @@ public sealed unsafe partial class VulkanSolid3DRenderer
         Native3DPass.Refraction => 12, Native3DPass.Particles => 13, Native3DPass.Visibility => 14,
         Native3DPass.IdentityRaster => 15, Native3DPass.HzbSeedRaster => 16, Native3DPass.HzbSeedPyramid => 17,
         Native3DPass.HzbFinalCull => 18, Native3DPass.HzbHistoryPyramid => 19, Native3DPass.Reflections => 20,
-        Native3DPass.ReflectionReconstruction => 21, Native3DPass.EyeExposure => EyeTimingIndex, _ => -1,
+        Native3DPass.ReflectionReconstruction => 21, Native3DPass.EyeExposure => EyeTimingIndex,
+        Native3DPass.OcularGlare => GlareTimingIndex, _ => -1,
     };
 
     private void RecordMemoryBarrier(VulkanCommandBufferLease command, AccessFlags before, AccessFlags after)

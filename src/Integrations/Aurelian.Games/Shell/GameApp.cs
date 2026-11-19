@@ -29,6 +29,8 @@ public sealed record GameLaunchOptions
     public string? SaveRoot { get; init; }
     public bool RayQueries { get; init; }
     public bool EyeExposure { get; init; }
+    public bool LowLightVision { get; init; }
+    public bool OcularGlare { get; init; }
     public RenderScale3D RenderScale { get; init; }
     public double? DynamicGpuBudgetMilliseconds { get; init; }
     public GameResolution? Resolution { get; init; }
@@ -39,7 +41,8 @@ public sealed record GameLaunchOptions
 
     /// <summary>
     /// --headless, --playtest-script PATH, --playtest-stdio, --launch-smoke, --visible, --output DIR, --save-root DIR,
-    /// --gpu-rays, --eye-exposure, --resolution WxH, --render-scale native|2/3|1/2|dynamic, --gpu-budget-ms MS,
+    /// --gpu-rays, --eye-exposure, --low-light-vision, --ocular-glare, --resolution WxH,
+    /// --render-scale native|2/3|1/2|dynamic, --gpu-budget-ms MS,
     /// --windowed, --borderless, --fullscreen,
     /// --quality low|medium|high, --basic-graphics.
     /// Unknown arguments are ignored so games can add their own.
@@ -112,6 +115,8 @@ public sealed record GameLaunchOptions
             SaveRoot = Option(args, "--save-root"),
             RayQueries = args.Contains("--gpu-rays", StringComparer.Ordinal),
             EyeExposure = args.Contains("--eye-exposure", StringComparer.Ordinal),
+            LowLightVision = args.Contains("--low-light-vision", StringComparer.Ordinal),
+            OcularGlare = args.Contains("--ocular-glare", StringComparer.Ordinal),
             RenderScale = scale switch
             {
                 null or "native" or "dynamic" => RenderScale3D.Native,
@@ -231,11 +236,12 @@ public static class GameApp
         using var graphics = new NativeGameGraphics(window, manifest.Title, visible, session.Context.Assets,
             enableRayQueries: launch.RayQueries, vSync: initial.VSync, enableFramesInFlight: !launch.Playtest,
             renderScale: launch.RenderScale, dynamicGpuBudgetMilliseconds: launch.DynamicGpuBudgetMilliseconds,
-            enableEyeExposure: launch.EyeExposure || manifest.Graphics.EyeExposure is not null);
+            enableEyeExposure: launch.EyeExposure || launch.LowLightVision || manifest.Graphics.EyeExposure is not null,
+            enableOcularGlare: launch.OcularGlare || manifest.Graphics.OcularGlare is not null);
         var menus = new GameMenuView(graphics.Font);
         using var native = new NativeGameSession(session, window, input, graphics, menus,
             manageFocus: !launch.Playtest, retainedGeometry: !launch.Playtest);
-        var display = new WindowDisplay(window, graphics, manifest, native, launch.EyeExposure);
+        var display = new WindowDisplay(window, graphics, manifest, native, launch);
         session.Game.AttachGraphics(graphics);
         try
         {
@@ -293,7 +299,7 @@ public static class GameApp
 
     /// <summary>Window mode, resolution, vsync and quality for a Silk window and its Vulkan graphics.</summary>
     private sealed class WindowDisplay(IWindow window, NativeGameGraphics graphics, GameManifest manifest, NativeGameSession native,
-        bool eyeExposure)
+        GameLaunchOptions launch)
         : IGameDisplay
     {
         public IReadOnlyList<GameResolution> Resolutions
@@ -344,9 +350,17 @@ public static class GameApp
             }
             window.DoEvents();
             var world = settings.ApplyQuality(manifest.Graphics);
-            if (eyeExposure && world.EyeExposure is null)
+            if ((launch.EyeExposure || launch.LowLightVision) && world.EyeExposure is null)
             {
                 world = world with { EyeExposure = new() };
+            }
+            if (launch.LowLightVision && world.EyeExposure is { LowLight: null } eye)
+            {
+                world = world with { EyeExposure = eye with { LowLight = new() } };
+            }
+            if (launch.OcularGlare && world.OcularGlare is null)
+            {
+                world = world with { OcularGlare = new() };
             }
             graphics.Settings = world;
             graphics.EnableAdaptiveVisibility = settings.AdaptiveQuality;

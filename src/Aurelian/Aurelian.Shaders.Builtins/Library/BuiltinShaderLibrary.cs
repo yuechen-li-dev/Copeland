@@ -117,11 +117,13 @@ public static class BuiltinShaderLibrary
         new("WaterGeometry.v.ts", ShaderFamily.Transparency, ShaderSourceKind.Module),
 
         new("Bloom3D.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Graphics),
+        new("OcularGlare3D.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Graphics),
         new("TemporalGeometry.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Module),
         new("TemporalPolicy.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Module),
         new("TemporalResolve3D.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Graphics),
         new("ToneMap3D.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Graphics),
         new("ToneMapColor3D.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Module),
+        new("RodCone3D.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Module),
         new("EyeToneMap3D.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Graphics),
         new("EyeHistogram3D.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Compute),
         new("EyeAdapt3D.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Compute),
