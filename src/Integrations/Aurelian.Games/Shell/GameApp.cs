@@ -29,6 +29,7 @@ public sealed record GameLaunchOptions
     public string? SaveRoot { get; init; }
     public bool RayQueries { get; init; }
     public RenderScale3D RenderScale { get; init; }
+    public double? DynamicGpuBudgetMilliseconds { get; init; }
     public GameResolution? Resolution { get; init; }
     public GameWindowMode? Mode { get; init; }
     public GameGraphicsQuality? Quality { get; init; }
@@ -37,7 +38,8 @@ public sealed record GameLaunchOptions
 
     /// <summary>
     /// --headless, --playtest-script PATH, --playtest-stdio, --launch-smoke, --visible, --output DIR, --save-root DIR,
-    /// --gpu-rays, --resolution WxH, --render-scale native|2/3|1/2, --windowed, --borderless, --fullscreen,
+    /// --gpu-rays, --resolution WxH, --render-scale native|2/3|1/2|dynamic, --gpu-budget-ms MS,
+    /// --windowed, --borderless, --fullscreen,
     /// --quality low|medium|high, --basic-graphics.
     /// Unknown arguments are ignored so games can add their own.
     /// </summary>
@@ -79,6 +81,25 @@ public sealed record GameLaunchOptions
                 ? parsed
                 : throw new ArgumentException("--quality expects low, medium or high.");
         }
+        string? scale = Option(args, "--render-scale");
+        double? budget = null;
+        if (scale == "dynamic")
+        {
+            budget = 1000d / 60;
+        }
+        if (args.Contains("--gpu-budget-ms", StringComparer.Ordinal))
+        {
+            if (budget is null)
+            {
+                throw new ArgumentException("--gpu-budget-ms requires --render-scale dynamic.");
+            }
+            if (!double.TryParse(Option(args, "--gpu-budget-ms"), NumberStyles.Float, CultureInfo.InvariantCulture, out double milliseconds)
+                || !double.IsFinite(milliseconds) || milliseconds is < 1 or > 100)
+            {
+                throw new ArgumentException("--gpu-budget-ms expects a GPU frame budget between 1 and 100 ms.");
+            }
+            budget = milliseconds;
+        }
         var options = new GameLaunchOptions
         {
             Headless = args.Contains("--headless", StringComparer.Ordinal),
@@ -89,13 +110,14 @@ public sealed record GameLaunchOptions
             Output = Option(args, "--output"),
             SaveRoot = Option(args, "--save-root"),
             RayQueries = args.Contains("--gpu-rays", StringComparer.Ordinal),
-            RenderScale = Option(args, "--render-scale") switch
+            RenderScale = scale switch
             {
-                null or "native" => RenderScale3D.Native,
+                null or "native" or "dynamic" => RenderScale3D.Native,
                 "2/3" => RenderScale3D.TwoThirds,
                 "1/2" => RenderScale3D.Half,
-                _ => throw new ArgumentException("--render-scale expects native, 2/3 or 1/2."),
+                _ => throw new ArgumentException("--render-scale expects native, 2/3, 1/2 or dynamic."),
             },
+            DynamicGpuBudgetMilliseconds = budget,
             Resolution = resolution,
             Mode = mode,
             Quality = quality,
@@ -206,7 +228,7 @@ public static class GameApp
         using IInputContext input = window.CreateInput();
         using var graphics = new NativeGameGraphics(window, manifest.Title, visible, session.Context.Assets,
             enableRayQueries: launch.RayQueries, vSync: initial.VSync, enableFramesInFlight: !launch.Playtest,
-            renderScale: launch.RenderScale);
+            renderScale: launch.RenderScale, dynamicGpuBudgetMilliseconds: launch.DynamicGpuBudgetMilliseconds);
         var menus = new GameMenuView(graphics.Font);
         using var native = new NativeGameSession(session, window, input, graphics, menus,
             manageFocus: !launch.Playtest, retainedGeometry: !launch.Playtest);

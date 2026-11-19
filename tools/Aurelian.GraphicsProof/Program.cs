@@ -38,6 +38,12 @@ if (args.Contains("--rendering-r6", StringComparer.Ordinal))
     return;
 }
 
+if (args.Contains("--rendering-r6-dynamic", StringComparer.Ordinal))
+{
+    RenderingR3Proof.RunDynamicResolution(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r6-dynamic"));
+    return;
+}
+
 if (args.Contains("--rendering-r5d", StringComparer.Ordinal))
 {
     RenderingR3Proof.RunScreenReflections(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r5d"));

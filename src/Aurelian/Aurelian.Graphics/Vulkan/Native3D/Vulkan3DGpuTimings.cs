@@ -5,7 +5,19 @@ using Silk.NET.Vulkan;
 namespace Aurelian.Graphics.Vulkan.Native3D;
 
 public sealed record Native3DGpuPassTime(string Pass, double Milliseconds);
-public sealed record Native3DCompletedGpuFrame(long Sequence, ulong StartTicks, ulong EndTicks, float NanosecondsPerTick);
+public sealed record Native3DCompletedGpuFrame(long Sequence, ulong StartTicks, ulong EndTicks, float NanosecondsPerTick)
+{
+    public uint TimestampValidBits { get; init; } = 64;
+
+    public double ElapsedMilliseconds
+    {
+        get
+        {
+            ulong mask = TimestampValidBits >= 64 ? ulong.MaxValue : (1UL << (int)TimestampValidBits) - 1;
+            return (unchecked(EndTicks - StartTicks) & mask) * (double)NanosecondsPerTick / 1_000_000d;
+        }
+    }
+}
 
 /// <summary>Timestamp measurements for named sequential GPU passes; excludes CPU upload and readback.</summary>
 internal sealed unsafe class Vulkan3DGpuTimings : IDisposable
@@ -95,7 +107,7 @@ internal sealed unsafe class Vulkan3DGpuTimings : IDisposable
         {
             throw new InvalidOperationException("Completed frame timestamps were unavailable: " + result);
         }
-        return new(sequence.Value, values[0], values[1], period);
+        return new(sequence.Value, values[0], values[1], period) { TimestampValidBits = validBits };
     }
 
     public void Mark(VulkanCommandBufferLease command, uint index, PipelineStageFlags? stage = null)

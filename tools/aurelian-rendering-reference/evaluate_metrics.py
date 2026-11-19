@@ -113,6 +113,12 @@ def evaluate(manifest_path):
             for scene in ("particles", "glossy"):
                 if means[f"{scene}-{scale}-temporal"] > means[f"{scene}-{scale}-spatial"] * 1.02:
                     raise ValueError(f"Reactive scaling degraded FLIP for {scene} at {scale}")
+    elif manifest.get("Qualification") == "dynamic-resolution":
+        for dynamic, fixed in [("dynamic", "two-thirds"), ("dynamic-tight", "half")]:
+            if means[f"{dynamic}-heavy-repeat"] > means[f"{fixed}-heavy-repeat"] + .004:
+                raise ValueError(f"Adaptive capture degraded beyond its fixed-scale control: {dynamic}")
+            if means[f"{dynamic}-recovery-repeat"] > means["native-repeat-recovery-repeat"] + .002:
+                raise ValueError(f"Adaptive capture failed to restore native image quality: {dynamic}")
     elif manifest.get("Qualification") == "screen-reflection-bounds":
         if len(results) < 7 or any(value != 0 for value in means.values()):
             raise ValueError("Screen-assisted reflection captures differ from hardware")
