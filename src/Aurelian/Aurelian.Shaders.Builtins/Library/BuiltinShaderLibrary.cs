@@ -119,6 +119,8 @@ public static class BuiltinShaderLibrary
         new("RefractiveModel3D.v.ts", ShaderFamily.Transparency, ShaderSourceKind.Graphics),
         new("RefractionResolve3D.v.ts", ShaderFamily.Transparency, ShaderSourceKind.Graphics),
         new("WaterGeometry.v.ts", ShaderFamily.Transparency, ShaderSourceKind.Module),
+        new("OceanFft3D.v.ts", ShaderFamily.Transparency, ShaderSourceKind.Compute),
+        new("OceanFoam3D.v.ts", ShaderFamily.Transparency, ShaderSourceKind.Compute),
 
         new("Bloom3D.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Graphics),
         new("OcularGlare3D.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Graphics),

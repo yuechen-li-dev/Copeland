@@ -200,6 +200,17 @@ public sealed class ScenePlan
                 writer.Write(wave.Speed);
                 writer.Write(wave.Steepness);
             }
+            if (water.Ocean is { } ocean)
+            {
+                writer.Write("Aurelian.OceanSpectrum.v1");
+                writer.Write(ocean.TileLength);
+                writer.Write(ocean.Wind.X);
+                writer.Write(ocean.Wind.Y);
+                writer.Write(ocean.HeightDeviation);
+                writer.Write(ocean.Choppiness);
+                writer.Write(ocean.Seed);
+                writer.Write(water.CrestFoamStrength);
+            }
         }
     }
 

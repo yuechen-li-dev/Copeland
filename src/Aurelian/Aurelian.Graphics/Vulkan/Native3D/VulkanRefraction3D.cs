@@ -29,6 +29,8 @@ internal sealed class VulkanRefraction3D : IDisposable
     private readonly AurelianVulkanTexture output;
     private readonly AurelianVulkanTexture motion;
     private readonly VulkanTemporal3D? waterTemporal;
+    private readonly Func<VulkanOcean3D>? createOcean;
+    private VulkanOcean3D? ocean;
     private NativeModel3DBatch[] batches = [];
 
     public VulkanRefraction3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
@@ -64,6 +66,14 @@ internal sealed class VulkanRefraction3D : IDisposable
             {
                 waterTemporal = Own(new VulkanTemporal3D(plant, allocator, commands, fences, programs.WaterTemporal, width, height, frames));
             }
+            if (programs.Ocean is { } oceanPrograms)
+            {
+                createOcean = () =>
+                {
+                    var (fft, foam) = oceanPrograms();
+                    return Own(new VulkanOcean3D(plant, allocator, fft, foam));
+                };
+            }
         }
         catch
         {
@@ -89,13 +99,21 @@ internal sealed class VulkanRefraction3D : IDisposable
         float[] frame, AurelianVulkanTexture[] inputs, AurelianVulkanTexture unfogged, AurelianVulkanTexture background,
         WaterFrame3D waterFrame, float previousTime, Matrix4x4 previousClip, Matrix4x4 logicalClip,
         bool resetHistory, bool temporal, float historyWeight,
-        AurelianVulkanTexture? reflection, Matrix4x4 reflectionClip)
+        AurelianVulkanTexture? reflection, Matrix4x4 reflectionClip, OceanSpectrum3D? oceanProfile)
     {
         Matrix4x4.Invert(clip, out Matrix4x4 inverse);
         batches = source.Where(batch => batch.Material.Transmission > 0).ToArray();
+        AurelianVulkanTexture oceanAtlas = unfogged;
+        if (oceanProfile is not null)
+        {
+            ocean ??= createOcean?.Invoke()
+                ?? throw new NotSupportedException("AUR-WATER-012: Spectral water requires the ocean FFT and foam shaders.");
+            ocean.Record(command, oceanProfile, waterFrame.Time, previousTime);
+            oceanAtlas = ocean.Atlas;
+        }
         models.ConfigureTransparency([.. frame, .. Lighting3DUniforms.Rows(inverse),
             .. Water3DUniforms.Frame(waterFrame, previousTime, previousClip, reflectionClip, reflection is not null)],
-            [.. inputs, unfogged, reflection ?? unfogged]);
+            [.. inputs, unfogged, reflection ?? unfogged], oceanAtlas);
         models.Upload(batches, clip, eye, lighting, clip, true);
         var encoder = new VulkanRenderPassCommandEncoder();
         var begin = encoder.Begin(plant, command, new(pass, framebuffer, new(0, 0, 0, 0))
@@ -127,6 +145,9 @@ internal sealed class VulkanRefraction3D : IDisposable
         resolve.Record(command, triangle);
         return output;
     }
+
+    public (Vector2[] Coefficients, Vector4[] Surface, Vector4[] Displacement) ReadOcean(VulkanFrameInFlightSet frames) =>
+        (ocean ?? throw new InvalidOperationException("No ocean has been rendered.")).Read(frames);
 
     private T Own<T>(T resource) where T : IDisposable
     {

@@ -26,18 +26,7 @@ internal static class WaterGraphicsProof
         using var plant = initialization.Plant!;
         var assets = new GameAssets();
         using var target = new VulkanNativeFrameTarget(plant, Width, Height);
-        using var renderer = new VulkanSolid3DRenderer(plant, assets.Shader("SurfaceSolid3D.v.ts"), target,
-            modelProgram: assets.Shader("SurfaceModel3D.v.ts"), shadowProgram: assets.Shader("Shadow3D.v.ts"),
-            outputProgram: assets.Shader("ToneMap3D.v.ts"), temporalProgram: assets.Shader("TemporalResolve3D.v.ts"),
-            bloomProgram: assets.Shader("Bloom3D.v.ts"), surfacePrograms: new(
-                assets.Shader("SurfaceResolve3D.v.ts"), assets.Shader("AmbientOcclusion3D.v.ts"),
-                assets.Shader("AmbientDenoise3D.v.ts"), assets.Shader("LightTiles3D.v.ts"))
-            {
-                HeightFog = assets.Shader("HeightFog3D.v.ts"),
-                RefractiveModel = assets.Shader("RefractiveModel3D.v.ts"),
-                RefractionResolve = assets.Shader("RefractionResolve3D.v.ts"),
-                WaterTemporal = assets.Shader("TemporalResolve3D.v.ts"),
-            });
+        using var renderer = CreateRenderer(plant, target, assets);
         renderer.Environment = VulkanEnvironmentCompiler.Compile(plant, assets.Shader("EnvironmentCompile3D.v.ts"),
             128, 64, Sky());
         renderer.Settings = Graphics3DSettings.Default with
@@ -232,7 +221,22 @@ internal static class WaterGraphicsProof
         return Matrix4x4.CreateLookAt(eye, target, Vector3.UnitY) * projection;
     }
 
-    private static float[] Sky()
+    internal static VulkanSolid3DRenderer CreateRenderer(AurelianVulkanPlant plant, VulkanNativeFrameTarget target, GameAssets assets) =>
+        new(plant, assets.Shader("SurfaceSolid3D.v.ts"), target,
+            modelProgram: assets.Shader("SurfaceModel3D.v.ts"), shadowProgram: assets.Shader("Shadow3D.v.ts"),
+            outputProgram: assets.Shader("ToneMap3D.v.ts"), temporalProgram: assets.Shader("TemporalResolve3D.v.ts"),
+            bloomProgram: assets.Shader("Bloom3D.v.ts"), surfacePrograms: new(
+                assets.Shader("SurfaceResolve3D.v.ts"), assets.Shader("AmbientOcclusion3D.v.ts"),
+                assets.Shader("AmbientDenoise3D.v.ts"), assets.Shader("LightTiles3D.v.ts"))
+            {
+                HeightFog = assets.Shader("HeightFog3D.v.ts"),
+                RefractiveModel = assets.Shader("RefractiveModel3D.v.ts"),
+                RefractionResolve = assets.Shader("RefractionResolve3D.v.ts"),
+                WaterTemporal = assets.Shader("TemporalResolve3D.v.ts"),
+                Ocean = () => (assets.ComputeShader("OceanFft3D.v.ts"), assets.ComputeShader("OceanFoam3D.v.ts")),
+            });
+
+    internal static float[] Sky()
     {
         var values = new float[128 * 64 * 4];
         for (int y = 0; y < 64; y++)
@@ -268,7 +272,7 @@ internal static class WaterGraphicsProof
         return new(new("pool-checker", 32, 32, pixels.ToImmutableArray()), new());
     }
 
-    private static int Changed(byte[] a, byte[] b)
+    internal static int Changed(byte[] a, byte[] b)
     {
         int count = 0;
         for (int first = 0; first < a.Length; first += 4)
@@ -281,13 +285,13 @@ internal static class WaterGraphicsProof
         return count;
     }
 
-    private static object Distribution(List<double> values)
+    internal static object Distribution(List<double> values)
     {
         double[] sorted = values.Order().ToArray();
         return new { MedianMilliseconds = sorted[sorted.Length / 2], P95Milliseconds = sorted[(int)((sorted.Length - 1) * .95)] };
     }
 
-    private static void Require(bool accepted, string message)
+    internal static void Require(bool accepted, string message)
     {
         if (!accepted)
         {

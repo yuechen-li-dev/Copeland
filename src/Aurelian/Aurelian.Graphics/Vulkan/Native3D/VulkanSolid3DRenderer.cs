@@ -43,6 +43,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
     private readonly Func<PlanarWaterReflection3D, VulkanPlanarWaterReflection>? waterReflectionFactory;
     private VulkanPlanarWaterReflection? waterReflection;
     private float previousWaterTime;
+    private OceanSpectrum3D? previousOcean;
     private bool previousWaterReflection;
     private ImmutableArray<WaterImpulse3D> previousWaterImpulses = [];
     private ImmutableArray<SurfaceDecal3D> previousDecals = [];
@@ -523,6 +524,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         previousResidentSet = state.Instances as NativeInstanceSet3D;
         previousClip = worldToClip;
         previousWaterTime = waterFrame.Time;
+        previousOcean = state.Ocean;
         previousWaterReflection = useWaterReflection;
         previousWaterImpulses = waterFrame.Impulses;
         previousDecals = decals;
@@ -581,11 +583,21 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
         waterFrame ??= new();
         waterFrame.Validate();
         ValidateWater(models, eye);
+        OceanSpectrum3D? ocean = null;
+        foreach (var batch in models)
+        {
+            if (batch.Material.Water?.Ocean is not { } spectrum)
+                continue;
+            if (ocean is not null && ocean != spectrum)
+                throw new NotSupportedException("AUR-WATER-013: Water patches in a frame must share one ocean spectrum.");
+            ocean = spectrum;
+        }
         bool changedPastImpulses = previousWaterImpulses.Any(impulse =>
             impulse.StartedAt < previousWaterTime && previousWaterTime < impulse.StartedAt + impulse.Lifetime
             && !waterFrame.Impulses.Contains(impulse))
             || waterFrame.Impulses.Any(impulse => impulse.StartedAt < previousWaterTime && !previousWaterImpulses.Contains(impulse));
-        if (waterFrame.Time < previousWaterTime || useWaterReflection != previousWaterReflection || changedPastImpulses)
+        if (waterFrame.Time < previousWaterTime || useWaterReflection != previousWaterReflection || changedPastImpulses
+            || ocean != previousOcean)
         {
             InvalidateSurfaceHistory();
         }
@@ -885,6 +897,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             HasRefraction = hasRefraction,
             HasSubsurface = hasSubsurface,
             WaterFrame = waterFrame,
+            Ocean = ocean,
             UseWaterReflection = useWaterReflection,
             ModelKeys = modelKeys,
             InstanceKeys = instanceKeys,

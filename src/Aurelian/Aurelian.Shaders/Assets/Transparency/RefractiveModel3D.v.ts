@@ -1,4 +1,5 @@
-import { WaterDifferential, WindWave, AddWave, ImpactWave, WaterNormal, DetailNormal } from "./WaterGeometry";
+import { WaterDifferential, WindWave, AddWave, ImpactWave, WaterNormal, DetailNormal,
+    OceanCellAt, OceanSample, OceanDifferential, OceanDetailNormal, OceanFoamGrain } from "./WaterGeometry";
 import { EnvironmentSurfaceResponse, BoxReflection, ConeAttenuation, WorldAt, PrefilteredEnvironment, EncodeOcta } from "./SurfaceLighting";
 import { VolumeAt, ComposeVolume } from "./VolumeLighting";
 import { Fogged } from "./HeightFog";
@@ -147,6 +148,10 @@ stream Resources {
     @binding(32) planarSampler: Sampler;
 }
 
+stream OceanResources {
+    @binding(33) ocean: Texture2D<float4>;
+}
+
 stream ModelVaryings {
     @builtin(position) position: ClipPosition4;
     @location(0) world: float3;
@@ -172,10 +177,12 @@ function Row(row: float4, p: float3): f32 {
 }
 function WaterAt(p: float3, time: f32, material: StaticModelMaterial): WaterDifferential {
     var result: WaterDifferential = { offset: float3(0.0, 0.0, 0.0), dx: float3(0.0, 0.0, 0.0), dz: float3(0.0, 0.0, 0.0) };
-    result = AddWave(result, WindWave(p, time, material.wave0, material.wave0Behavior));
-    result = AddWave(result, WindWave(p, time, material.wave1, material.wave1Behavior));
-    result = AddWave(result, WindWave(p, time, material.wave2, material.wave2Behavior));
-    result = AddWave(result, WindWave(p, time, material.wave3, material.wave3Behavior));
+    if (material.waterDeep.w <= 0.0) {
+        result = AddWave(result, WindWave(p, time, material.wave0, material.wave0Behavior));
+        result = AddWave(result, WindWave(p, time, material.wave1, material.wave1Behavior));
+        result = AddWave(result, WindWave(p, time, material.wave2, material.wave2Behavior));
+        result = AddWave(result, WindWave(p, time, material.wave3, material.wave3Behavior));
+    }
     result = AddWave(result, ImpactWave(p, time, material.impulse0, material.impulse0Behavior));
     result = AddWave(result, ImpactWave(p, time, material.impulse1, material.impulse1Behavior));
     result = AddWave(result, ImpactWave(p, time, material.impulse2, material.impulse2Behavior));
@@ -187,16 +194,23 @@ function WaterAt(p: float3, time: f32, material: StaticModelMaterial): WaterDiff
     return result;
 }
 @vertex
-function VertexMain(input: VertexInput, uniforms: MaterialResources): ModelVaryings {
+function VertexMain(input: VertexInput, uniforms: MaterialResources, ocean: OceanResources): ModelVaryings {
     let rest: float3 = float3(input.position.x, input.position.y, input.position.z);
     var p: float3 = rest;
     var previous: float3 = rest;
     var normal: float3 = input.normal;
     if (uniforms.material.waterProfile.x > 0.5) {
-        let water: WaterDifferential = WaterAt(rest, uniforms.material.waterTime.x, uniforms.material);
+        var water: WaterDifferential = WaterAt(rest, uniforms.material.waterTime.x, uniforms.material);
+        var oldOffset: float3 = WaterAt(rest, uniforms.material.waterTime.y, uniforms.material).offset;
+        let tile: f32 = uniforms.material.waterDeep.w;
+        if (tile > 0.0) {
+            water = AddWave(water, OceanDifferential(OceanCellAt(ocean.ocean, rest, tile, 0), tile));
+            let old: float4 = OceanSample(OceanCellAt(ocean.ocean, rest, tile, 64));
+            oldOffset = Add3(oldOffset, float3(old.x, old.y, old.z));
+        }
         p = Add3(rest, water.offset);
         normal = WaterNormal(water);
-        previous = Add3(rest, WaterAt(rest, uniforms.material.waterTime.y, uniforms.material).offset);
+        previous = Add3(rest, oldOffset);
     }
     return {
         position: float4(Row(uniforms.material.clipX, p), Row(uniforms.material.clipY, p),
@@ -213,7 +227,7 @@ function VertexMain(input: VertexInput, uniforms: MaterialResources): ModelVaryi
 }
 
 @pixel
-function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources: Resources, builtins: PixelBuiltins): ModelOutput {
+function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources: Resources, ocean: OceanResources, builtins: PixelBuiltins): ModelOutput {
     if (!builtins.frontFace && uniforms.material.flags.z < 0.5) {
         Discard();
     }
@@ -249,9 +263,18 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
     }
     let p: float3 = input.world;
     let water: bool = uniforms.material.waterProfile.x > 0.5;
+    let oceanTile: f32 = uniforms.material.waterDeep.w;
+    let worldFootprint: f32 = Max(Fwidth(input.rest.x), Fwidth(input.rest.z));
+    var crest: f32 = 0.0;
     if (water) {
-        normal = DetailNormal(normal, input.rest, uniforms.material.waterTime.x,
-            uniforms.material.waterProfile.y, uniforms.material.waterProfile.z);
+        if (oceanTile > 0.0) {
+            normal = OceanDetailNormal(normal, input.rest, uniforms.material.waterTime.x,
+                uniforms.material.waterProfile.y, uniforms.material.waterProfile.z, worldFootprint);
+            crest = OceanSample(OceanCellAt(ocean.ocean, input.rest, oceanTile, 0)).w;
+        } else {
+            normal = DetailNormal(normal, input.rest, uniforms.material.waterTime.x,
+                uniforms.material.waterProfile.y, uniforms.material.waterProfile.z);
+        }
     }
     let eye: float3 = float3(uniforms.material.eye.x, uniforms.material.eye.y, uniforms.material.eye.z);
     let view: float3 = Unit(Sub3(eye, p));
@@ -484,7 +507,12 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
     if (water) {
         let contact: f32 = 1.0 - Clamp(waterDepth / uniforms.material.waterFoam.x, 0.0, 1.0);
         let pattern: f32 = 0.6 + 0.4 * Sin(input.rest.x * 23.0 + Sin(input.rest.z * 19.0) + uniforms.material.waterTime.x * 1.7);
-        let foam: f32 = contact * contact * pattern * uniforms.material.waterFoam.y;
+        let shore: f32 = contact * contact * pattern * uniforms.material.waterFoam.y;
+        var cap: f32 = 0.0;
+        if (crest > 0.0) {
+            cap = crest * OceanFoamGrain(input.rest, worldFootprint) * uniforms.material.waterFoam.w;
+        }
+        let foam: f32 = shore + (1.0 - shore) * cap;
         lit = Add3(Scale3(lit, 1.0 - foam), float3(foam * 0.8, foam * 0.85, foam * 0.8));
     }
     if (water) {
@@ -506,6 +534,7 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
             let color: float4 = Sample(resources.planar, resources.planarSampler, coordinate);
             lit = float3(color.x, color.y, color.z);
         }
+        if (debug == 6.0) { lit = float3(crest, crest, crest); }
     }
     if (uniforms.material.volumeGrid.w > 0.5) {
         let frontDelta: float3 = Sub3(p, eye);

@@ -29,4 +29,5 @@ public sealed record SurfaceLightingPrograms(
     public CompiledGraphicsProgram? RefractiveModel { get; init; }
     public CompiledGraphicsProgram? RefractionResolve { get; init; }
     public CompiledGraphicsProgram? WaterTemporal { get; init; }
+    public Func<(byte[] Fft, byte[] Foam)>? Ocean { get; init; }
 }

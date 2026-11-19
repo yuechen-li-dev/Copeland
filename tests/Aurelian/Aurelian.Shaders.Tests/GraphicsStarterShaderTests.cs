@@ -28,7 +28,7 @@ public sealed class GraphicsStarterShaderTests
     [InlineData("SubsurfaceMerge3D.v.ts", 16, 9)]
     [InlineData("TransparencyResolve3D.v.ts", 16, 7)]
     [InlineData("TransparentModel3D.v.ts", 720, 29)]
-    [InlineData("RefractiveModel3D.v.ts", 1392, 33)]
+    [InlineData("RefractiveModel3D.v.ts", 1392, 34)]
     [InlineData("RefractionResolve3D.v.ts", 16, 7)]
     [InlineData("VolumeInject3D.v.ts", 624, 13)]
     [InlineData("VolumeIntegrate3D.v.ts", 32, 3)]
@@ -59,6 +59,11 @@ public sealed class GraphicsStarterShaderTests
         var compiled = CompiledGraphicsProgramExporter.Export(module, backend);
         Assert.Equal(uniformBytes, compiled.Material!.Size);
         Assert.Equal(resourceCount, compiled.Resources.Count);
+        if (name == "RefractiveModel3D.v.ts")
+        {
+            Assert.Contains("OpImageFetch", backend.Vertex.SpirvDisassembly);
+            Assert.Contains("OpImageFetch", backend.Pixel.SpirvDisassembly);
+        }
         if (name == "ToneMap3D.v.ts")
         {
             Assert.Contains("Pow", backend.Pixel.SpirvDisassembly);

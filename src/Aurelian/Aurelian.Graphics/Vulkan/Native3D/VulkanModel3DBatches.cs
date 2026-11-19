@@ -55,6 +55,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
     private readonly bool refractive;
     private readonly int resourceCount;
     private AurelianVulkanTexture[] additionalInputs = [];
+    private AurelianVulkanTexture? oceanAtlas;
     private float[] additionalUniforms = [];
     private readonly AurelianVulkanTexture shadowMap;
     private readonly Sampler shadowSampler;
@@ -113,12 +114,14 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
         }
     }
 
-    public void ConfigureTransparency(float[] values, AurelianVulkanTexture[] inputs)
+    public void ConfigureTransparency(float[] values, AurelianVulkanTexture[] inputs, AurelianVulkanTexture? ocean = null)
     {
-        if (!transparent && !refractive || values.Length != (refractive ? 224 : 108) || inputs.Length != (refractive ? 11 : 9))
+        if (!transparent && !refractive || values.Length != (refractive ? 224 : 108)
+            || inputs.Length != (refractive ? 11 : 9) || refractive && ocean is null)
             throw new ArgumentException("Transparent frame uniforms must match the shared surface lighting ABI.");
         additionalUniforms = values;
         additionalInputs = inputs;
+        oceanAtlas = ocean;
     }
 
     public void Prepare(StaticModel model)
@@ -206,6 +209,8 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
             {
                 for (int index = 0; index < additionalInputs.Length; index++)
                     Vulkan3DPass.WriteImage(plant, surface.Set, (uint)(11 + index * 2), additionalInputs[index], index is 1 or 8 or 9 or 10 ? environmentSampler!.Value : shadowSampler);
+                if (refractive)
+                    Vulkan3DPass.WriteImage(plant, surface.Set, 33, oceanAtlas!, null);
             }
             if (data.Any(value => !float.IsFinite(value))) throw new InvalidDataException("Model camera and factors must be finite.");
             Require(surface.Uniform.Write(MemoryMarshal.AsBytes(data.AsSpan())).Success, "Model uniform upload failed.");
@@ -298,7 +303,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
             throw new NotSupportedException("Blend and subsurface materials require the shared surface renderer.");
         var (images, filters) = GetChannels(material);
         var bindings = new Vulkan3DFrameBindings(plant, allocator, layout, uniformBytes,
-            (uint)((resourceCount - 1) / 2), frames);
+            (uint)(resourceCount / 2), frames);
         try
         {
             foreach (DescriptorSet set in bindings.Sets)
@@ -483,7 +488,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
             && material.Fields.Select(item => item.Offset).SequenceEqual(Enumerable.Range(0, fields.Length).Select(index => index * 16))
             && program.VertexInputs.OrderBy(item => item.Location).Select(item => item.PhysicalType).SequenceEqual(inputs)
             && program.VertexInputs.Select(item => item.Location).Order().SequenceEqual(Enumerable.Range(0, inputs.Length))
-            && program.Resources.Count == (refractive ? 33 : transparent ? 29 : program.PixelTargets.Count == 7 ? 11 : 13);
+            && program.Resources.Count == (refractive ? 34 : transparent ? 29 : program.PixelTargets.Count == 7 ? 11 : 13);
         foreach (CompiledGraphicsResource resource in program.Resources)
         {
             CompiledGraphicsResourceKind kind = CompiledGraphicsResourceKind.Sampler;
@@ -492,7 +497,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
             else if (resource.Binding % 2 == 1)
                 kind = CompiledGraphicsResourceKind.Texture2D;
             valid &= resource.Set == 0 && resource.Binding >= 0 && resource.Binding < program.Resources.Count && resource.Kind == kind;
-            CompiledGraphicsStage[] visibility = resource.Binding == 0
+            CompiledGraphicsStage[] visibility = resource.Binding is 0 or 33
                 ? [CompiledGraphicsStage.Vertex, CompiledGraphicsStage.Fragment] : [CompiledGraphicsStage.Fragment];
             valid &= resource.Visibility.Order().SequenceEqual(visibility.Order());
         }

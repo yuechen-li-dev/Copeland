@@ -1,9 +1,9 @@
-# Pond and pool water
+# Water and spectral ocean
 
 The shared Vulkan surface renderer now supports horizontal water patches with
 GPU wind waves, impact ripples, depth-dependent absorption, refraction, contact
-foam, optional planar reflection and separate temporal water history. This is an
-above-water pond/pool profile, with explicit authoring and resource bounds.
+foam, optional planar reflection and separate temporal water history. Water
+patches can use analytic pond waves or an opt-in wind-driven deep-water spectrum.
 
 ## Authoring
 
@@ -55,12 +55,41 @@ zero slab thickness and an absorption profile. Customize optical factors through
 ordinary material `with` expressions. Keep the water profile in `ModelMaterial.Water`;
 alpha blending, metals, double-sided water and slab thickness are rejected.
 
-Four wind waves and eight impact events are the explicit limits. Wave directions
+Analytic water supports four wind waves and eight impact events. Wave directions
 are normalized; collective steepness is bounded to prevent folding. Time is in
 seconds, positions and wavelengths in metres, speed in metres/second. The bounded
 presentation clock accepts 0..65,536 seconds. Expired events contribute zero and
 can be removed by the author. Cancelling an active event, changing a past event,
 rewinding time or toggling reflection invalidates temporal history.
+
+For open water, set `Ocean` on the same material profile. Patches share a
+world-space periodic field, so adjoining meshes can use the same configuration.
+
+```csharp
+var sea = new WaterSurface3D
+{
+    Ocean = new OceanSpectrum3D
+    {
+        TileLength = 42,
+        Wind = new Vector2(9, 3),
+        HeightDeviation = .72f,
+        Choppiness = 1.52f,
+        Seed = 17,
+    },
+    CrestFoamStrength = .9f,
+    DeepColor = new Vector3(.006f, .12f, .17f),
+};
+var openWater = WaterSurfaceMesh3D.Create("open-water", new Vector2(84, 84),
+    sea, cellsX: 192, cellsZ: 192);
+```
+
+The spectral profile supplies one 64×64 wave band per frame. The spectrum sets
+the periodic length, wind velocity, RMS height target, lateral displacement and
+seed. Match the mesh spacing to the simulated cell size (`TileLength / 64`).
+The spectrum replaces the four analytic wind waves and still accepts impact
+ripples. Changing the spectrum resets water history. The water surface is an
+above-water finite patch. Shorelines use depth contact foam, and currents,
+buoyancy, wakes and underwater viewing are outside this renderer's scope.
 
 ## Rendering and ownership
 
@@ -79,8 +108,19 @@ visible, otherwise the authored deep-color fallback. The trace debug view keeps
 these fallback pixels distinct from real screen-space ray hits.
 
 Depth contact produces foam around shallow edges and visible intersections.
-It is a surface shading effect, not a foam simulation. Existing direct lighting,
-environment/probe reflection and Fresnel response remain shared with glass.
+The ocean also generates whitecaps from the horizontal displacement Jacobian,
+where choppy waves compress the surface. Crest foam is a bounded surface
+coverage mask evaluated at the frame's wave phase. Ocean ripple normals and
+foam grain use irregular detail that fades when it falls below the pixel
+footprint. Direct lighting, environment/probe reflection and Fresnel response
+remain shared with glass.
+
+Managed code seeds the directional spectrum on profile changes. VTS compute
+kernels evolve the spectrum at both presentation times, run row and column
+inverse FFTs, and produce the crest mask. The refractive vertex and pixel
+shaders consume the same GPU-resident displacement and foam atlas. The game
+graphics wrapper supplies the two kernels through `SurfaceLightingPrograms.Ocean`
+and loads them on first ocean draw.
 
 One optional planar reflection renders the opaque scene at half or quarter
 resolution on the existing plant and renderer. An oblique near plane clips
@@ -100,20 +140,21 @@ water. Removing water resets correspondence; no water history is sampled as an
 opaque surface. `SurfaceLightingPrograms.WaterTemporal` supplies the shared
 `TemporalResolve3D.v.ts` program; the game graphics wrapper includes it by default.
 
-The refraction ABI is now 1,392 uniform bytes, 33 resources and three targets.
+The refraction ABI is now 1,392 uniform bytes, 34 resources and three targets.
 The renderer validates this contract; rebuild old externally compiled refractive
 programs. The shader registry includes `WaterGeometry.v.ts` as a transparency
 module. Shader code remains in source files.
 
 ## Inspection and qualification
 
-`WaterSurface3D.DebugView` exposes shaded, depth, normals, contact foam, true
-refraction hits and planar-reflection views. The proof scene saves all of them
+`WaterSurface3D.DebugView` exposes shaded, depth, normals, contact foam, crest
+foam, true refraction hits and planar-reflection views. The pond proof saves them
 before the animated/moving-camera sequence and the final pond preview.
 
 ```powershell
 dotnet build tools/Aurelian.GraphicsProof -c Release -m:1
 dotnet run --project tools/Aurelian.GraphicsProof -c Release -- --water-graphics
+dotnet run --project tools/Aurelian.GraphicsProof -c Release -- --ocean-graphics
 dotnet run --project tools/Aurelian.GraphicsProof -c Release -- --transmission-graphics --output artifacts/local/water-transmission-regression
 $env:AURELIAN_NAGA = (Resolve-Path artifacts/aurelian-beacon3d/toolchain/bin/naga.exe).Path
 dotnet test Aurelian.slnx -c Release -m:1
@@ -125,6 +166,13 @@ triangle patch at 960x640 and checks real pixel changes for wind, impact, foam a
 reflection. Expired-event output, cancelled-event history, reflection toggling and
 water removal match their fresh/reference renders exactly. The camera moves
 during the timed animation; this does not certify every disocclusion or view.
+
+`artifacts/local/ocean-graphics/` contains matched analytic/ocean, whitecap
+off/on, and angled views. The proof compares GPU displacement against a double
+precision direct Fourier sum, checks the periodic crest mask against the
+Jacobian, verifies exact rewind and zero foam at zero choppiness, and measures
+the full refraction pass and frame at the same mesh density. A sequence with
+frames in flight also checks atlas reuse across sea-state changes.
 
 Independent flat-water fixtures at .25 m and 1.5 m depth compare the native output
 against Snell refraction, Fresnel reflection and Beer-Lambert absorption plus the

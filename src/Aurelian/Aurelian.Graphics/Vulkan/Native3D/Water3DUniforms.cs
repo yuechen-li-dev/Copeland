@@ -12,7 +12,8 @@ internal static class Water3DUniforms
             return new float[12];
         }
         return [1, water.DetailAmplitude, water.DetailWavelength, water.MaximumDepth,
-            water.FoamWidth, water.FoamStrength, (int)water.DebugView, 0, water.DeepColor.X, water.DeepColor.Y, water.DeepColor.Z, 0];
+            water.FoamWidth, water.FoamStrength, (int)water.DebugView, water.CrestFoamStrength,
+            water.DeepColor.X, water.DeepColor.Y, water.DeepColor.Z, water.Ocean?.TileLength ?? 0];
     }
 
     public static float[] Waves(WaterSurface3D? water)

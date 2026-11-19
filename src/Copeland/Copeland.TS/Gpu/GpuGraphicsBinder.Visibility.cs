@@ -19,10 +19,12 @@ public static partial class GpuGraphicsBinder
                 ? arguments.Length == 2 && element is "uint2" or "u32" or "float4" && arguments[1].Type == "uint2"
                 : arguments.Length == 5 && element == "float4" && arguments[1].Type == "Sampler"
                     && arguments.Skip(2).All(argument => argument.Type == "float2");
-            if (!valid || _currentStage != VdMirGraphicsStage.Pixel)
+            bool stageSupported = _currentStage == VdMirGraphicsStage.Pixel
+                || load && _currentStage == VdMirGraphicsStage.Vertex;
+            if (!valid || !stageSupported)
             {
                 Add("COPE-GPU-IMAGE-0001", "SDSL-V4604", "image-operation",
-                    "Pixel Load requires Texture2D<float4/uint2/u32>, uint2 texel coordinates; SampleGrad requires a float4 texture, sampler, UV and two float2 gradients.",
+                    "Vertex and pixel Load require Texture2D<float4/uint2/u32> and uint2 texel coordinates; pixel SampleGrad requires a float4 texture, sampler, UV and two float2 gradients.",
                     Span(path, syntax));
                 return Error(path, syntax);
             }

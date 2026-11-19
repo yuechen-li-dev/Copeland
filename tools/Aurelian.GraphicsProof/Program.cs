@@ -286,6 +286,12 @@ if (args.Contains("--rain-night", StringComparer.Ordinal))
         args.Contains("--view", StringComparer.Ordinal), args.Contains("--launch-smoke", StringComparer.Ordinal));
     return;
 }
+if (args.Contains("--ocean-graphics", StringComparer.Ordinal))
+{
+    OceanGraphicsProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/ocean-graphics"));
+    return;
+}
+
 if (args.Contains("--water-graphics", StringComparer.Ordinal))
 {
     WaterGraphicsProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/water-graphics"));

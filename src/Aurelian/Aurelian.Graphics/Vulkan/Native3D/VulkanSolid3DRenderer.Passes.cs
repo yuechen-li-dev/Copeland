@@ -166,7 +166,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
                 surfaceLighting.TransparentInputs(shadowMap, motion!), surfaceLighting.UnfoggedOutput!, state.Resolved!,
                 waterFrame, resetHistory ? waterFrame.Time : previousWaterTime, previousClip, logicalCamera,
                 resetHistory, useTemporal, settings.TemporalHistoryWeight,
-                useWaterReflection ? waterReflection!.Color : null, waterReflection?.Clip ?? Matrix4x4.Identity);
+                useWaterReflection ? waterReflection!.Color : null, waterReflection?.Clip ?? Matrix4x4.Identity, state.Ocean);
         }
         if (surfaceOnly) gpuTimings?.Mark(command, 25);
     }

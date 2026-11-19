@@ -50,6 +50,8 @@ public sealed unsafe partial class VulkanSolid3DRenderer
     public Vector4 ReadProbeGuideForQualification() => surfaceLighting!.ReadProbeGuide();
     public float[] ReadDiffuseCacheForQualification() => surfaceLighting!.ReadDiffuseCache();
     public float[] ReadDiffuseOutputForQualification() => surfaceLighting!.ReadDiffuseOutput();
+    public (Vector2[] Coefficients, Vector4[] Surface, Vector4[] Displacement) ReadOceanForQualification() =>
+        (refraction ?? throw new InvalidOperationException("No refraction pass has rendered.")).ReadOcean(frames);
     public bool EnableRayShadows { get; set; }
     public NativeRasterAdmissionMode3D RasterAdmissionMode { get; set; }
     public Aurelian.Graphics.Vulkan.RayQueries.SceneAccelerationUpdateMode3D RaySceneUpdateMode { get; set; }
@@ -406,6 +408,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
         public float[] Lighting = [];
         public bool UseTemporal, UseDiffuse, HasParticles, HasTransparency, HasRefraction, HasSubsurface, UseWaterReflection;
         public WaterFrame3D WaterFrame = null!;
+        public OceanSpectrum3D? Ocean;
         public (string? Identity, int Count, ModelMaterial Material)[] ModelKeys = [];
         public (string Identity, NativeMesh3D Mesh, ModelMaterial Material)[] InstanceKeys = [];
         public AurelianVulkanTexture? Resolved, Glow;

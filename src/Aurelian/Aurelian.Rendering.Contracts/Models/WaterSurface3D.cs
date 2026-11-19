@@ -11,6 +11,30 @@ public enum WaterDebugView3D
     Foam,
     RefractionHits,
     PlanarReflection,
+    CrestFoam,
+}
+
+/// <summary>Periodic deep-water spectrum. Length and height deviation are in metres,
+/// wind is a world XZ velocity in metres per second.</summary>
+public sealed record OceanSpectrum3D
+{
+    public float TileLength { get; init; } = 64;
+    public Vector2 Wind { get; init; } = new(12, 4);
+    public float HeightDeviation { get; init; } = .58f;
+    public float Choppiness { get; init; } = 1.35f;
+    public int Seed { get; init; } = 17;
+
+    public void Validate()
+    {
+        float speed = Wind.Length();
+        if (!float.IsFinite(TileLength) || TileLength is < 8 or > 512
+            || !float.IsFinite(speed) || speed is < 1 or > 40
+            || !float.IsFinite(HeightDeviation) || HeightDeviation < 0 || HeightDeviation > TileLength / 32
+            || !float.IsFinite(Choppiness) || Choppiness is < 0 or > 3)
+        {
+            throw new InvalidDataException("AUR-WATER-011: Invalid ocean tile length, wind, height deviation or choppiness.");
+        }
+    }
 }
 
 /// <summary>World-space wind wave. Steepness is dimensionless and bounded
@@ -69,6 +93,9 @@ public sealed record PlanarWaterReflection3D(float Height)
 public sealed record WaterSurface3D
 {
     public WaterDebugView3D DebugView { get; init; }
+    /// <summary>The spectral ocean replaces the analytic wind waves. Impact ripples still apply.</summary>
+    public OceanSpectrum3D? Ocean { get; init; }
+    public float CrestFoamStrength { get; init; } = .9f;
     public ImmutableArray<WaterWave3D> Waves { get; init; } =
     [
         new(new(1, .25f), .012f, 2.4f, .65f, .08f),
@@ -95,11 +122,12 @@ public sealed record WaterSurface3D
 
     public void Validate()
     {
+        Ocean?.Validate();
         float[] values = [DetailAmplitude, DetailWavelength, FoamWidth, FoamStrength, MaximumDepth,
-            DeepColor.X, DeepColor.Y, DeepColor.Z];
+            DeepColor.X, DeepColor.Y, DeepColor.Z, CrestFoamStrength];
         if (!Enum.IsDefined(DebugView) || Waves.IsDefault || Waves.Length > 4 || values.Any(value => !float.IsFinite(value))
             || DetailAmplitude is < 0 or > .02f || DetailWavelength is < .05f or > 2
-            || FoamWidth is < .001f or > 2 || FoamStrength is < 0 or > 1
+            || FoamWidth is < .001f or > 2 || FoamStrength is < 0 or > 1 || CrestFoamStrength is < 0 or > 1
             || MaximumDepth is < .05f or > 100 || DeepColor.X < 0 || DeepColor.Y < 0 || DeepColor.Z < 0
             || DeepColor.X > 1 || DeepColor.Y > 1 || DeepColor.Z > 1)
         {
