@@ -9,6 +9,11 @@ public static partial class VdMirComputeHlslEmitter
     {
         string prefix = new(' ', indentation * 4);
         var args = statement.Expression!.Operands!.Select(EmitExpression).ToArray();
+        if (args.Length == 5)
+        {
+            EmitCooperativeTile(builder, prefix, args);
+            return;
+        }
         string a = args[0], b = args[1], output = args[2], group = args[3], lane = args[4];
         string rows = args[5], columns = args[6], inner = args[7];
         builder.AppendLine(prefix + "{");
@@ -38,6 +43,29 @@ public static partial class VdMirComputeHlslEmitter
         builder.AppendLine(prefix + "        GroupMemoryBarrierWithGroupSync();");
         builder.AppendLine(prefix + "    }");
         builder.AppendLine($"{prefix}    __sdslv_cooperative::Store({output}[__coop_row * {columns} + __coop_column], __coop_acc.value, __sdslv_cooperative::RowMajor, {columns}, 0);");
+        builder.AppendLine(prefix + "}");
+    }
+
+    private static void EmitCooperativeTile(StringBuilder builder, string prefix, string[] args)
+    {
+        string source = args[0], weights = args[1], destination = args[2], lane = args[3], offset = args[4];
+        builder.AppendLine(prefix + "{");
+        builder.AppendLine(prefix + "    GroupMemoryBarrierWithGroupSync();");
+        builder.AppendLine($"{prefix}    [unroll] for (uint element = {lane}; element < 256u; element += 32u)");
+        builder.AppendLine(prefix + "    {");
+        builder.AppendLine($"{prefix}        uint pair = {weights}[{offset} + element / 2u];");
+        builder.AppendLine($"{prefix}        __sdslv_cooperative_tile_a[element] = (float16_t){source}[element];");
+        builder.AppendLine(prefix + "        __sdslv_cooperative_tile_b[element] = (float16_t)f16tof32((element % 2u == 0u) ? (pair & 65535u) : (pair >> 16u));");
+        builder.AppendLine(prefix + "    }");
+        builder.AppendLine(prefix + "    GroupMemoryBarrierWithGroupSync();");
+        builder.AppendLine(prefix + "    __sdslv_cooperative::MatrixA a;");
+        builder.AppendLine(prefix + "    __sdslv_cooperative::MatrixB b;");
+        builder.AppendLine(prefix + "    __sdslv_cooperative::MatrixC c;");
+        builder.AppendLine(prefix + "    a.value = __sdslv_cooperative::Load<__sdslv_cooperative::MatrixAType>(__sdslv_cooperative::GetGroupSharedAddress(__sdslv_cooperative_tile_a[0]), __sdslv_cooperative::RowMajor, 16u, 48, __sdslv_cooperative::ScopeWorkgroup);");
+        builder.AppendLine(prefix + "    b.value = __sdslv_cooperative::Load<__sdslv_cooperative::MatrixBType>(__sdslv_cooperative::GetGroupSharedAddress(__sdslv_cooperative_tile_b[0]), __sdslv_cooperative::RowMajor, 16u, 48, __sdslv_cooperative::ScopeWorkgroup);");
+        builder.AppendLine(prefix + "    c.value = __sdslv_cooperative::MultiplyAdd<__sdslv_cooperative::MatrixCType>(a.value, b.value, __sdslv_cooperative::Splat<__sdslv_cooperative::MatrixCType>(0.0f), 0);");
+        builder.AppendLine($"{prefix}    __sdslv_cooperative::Store({destination}[0], c.value, __sdslv_cooperative::RowMajor, 16u, 0);");
+        builder.AppendLine(prefix + "    GroupMemoryBarrierWithGroupSync();");
         builder.AppendLine(prefix + "}");
     }
 }

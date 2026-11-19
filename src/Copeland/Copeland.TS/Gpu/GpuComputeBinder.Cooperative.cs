@@ -10,6 +10,21 @@ public static partial class GpuComputeBinder
         private VdMirStatement BindCooperativeMatMul(string path, CallExpressionSyntax call, Dictionary<string, ValueBinding> scope)
         {
             var arguments = call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray();
+            if (arguments.Length == 5)
+            {
+                bool tile = arguments[0].Type == "workgroup:f32:256" && arguments[0].Kind == "name"
+                    && arguments[1].Type == "storage-buffer<u32>"
+                    && ResourceArgument(call.Arguments[1], scope)?.Access == VdMirResourceAccess.Readonly
+                    && arguments[2].Type == "workgroup:f32:256" && arguments[2].Kind == "name"
+                    && arguments[3].Kind == "name" && _builtinSemantics.GetValueOrDefault(arguments[3].Value!) == "group_index"
+                    && arguments[4].Type == "u32";
+                if (!tile)
+                {
+                    AddDiagnostic("COPE-GPU-COOPERATIVE-0001", "SDSL-V4400", "cooperative-matrix",
+                        "The tile overload takes two WorkgroupArray<f32, 256> tiles, readonly packed-u32 weights between them, the groupIndex builtin and a uniform weight offset in words.", Span(path, call));
+                }
+                return new("cooperative-matmul", Span(path, call), Expression: new("command", "void", Span(path, call), Operands: arguments));
+            }
             bool valid = arguments.Length == 8;
             if (valid)
             {
@@ -31,10 +46,11 @@ public static partial class GpuComputeBinder
 
         private void ValidateCooperativeUniformity(VdMirStatement command, IEnumerable<VdMirStatement> preceding)
         {
-            if (!(command.Expression!.Operands ?? []).Skip(5).All(expression => IsWorkgroupUniform(expression, preceding)))
+            var arguments = command.Expression!.Operands ?? [];
+            if (!arguments.Skip(arguments.Count == 5 ? 4 : 5).All(expression => IsWorkgroupUniform(expression, preceding)))
             {
                 AddDiagnostic("COPE-GPU-COOPERATIVE-0002", "SDSL-V4401", "cooperative-matrix",
-                    "M/N/K must come from immutable workgroup-uniform literals or readonly parameters; invocation-dependent dimensions cannot synchronize safely.", command.Source);
+                    "The cooperative dimensions or weight offset must be workgroup-uniform literals or readonly parameters.", command.Source);
             }
         }
 

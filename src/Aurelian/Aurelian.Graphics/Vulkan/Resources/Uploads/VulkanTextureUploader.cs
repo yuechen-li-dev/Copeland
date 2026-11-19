@@ -167,7 +167,7 @@ public sealed unsafe class VulkanTextureUploader : IDisposable
             VulkanTextureUploadResult? shaderBarrierResult = TransitionTexture(
                 request.Destination,
                 lease,
-                VulkanResourceLayout.ShaderResourceFragment,
+                request.FinalLayout,
                 request.DebugName,
                 diagnostics);
             if (shaderBarrierResult is not null)
@@ -315,8 +315,14 @@ public sealed unsafe class VulkanTextureUploader : IDisposable
         {
             diagnostics.Add(Diagnostic(
                 VulkanTextureUploadDiagnosticCodes.UnsupportedTextureFormat,
-                "Texture upload supports RGBA-like byte formats, R32F and RGBA32F data textures.",
+                "Texture upload supports RGBA-like bytes, R32F/RGBA32F data, and BC4/BC5/BC7 blocks.",
                 request.DebugName));
+        }
+
+        if (request.FinalLayout is not (VulkanResourceLayout.ShaderResourceFragment or VulkanResourceLayout.ShaderResourceCompute))
+        {
+            diagnostics.Add(Diagnostic(VulkanTextureUploadDiagnosticCodes.BarrierEmissionFailed,
+                "Texture uploads must finish in a fragment or compute sampled layout.", request.DebugName));
         }
 
         if (!TryGetExpectedUploadSize(request.Destination.Width, request.Destination.Height, request.Destination.Format, out ulong expectedSize)
@@ -410,19 +416,26 @@ public sealed unsafe class VulkanTextureUploader : IDisposable
 
     private static bool IsSupportedFormat(VulkanTextureFormat format)
         => format is VulkanTextureFormat.Rgba8Unorm or VulkanTextureFormat.Bgra8Unorm or VulkanTextureFormat.Rgba8Srgb
-            or VulkanTextureFormat.Bgra8Srgb or VulkanTextureFormat.Rgba32Float or VulkanTextureFormat.R32Float;
+            or VulkanTextureFormat.Bgra8Srgb or VulkanTextureFormat.Rgba32Float or VulkanTextureFormat.R32Float
+            or VulkanTextureFormat.Bc4Unorm or VulkanTextureFormat.Bc5Unorm or VulkanTextureFormat.Bc7Unorm;
 
     private static bool TryGetExpectedUploadSize(uint width, uint height, VulkanTextureFormat format, out ulong sizeBytes)
     {
-        uint bytesPerPixel = format == VulkanTextureFormat.Rgba32Float ? 16u : 4u;
-        ulong pixels = (ulong)width * height;
-        if (pixels > ulong.MaxValue / bytesPerPixel)
+        bool block = format is VulkanTextureFormat.Bc4Unorm or VulkanTextureFormat.Bc5Unorm or VulkanTextureFormat.Bc7Unorm;
+        uint bytesPerUnit = format switch
+        {
+            VulkanTextureFormat.Bc4Unorm => 8,
+            VulkanTextureFormat.Bc5Unorm or VulkanTextureFormat.Bc7Unorm or VulkanTextureFormat.Rgba32Float => 16,
+            _ => 4,
+        };
+        ulong units = block ? (((ulong)width + 3) / 4) * (((ulong)height + 3) / 4) : (ulong)width * height;
+        if (units > ulong.MaxValue / bytesPerUnit)
         {
             sizeBytes = 0;
             return false;
         }
 
-        sizeBytes = pixels * bytesPerPixel;
+        sizeBytes = units * bytesPerUnit;
         return true;
     }
 

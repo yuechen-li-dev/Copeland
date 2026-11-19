@@ -287,7 +287,11 @@ public static partial class GpuComputeBinder
             {
                 AddWorkgroupDiagnostic(entry.Path, entry.Syntax, "CooperativeMatMul requires exactly one 32-lane subgroup: @numthreads(32, 1, 1).");
             }
-            if (statements.Any(statement => statement.Kind == "cooperative-matmul")
+            if (statements.Any(statement => statement.Kind == "cooperative-matmul") && _workgroupArrays.Sum(array => array.Count) > 3840)
+            {
+                AddWorkgroupDiagnostic(entry.Path, entry.Syntax, "Cooperative commands reserve 1 KiB of the 16 KiB shared storage budget.");
+            }
+            if (statements.Any(statement => statement.Kind == "cooperative-matmul" && statement.Expression?.Operands?.Count == 8)
                 && _resources.Any(resource => IsSampledResource(resource.ElementType)))
             {
                 AddDiagnostic("COPE-GPU-SAMPLE-0002", "SDSL-V4119", "texture-sampling",

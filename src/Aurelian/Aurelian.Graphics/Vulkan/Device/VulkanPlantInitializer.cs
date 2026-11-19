@@ -434,6 +434,7 @@ public static unsafe partial class VulkanPlantInitializer
         PhysicalDeviceFeatures enabledFeatures = new()
         {
             SamplerAnisotropy = supportedFeatures.SamplerAnisotropy,
+            TextureCompressionBC = supportedFeatures.TextureCompressionBC,
             MultiDrawIndirect = supportedFeatures.MultiDrawIndirect,
             DrawIndirectFirstInstance = supportedFeatures.DrawIndirectFirstInstance,
             GeometryShader = supportedFeatures.GeometryShader,

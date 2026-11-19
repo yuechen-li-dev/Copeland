@@ -1,4 +1,5 @@
 using Aurelian.Shaders.Compute;
+using Aurelian.Shaders.Library;
 using Copeland.TS.Gpu;
 using Copeland.TS.Gpu.VdMir;
 using Xunit;
@@ -128,6 +129,37 @@ public sealed class ComputeWorkgroupTests
             }
             """;
         var module = GpuComputeBinder.Compile(new([new GpuSourceFile("cooperative.v.ts", source)]));
+        Assert.False(module.Success);
+        Assert.Contains(module.Diagnostics, item => item.Code == diagnostic);
+    }
+
+    [Fact]
+    public void CooperativeTilesCanReadSampledLatentsInTheSameKernel()
+    {
+        var module = GpuComputeBinder.Compile(new(BuiltinShaderLibrary.LoadSources("TextureNeuralSample.v.ts")));
+        Assert.True(module.Success, string.Join(" ", module.Diagnostics.Select(item => item.Message)));
+        Assert.Equal("compute.cooperative.m1", module.FeatureLevel);
+        var backend = VdMirComputeBackend.Compile(module);
+        Assert.True(backend.SpirvValidated, backend.DxcOutput + backend.SpirvValidationOutput);
+        Assert.Equal(2, backend.SpirvDisassembly!.Split("OpCooperativeMatrixMulAddKHR").Length - 1);
+        Assert.Contains("OpImageSampleExplicitLod", backend.SpirvDisassembly);
+    }
+
+    [Theory]
+    [InlineData("CooperativeMatMul(A, Weights, B, lane, lane);", "COPE-GPU-COOPERATIVE-0002")]
+    [InlineData("if (lane < 16) { CooperativeMatMul(A, Weights, B, lane, 0); }", "COPE-GPU-WORKGROUP-0002")]
+    public void CooperativeTilesRejectDivergentOffsetsAndBarriers(string body, string diagnostic)
+    {
+        string source = $$"""
+            @compute @numthreads(32,1,1)
+            function Main(@builtin(groupIndex) lane: u32,
+                @binding(0) readonly Weights: StorageBuffer<u32>,
+                @workgroup readwrite A: WorkgroupArray<f32,256>,
+                @workgroup readwrite B: WorkgroupArray<f32,256>): void {
+                {{body}}
+            }
+            """;
+        var module = GpuComputeBinder.Compile(new([new GpuSourceFile("cooperative-tile.v.ts", source)]));
         Assert.False(module.Success);
         Assert.Contains(module.Diagnostics, item => item.Code == diagnostic);
     }

@@ -23,6 +23,16 @@ public static unsafe class VulkanTextureFactory
         {
             return new VulkanTextureCreateResult(VulkanTextureStatus.Rejected, null, diagnostics);
         }
+        if (plan.Format is VulkanTextureFormat.Bc4Unorm or VulkanTextureFormat.Bc5Unorm or VulkanTextureFormat.Bc7Unorm)
+        {
+            plant.Vk.GetPhysicalDeviceFeatures(plant.PhysicalDevice, out var features);
+            if (!features.TextureCompressionBC)
+            {
+                diagnostics.Add(Diagnostic(VulkanTextureDiagnosticCodes.UnsupportedFormat, VulkanTextureDiagnosticSeverity.Error,
+                    "The selected Vulkan device does not support BC texture sampling.", plan));
+                return new(VulkanTextureStatus.Rejected, null, diagnostics);
+            }
+        }
 
         Vk vk = plant.Vk;
         Silk.NET.Vulkan.Device device = plant.Device;
@@ -244,6 +254,12 @@ public static unsafe class VulkanTextureFactory
 
         bool depthFormat = plan.Format == VulkanTextureFormat.D32Float;
         bool depthUsage = (plan.Usage & VulkanTextureUsage.DepthAttachment) != 0;
+        if (plan.Format is VulkanTextureFormat.Bc4Unorm or VulkanTextureFormat.Bc5Unorm or VulkanTextureFormat.Bc7Unorm
+            && (plan.Usage & ~(VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferDestination | VulkanTextureUsage.TransferSource)) != 0)
+        {
+            diagnostics.Add(Diagnostic(VulkanTextureDiagnosticCodes.UnsupportedFormat, VulkanTextureDiagnosticSeverity.Error,
+                "BC textures support sampling and transfer usage.", plan));
+        }
         if (depthFormat != depthUsage || (depthFormat && (plan.Usage & ~(VulkanTextureUsage.DepthAttachment | VulkanTextureUsage.TransferSource)) != 0))
         {
             diagnostics.Add(Diagnostic(
@@ -294,6 +310,9 @@ public static unsafe class VulkanTextureFactory
             VulkanTextureFormat.Rgba32Float => Format.R32G32B32A32Sfloat,
             VulkanTextureFormat.Rg32UInt => Format.R32G32Uint,
             VulkanTextureFormat.R32UInt => Format.R32Uint,
+            VulkanTextureFormat.Bc4Unorm => Format.BC4UnormBlock,
+            VulkanTextureFormat.Bc5Unorm => Format.BC5UnormBlock,
+            VulkanTextureFormat.Bc7Unorm => Format.BC7UnormBlock,
             _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported Vulkan texture format."),
         };
 

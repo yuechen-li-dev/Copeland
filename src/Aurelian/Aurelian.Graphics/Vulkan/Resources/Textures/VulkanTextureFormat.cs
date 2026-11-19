@@ -12,4 +12,7 @@ public enum VulkanTextureFormat
     Rgba32Float,
     Rg32UInt,
     R32UInt,
+    Bc4Unorm,
+    Bc5Unorm,
+    Bc7Unorm,
 }

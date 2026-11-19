@@ -74,6 +74,15 @@ if (args.Contains("--rendering-r8-decals", StringComparer.Ordinal))
     return;
 }
 
+if (args.Contains("--rendering-neural-textures", StringComparer.Ordinal))
+{
+    RenderingNeuralTextureProof.Run(
+        Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r8-neural-textures/qualified"),
+        Path.GetFullPath(Option("--codec-fixtures") ?? "artifacts/local/rendering-r8-neural-textures/fitted"),
+        Option("--codec-material"));
+    return;
+}
+
 if (args.Contains("--rendering-r6", StringComparer.Ordinal))
 {
     RenderingR3Proof.RunResolutionScaling(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r6"));
