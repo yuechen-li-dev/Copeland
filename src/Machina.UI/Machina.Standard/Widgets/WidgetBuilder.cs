@@ -217,22 +217,26 @@ public sealed partial class WidgetBuilder
         return root with { Id = binding.Id, Semantics = semantics, DeclaredAction = binding.Intent };
     }
 
-    private UiNode ButtonNode(WidgetBinding binding, string label, double width, UiSemantics? semantics = null)
+    private UiNode ButtonNode(WidgetBinding binding, string label, double width, UiSemantics? semantics = null,
+        TextAlignX alignment = TextAlignX.Center)
     {
         ValidateWidth(width);
         bool active = binding.Checked || binding.Key is { } key && binding.Selected.Contains(key);
         var buttonStyle = Theme.Button.Outline with
         {
             Width = width, Height = Style.Height,
+            HorizontalPadding = alignment == TextAlignX.Left
+                ? Math.Min(Style.Padding + 4, Math.Max(0, (width - 1) / 2)) : Theme.Button.Outline.HorizontalPadding,
             Background = Surface(binding.Id, active ? Style.Accent : Style.Background,
                 active ? Style.AccentForeground : Style.Foreground, binding.Disabled),
             Foreground = binding.Disabled ? Style.Muted : active ? Style.AccentForeground : Style.Foreground,
             BorderColor = Border(binding.Id, binding.Disabled),
             TextStyle = new TextStyle(binding.Disabled ? Style.Muted : active ? Style.AccentForeground : Style.Foreground,
-                Style.TextSize, TextAlignX.Center, TextAlignY.Center)
+                Style.TextSize, alignment, TextAlignY.Center)
         };
         // The visible label is ellipsized; the accessible name keeps the full text.
-        var root = StandardUI.Button(Ellipsize(label, Math.Max(1, width - 2 * Style.Padding)), id: binding.Id, disabled: binding.Disabled, style: buttonStyle);
+        double padding = alignment == TextAlignX.Left ? Math.Max(Style.Padding, buttonStyle.HorizontalPadding) : Style.Padding;
+        var root = StandardUI.Button(Ellipsize(label, Math.Max(1, width - 2 * padding)), id: binding.Id, disabled: binding.Disabled, style: buttonStyle);
         return Bind(binding, root, semantics ?? new(UiRole.Button, label, binding.Disabled, !binding.Disabled));
     }
 

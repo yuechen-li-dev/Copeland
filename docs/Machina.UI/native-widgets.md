@@ -87,7 +87,7 @@ resize events even when another application subsystem handles ordinary input.
 | Accordion, Collapsible | Controlled disclosure, expanded/controls semantics, disabled headers, accordion arrows, individual header Tab stops | Fixed content height; no animated measurement |
 | Select | Stable keys, current selected option, arrows/Home/End/typeahead, scroll-into-view, selection/dismissal, trigger focus restoration | Single selection, nonvirtualized options |
 | Combobox | Controlled query separate from selected key, deterministic filtering, suggestions, arrows/Enter/Escape, empty results; clicking its input while open edits instead of dismissing; typing with an option focused returns to the query | Single selection, no tokens or async search provider; host decides selected-label text |
-| Menu | Flat menu items, keyboard/typeahead, dismissal, invocation represented by selected item key | No submenus, menubar or context-menu positioning |
+| Menu, Context Menu | Flat menu items, keyboard/typeahead, dismissal and stable item keys. Context menus can open at a pointer position with an eased entrance. | No submenus or menubar |
 | Dialog, Alert Dialog | Current-geometry overlay, nested popup focus scope, focus trap/restore, Escape, explicit close, outside-click policy | Alert blocks outside dismissal but permits Escape; no native window dialog |
 | Popover, Tooltip | Anchor flip/clamp, overlay clipping, Escape, outside-click consumption for popovers, focus moves into popover content and returns to the trigger; tooltip hover/focus and dismissal suppression | Tooltip is immediate unless caller supplies controlled timing; no hover grace corridor; Tab does not return from popover content to the trigger's next sibling |
 | Scroll Area | Vertical wheel/keyboard scroll, clipped hit testing, focus ring drawn above content, indicator in its own 8 px gutter (`ScrollbarGutter`), focus visibility | No thumb drag, horizontal scroll or virtualization |
@@ -95,7 +95,7 @@ resize events even when another application subsystem handles ordinary input.
 | Field, Fieldset, Form | Label/description/error relationships, grouped declarations, validation state metadata | Validation/business rules and submit remain application-owned |
 
 Not implemented in this increment: Avatar loading/fallback lifecycle, separate
-Autocomplete API, Context Menu, Drawer, Menubar, Navigation Menu, OTP Field,
+Autocomplete API, Drawer, Menubar, Navigation Menu, OTP Field,
 Preview Card, Toast lifecycle. `WidgetPopupKind.Drawer` is reserved, not a working
 drawer implementation. Do not advertise these as available components.
 
@@ -110,6 +110,30 @@ owns unmodified keys), `Popup` (navigation/Escape belong to the open popup), `Mo
 dialog), `Control` (a non-text widget has focus) or `None`. Map it onto the application's shortcut system, for
 example by pushing an InputMan action map per scope, so shortcut policy stays in one declarative place.
 `WidgetInputResult.Handled` remains authoritative per event and agrees with the scope.
+
+### Context menus over custom canvases
+
+On a secondary-button press, record the viewport-local pointer and the item
+keys for the target. Pass that point to `WidgetBuilder.ContextMenu`. Pass
+`null` to close the menu. Use the ordinary `Prepare` pipeline to place the menu
+over Machina content, or `PrepareOverlay` to compose a transparent layer above
+a separately rendered canvas.
+
+```csharp
+var prepared = pipeline.PrepareOverlay(session, widgets =>
+    widgets.ContextMenu("canvas.actions", "Canvas actions", anchor, items,
+        elapsed: reduceMotion ? null : clock.Elapsed - openedAt),
+    width, height);
+```
+
+Render the layer above the canvas and send input to its session first. Handle
+`WidgetSelectionChanged.Keys` to dispatch the selected action and
+`WidgetOpenChanged` to clear the anchor on dismissal. Dismiss on window focus
+loss for a transient native menu. Reprepare during the 160 ms entrance and
+when hover, focus or scrolling changes. The panel moves toward its final
+anchor with cubic easing, flips at the lower edge and stays inside the viewport.
+Omit elapsed time for reduced motion. Pointer hit testing follows the panel's
+current geometry.
 
 ## Interaction rules
 

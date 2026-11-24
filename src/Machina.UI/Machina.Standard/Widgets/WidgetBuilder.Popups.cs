@@ -7,6 +7,7 @@ using Machina.Core.Styling;
 using Machina.Layout.Frames;
 using Machina.Layout.Geometry;
 using Machina.Layout.Rows;
+using Machina.Runtime.Input;
 using Machina.Standard.Authoring;
 
 namespace Machina.Standard.Widgets;
@@ -45,6 +46,30 @@ public sealed partial class WidgetBuilder
         return PopupTrigger(id, label, open, openChanged, false, width, UiRole.Button);
     }
 
+    /// <summary>
+    /// Declares a menu at a viewport-local point while the host supplies an anchor.
+    /// A secondary-button press or a keyboard invocation may supply the point.
+    /// Pass elapsed time while animating, or omit it for an immediate presentation.
+    /// </summary>
+    public void ContextMenu(NodeId id, string label, PointerPoint? anchor, IReadOnlyList<WidgetOption> items,
+        UiAction? invoked = null, UiAction? openChanged = null, double width = 220, TimeSpan? elapsed = null)
+    {
+        if (anchor is not { } point) return;
+        ValidateOptions(items);
+        double progress = elapsed is { } time ? Math.Clamp(time / ContextMenuEntranceDuration, 0, 1) : 1;
+        double remaining = 1 - progress;
+        AddPopup(new(id, id, Placeholder, WidgetPopupKind.Menu, label, width, ListPanelHeight(items.Count),
+            WidgetPopupSide.Bottom, false, true, true, openChanged)
+        {
+            PointAnchor = new Rect(point.X, point.Y, 0, 0),
+            EntranceOffset = 12 * remaining * remaining * remaining,
+            ListHeight = ListContentHeight(items.Count),
+            List = rowWidth => ListItems(id, items, null, invoked, true, rowWidth, true, TextAlignX.Left)
+        });
+    }
+
+    public static TimeSpan ContextMenuEntranceDuration { get; } = TimeSpan.FromMilliseconds(160);
+
     public UiNode Popover(NodeId id, string label, UiNode content, bool open, UiAction? openChanged = null,
         double width = 280, double height = 160, WidgetPopupSide side = WidgetPopupSide.Bottom)
     {
@@ -75,9 +100,9 @@ public sealed partial class WidgetBuilder
         return button with { Semantics = button.Semantics! with { DescribedBy = id.Child("popup").Value } };
     }
 
-    internal UiNode Compose(UiNode content, IReadOnlyList<UiNode> overlays, int width, int height)
+    internal UiNode Compose(UiNode content, IReadOnlyList<UiNode> overlays, int width, int height, bool transparent)
     {
-        return UI.Surface(id: new NodeId("machina.widgets.surface"), color: Style.Background,
+        return UI.Surface(id: new NodeId("machina.widgets.surface"), color: transparent ? null : Style.Background,
             children: [StandardUI.Place(content, 0, 0, width, height), .. overlays]);
     }
 
@@ -88,6 +113,13 @@ public sealed partial class WidgetBuilder
         Rect bounds = popup.Modal
             ? new Rect(viewport.X + (viewport.Width - width) / 2, viewport.Y + (viewport.Height - height) / 2, width, height)
             : WidgetPopupPlacement.Place(anchor, viewport, width, height, popup.Side);
+        if (popup.PointAnchor is not null && popup.EntranceOffset > 0)
+        {
+            double direction = bounds.Y >= anchor.Y ? 1 : -1;
+            bounds = new Rect(bounds.X,
+                Math.Clamp(bounds.Y + direction * popup.EntranceOffset, viewport.Y, viewport.Y + viewport.Height - height),
+                bounds.Width, bounds.Height);
+        }
         var layers = new List<UiNode>();
         bool tooltip = popup.Kind == WidgetPopupKind.Tooltip;
         if (!tooltip)
@@ -121,7 +153,8 @@ public sealed partial class WidgetBuilder
         }
         children.Add(StandardUI.Place(content, Style.Padding, top, contentWidth, contentHeight));
         var panel = Panel(popup.Panel, bounds.Width, bounds.Height, children,
-            new UiStyle(Style.Background, BorderColor: Style.Border, BorderThickness: 1, ClipToBounds: true));
+            new UiStyle(Style.Background, BorderColor: Style.Border, BorderThickness: 1, ClipToBounds: true,
+                Shape: popup.PointAnchor is null ? null : UiShapeKind.RoundedRect, CornerRadius: popup.PointAnchor is null ? 0 : 6));
         if (!tooltip)
             panel = Bind(new(popup.Panel, popup.Id, WidgetKind.Dismiss) { Popup = popup.Id, ReadOnly = true },
                 panel, new(popup.Kind == WidgetPopupKind.AlertDialog ? UiRole.AlertDialog : popup.Modal ? UiRole.Dialog
@@ -133,7 +166,7 @@ public sealed partial class WidgetBuilder
     }
 
     private UiNode ListItems(NodeId id, IReadOnlyList<WidgetOption> options, string? selected, UiAction? changed,
-        bool closeOnSelect, double width, bool menu)
+        bool closeOnSelect, double width, bool menu, TextAlignX alignment = TextAlignX.Center)
     {
         var children = new List<UiNode>();
         foreach (var option in options)
@@ -146,7 +179,7 @@ public sealed partial class WidgetBuilder
             };
             children.Add(ButtonNode(binding, option.Label, Math.Max(1, width),
                 new(menu ? UiRole.MenuItem : UiRole.Option, option.Label, option.Disabled, !option.Disabled)
-                { Selected = menu ? null : option.Key == selected }));
+                { Selected = menu ? null : option.Key == selected }, alignment));
         }
         return UI.Column(children, id.Child("options"), gap: Style.Gap)
             with { Semantics = new(menu ? UiRole.Menu : UiRole.ListBox) };

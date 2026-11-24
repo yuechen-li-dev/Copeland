@@ -107,6 +107,8 @@ internal sealed record WidgetPopup(NodeId Id, NodeId Trigger, UiNode Content, Wi
     public double? ListHeight { get; init; }
     /// <summary>List rows built at overlay time for the final row width (narrower when a scroll gutter is needed).</summary>
     public Func<double, UiNode>? List { get; init; }
+    public Rect? PointAnchor { get; init; }
+    public double EntranceOffset { get; init; }
 }
 
 /// <summary>Viewport-local placement, flipping when possible and clamping without negative dimensions.</summary>
