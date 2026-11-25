@@ -49,7 +49,7 @@ public static class CopelandProjectCompiler
         CopelandCompilationOptions? options = null)
         => new(sources, options ?? new CopelandCompilationOptions());
 
-    internal static CopelandProjectCompilation CompileSnapshot(CopelandProjectSnapshot snapshot)
+    internal static CopelandProjectCompilation CompileSnapshot(CopelandProjectSnapshot snapshot, bool checkOnly = false)
     {
         IReadOnlyList<CopelandProjectSource> sources = snapshot.Sources;
         CopelandCompilationOptions options = snapshot.Options;
@@ -134,6 +134,10 @@ public static class CopelandProjectCompiler
         if (diagnostics.Count > 0)
         {
             return new CopelandProjectCompilation(null, diagnostics, modules: CreateModuleCompilations(modules));
+        }
+        if (checkOnly)
+        {
+            return new CopelandProjectCompilation(null, diagnostics);
         }
         ConfigureDuplicateFunctionEmissionNames(ordered);
         ConfigureDuplicateRecordEmissionNames(ordered);
@@ -1064,6 +1068,11 @@ public sealed class CopelandProjectSnapshot
     }
 
     public CopelandProjectCompilation CompileToMir() => CopelandProjectCompiler.CompileSnapshot(this);
+
+    /// <summary>
+    /// Checks the module graph, bindings, effects, and static evaluation without lowering to MIR.
+    /// </summary>
+    public IReadOnlyList<Diagnostic> Check() => CopelandProjectCompiler.CompileSnapshot(this, checkOnly: true).Diagnostics;
 
     public TemplateEvaluationResult CompileTemplates(string? entryName = null)
         => CompileTemplates(entryName, []);
