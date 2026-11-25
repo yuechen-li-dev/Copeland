@@ -49,99 +49,20 @@ public static class CopelandProjectCompiler
         CopelandCompilationOptions? options = null)
         => new(sources, options ?? new CopelandCompilationOptions());
 
-    internal static CopelandProjectCompilation CompileSnapshot(CopelandProjectSnapshot snapshot, bool checkOnly = false)
+    internal static IReadOnlyList<Diagnostic> CheckSnapshot(CopelandProjectSnapshot snapshot)
     {
-        IReadOnlyList<CopelandProjectSource> sources = snapshot.Sources;
-        CopelandCompilationOptions options = snapshot.Options;
-        var diagnostics = new List<Diagnostic>();
-        foreach (CopelandProjectSource source in sources)
-        {
-            SourceFileProfile profile = SourceFileProfiles.Read(source.SourceText);
-            diagnostics.AddRange(profile.Diagnostics.Select(diagnostic => new Diagnostic(
-                diagnostic.Code, diagnostic.Message, diagnostic.Position, diagnostic.Length, source.SourcePath)));
-            if (profile.CheckOwner("tscl") is SourceProfileDiagnostic ownerDiagnostic)
-            {
-                diagnostics.Add(new Diagnostic(ownerDiagnostic.Code, ownerDiagnostic.Message,
-                    ownerDiagnostic.Position, ownerDiagnostic.Length, source.SourcePath));
-            }
-            diagnostics.AddRange(SourceProfileChecks.Validate(source.SourceText, source.SourcePath, options.BackendTarget));
-        }
-        if (diagnostics.Count > 0)
-        {
-            return new CopelandProjectCompilation(null, diagnostics);
-        }
-        IReadOnlyList<ProjectModule> modules = CreateModules(sources, diagnostics);
-        var byPath = modules.ToDictionary(module => module.LogicalPath, StringComparer.OrdinalIgnoreCase);
+        BindSnapshot(snapshot, snapshot.Options.BackendTarget?.Backend != CopelandBackend.JavaScript, out _, out var diagnostics);
+        return diagnostics;
+    }
 
-        foreach (ProjectModule module in modules)
-        {
-            ResolveImports(module, byPath, diagnostics);
-        }
-
-        ValidateModulePrivacy(modules, diagnostics);
-        DetectCycles(modules, diagnostics);
+    internal static CopelandProjectCompilation CompileSnapshot(CopelandProjectSnapshot snapshot)
+    {
+        IReadOnlyList<ProjectModule> modules = BindSnapshot(snapshot, allowClrInterop: true, out var ordered, out var diagnostics);
         if (diagnostics.Count > 0)
         {
             return new CopelandProjectCompilation(null, diagnostics, modules: CreateModuleCompilations(modules));
         }
 
-        IReadOnlyList<ProjectModule> ordered = OrderModules(modules);
-        var npmResolver = new CopelandNpmContractResolver(options.NpmDependencies ?? new CopelandNpmDependencyGraph(options.NpmPackages));
-        var hostResolver = new CopelandJavaScriptHostContractResolver(options.JavaScriptHostModules);
-        var clrResolver = new CopelandClrMetadataResolver(options.ClrReferences);
-        var packageContracts = new CopelandPackageContractMap(options.PackageContracts);
-        foreach (ProjectModule module in ordered)
-        {
-            BoundModuleImports imports = CreateImports(module, diagnostics);
-            string rewritten = RewriteModule(module);
-            SyntaxTree tree = ReferenceEquals(rewritten, module.Source.SourceText)
-                ? module.SourceSyntax
-                : SyntaxTree.Parse(rewritten, module.Source.SourcePath);
-            diagnostics.AddRange(tree.Diagnostics.Select(diagnostic => diagnostic with { SourcePath = module.Source.SourcePath }));
-            if (tree.Diagnostics.Count > 0)
-            {
-                continue;
-            }
-
-            BoundCompilation bound = Binder.Bind(tree, null, npmResolver, hostResolver, clrResolver, packageContracts, options.PackageBackend, options.ProjectTypes, module.Source.SourcePath, module.LogicalPath, imports, options.PresentationAdapter);
-            module.Bound = bound;
-            diagnostics.AddRange(bound.Diagnostics.Select(diagnostic => diagnostic with { SourcePath = module.Source.SourcePath }));
-        }
-
-        if (diagnostics.Count > 0) return new CopelandProjectCompilation(null, diagnostics, modules: CreateModuleCompilations(modules));
-
-        ClassifyProjectFunctionEffects(ordered);
-        BoundFunctionDeclaration[] componentFunctions = ordered.SelectMany(module => module.Bound!.Program.Functions).ToArray();
-        BoundLayoutBinding[] componentLayouts = ordered.SelectMany(module => module.Bound!.Program.LayoutBindings).ToArray();
-        IReadOnlySet<string> immutablePresentationBindings = ordered.SelectMany(module => module.Bound!.Program.ModuleStreams)
-            .Select(stream => stream.Storage.Name).ToHashSet(StringComparer.Ordinal);
-        foreach (ProjectModule module in ordered)
-        {
-            diagnostics.AddRange(ComponentEndpointValidation.Validate(module.Bound!.Program, componentFunctions, componentLayouts, immutablePresentationBindings)
-                .Select(diagnostic => diagnostic with { SourcePath = module.Source.SourcePath }));
-        }
-        if (diagnostics.Count > 0) return new CopelandProjectCompilation(null, diagnostics, modules: CreateModuleCompilations(modules));
-        BoundCompilation[] boundCompilations = ordered
-            .Select(module => module.Bound!)
-            .ToArray();
-        foreach (BoundCompilation compilation in boundCompilations)
-        {
-            compilation.Program.ComponentEndpointsQualified = true;
-        }
-        var staticSourcePaths = ordered.ToDictionary(
-            module => module.Bound!,
-            module => (string?)module.Source.SourcePath);
-        diagnostics.AddRange(StaticEvaluationPass.Evaluate(
-            boundCompilations,
-            sourcePaths: staticSourcePaths));
-        if (diagnostics.Count > 0)
-        {
-            return new CopelandProjectCompilation(null, diagnostics, modules: CreateModuleCompilations(modules));
-        }
-        if (checkOnly)
-        {
-            return new CopelandProjectCompilation(null, diagnostics);
-        }
         ConfigureDuplicateFunctionEmissionNames(ordered);
         ConfigureDuplicateRecordEmissionNames(ordered);
         ConfigureDuplicateEnumEmissionNames(ordered);
@@ -163,6 +84,99 @@ public static class CopelandProjectCompiler
             new MirCompilation(aggregate, []),
             MirTextWriter.Write(aggregate));
         return new CopelandProjectCompilation(compiled, diagnostics, graph, CreateModuleCompilations(modules));
+    }
+
+    private static IReadOnlyList<ProjectModule> BindSnapshot(
+        CopelandProjectSnapshot snapshot,
+        bool allowClrInterop,
+        out IReadOnlyList<ProjectModule> ordered,
+        out List<Diagnostic> diagnostics)
+    {
+        IReadOnlyList<CopelandProjectSource> sources = snapshot.Sources;
+        CopelandCompilationOptions options = snapshot.Options;
+        diagnostics = [];
+        ordered = [];
+        foreach (CopelandProjectSource source in sources)
+        {
+            SourceFileProfile profile = SourceFileProfiles.Read(source.SourceText);
+            diagnostics.AddRange(profile.Diagnostics.Select(diagnostic => new Diagnostic(
+                diagnostic.Code, diagnostic.Message, diagnostic.Position, diagnostic.Length, source.SourcePath)));
+            if (profile.CheckOwner("tscl") is SourceProfileDiagnostic ownerDiagnostic)
+            {
+                diagnostics.Add(new Diagnostic(ownerDiagnostic.Code, ownerDiagnostic.Message,
+                    ownerDiagnostic.Position, ownerDiagnostic.Length, source.SourcePath));
+            }
+            diagnostics.AddRange(SourceProfileChecks.Validate(profile, source.SourcePath, options.BackendTarget));
+        }
+        if (diagnostics.Count > 0)
+        {
+            return [];
+        }
+        IReadOnlyList<ProjectModule> modules = CreateModules(sources, diagnostics);
+        var byPath = modules.ToDictionary(module => module.LogicalPath, StringComparer.OrdinalIgnoreCase);
+
+        foreach (ProjectModule module in modules)
+        {
+            ResolveImports(module, byPath, diagnostics);
+        }
+
+        ValidateModulePrivacy(modules, diagnostics);
+        DetectCycles(modules, diagnostics);
+        if (diagnostics.Count > 0)
+        {
+            return modules;
+        }
+
+        ordered = OrderModules(modules);
+        var npmResolver = new CopelandNpmContractResolver(options.NpmDependencies ?? new CopelandNpmDependencyGraph(options.NpmPackages));
+        var hostResolver = new CopelandJavaScriptHostContractResolver(options.JavaScriptHostModules);
+        var clrResolver = new CopelandClrMetadataResolver(options.ClrReferences, allowClrInterop);
+        var packageContracts = new CopelandPackageContractMap(options.PackageContracts);
+        foreach (ProjectModule module in ordered)
+        {
+            BoundModuleImports imports = CreateImports(module, diagnostics);
+            string rewritten = RewriteModule(module);
+            SyntaxTree tree = ReferenceEquals(rewritten, module.Source.SourceText)
+                ? module.SourceSyntax
+                : SyntaxTree.Parse(rewritten, module.Source.SourcePath);
+            diagnostics.AddRange(tree.Diagnostics.Select(diagnostic => diagnostic with { SourcePath = module.Source.SourcePath }));
+            if (tree.Diagnostics.Count > 0)
+            {
+                continue;
+            }
+
+            BoundCompilation bound = Binder.Bind(tree, null, npmResolver, hostResolver, clrResolver, packageContracts, options.PackageBackend, options.ProjectTypes, module.Source.SourcePath, module.LogicalPath, imports, options.PresentationAdapter);
+            module.Bound = bound;
+            diagnostics.AddRange(bound.Diagnostics.Select(diagnostic => diagnostic with { SourcePath = module.Source.SourcePath }));
+        }
+
+        if (diagnostics.Count > 0) return modules;
+
+        ClassifyProjectFunctionEffects(ordered);
+        BoundFunctionDeclaration[] componentFunctions = ordered.SelectMany(module => module.Bound!.Program.Functions).ToArray();
+        BoundLayoutBinding[] componentLayouts = ordered.SelectMany(module => module.Bound!.Program.LayoutBindings).ToArray();
+        IReadOnlySet<string> immutablePresentationBindings = ordered.SelectMany(module => module.Bound!.Program.ModuleStreams)
+            .Select(stream => stream.Storage.Name).ToHashSet(StringComparer.Ordinal);
+        foreach (ProjectModule module in ordered)
+        {
+            diagnostics.AddRange(ComponentEndpointValidation.Validate(module.Bound!.Program, componentFunctions, componentLayouts, immutablePresentationBindings)
+                .Select(diagnostic => diagnostic with { SourcePath = module.Source.SourcePath }));
+        }
+        if (diagnostics.Count > 0) return modules;
+        BoundCompilation[] boundCompilations = ordered
+            .Select(module => module.Bound!)
+            .ToArray();
+        foreach (BoundCompilation compilation in boundCompilations)
+        {
+            compilation.Program.ComponentEndpointsQualified = true;
+        }
+        var staticSourcePaths = ordered.ToDictionary(
+            module => module.Bound!,
+            module => (string?)module.Source.SourcePath);
+        diagnostics.AddRange(StaticEvaluationPass.Evaluate(
+            boundCompilations,
+            sourcePaths: staticSourcePaths));
+        return modules;
     }
 
     private static IReadOnlyList<CopelandProjectModuleCompilation> CreateModuleCompilations(IReadOnlyList<ProjectModule> modules)
@@ -1078,7 +1092,7 @@ public sealed class CopelandProjectSnapshot
     /// <summary>
     /// Checks the module graph, bindings, effects, and static evaluation without lowering to MIR.
     /// </summary>
-    public IReadOnlyList<Diagnostic> Check() => CopelandProjectCompiler.CompileSnapshot(this, checkOnly: true).Diagnostics;
+    public IReadOnlyList<Diagnostic> Check() => CopelandProjectCompiler.CheckSnapshot(this);
 
     public TemplateEvaluationResult CompileTemplates(string? entryName = null)
         => CompileTemplates(entryName, []);

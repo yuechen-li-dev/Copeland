@@ -4,6 +4,7 @@ using Copeland.TS.Semantics;
 using Copeland.TS.Semantics.Bound;
 using Copeland.TS.Syntax;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using RoslynCSharpSyntaxTree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree;
 using RoslynDiagnostic = Microsoft.CodeAnalysis.Diagnostic;
@@ -1101,7 +1102,8 @@ public static partial class TemplateCompiler
                     ["unresolvedDisplayName"] = call.UnresolvedDisplayName,
                 })
                 .ToArray();
-            int metadataBytes = JsonSerializer.SerializeToUtf8Bytes(values).Length;
+            int metadataBytes = JsonSerializer.SerializeToUtf8Bytes(
+                values, TemplateJsonContext.Default.ObjectArray).Length;
             if (metadataBytes > MaximumReflectedMetadataBytes)
             {
                 Report(
@@ -1353,15 +1355,13 @@ public static partial class TemplateCompiler
 
         private static string SerializePackageManifest(NpmPackageManifestValue manifest)
             => JsonSerializer.Serialize(
-                new
-                {
-                    name = manifest.Name.ToLowerInvariant(),
-                    version = manifest.Version,
-                    @private = true,
-                    type = "module",
-                    dependencies = manifest.Dependencies.ToDictionary(dependency => dependency.Name, dependency => dependency.Version, StringComparer.Ordinal),
-                },
-                new JsonSerializerOptions { WriteIndented = true }) + "\n";
+                new TemplatePackageManifestJson(
+                    manifest.Name.ToLowerInvariant(),
+                    manifest.Version,
+                    true,
+                    "module",
+                    manifest.Dependencies.ToDictionary(dependency => dependency.Name, dependency => dependency.Version, StringComparer.Ordinal)),
+                TemplateJsonContext.Indented.TemplatePackageManifestJson) + "\n";
 
         private static string SerializeWorkspace(TypeScriptWorkspaceValue workspace)
         {

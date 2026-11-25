@@ -5,6 +5,7 @@
   <Folder Name="/src/">
     <Project Path="src/Copeland/Copeland.SpanAllocation/Copeland.SpanAllocation.csproj" />
     <Project Path="src/Copeland/Copeland.Cli/Copeland.Cli.csproj" />
+    <Project Path="src/Copeland/Copeland.Cli.Check/Copeland.Cli.Check.csproj" />
     <Project Path="src/Copeland/Copeland.Markdown/Copeland.Markdown.csproj" />
     <Project Path="src/Copeland/Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
     <Project Path="src/Copeland/Copeland.TS/Copeland.TS.csproj" />

@@ -9322,6 +9322,12 @@ public static partial class Binder
                 return new BoundErrorExpression();
             }
 
+            if (!CopelandClrReflection.IsEnabled)
+            {
+                ReportClrInteropUnavailable(expression.NewKeyword);
+                return new BoundErrorExpression();
+            }
+
             ConstructorInfo[] publicConstructors = type!.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                 .Where(_clrResolver.IsMemberVisible)
                 .ToArray();
@@ -9342,6 +9348,12 @@ public static partial class Binder
 
         private BoundExpression BindClrMethodCall(CallExpressionSyntax call, Type declaringType, BoundExpression? receiver, SyntaxToken memberName)
         {
+            if (!CopelandClrReflection.IsEnabled)
+            {
+                ReportClrInteropUnavailable(memberName);
+                return new BoundErrorExpression();
+            }
+
             BindingFlags dispatchFlags = receiver is null ? BindingFlags.Static : BindingFlags.Instance;
             MethodInfo[] publicMethods = declaringType
                 .GetMethods(BindingFlags.Public | BindingFlags.NonPublic | dispatchFlags)
@@ -9554,6 +9566,12 @@ public static partial class Binder
         {
             foreach (ClrUsingDirectiveSyntax directive in root.Members.OfType<ClrUsingDirectiveSyntax>())
             {
+                if (!_clrResolver.IsAvailable)
+                {
+                    ReportClrInteropUnavailable(directive.NameParts[0]);
+                    continue;
+                }
+
                 string qualifiedName = directive.QualifiedName;
                 IReadOnlyList<Type> exactTypes = _clrResolver.FindTypes(qualifiedName);
                 IReadOnlyList<Type> namespaceTypes = _clrResolver.FindTypesInNamespace(qualifiedName);
@@ -9579,6 +9597,9 @@ public static partial class Binder
                 }
             }
         }
+
+        private void ReportClrInteropUnavailable(SyntaxToken anchor)
+            => Report("COPE-CLR-0011", "CLR interop requires a managed Copeland compiler targeting .NET.", anchor);
 
         private void AddClrImportedType(Type type, SyntaxToken anchor)
         {
@@ -9613,7 +9634,7 @@ public static partial class Binder
         private bool TryResolveClrTypeReference(ExpressionSyntax syntax, out Type? type)
         {
             type = null;
-            if (!TryGetQualifiedName(syntax, out string qualifiedName, out SyntaxToken anchor))
+            if (!_clrResolver.IsAvailable || !TryGetQualifiedName(syntax, out string qualifiedName, out SyntaxToken anchor))
             {
                 return false;
             }
@@ -9780,6 +9801,12 @@ public static partial class Binder
             out CopelandPackageFunctionSymbol? function)
         {
             function = null;
+            if (!CopelandClrReflection.IsEnabled)
+            {
+                ReportClrInteropUnavailable(anchor);
+                return false;
+            }
+
             CopelandClrBinaryRealization realization = module.ClrRealization!;
             Type[] types = _clrResolver.FindTypes(realization.AssemblyIdentity, export.ClrType).ToArray();
             if (types.Length != 1)
@@ -10788,7 +10815,8 @@ public static partial class Binder
                     return result;
                 }
             }
-            if (call.Target is NameExpressionSyntax clrName && IsImportedGenericClrName(clrName.IdentifierToken.Text))
+            if (CopelandClrReflection.IsEnabled && call.Target is NameExpressionSyntax clrName
+                && IsImportedGenericClrName(clrName.IdentifierToken.Text))
             {
                 Type? closed = CloseGenericClrType(clrName.IdentifierToken, call.TypeArguments);
                 if (closed is null) return new BoundErrorExpression();
@@ -13540,6 +13568,12 @@ public static partial class Binder
 
         private BoundExpression BindClrProperty(MemberAccessExpressionSyntax syntax, Type declaringType, BoundExpression? receiver)
         {
+            if (!CopelandClrReflection.IsEnabled)
+            {
+                ReportClrInteropUnavailable(syntax.NameToken);
+                return new BoundErrorExpression();
+            }
+
             BindingFlags flags = BindingFlags.Public | (receiver is null ? BindingFlags.Static : BindingFlags.Instance);
             PropertyInfo[] properties = declaringType
                 .GetProperties(BindingFlags.Public | BindingFlags.NonPublic | (receiver is null ? BindingFlags.Static : BindingFlags.Instance))
@@ -13647,6 +13681,12 @@ public static partial class Binder
 
         private BoundExpression BindClrIndexer(ClrTypeSymbol owner, BoundExpression receiver, IndexExpressionSyntax index, ExpressionSyntax? assignedValue)
         {
+            if (!CopelandClrReflection.IsEnabled)
+            {
+                ReportClrInteropUnavailable(index.OpenBracketToken);
+                return new BoundErrorExpression();
+            }
+
             IEnumerable<MethodBase> accessors = owner.RuntimeType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(property => property.GetIndexParameters().Length > 0)
                 .Select(property => assignedValue is null ? property.GetMethod : property.SetMethod)
@@ -13886,6 +13926,12 @@ public static partial class Binder
 
         private Type? CloseGenericClrType(SyntaxToken name, IReadOnlyList<TypeSyntax> typeArguments)
         {
+            if (!CopelandClrReflection.IsEnabled)
+            {
+                ReportClrInteropUnavailable(name);
+                return null;
+            }
+
             if (!_clrImportedTypes.TryGetValue(name.Text + "`" + typeArguments.Count, out List<Type>? candidates))
             {
                 Report("COPE-CLR-GENERIC-0001", $"CLR generic type '{name.Text}' does not accept {typeArguments.Count} type arguments.", name);

@@ -1,8 +1,10 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Copeland.Cli;
 using Copeland.TS.Manifest;
+using Copeland.TS.Mir;
 
 namespace Copeland.TS.Compiler;
 
@@ -191,11 +193,21 @@ public sealed class CopelandProjectContext
     public static CopelandProjectContext LoadStandalone(string projectRoot)
         => LoadStandalone(projectRoot, out _, out _);
 
+    public static CopelandProjectContext LoadStandalone(string projectRoot, CopelandBackendTarget target)
+        => LoadStandalone(projectRoot, out _, out _, target);
+
     /// <summary>Returns the resolved manifest and workspace ownership used to build the context.</summary>
     public static CopelandProjectContext LoadStandalone(
         string projectRoot,
         out ManifestProjectLoadResult manifestResult,
         out CopelandWorkspaceOwnershipResult ownership)
+        => LoadStandalone(projectRoot, out manifestResult, out ownership, null);
+
+    private static CopelandProjectContext LoadStandalone(
+        string projectRoot,
+        out ManifestProjectLoadResult manifestResult,
+        out CopelandWorkspaceOwnershipResult ownership,
+        CopelandBackendTarget? target)
     {
         string fullProjectRoot = Path.GetFullPath(projectRoot);
         manifestResult = CopelandProject.LoadRootManifest(fullProjectRoot);
@@ -244,7 +256,7 @@ public sealed class CopelandProjectContext
             new CopelandProjectContextDescriptor
             {
                 ProjectRoot = fullProjectRoot,
-                JavaScriptRuntime = "node",
+                JavaScriptRuntime = target?.RuntimeId ?? "node",
                 TsXmlProfile = ProjectTypesProfile(ownership.ProjectTypes),
                 Sources = ownership.Sources.Select(source => new CopelandProjectContextSource
                 {
@@ -252,7 +264,7 @@ public sealed class CopelandProjectContext
                     Path = source.Path,
                 }).ToList(),
                 NpmContracts = contracts,
-            });
+            }, target);
     }
 
     private static IReadOnlyList<(string Source, string Package)> StandalonePackageRequirements(
@@ -389,6 +401,10 @@ public sealed class CopelandProjectContext
     }
 
     public static CopelandProjectContext Create(string descriptorPath, CopelandProjectContextDescriptor descriptor)
+        => Create(descriptorPath, descriptor, null);
+
+    private static CopelandProjectContext Create(
+        string descriptorPath, CopelandProjectContextDescriptor descriptor, CopelandBackendTarget? target)
     {
         if (string.IsNullOrWhiteSpace(descriptor.ProjectRoot))
         {
@@ -417,6 +433,13 @@ public sealed class CopelandProjectContext
         var options = new CopelandCompilationOptions
         {
             ProjectRoot = projectRoot,
+            BackendTarget = target,
+            PackageBackend = target?.Runtime switch
+            {
+                CopelandExecutionRuntime.Node => CopelandPackageBackend.JavaScriptNode,
+                CopelandExecutionRuntime.Browser => CopelandPackageBackend.JavaScriptBrowser,
+                _ => CopelandPackageBackend.Clr,
+            },
             NpmDependencies = npmDependencies,
             JavaScriptHostModules = browser ? [CopelandProjectHostContracts.Browser(projectTypes)] : [],
             ProjectTypes = projectTypes,
@@ -542,7 +565,9 @@ public sealed class CopelandProjectContext
         builder.Append("tsx=").Append(CopelandProjectTypes.ToTransport(options.ProjectTypes)).Append('\n');
         if (options.PresentationAdapter is not null)
         {
-            builder.Append("presentation=").Append(JsonSerializer.Serialize(options.PresentationAdapter, JsonOptions)).Append('\n');
+            builder.Append("presentation=")
+                .Append(JsonSerializer.Serialize(options.PresentationAdapter, CopelandProjectJsonContext.Default.MirPresentationAdapter))
+                .Append('\n');
         }
         foreach (CopelandProjectSource source in sources.OrderBy(source => source.LogicalPath, StringComparer.Ordinal))
         {
@@ -567,6 +592,9 @@ public sealed class CopelandProjectContext
 
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 }
+
+[JsonSerializable(typeof(MirPresentationAdapter))]
+internal sealed partial class CopelandProjectJsonContext : JsonSerializerContext;
 
 public sealed class CopelandProjectContextException(string code, string message) : Exception(message)
 {
