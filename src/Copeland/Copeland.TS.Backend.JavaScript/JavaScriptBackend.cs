@@ -791,8 +791,12 @@ public static partial class JavaScriptBackend
             case MirLiteralExpression literal:
                 ValidateLiteral(literal, context, diagnostics);
                 break;
-            case MirTextDocumentExpression:
-                AddUnsupported(diagnostics, $"Text document values in {context}; the JavaScript backend has no Text materializer in M0.");
+            case MirTextDocumentExpression document:
+                foreach (MirTextValueSlot slot in document.Slots)
+                {
+                    ValidateExpression(slot.Expression, functionReturnType, context, functions, catalog, diagnostics);
+                    RequireType(slot.Expression.Type, "string", $"text document slot in {context}", diagnostics);
+                }
                 break;
             case MirVariableExpression variable:
                 ValidateValueType(variable.Type, $"variable '{variable.Name}' in {context}", catalog, diagnostics, allowVoid: false);
@@ -1432,7 +1436,7 @@ public static partial class JavaScriptBackend
                 return;
             case MirType { Identifier: "void" } when allowVoid:
                 return;
-            case MirType { Identifier: "View" or "ReactNode" or "VueNode" or "ReactRoot" or "ReactMountElement" }:
+            case MirType { Identifier: "View" or "ReactNode" or "VueNode" or "ReactRoot" or "ReactMountElement" or "Document" }:
                 return;
             case MirType named when named is not MirArrayType and not MirResultType && catalog.ContainsEnum(named.Identifier):
                 return;
@@ -1951,6 +1955,7 @@ public static partial class JavaScriptBackend
 
     private static bool ExpressionUsesJavaScriptHostCallables(MirExpression expression) => expression switch
     {
+        MirTextDocumentExpression document => document.Slots.Any(slot => ExpressionUsesJavaScriptHostCallables(slot.Expression)),
         MirJavaScriptHostCallExpression host => host.Type is MirCallableType
             || host.Arguments.Any(argument => argument.Type is MirCallableType)
             || host.Arguments.Any(ExpressionUsesJavaScriptHostCallables),
@@ -1996,6 +2001,7 @@ public static partial class JavaScriptBackend
 
     private static bool ExpressionUsesTableWith(MirExpression expression) => expression switch
     {
+        MirTextDocumentExpression document => document.Slots.Any(slot => ExpressionUsesTableWith(slot.Expression)),
         MirArrayLengthExpression length => ExpressionUsesTableWith(length.Receiver),
         MirArrayElementAccessExpression access => ExpressionUsesTableWith(access.Receiver) || ExpressionUsesTableWith(access.Index),
         MirTableChangesExpression update => true,
@@ -2039,6 +2045,7 @@ public static partial class JavaScriptBackend
 
     private static bool ExpressionUsesCapturedCallables(MirExpression expression) => expression switch
     {
+        MirTextDocumentExpression document => document.Slots.Any(slot => ExpressionUsesCapturedCallables(slot.Expression)),
         MirArrayLengthExpression length => ExpressionUsesCapturedCallables(length.Receiver),
         MirArrayElementAccessExpression access => ExpressionUsesCapturedCallables(access.Receiver) || ExpressionUsesCapturedCallables(access.Index),
         MirTableChangesExpression update => update.Children.Any(ExpressionUsesCapturedCallables),
@@ -2101,6 +2108,7 @@ public static partial class JavaScriptBackend
         MirUnaryExpression unary => ExpressionUsesCallables(unary.Operand),
         MirBinaryExpression binary => ExpressionUsesCallables(binary.Left) || ExpressionUsesCallables(binary.Right),
         MirCallExpression call => call.Arguments.Any(ExpressionUsesCallables),
+        MirTextDocumentExpression document => document.Slots.Any(slot => ExpressionUsesCallables(slot.Expression)),
         MirReactElementExpression element => ExpressionUsesCallables(element.ElementType)
             || element.Properties.Any(property => ExpressionUsesCallables(property.Value))
             || element.Children.Any(ExpressionUsesCallables),
@@ -3810,6 +3818,7 @@ public static partial class JavaScriptBackend
             MirLiteralExpression { Value: string text } => EmittedExpression.ValueOnly(JavaScriptLiteralWriter.WriteString(text)),
             MirLiteralExpression { Value: not null } literal => EmittedExpression.ValueOnly(JavaScriptLiteralWriter.WriteNumber(literal.Value)),
             MirUnitExpression => EmittedExpression.ValueOnly("null"),
+            MirTextDocumentExpression document => EmitTextDocument(document, function, catalog, results, names, flowEnabled),
             MirVariableExpression variable => EmittedExpression.ValueOnly(JavaScriptIdentifierEncoder.Encode(variable.Name)),
             MirAssignmentExpression assignment => EmitAssignment(assignment, function, catalog, results, names, flowEnabled),
             MirUnaryExpression unary => EmitUnary(unary, function, catalog, results, names, flowEnabled),
@@ -5818,6 +5827,7 @@ public static partial class JavaScriptBackend
                 or MirTableWithRowExpression or MirTableChangesExpression or MirTableRecalculationExpression or MirTableSummaryExpression => true,
             MirUnaryExpression unary => ContainsControlFlow(unary.Operand),
             MirRecordConstructionExpression or MirRecordFieldAccessExpression or MirRecordWithExpression or MirTableWithExpression => true,
+            MirTextDocumentExpression document => document.Slots.Any(slot => ContainsControlFlow(slot.Expression)),
             MirReactElementExpression element => ContainsControlFlow(element.ElementType)
                 || element.Properties.Any(property => ContainsControlFlow(property.Value))
                 || element.Children.Any(ContainsControlFlow),
@@ -5856,6 +5866,7 @@ public static partial class JavaScriptBackend
     private static bool ExpressionUsesTryExcept(MirExpression expression)
         => expression switch
         {
+            MirTextDocumentExpression document => document.Slots.Any(slot => ExpressionUsesTryExcept(slot.Expression)),
         MirArrayLengthExpression length => ExpressionUsesTryExcept(length.Receiver),
         MirArrayElementAccessExpression access => ExpressionUsesTryExcept(access.Receiver) || ExpressionUsesTryExcept(access.Index),
         MirTableChangesExpression update => update.Children.Any(ExpressionUsesTryExcept),
@@ -5913,6 +5924,7 @@ public static partial class JavaScriptBackend
     private static bool ExpressionUsesTsonTransport(MirExpression expression)
         => expression switch
         {
+            MirTextDocumentExpression document => document.Slots.Any(slot => ExpressionUsesTsonTransport(slot.Expression)),
             MirTsonTransportExpression => true,
             MirNpmCallExpression => false,
             MirAwaitExpression awaited => ExpressionUsesTsonTransport(awaited.Operand),
@@ -5941,6 +5953,7 @@ public static partial class JavaScriptBackend
     private static bool ExpressionUsesUnwrap(MirExpression expression)
         => expression switch
         {
+            MirTextDocumentExpression document => document.Slots.Any(slot => ExpressionUsesUnwrap(slot.Expression)),
         MirArrayLengthExpression length => ExpressionUsesUnwrap(length.Receiver),
         MirArrayElementAccessExpression access => ExpressionUsesUnwrap(access.Receiver) || ExpressionUsesUnwrap(access.Index),
         MirTableChangesExpression update => update.Children.Any(ExpressionUsesUnwrap),

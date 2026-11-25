@@ -238,12 +238,15 @@ public static class CopelandProjectCompiler
             }
 
             string visibleSource = EmbeddedSourceBlockScanner.MaskBodies(source.SourceText);
-            SyntaxToken[] tokens = SyntaxTree.ParseTokens(visibleSource).Tokens.ToArray();
             SyntaxTree visibleSyntax = SyntaxTree.Parse(visibleSource, source.SourcePath);
             SyntaxTree importSyntax = SourceFileKindExtensions.FromSourcePath(source.SourcePath)
                 == SourceFileKindExtensions.FromSourcePath(source.LogicalPath)
                 ? visibleSyntax
                 : SyntaxTree.Parse(visibleSource, source.LogicalPath);
+            SyntaxTree? textXmlSyntax = SourceFileKindExtensions.FromSourcePath(source.LogicalPath) == SourceFileKind.TypeScriptXml
+                ? importSyntax
+                : null;
+            SyntaxToken[] tokens = ReadModuleTokens(visibleSource, textXmlSyntax);
             SyntaxTree sourceSyntax = ReferenceEquals(visibleSource, source.SourceText)
                 ? visibleSyntax
                 : SyntaxTree.Parse(source.SourceText, source.SourcePath);
@@ -869,7 +872,41 @@ public static class CopelandProjectCompiler
     }
 
     internal static IReadOnlySet<string> ReadExports(CopelandProjectSource source)
-        => ReadExports(SyntaxTree.ParseTokens(EmbeddedSourceBlockScanner.MaskBodies(source.SourceText)).Tokens.ToArray(), out _);
+    {
+        string visibleSource = EmbeddedSourceBlockScanner.MaskBodies(source.SourceText);
+        SyntaxTree? syntax = SourceFileKindExtensions.FromSourcePath(source.LogicalPath) == SourceFileKind.TypeScriptXml
+            ? SyntaxTree.Parse(visibleSource, source.LogicalPath)
+            : null;
+        return ReadExports(ReadModuleTokens(visibleSource, syntax), out _);
+    }
+
+    private static SyntaxToken[] ReadModuleTokens(string text, SyntaxTree? syntax)
+    {
+        // Module keywords inside TS-XML prose and code samples are literal text.
+        char[]? masked = null;
+        if (syntax is not null)
+        {
+            foreach (SyntaxToken token in syntax.Tokens)
+            {
+                if (token.Kind != SyntaxKind.TsXmlTextToken)
+                {
+                    continue;
+                }
+
+                masked ??= text.ToCharArray();
+                int end = token.Position + token.Text.Length;
+                for (int position = token.Position; position < end; position++)
+                {
+                    if (masked[position] is not ('\n' or '\r'))
+                    {
+                        masked[position] = ' ';
+                    }
+                }
+            }
+        }
+
+        return SyntaxTree.ParseTokens(masked is null ? text : new string(masked)).Tokens.ToArray();
+    }
 
     private static IReadOnlySet<string> ReadExports(SyntaxToken[] tokens, out IReadOnlyList<int> exportOffsets)
     {
