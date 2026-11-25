@@ -17,6 +17,7 @@ These calls are typed native operations in MIR and have matching C# and JavaScri
 | `String.Split(value, separator)` | Ordinal separator, preserves empty fields. Empty separator splits UTF-16 code units; empty input then gives an empty array. |
 | `String.IndexOf(value, search)` | First ordinal UTF-16 offset, or `-1`; empty search gives `0`. |
 | `String.CodeAt(value, index)` | UTF-16 code unit as `int`. Negative or upper-bound index traps with `String index is out of bounds.` |
+| `String.FromCode(code)` | Constructs one exact UTF-16 code unit, including a surrogate. Values outside 0–65535 trap with `Invalid UTF-16 code unit.` |
 | `String.Slice(value, start, end)` | End exclusive. Negative offsets count from the end; both bounds clamp to the string. Reversed bounds give an empty string. |
 | `String.Join(parts, separator)` | Joins a `string[]` in order. |
 

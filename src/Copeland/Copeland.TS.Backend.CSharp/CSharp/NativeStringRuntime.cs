@@ -53,6 +53,15 @@ internal static string __cope_native_StringJoin(string[] parts, string separator
 {
     return string.Join(separator, parts);
 }
+
+internal static string __cope_native_StringFromCode(int code)
+{
+    if (code < 0 || code > 65535)
+    {
+        throw new global::System.InvalidOperationException("Invalid UTF-16 code unit.");
+    }
+    return ((char)code).ToString();
+}
 """;
         foreach (string line in source.Split('\n'))
         {

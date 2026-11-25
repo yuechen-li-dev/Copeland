@@ -14149,6 +14149,7 @@ public static partial class Binder
                 "Split" => Copeland.TS.Mir.MirNativeOperation.StringSplit,
                 "IndexOf" => Copeland.TS.Mir.MirNativeOperation.StringIndexOf,
                 "CodeAt" => Copeland.TS.Mir.MirNativeOperation.StringCodeAt,
+                "FromCode" => Copeland.TS.Mir.MirNativeOperation.StringFromCode,
                 "Slice" => Copeland.TS.Mir.MirNativeOperation.StringSlice,
                 "Join" => Copeland.TS.Mir.MirNativeOperation.StringJoin,
                 _ => null,

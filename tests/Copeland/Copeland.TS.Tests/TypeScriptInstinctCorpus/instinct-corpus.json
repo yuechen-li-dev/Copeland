@@ -40,6 +40,23 @@
     "ClrOnly": false
   },
   {
+    "Id": "string-from-code-roundtrip",
+    "Category": "strings",
+    "Input": "function run(): int[] { return [String.CodeAt(String.FromCode(10), 0), String.CodeAt(String.FromCode(0xd800), 0), String.CodeAt(String.FromCode(65535), 0)]; }",
+    "Outcome": "compile",
+    "ExpectedJson": "[10,55296,65535]",
+    "ClrOnly": false
+  },
+  {
+    "Id": "string-from-code-range-trap",
+    "Category": "strings",
+    "Input": "function run(): string { return String.FromCode(65536); }",
+    "Outcome": "compile",
+    "ExpectedJson": null,
+    "ExpectedFailure": "Invalid UTF-16 code unit.",
+    "ClrOnly": false
+  },
+  {
     "Id": "string-slice-reversed",
     "Category": "strings",
     "Input": "function run(): string { return String.Slice(\"abc\", 2, 1); }",

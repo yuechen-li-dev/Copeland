@@ -9,6 +9,7 @@ public enum MirNativeOperation
     StringSlice,
     StringJoin,
     MutableArrayFilled,
+    StringFromCode,
 }
 
 public static class MirNativeOperations
@@ -23,6 +24,7 @@ public static class MirNativeOperations
             MirNativeOperation.StringSplit => ([text, text], texts),
             MirNativeOperation.StringIndexOf => ([text, text], integer),
             MirNativeOperation.StringCodeAt => ([text, integer], integer),
+            MirNativeOperation.StringFromCode => ([integer], text),
             MirNativeOperation.StringSlice => ([text, integer, integer], text),
             MirNativeOperation.StringJoin => ([texts, text], text),
             _ => throw new ArgumentOutOfRangeException(nameof(operation)),

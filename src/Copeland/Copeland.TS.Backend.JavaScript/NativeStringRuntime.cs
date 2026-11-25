@@ -32,6 +32,11 @@ function __cope_native_StringSlice(value, start, end) {
 function __cope_native_StringJoin(parts, separator) {
     return parts.join(separator);
 }
+
+function __cope_native_StringFromCode(code) {
+    if (code < 0 || code > 65535) throw new Error("Invalid UTF-16 code unit.");
+    return String.fromCharCode(code);
+}
 """;
         foreach (string line in source.Split('\n'))
         {
