@@ -6,8 +6,8 @@ public sealed class Parser
 {
     private int _flowStateDepth;
     private readonly string _text;
-    private readonly SyntaxToken[] _tokens;
-    private readonly IReadOnlyList<Diagnostic> _lexerDiagnostics;
+    private SyntaxToken[] _tokens;
+    private IReadOnlyList<Diagnostic> _lexerDiagnostics;
     private readonly DiagnosticBag _diagnostics = new();
     private readonly List<(int Start, int End)> _tsXmlTextRanges = [];
     private readonly List<(int Start, int End)> _csharpBlockRanges = [];
@@ -3943,7 +3943,7 @@ public sealed class Parser
         return new MatchPatternSyntax(caseIdentifier, openParen, payloadIdentifiers, commas, closeParen, enumQualifier, qualifierDot);
     }
 
-    private TsXmlExpressionSyntax ParseTsXmlExpression()
+    private TsXmlExpressionSyntax ParseTsXmlExpression(bool documentContent = false)
     {
         SyntaxToken lessToken = MatchTsXml(SyntaxKind.LessToken, "Expected '<' to begin a TS-XML expression.");
         if (Current.Kind == SyntaxKind.GreaterToken)
@@ -3980,7 +3980,19 @@ public sealed class Parser
                 null);
         }
 
-        var children = ParseTsXmlChildren(openCloseToken.Position + openCloseToken.Text.Length);
+        int contentStart = openCloseToken.Position + openCloseToken.Text.Length;
+        IReadOnlyList<TsXmlChildSyntax> children;
+        if (documentContent && nameToken.Text == "CodeBlock"
+            && _text.IndexOf("</CodeBlock>", contentStart, StringComparison.Ordinal) is int contentEnd
+            && contentEnd >= 0)
+        {
+            children = contentStart == contentEnd ? [] : [CreateTsXmlText(contentStart, contentEnd)];
+            AdvancePastSourcePosition(contentEnd);
+        }
+        else
+        {
+            children = ParseTsXmlChildren(contentStart, documentContent || nameToken.Text == "Document");
+        }
         SyntaxToken? closeLessToken = null;
         SyntaxToken? closeSlashToken = null;
         SyntaxToken? closeNameToken = null;
@@ -4034,7 +4046,7 @@ public sealed class Parser
             closeGreaterToken);
     }
 
-    private IReadOnlyList<TsXmlChildSyntax> ParseTsXmlChildren(int textStart)
+    private IReadOnlyList<TsXmlChildSyntax> ParseTsXmlChildren(int textStart, bool documentContent = false)
     {
         var children = new List<TsXmlChildSyntax>();
 
@@ -4063,7 +4075,7 @@ public sealed class Parser
 
                 if (Current.Kind == SyntaxKind.LessToken)
                 {
-                    TsXmlExpressionSyntax nested = ParseTsXmlExpression();
+                    TsXmlExpressionSyntax nested = ParseTsXmlExpression(documentContent);
                     children.Add(new TsXmlElementChildSyntax(nested));
                     textStart = GetTsXmlEndPosition(nested);
                     continue;
@@ -4234,6 +4246,26 @@ public sealed class Parser
         {
             NextToken();
         }
+        // TypeScript lexing can swallow a TS-XML delimiter inside document prose,
+        // for example after an apostrophe. Resume normal lexing at the boundary.
+        if (position >= _text.Length || Current.Position == position || _text[position] is not ('<' or '{'))
+        {
+            return;
+        }
+        var lexer = new Lexer(_text, position);
+        var tokens = new List<SyntaxToken>(_tokens.Take(_position));
+        SyntaxToken token;
+        do
+        {
+            token = lexer.NextToken();
+            if (token.Kind != SyntaxKind.BadToken)
+            {
+                tokens.Add(token);
+            }
+        }
+        while (token.Kind != SyntaxKind.EndOfFileToken);
+        _tokens = tokens.ToArray();
+        _lexerDiagnostics = [.. _lexerDiagnostics.Where(diagnostic => diagnostic.Position < position), .. lexer.Diagnostics];
     }
 
     private SyntaxToken MatchTsXmlName(string message, bool allowColon = false)

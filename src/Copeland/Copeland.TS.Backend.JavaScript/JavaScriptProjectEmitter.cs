@@ -72,6 +72,11 @@ public static class JavaScriptProjectEmitter
         {
             string outputPath = GetOutputPath(module.Id);
             var lines = new List<string>();
+            if (aggregate.NugetCalls.Count > 0)
+            {
+                string specifier = GetRelativeSpecifier(outputPath, "copeland-nuget/host.mjs");
+                lines.Add($"import {{ callNuget as __cope_call_nuget }} from {JavaScriptLiteralWriter.WriteString(specifier)};");
+            }
             var importedHelpers = new HashSet<string>(StringComparer.Ordinal);
             AddExternalImports(lines, module.NpmImports, module.JavaScriptHostImports);
             if (module.Functions.Any(function => function.ComponentState is not null)
@@ -195,7 +200,7 @@ public static class JavaScriptProjectEmitter
             files.Add(outputPath, string.Join(Environment.NewLine, lines) + Environment.NewLine);
         }
 
-        return new JavaScriptProjectCompilation(files, []);
+        return new JavaScriptProjectCompilation(files, []) { NugetCalls = aggregate.NugetCalls };
     }
 
     private static string? GetRuntimeName(MirProjectGraph graph, MirModuleId target, string exportedName)
@@ -267,6 +272,7 @@ public static class JavaScriptProjectEmitter
     {
         foreach (MirNpmImport npm in npmImports.OrderBy(import => import.PackageName, StringComparer.Ordinal).ThenBy(import => import.ExportName, StringComparer.Ordinal).ThenBy(import => import.LocalBinding, StringComparer.Ordinal))
         {
+            if (npm.IsFallible) continue;
             AddExternalImport(lines, npm.PackageName, npm.ExportName, npm.LocalBinding);
         }
 
@@ -329,5 +335,6 @@ public sealed class JavaScriptProjectCompilation(
 {
     public IReadOnlyDictionary<string, string> Files { get; } = files;
     public IReadOnlyList<JavaScriptDiagnostic> Diagnostics { get; } = diagnostics;
+    public IReadOnlyList<MirTsonTransportExpression> NugetCalls { get; internal init; } = [];
     public bool Success => Diagnostics.Count == 0;
 }

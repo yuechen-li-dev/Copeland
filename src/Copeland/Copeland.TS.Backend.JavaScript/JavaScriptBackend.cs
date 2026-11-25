@@ -169,7 +169,7 @@ public static partial class JavaScriptBackend
             return new JavaScriptCompilation(null, diagnostics);
         }
 
-        bool usesTsonTransport = ProgramUsesTsonTransport(program);
+        bool usesTsonTransport = effectiveOptions.UseNugetWorker || ProgramUsesTsonTransport(program);
         MirTsonEncodingPlan[] javascriptTsonPlans = program.TsonEncodingPlans
             .Where(plan => plan.RootType is not MirRecordType { DisplayName: var name }
                 || !name.StartsWith("__NpmTransport_", StringComparison.Ordinal))
@@ -181,7 +181,8 @@ public static partial class JavaScriptBackend
         bool usesCapturedCallables = ProgramUsesCapturedCallables(program);
         bool usesSharedBrowserInteropRuntime = program.JavaScriptHostImports.Count > 0
             || effectiveOptions.EmitModuleFactories;
-        bool usesAsync = program.Functions.Any(function => function.IsAsync || function.IsRemote);
+        bool usesAsync = usesTsonTransport || program.Functions.Any(function => function.IsAsync || function.IsRemote)
+            || program.NpmImports.Any(import => import.IsFallible);
         bool previousNativeStrings = UsesNativeStrings.Value;
         UsesNativeStrings.Value = false;
         bool previousIntegerRuntime = UsesIntegerRuntime.Value;
@@ -191,6 +192,10 @@ public static partial class JavaScriptBackend
         try
         {
         GeneratedNames names = GeneratedNames.Create(program, catalog, results, usesUnwrap, usesTryExcept, effectiveOptions.Profile);
+        if (effectiveOptions.UseNugetWorker)
+        {
+            names.NugetCalls = [];
+        }
         var writer = new JavaScriptTextWriter(
             names.Document,
             names.GeneratedDefinitions,
@@ -207,8 +212,13 @@ public static partial class JavaScriptBackend
         }
         foreach (MirNpmImport npm in program.NpmImports.OrderBy(import => import.PackageName, StringComparer.Ordinal).ThenBy(import => import.ExportName, StringComparer.Ordinal).ThenBy(import => import.LocalBinding, StringComparer.Ordinal))
         {
-            string exportName = JavaScriptIdentifierEncoder.Encode(npm.ExportName);
             string localBinding = JavaScriptIdentifierEncoder.Encode(npm.LocalBinding);
+            if (npm.IsFallible)
+            {
+                writer.WriteLine($"const {localBinding} = () => import({JavaScriptLiteralWriter.WriteString(npm.PackageName)});");
+                continue;
+            }
+            string exportName = JavaScriptIdentifierEncoder.Encode(npm.ExportName);
             string specifier = string.Equals(exportName, localBinding, StringComparison.Ordinal)
                 ? exportName
                 : exportName + " as " + localBinding;
@@ -225,6 +235,10 @@ public static partial class JavaScriptBackend
             writer.WriteLine($"import {{ {specifier} }} from {JavaScriptLiteralWriter.WriteString(host.ModuleSpecifier)};");
         }
         writer.WriteLine("\"use strict\";");
+        if (program.NpmImports.Any(import => import.IsFallible))
+        {
+            EmitFallibleNpmRuntime(writer);
+        }
         foreach (MirNpmImport host in program.NpmImports.Where(import => import.PresentationHost))
         {
             string identity = host.PackageName + "/" + host.ExportName;
@@ -244,7 +258,8 @@ public static partial class JavaScriptBackend
         if (usesTsonTransport)
         {
             writer.WriteLine();
-            EmitTsonTransportRuntime(writer);
+            if (effectiveOptions.UseNugetWorker) EmitNugetTransportRuntime(writer);
+            else EmitTsonTransportRuntime(writer);
         }
 
         if (usesCallables)
@@ -336,6 +351,7 @@ public static partial class JavaScriptBackend
             NodeArraySnapshotHelper = names.NodeArraySnapshotHelper,
             NodeArraySnapshotFunctions = names.NodeArraySnapshotFunctions,
             SharedNodeProjections = sharedNodeProjections,
+            NugetCalls = names.NugetCalls ?? [],
             ProjectSections = projectFunctions is null ? null : new JavaScriptProjectSections(
                 sourceText[..writer.GetRenderedOffset(runtimeEnd)] + sourceText[writer.GetRenderedOffset(functionStart)..],
                 projectFunctions.ToDictionary(
@@ -569,6 +585,21 @@ public static partial class JavaScriptBackend
         writer.WriteLine("function __cope_async_pending() { return __cope_async(); }");
     }
 
+    private static void EmitNugetTransportRuntime(JavaScriptTextWriter writer)
+    {
+        writer.WriteLine("""
+            const __cope_tson_transport = Object.freeze({
+                start(operation, request, decode) {
+                    const computation = __cope_async_pending();
+                    void __cope_call_nuget(operation, request).then(
+                        ({ kind, payload }) => computation.resolve(decode(kind, payload))
+                    ).catch(() => computation.fail());
+                    return computation;
+                },
+            });
+            """);
+    }
+
     private static void EmitTsonTransportRuntime(JavaScriptTextWriter writer)
     {
         writer.WriteLine("const __cope_tson_transport = (() => {");
@@ -791,8 +822,12 @@ public static partial class JavaScriptBackend
             case MirLiteralExpression literal:
                 ValidateLiteral(literal, context, diagnostics);
                 break;
-            case MirTextDocumentExpression:
-                AddUnsupported(diagnostics, $"Text document values in {context}; the JavaScript backend has no Text materializer in M0.");
+            case MirTextDocumentExpression document:
+                foreach (MirTextValueSlot slot in document.Slots)
+                {
+                    ValidateExpression(slot.Expression, functionReturnType, context, functions, catalog, diagnostics);
+                    RequireType(slot.Expression.Type, "string", $"text document slot in {context}", diagnostics);
+                }
                 break;
             case MirVariableExpression variable:
                 ValidateValueType(variable.Type, $"variable '{variable.Name}' in {context}", catalog, diagnostics, allowVoid: false);
@@ -1432,7 +1467,7 @@ public static partial class JavaScriptBackend
                 return;
             case MirType { Identifier: "void" } when allowVoid:
                 return;
-            case MirType { Identifier: "View" or "ReactNode" or "VueNode" or "ReactRoot" or "ReactMountElement" }:
+            case MirType { Identifier: "View" or "ReactNode" or "VueNode" or "ReactRoot" or "ReactMountElement" or "Document" }:
                 return;
             case MirType named when named is not MirArrayType and not MirResultType && catalog.ContainsEnum(named.Identifier):
                 return;
@@ -1951,6 +1986,7 @@ public static partial class JavaScriptBackend
 
     private static bool ExpressionUsesJavaScriptHostCallables(MirExpression expression) => expression switch
     {
+        MirTextDocumentExpression document => document.Slots.Any(slot => ExpressionUsesJavaScriptHostCallables(slot.Expression)),
         MirJavaScriptHostCallExpression host => host.Type is MirCallableType
             || host.Arguments.Any(argument => argument.Type is MirCallableType)
             || host.Arguments.Any(ExpressionUsesJavaScriptHostCallables),
@@ -1996,6 +2032,7 @@ public static partial class JavaScriptBackend
 
     private static bool ExpressionUsesTableWith(MirExpression expression) => expression switch
     {
+        MirTextDocumentExpression document => document.Slots.Any(slot => ExpressionUsesTableWith(slot.Expression)),
         MirArrayLengthExpression length => ExpressionUsesTableWith(length.Receiver),
         MirArrayElementAccessExpression access => ExpressionUsesTableWith(access.Receiver) || ExpressionUsesTableWith(access.Index),
         MirTableChangesExpression update => true,
@@ -2039,6 +2076,7 @@ public static partial class JavaScriptBackend
 
     private static bool ExpressionUsesCapturedCallables(MirExpression expression) => expression switch
     {
+        MirTextDocumentExpression document => document.Slots.Any(slot => ExpressionUsesCapturedCallables(slot.Expression)),
         MirArrayLengthExpression length => ExpressionUsesCapturedCallables(length.Receiver),
         MirArrayElementAccessExpression access => ExpressionUsesCapturedCallables(access.Receiver) || ExpressionUsesCapturedCallables(access.Index),
         MirTableChangesExpression update => update.Children.Any(ExpressionUsesCapturedCallables),
@@ -2101,6 +2139,7 @@ public static partial class JavaScriptBackend
         MirUnaryExpression unary => ExpressionUsesCallables(unary.Operand),
         MirBinaryExpression binary => ExpressionUsesCallables(binary.Left) || ExpressionUsesCallables(binary.Right),
         MirCallExpression call => call.Arguments.Any(ExpressionUsesCallables),
+        MirTextDocumentExpression document => document.Slots.Any(slot => ExpressionUsesCallables(slot.Expression)),
         MirReactElementExpression element => ExpressionUsesCallables(element.ElementType)
             || element.Properties.Any(property => ExpressionUsesCallables(property.Value))
             || element.Children.Any(ExpressionUsesCallables),
@@ -3463,7 +3502,9 @@ public static partial class JavaScriptBackend
         => "frame.__" + JavaScriptIdentifierEncoder.Encode(slot.Value);
 
     private static string AsyncFrameVariableReference(string name, GeneratedNames names)
-        => names.AsyncFrameVariables is { } variables && variables.TryGetValue(name, out string? slot)
+        => names.AsyncMatchBindings.TryGetValue(name, out string? matchBinding)
+            ? matchBinding
+            : names.AsyncFrameVariables is { } variables && variables.TryGetValue(name, out string? slot)
             ? AsyncFrameSlotReference(new MirFrameSlotId(slot))
             : "frame." + JavaScriptIdentifierEncoder.Encode(name);
 
@@ -3499,7 +3540,10 @@ public static partial class JavaScriptBackend
             MirLiteralExpression { Value: not null } literal => JavaScriptLiteralWriter.WriteNumber(literal.Value),
             MirUnitExpression => "null",
             MirVariableExpression variable => AsyncFrameVariableReference(variable.Name, names),
+            MirArrayExpression { Counts: null } array => "[" + string.Join(", ",
+                array.Elements.Select(element => EmitAsyncExpression(element, catalog, results, names))) + "]",
             MirAsyncFrameSlotExpression slot => AsyncFrameSlotReference(slot.SlotId),
+            MirArrayLengthExpression length => $"({EmitAsyncExpression(length.Receiver, catalog, results, names)}).length",
             MirMutableArrayConstructionExpression construction => $"Array({EmitAsyncExpression(construction.Length, catalog, results, names)}).fill({DefaultJavaScriptValue(construction.MutableArrayType.ElementType)})",
             MirMutableArrayLengthExpression length => $"({EmitAsyncExpression(length.Receiver, catalog, results, names)}).length",
             MirMutableArrayElementAccessExpression access => EmitAsyncMutableArrayOperation(access.Receiver, access.Index, null, catalog, results, names),
@@ -3516,11 +3560,39 @@ public static partial class JavaScriptBackend
             MirEnumValueExpression value => EmitAsyncEnumValue(value, catalog, results, names),
             MirTsonTransportExpression transport => EmitAsyncTsonTransport(transport, catalog, results, names),
             MirNpmCallExpression npm => EmitNpmCall(npm, catalog, results, names),
+            MirResultMatchExpression match => EmitAsyncResultMatch(match, catalog, results, names),
             MirNpmDirectCallExpression npm => EmitNpmDirectCallValue(npm, catalog, results, names),
             MirOkExpression ok => $"{names.MakeValue}({names.TypeToken(results.Get((MirResultType)ok.Type))}, \"ok\", [{EmitAsyncExpression(ok.Payload, catalog, results, names)}])",
             MirErrExpression err => $"{names.MakeValue}({names.TypeToken(results.Get((MirResultType)err.Type))}, \"err\", [{EmitAsyncExpression(err.Payload, catalog, results, names)}])",
             _ => throw new InvalidOperationException($"Async expression '{expression.GetType().Name}' has not been lowered into an explicit state expression."),
         };
+    }
+
+    private static string EmitAsyncResultMatch(MirResultMatchExpression match, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    {
+        string parameter = names.NextTemporary("async_result");
+        string scrutinee = EmitAsyncExpression(match.Scrutinee, catalog, results, names);
+        string success = EmitAsyncMatchArm(match.OkBinding.Name, parameter, match.OkExpression, catalog, results, names);
+        string error = EmitAsyncMatchArm(match.ErrBinding.Name, parameter, match.ErrExpression, catalog, results, names);
+        var type = (MirResultType)match.Scrutinee.Type;
+        return $"({parameter} => ({names.Validator(results.Get(type))}({parameter}), "
+            + $"""{parameter}.$tag === "ok" ? ({success}) : ({error})))({scrutinee})""";
+    }
+
+    private static string EmitAsyncMatchArm(
+        string name, string parameter, MirExpression expression, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    {
+        string? previous = names.AsyncMatchBindings.GetValueOrDefault(name);
+        names.AsyncMatchBindings[name] = parameter + ".$payload[0]";
+        try
+        {
+            return EmitAsyncExpression(expression, catalog, results, names);
+        }
+        finally
+        {
+            if (previous is null) names.AsyncMatchBindings.Remove(name);
+            else names.AsyncMatchBindings[name] = previous;
+        }
     }
 
     private static string EmitAsyncInvoke(MirInvokeExpression invoke, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
@@ -3560,6 +3632,7 @@ public static partial class JavaScriptBackend
 
     private static string EmitAsyncTsonTransport(MirTsonTransportExpression transport, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
     {
+        names.NugetCalls?.Add(transport);
         MirResultType result = (MirResultType)transport.AsyncType.EventualType;
         string resultToken = names.TypeToken(results.Get(result));
         string requestPlan = JavaScriptLiteralWriter.WriteString(transport.RequestPlanId.Value);
@@ -3569,12 +3642,104 @@ public static partial class JavaScriptBackend
     }
 
     private static string EmitNpmCall(MirNpmCallExpression npm, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+        => EmitNpmCall(npm, npm.Arguments.Select(argument => EmitAsyncExpression(argument, catalog, results, names)).ToArray(),
+            catalog, results, names);
+
+    private static string EmitNpmCall(MirNpmCallExpression npm, IReadOnlyList<string> arguments, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
     {
         MirResultType result = (MirResultType)npm.AsyncType.EventualType;
         string token = names.TypeToken(results.Get(result));
-        string arguments = string.Join(", ", npm.Arguments.Select(argument => EmitAsyncExpression(argument, catalog, results, names)));
-        string localBinding = JavaScriptIdentifierEncoder.Encode(npm.LocalBinding);
-        return $"(() => {{ const pending = __cope_async_pending(); globalThis.Promise.resolve({localBinding}({arguments})).then(value => pending.resolve({names.MakeValue}({token}, \"ok\", [value])), error => pending.resolve({names.MakeValue}({token}, \"err\", [error]))); return pending; }})()";
+        string load = JavaScriptIdentifierEncoder.Encode(npm.LocalBinding);
+        string export = JavaScriptLiteralWriter.WriteString(npm.ExportName);
+        string inputs = string.Join(", ", npm.Arguments.Select((argument, index) =>
+            ProjectNpmValue(argument.Type, arguments[index], catalog, names, ingress: false, depth: 0)));
+        string success = ProjectNpmValue(result.SuccessType, "value", catalog, names, ingress: true, depth: 0);
+        string error = ProjectNpmValue(result.ErrorType, "value", catalog, names, ingress: true, depth: 0);
+        return $"__cope_npm_call({load}, {export}, () => [{inputs}], "
+            + $"value => {names.MakeValue}({token}, \"ok\", [{success}]), "
+            + $"value => {names.MakeValue}({token}, \"err\", [{error}]))";
+    }
+
+    private static string ProjectNpmValue(MirType type, string value, EnumCatalog catalog, GeneratedNames names, bool ingress, int depth)
+    {
+        string parameter = "__npm_value" + depth;
+        if (type is MirArrayType array)
+        {
+            string element = ProjectNpmValue(array.ElementType, parameter, catalog, names, ingress, depth + 1);
+            return $"__cope_npm_array({value}, {parameter} => {element})";
+        }
+        if (type is MirRecordType recordType)
+        {
+            MirRecordDefinition record = catalog.GetRecord(recordType.RecordTypeId);
+            var fields = new List<string>();
+            var keys = new List<string>();
+            foreach (MirRecordFieldDefinition field in record.Fields)
+            {
+                string key = JavaScriptLiteralWriter.WriteString(field.Name);
+                keys.Add(key);
+                string member = ingress
+                    ? $"{parameter}[{key}]"
+                    : IsProduction(names)
+                        ? $"{parameter}.{ProductionRecordFieldName(record, field)}"
+                        : $"{parameter}[{names.RecordFieldSlot(field)}]";
+                string projected = ProjectNpmValue(field.Type, member, catalog, names, ingress, depth + 1);
+                fields.Add(ingress ? projected : $"[{key}]: {projected}");
+            }
+            string values = string.Join(", ", fields);
+            if (ingress)
+            {
+                return $"__cope_npm_record({value}, [{string.Join(", ", keys)}], {parameter} => {RecordConstructionName(record, names)}({values}))";
+            }
+            return $"(({parameter}) => ({{ {values} }}))({value})";
+        }
+        string kind = JavaScriptLiteralWriter.WriteString(type.Identifier);
+        return $"__cope_npm_scalar({value}, {kind})";
+    }
+
+    private static void EmitFallibleNpmRuntime(JavaScriptTextWriter writer)
+    {
+        writer.WriteLine("""
+            function __cope_npm_scalar(value, kind) {
+              if (typeof value !== kind || (kind === "string" && /[\uD800-\uDFFF]/u.test(value))) {
+                throw new TypeError("npm scalar does not match its Copeland contract.");
+              }
+              return value;
+            }
+            function __cope_npm_array(value, project) {
+              if (!Array.isArray(value)) throw new TypeError("npm result must be an array.");
+              return Array.from(value, project);
+            }
+            function __cope_npm_record(value, keys, project) {
+              if (value === null || typeof value !== "object" || Array.isArray(value)
+                    || keys.some(key => !Object.hasOwn(value, key))) {
+                throw new TypeError("npm record does not match its Copeland contract.");
+              }
+              return project(value);
+            }
+            function __cope_npm_call(load, name, argumentsForCall, ok, err) {
+              const pending = __cope_async_pending();
+              async function run() {
+                try {
+                  const args = argumentsForCall();
+                  const module = await load();
+                  const invoke = module[name];
+                  if (typeof invoke !== "function") throw new TypeError("Missing npm function " + name);
+                  let value;
+                  try {
+                    value = await invoke(...args);
+                  } catch (error) {
+                    pending.resolve(err(error));
+                    return;
+                  }
+                  pending.resolve(ok(value));
+                } catch {
+                  pending.fail();
+                }
+              }
+              void run();
+              return pending;
+            }
+            """);
     }
 
     private static string EmitNpmDirectCallValue(MirNpmDirectCallExpression npm, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
@@ -3810,6 +3975,7 @@ public static partial class JavaScriptBackend
             MirLiteralExpression { Value: string text } => EmittedExpression.ValueOnly(JavaScriptLiteralWriter.WriteString(text)),
             MirLiteralExpression { Value: not null } literal => EmittedExpression.ValueOnly(JavaScriptLiteralWriter.WriteNumber(literal.Value)),
             MirUnitExpression => EmittedExpression.ValueOnly("null"),
+            MirTextDocumentExpression document => EmitTextDocument(document, function, catalog, results, names, flowEnabled),
             MirVariableExpression variable => EmittedExpression.ValueOnly(JavaScriptIdentifierEncoder.Encode(variable.Name)),
             MirAssignmentExpression assignment => EmitAssignment(assignment, function, catalog, results, names, flowEnabled),
             MirUnaryExpression unary => EmitUnary(unary, function, catalog, results, names, flowEnabled),
@@ -3858,7 +4024,10 @@ public static partial class JavaScriptBackend
             MirTryExpression tryExpression => EmitTryExcept(tryExpression, function, catalog, results, names, flowEnabled),
             MirTsonEncodeExpression encode => EmitTsonEncode(encode, function, catalog, results, names, flowEnabled),
             MirTsonTransportExpression transport => EmitTsonTransport(transport, function, catalog, results, names, flowEnabled),
-            MirNpmCallExpression npm => new EmittedExpression([], EmitNpmCall(npm, catalog, results, names)),
+            MirNpmCallExpression npm => CombineOrdered(
+                npm.Arguments.Select(argument => EmitExpression(argument, function, catalog, results, names, flowEnabled)).ToArray(),
+                names,
+                values => EmitNpmCall(npm, values, catalog, results, names)),
             MirNpmDirectCallExpression npm => EmitNpmDirectCall(npm, function, catalog, results, names, flowEnabled),
             MirNpmComponentExpression component => EmitNpmComponent(component, function, catalog, results, names, flowEnabled),
             MirReactElementExpression element => EmitReactElement(element, function, catalog, results, names, flowEnabled),
@@ -4330,6 +4499,7 @@ public static partial class JavaScriptBackend
         GeneratedNames names,
         bool flowEnabled)
     {
+        names.NugetCalls?.Add(transport);
         EmittedExpression operation = EmitExpression(transport.Operation, function, catalog, results, names, flowEnabled);
         EmittedExpression request = EmitExpression(transport.Request, function, catalog, results, names, flowEnabled);
         var prelude = new List<EmittedLine>(operation.Prelude.Count + request.Prelude.Count);
@@ -4369,7 +4539,7 @@ public static partial class JavaScriptBackend
             if (emitTransportDecoders && plans[planIndex].RootValuePlan is MirTsonRecordValuePlan)
             {
                 writer.WriteLine();
-                EmitJavaScriptTsonFlatRecordDecoder(writer, plans[planIndex], planIndex, catalog, names, tsonNames);
+                EmitJavaScriptTsonRecordDecoder(writer, plans[planIndex], planIndex, catalog, names, tsonNames);
             }
         }
 
@@ -4386,59 +4556,6 @@ public static partial class JavaScriptBackend
         writer.WriteLine("return Object.freeze(api);");
         writer.Unindent();
         writer.WriteLine("})();");
-    }
-
-    private static void EmitJavaScriptTsonFlatRecordDecoder(
-        JavaScriptTextWriter writer,
-        MirTsonEncodingPlan plan,
-        int planIndex,
-        EnumCatalog catalog,
-        GeneratedNames names,
-        TsonGeneratedNames tsonNames)
-    {
-        if (plan.RootValuePlan is not MirTsonRecordValuePlan root)
-        {
-            return;
-        }
-
-        MirRecordDefinition record = catalog.GetRecord(root.RecordTypeId);
-        MirTsonRecordPlan recordPlan = plan.Definitions.OfType<MirTsonRecordPlan>()
-            .Single(candidate => candidate.RecordTypeId == root.RecordTypeId);
-        string decoder = tsonNames.Encoder(planIndex) + "Decode";
-        writer.WriteLine($"function {decoder}(text) {{");
-        writer.Indent();
-        writer.WriteLine("if (!text.startsWith(\"const $schema: string = \\\"\") || !text.endsWith(\";\\n\")) throw new Error(\"Malformed TSON transport payload.\");");
-        writer.WriteLine($"let position = text.indexOf({JavaScriptLiteralWriter.WriteString("$record." + record.Name + "({\n")});");
-        writer.WriteLine("if (position < 0) throw new Error(\"Malformed TSON transport payload.\");");
-        writer.WriteLine("function expect(value) { if (!text.startsWith(value, position)) throw new Error(\"Malformed TSON transport payload.\"); position += value.length; }");
-        writer.WriteLine("function readString() { const start = position; if (text[position] !== '\"') throw new Error(\"Malformed TSON transport payload.\"); position += 1; let escaped = false; while (position < text.length) { const current = text[position++]; if (escaped) { escaped = false; continue; } if (current === '\\\\') { escaped = true; continue; } if (current === '\"') return JSON.parse(text.slice(start, position)); if (current < ' ') throw new Error(\"Malformed TSON transport payload.\"); } throw new Error(\"Malformed TSON transport payload.\"); }");
-        writer.WriteLine("function readNumber() { expect(\"$number(\\\"\"); const hexadecimal = text.slice(position, position + 16); if (!/^[0-9A-F]{16}$/.test(hexadecimal)) throw new Error(\"Malformed TSON transport payload.\"); position += 16; expect(\"\\\")\"); const buffer = new ArrayBuffer(8); const view = new DataView(buffer); view.setUint32(0, Number.parseInt(hexadecimal.slice(0, 8), 16), false); view.setUint32(4, Number.parseInt(hexadecimal.slice(8), 16), false); return view.getFloat64(0, false); }");
-        writer.WriteLine("function readBoolean() { if (text.startsWith(\"true\", position)) { position += 4; return true; } if (text.startsWith(\"false\", position)) { position += 5; return false; } throw new Error(\"Malformed TSON transport payload.\"); }");
-        writer.WriteLine($"expect({JavaScriptLiteralWriter.WriteString("$record." + record.Name + "({\n")});");
-        var valuesByFieldId = new Dictionary<MirRecordFieldId, string>();
-        for (int index = 0; index < recordPlan.Fields.Count; index++)
-        {
-            MirTsonRecordFieldPlan fieldPlan = recordPlan.Fields[index];
-            MirRecordFieldDefinition field = record.Fields.Single(candidate => candidate.Id == fieldPlan.FieldId);
-            writer.WriteLine($"expect({JavaScriptLiteralWriter.WriteString("    \"" + fieldPlan.Name + "\": ")});");
-            string read = field.Type.Identifier switch
-            {
-                "boolean" => "readBoolean()",
-                "number" => "readNumber()",
-                "string" => "readString()",
-                _ => throw new InvalidOperationException("Transport decoder received a non-flat record plan."),
-            };
-            string value = "field" + index;
-            writer.WriteLine($"const {value} = {read};");
-            writer.WriteLine("expect(\",\\n\");");
-            valuesByFieldId.Add(field.Id, value);
-        }
-        writer.WriteLine("expect(\"})\");");
-        writer.WriteLine("expect(\";\\n\");");
-        writer.WriteLine("if (position !== text.length) throw new Error(\"Malformed TSON transport payload.\");");
-        writer.WriteLine($"return {RecordConstructionName(record, names)}({string.Join(", ", record.Fields.Select(field => valuesByFieldId[field.Id]))});");
-        writer.Unindent();
-        writer.WriteLine("}");
     }
 
     private static void EmitJavaScriptTsonWriter(JavaScriptTextWriter writer, bool needsArrayWriter, TsonGeneratedNames tsonNames)
@@ -4574,9 +4691,12 @@ public static partial class JavaScriptBackend
                 {
                     MirTsonRecordFieldPlan field = record.Fields[index];
                     MirRecordFieldDefinition carrierField = carrier.Fields[index];
+                    string member = IsProduction(names)
+                        ? $"value.{ProductionRecordFieldName(carrier, carrierField)}"
+                        : $"value[{names.RecordFieldSlot(carrierField)}]";
                     writer.WriteLine("if (!writer.indent(indentation + 1)) return false;");
                     writer.WriteLine($"if (!writer.static({JavaScriptLiteralWriter.WriteString($"\"{field.Name}\": ")})) return false;");
-                    writer.WriteLine($"if (!{JavaScriptTsonValueWriter(planIndex, field.ValuePlan, recordIndexes, enumIndexes, arrayPlans, tsonNames)}(writer, value[{names.RecordFieldSlot(carrierField)}], indentation + 1)) return false;");
+                    writer.WriteLine($"if (!{JavaScriptTsonValueWriter(planIndex, field.ValuePlan, recordIndexes, enumIndexes, arrayPlans, tsonNames)}(writer, {member}, indentation + 1)) return false;");
                     writer.WriteLine("if (!writer.static(\",\\n\")) return false;");
                 }
                 writer.WriteLine("if (!writer.indent(indentation)) return false;");
@@ -4608,7 +4728,8 @@ public static partial class JavaScriptBackend
                     {
                         MirTsonEnumPayloadPlan payload = @case.Payloads[index];
                         writer.WriteLine("if (!writer.indent(indentation + 1)) return false;");
-                        writer.WriteLine($"if (!{JavaScriptTsonValueWriter(planIndex, payload.ValuePlan, recordIndexes, enumIndexes, arrayPlans, tsonNames)}(writer, value.$payload[{index}], indentation + 1)) return false;");
+                        string value = IsProduction(names) ? $"value.{ProductionEnumPayloadName(index)}" : $"value.$payload[{index}]";
+                        writer.WriteLine($"if (!{JavaScriptTsonValueWriter(planIndex, payload.ValuePlan, recordIndexes, enumIndexes, arrayPlans, tsonNames)}(writer, {value}, indentation + 1)) return false;");
                         writer.WriteLine(index + 1 < @case.Payloads.Count
                             ? "if (!writer.static(\",\\n\")) return false;"
                             : "if (!writer.static(\"\\n\")) return false;");
@@ -5543,16 +5664,15 @@ public static partial class JavaScriptBackend
 
         EnumInfo enumInfo = catalog.GetEnum(match.Scrutinee.Type.Identifier);
         var scrutinee = names.NextMatchScrutinee();
-        var parts = new List<string>
-        {
-            "(() => {",
-            $"const {scrutinee} = {EmitExpression(match.Scrutinee, function, catalog, results, names, flowEnabled).Value};",
-            $"switch ({scrutinee}.$tag) {{",
-        };
+        EmittedExpression input = EmitExpression(match.Scrutinee, function, catalog, results, names, flowEnabled);
+        var parts = new List<string> { "(() => {" };
+        parts.AddRange(input.Prelude.Select(line => line.Text));
+        parts.Add($"const {scrutinee} = {input.Value};");
         if (!IsProduction(names))
         {
-            parts.Insert(2, $"{names.Validator(enumInfo)}({scrutinee});");
+            parts.Add($"{names.Validator(enumInfo)}({scrutinee});");
         }
+        parts.Add($"switch ({scrutinee}.$tag) {{");
 
         foreach (MirMatchArm arm in match.Arms)
         {
@@ -5566,7 +5686,9 @@ public static partial class JavaScriptBackend
                 parts.Add($"const {binding} = {payload};");
             }
 
-            parts.Add($"return {EmitExpression(arm.Expression, function, catalog, results, names, flowEnabled).Value};");
+            EmittedExpression branch = EmitExpression(arm.Expression, function, catalog, results, names, flowEnabled);
+            parts.AddRange(branch.Prelude.Select(line => line.Text));
+            parts.Add($"return {branch.Value};");
             parts.Add("}");
         }
 
@@ -5818,6 +5940,7 @@ public static partial class JavaScriptBackend
                 or MirTableWithRowExpression or MirTableChangesExpression or MirTableRecalculationExpression or MirTableSummaryExpression => true,
             MirUnaryExpression unary => ContainsControlFlow(unary.Operand),
             MirRecordConstructionExpression or MirRecordFieldAccessExpression or MirRecordWithExpression or MirTableWithExpression => true,
+            MirTextDocumentExpression document => document.Slots.Any(slot => ContainsControlFlow(slot.Expression)),
             MirReactElementExpression element => ContainsControlFlow(element.ElementType)
                 || element.Properties.Any(property => ContainsControlFlow(property.Value))
                 || element.Children.Any(ContainsControlFlow),
@@ -5856,6 +5979,7 @@ public static partial class JavaScriptBackend
     private static bool ExpressionUsesTryExcept(MirExpression expression)
         => expression switch
         {
+            MirTextDocumentExpression document => document.Slots.Any(slot => ExpressionUsesTryExcept(slot.Expression)),
         MirArrayLengthExpression length => ExpressionUsesTryExcept(length.Receiver),
         MirArrayElementAccessExpression access => ExpressionUsesTryExcept(access.Receiver) || ExpressionUsesTryExcept(access.Index),
         MirTableChangesExpression update => update.Children.Any(ExpressionUsesTryExcept),
@@ -5913,6 +6037,7 @@ public static partial class JavaScriptBackend
     private static bool ExpressionUsesTsonTransport(MirExpression expression)
         => expression switch
         {
+            MirTextDocumentExpression document => document.Slots.Any(slot => ExpressionUsesTsonTransport(slot.Expression)),
             MirTsonTransportExpression => true,
             MirNpmCallExpression => false,
             MirAwaitExpression awaited => ExpressionUsesTsonTransport(awaited.Operand),
@@ -5941,6 +6066,7 @@ public static partial class JavaScriptBackend
     private static bool ExpressionUsesUnwrap(MirExpression expression)
         => expression switch
         {
+            MirTextDocumentExpression document => document.Slots.Any(slot => ExpressionUsesUnwrap(slot.Expression)),
         MirArrayLengthExpression length => ExpressionUsesUnwrap(length.Receiver),
         MirArrayElementAccessExpression access => ExpressionUsesUnwrap(access.Receiver) || ExpressionUsesUnwrap(access.Index),
         MirTableChangesExpression update => update.Children.Any(ExpressionUsesUnwrap),
@@ -6700,6 +6826,8 @@ public static partial class JavaScriptBackend
     private sealed class GeneratedNames
     {
         public Dictionary<string, string>? AsyncFrameVariables { get; set; }
+        public List<MirTsonTransportExpression>? NugetCalls { get; set; }
+        public Dictionary<string, string> AsyncMatchBindings { get; } = new(StringComparer.Ordinal);
         public MirPresentationAdapter? PresentationAdapter { get; private set; }
         public bool UsesBoundaryPanic { get; set; }
 

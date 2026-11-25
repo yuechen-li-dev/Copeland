@@ -383,6 +383,151 @@ public sealed partial class CliIntegrationTests
         Assert.Equal("Hello from RyuJIT\n", execution.StdOut);
     }
 
+    [Theory]
+    [InlineData("node")]
+    [InlineData("clr")]
+    [InlineData("aot")]
+    public async Task Tscl_targets_run_the_same_fallible_npm_contract(string targetName)
+    {
+        using var temp = new TempDir();
+        Directory.CreateDirectory(Path.Combine(temp.Path, "src"));
+        Directory.CreateDirectory(Path.Combine(temp.Path, "node_modules", "format-title"));
+        Directory.CreateDirectory(Path.Combine(temp.Path, "node_modules", "title-prefix"));
+        temp.WriteFile("App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\" />");
+        temp.WriteFile("tsconfig.tsx", $$"""
+            import { defineTypeScriptWorkspace } from "copeland/workspace";
+            export default defineTypeScriptWorkspace({
+                ownership: "partial",
+                tscl: {
+                    project: "./App.csproj", include: ["src/**"],
+                    targets: {
+                        node: { backend: "javascript", runtime: "node" },
+                        clr: { backend: "csharp", runtime: "ryujit", targetFramework: "net10.0" },
+                        aot: { backend: "csharp", runtime: "nativeaot", targetFramework: "net10.0", runtimeIdentifier: "{{System.Runtime.InteropServices.RuntimeInformation.RuntimeIdentifier}}" },
+                    },
+                },
+            });
+            """);
+        string main = temp.WriteFile("src/Main.ts", """
+            import { title } from "format-title";
+            const $schema: string = "copeland://test/cli-npm";
+            record Title { text: string; }
+            record NpmError { message: string; }
+            export async function Main(): string {
+                const titleValue: Title = { text: "Copeland" };
+                const value: Title ! NpmError = await title(titleValue, "ok");
+                const thrown: Title ! NpmError = await title(titleValue, "throw");
+                const rejected: Title ! NpmError = await title(titleValue, "reject");
+                const output: string = match value { ok(result) => result.text, err(error) => error.message, };
+                const throwMessage: string = match thrown { ok(result) => result.text, err(error) => error.message, };
+                const rejectMessage: string = match rejected { ok(result) => result.text, err(error) => error.message, };
+                return output + "|" + throwMessage + "|" + rejectMessage;
+            }
+            """);
+        string packageFile = temp.WriteFile("node_modules/format-title/package.json", """
+            { "name": "format-title", "version": "1.0.0", "type": "module", "exports": "./index.js",
+              "dependencies": { "title-prefix": "1.0.0" } }
+            """);
+        string packageEntry = temp.WriteFile("node_modules/format-title/index.js", """
+            import { prefix } from "title-prefix";
+            export function title(value, mode) {
+                if (mode === "throw") throw new Error("thrown: " + value.text);
+                if (mode === "reject") return Promise.reject(new Error("rejected: " + value.text));
+                return Promise.resolve({ text: prefix + value.text });
+            }
+            """);
+        temp.WriteFile("node_modules/title-prefix/package.json", """
+            { "name": "title-prefix", "version": "1.0.0", "type": "module", "exports": "./index.js" }
+            """);
+        string dependencyEntry = temp.WriteFile("node_modules/title-prefix/index.js", """
+            export const prefix = "deployed: ";
+            """);
+        string outputDirectory = Path.Combine(temp.Path, "dist", targetName);
+        string entryOutputPath = targetName switch
+        {
+            "node" => "main.js",
+            "aot" when !OperatingSystem.IsWindows() => "app",
+            "aot" => "app.exe",
+            _ => "app.dll",
+        };
+        var sources = new[] { new { logicalPath = "src/Main.ts", path = main } };
+        string project = temp.WriteFile("target.json", JsonSerializer.Serialize(new
+        {
+            schemaVersion = 1,
+            projectRoot = temp.Path,
+            target = new { package = "example", name = targetName },
+            language = new { id = "copeland-ts" },
+            compiler = new { id = "tscl", version = "test" },
+            compilerConfig = new { path = "tsconfig.tsx" },
+            sources,
+            packages = new[]
+            {
+                new { semanticIdentity = "npm:format-title", version = "1.0.0",
+                    materializationPath = Path.GetDirectoryName(packageFile), materializationName = "format-title",
+                    localName = "format-title", role = "runtime" },
+            },
+            runtime = new { family = "javascript", name = "node" },
+            compilerPayload = new
+            {
+                kind = "copeland-v1",
+                schemaVersion = 1,
+                data = new
+                {
+                    projectRoot = temp.Path,
+                    sources,
+                    entry = new { module = "src/Main.ts", @export = "Main" },
+                    javascriptRuntime = "node",
+                    outputDirectory,
+                    entryOutputPath,
+                    npmContracts = new[]
+                    {
+                        new { packageName = "format-title", exports = new[] {
+                            new { name = "title", parameters = new[] { "Title", "string" }, result = "Title", remoteError = "NpmError", promise = true },
+                        } },
+                    },
+                },
+            },
+        }));
+        string receipt = Path.Combine(temp.Path, "result.json");
+
+        CliResult build = await RunCliAsync(temp.Path, "build", "--project", project, "--result", receipt);
+        Assert.True(build.ExitCode == 0, build.StdErr + await File.ReadAllTextAsync(receipt));
+        using JsonDocument result = JsonDocument.Parse(await File.ReadAllTextAsync(receipt));
+        Assert.Empty(Directory.GetFiles(outputDirectory, "Microsoft.CodeAnalysis*.dll", SearchOption.AllDirectories));
+        Assert.Empty(Directory.GetFiles(outputDirectory, "Copeland.TS.Backend.CSharp.dll", SearchOption.AllDirectories));
+        string deployedPackage = packageEntry;
+        if (targetName != "node")
+        {
+            Assert.Contains(result.RootElement.GetProperty("outputs").EnumerateArray(),
+                output => output.GetProperty("path").GetString() == "copeland-npm/guest.mjs");
+            Assert.Contains(result.RootElement.GetProperty("outputs").EnumerateArray(),
+                output => output.GetProperty("path").GetString() == "copeland-npm/node_modules/format-title/node_modules/title-prefix/index.js");
+            deployedPackage = Path.Combine(outputDirectory, "copeland-npm", "node_modules", "format-title", "index.js");
+            File.Delete(packageEntry);
+            File.Delete(dependencyEntry);
+        }
+
+        using var outsideProject = new TempDir();
+        string entryPath = Path.Combine(outputDirectory, entryOutputPath);
+        Task<CliResult> Execute() => targetName switch
+        {
+            "node" => RunExecutableAsync("node", outsideProject.Path, entryPath),
+            "aot" => RunExecutableAsync(entryPath, outsideProject.Path),
+            _ => RunExecutableAsync("dotnet", outsideProject.Path, entryPath),
+        };
+        CliResult execution = await Execute();
+        Assert.True(execution.ExitCode == 0, execution.StdErr);
+        Assert.Equal("deployed: Copeland|thrown: Copeland|rejected: Copeland\n", execution.StdOut);
+
+        foreach (string brokenPackage in new[] { "export function title() { return { text: 42 }; }", "export const unrelated = true;" })
+        {
+            await File.WriteAllTextAsync(deployedPackage, brokenPackage);
+            CliResult failure = await Execute();
+            Assert.NotEqual(0, failure.ExitCode);
+            Assert.Contains("Copeland entry transport failed.", failure.StdErr, StringComparison.Ordinal);
+        }
+    }
+
     [Fact]
     public async Task Tscl_build_emits_and_runs_a_NativeAot_executable_for_explicit_RID()
     {
@@ -428,7 +573,7 @@ public sealed partial class CliIntegrationTests
 
         CliResult build = await RunCliAsync(temp.Path, "build", "--project", projectPath, "--result", resultPath);
 
-        Assert.Equal(0, build.ExitCode);
+        Assert.True(build.ExitCode == 0, build.StdErr + await File.ReadAllTextAsync(resultPath));
         using JsonDocument result = JsonDocument.Parse(await File.ReadAllTextAsync(resultPath));
         Assert.Equal("nativeaot", result.RootElement.GetProperty("runtime").GetString());
         Assert.Equal(runtimeIdentifier, result.RootElement.GetProperty("runtimeIdentifier").GetString());
@@ -538,13 +683,28 @@ public sealed partial class CliIntegrationTests
         Assert.Contains("COPE-TARGET-0001", invalid.StdOut + invalid.StdErr, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task Tscl_standalone_target_selects_compiler_owned_CLR_backend()
+    [Theory]
+    [InlineData("app-clr", "sync", "Standalone CLR\n")]
+    [InlineData("app-js", "async", "Standalone async\n")]
+    [InlineData("app-clr", "async", "Standalone async\n")]
+    [InlineData("app-js", "async-void", "")]
+    [InlineData("app-clr", "async-void", "")]
+    public async Task Tscl_standalone_target_launches_the_selected_backend(string target, string entry, string expectedOutput)
     {
         using var temp = new TempDir();
         Directory.CreateDirectory(Path.Combine(temp.Path, "src"));
         temp.WriteFile("App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\" />");
-        temp.WriteFile("src/Main.ts", "export function Main(): string { return \"Standalone CLR\"; }");
+        string source = entry switch
+        {
+            "sync" => "export function Main(): string { return \"Standalone CLR\"; }",
+            "async" => """
+                async function Load(): string { return "Standalone async"; }
+                export async function Main(): string { return await Load(); }
+                """,
+            "async-void" => "export async function Main(): void { return; }",
+            _ => throw new ArgumentOutOfRangeException(nameof(entry)),
+        };
+        temp.WriteFile("src/Main.ts", source);
         temp.WriteFile("tsconfig.tsx", """
             import { defineTypeScriptWorkspace } from "copeland/workspace";
             export default defineTypeScriptWorkspace({
@@ -580,14 +740,162 @@ public sealed partial class CliIntegrationTests
             "--standalone",
             temp.Path,
             "--target",
-            "app-clr",
+            target,
             "--result",
             resultPath);
 
-        Assert.Equal(0, build.ExitCode);
-        CliResult execution = await RunExecutableAsync("dotnet", temp.Path, Path.Combine(temp.Path, "dist", "clr", "app.dll"));
-        Assert.Equal(0, execution.ExitCode);
-        Assert.Equal("Standalone CLR\n", execution.StdOut);
+        string diagnostics = File.Exists(resultPath) ? await File.ReadAllTextAsync(resultPath) : string.Empty;
+        Assert.True(build.ExitCode == 0, build.StdErr + build.StdOut + diagnostics);
+        bool node = target == "app-js";
+        string output = node ? Path.Combine("js", "app.js") : Path.Combine("clr", "app.dll");
+        CliResult execution = await RunExecutableAsync(node ? "node" : "dotnet", temp.Path, Path.Combine(temp.Path, "dist", output));
+        Assert.True(execution.ExitCode == 0, execution.StdErr + execution.StdOut);
+        Assert.Equal(expectedOutput, execution.StdOut);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Tscl_build_binds_article_layout_and_stream_with_a_workspace_view_adapter(bool managed)
+    {
+        using var temp = new TempDir();
+        Directory.CreateDirectory(Path.Combine(temp.Path, "src"));
+        Directory.CreateDirectory(Path.Combine(temp.Path, "node_modules", "docs-view"));
+        temp.WriteFile("App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\" />");
+        temp.WriteFile("node_modules/docs-view/package.json", """
+            { "name": "docs-view", "version": "1.0.0", "type": "module", "exports": "./index.js" }
+            """);
+        temp.WriteFile("node_modules/docs-view/index.js", """
+            export function create(tag, props, children) {
+                return { tag, props, children };
+            }
+            """);
+        temp.WriteFile("tsconfig.tsx", """
+            import { defineTypeScriptWorkspace } from "copeland/workspace";
+            export default defineTypeScriptWorkspace({
+                ownership: "partial",
+                tscl: {
+                    project: "./App.csproj",
+                    include: ["src/**"],
+                    types: ["TextDocuments", "CopelandViews"],
+                    presentationAdapter: {
+                        identity: "docs-static",
+                        elementModule: "docs-view",
+                        elementExport: "create",
+                    },
+                    targets: { node: { backend: "javascript", runtime: "node" } }
+                }
+            });
+            """);
+        temp.WriteFile("manifest.tsx", """
+            import { Package, Targets, Workspace, define } from "tspack/manifest";
+            export default define(
+              <Workspace name="docs" runtime="nodejs">
+                <Package name="docs" version="1.0.0" kind="app"
+                  dependencies={{ values: [{ kind: "npm", package: "docs-view", version: "1.0.0" }] }}>
+                  <Targets rows={[
+                    { name: "node", entry: "src/Shell.tsx", runtime: "dist/main.js", deps: [], peers: [] }
+                  ]} />
+                </Package>
+              </Workspace>,
+            );
+            """);
+        string sourcePath = temp.WriteFile("src/Shell.tsx", """
+            layout ArticleLayout<0px, 0px> {
+                width: fill;
+                height: fit;
+                row root {
+                    slot navigation { width: 192px; height: fit; }
+                    slot content { width: fill; height: fit; }
+                    slot outline { width: 192px; height: fit; }
+                }
+            }
+            export function Shell(title: string): View {
+                stream Content {
+                    navigation: <nav aria-label="Project documentation">Project</nav>;
+                    content: <main id="content"><h1>{title}</h1></main>;
+                    outline: <nav aria-label="On this page">Outline</nav>;
+                }
+                return bind ArticleLayout using Content;
+            }
+            export function Copy(): Document {
+                return <Document><Paragraph>Article text</Paragraph></Document>;
+            }
+            """);
+        string resultPath = Path.Combine(temp.Path, "result.json");
+
+        CliResult build;
+        if (managed)
+        {
+            var sources = new[] { new { logicalPath = "src/Shell.tsx", path = sourcePath } };
+            string descriptor = temp.WriteFile("compiler-target.json", JsonSerializer.Serialize(new
+            {
+                schemaVersion = 1,
+                projectRoot = temp.Path,
+                target = new { package = "docs", name = "node" },
+                language = new { id = "copeland-ts" },
+                compiler = new { id = "tscl", version = "test" },
+                compilerConfig = new { path = "tsconfig.tsx" },
+                sources,
+                packages = new[]
+                {
+                    new
+                    {
+                        semanticIdentity = "npm:docs-view",
+                        version = "1.0.0",
+                        materializationPath = Path.Combine(temp.Path, "node_modules", "docs-view"),
+                    },
+                },
+                runtime = new { name = "node" },
+                compilerPayload = new
+                {
+                    kind = "copeland-v1",
+                    schemaVersion = 1,
+                    data = new
+                    {
+                        projectRoot = temp.Path,
+                        sources,
+                        entry = new { module = "src/Shell.tsx", @export = "Main" },
+                        javaScriptRuntime = "node",
+                        outputDirectory = Path.Combine(temp.Path, "dist"),
+                        npmContracts = new[]
+                        {
+                            new
+                            {
+                                packageName = "docs-view",
+                                exports = new[] { new { name = "create", result = "View" } },
+                            },
+                        },
+                    },
+                },
+            }));
+            build = await RunCliAsync(temp.Path, "build", "--project", descriptor, "--node-interop", "--result", resultPath);
+        }
+        else
+        {
+            CliResult check = await RunCliAsync(temp.Path, "check", "--standalone", temp.Path);
+            Assert.True(check.ExitCode == 0, check.StdErr);
+            build = await RunCliAsync(temp.Path, "build", "--standalone", temp.Path,
+                "--target", "node", "--node-interop", "--result", resultPath);
+        }
+        Assert.True(build.ExitCode == 0, await File.ReadAllTextAsync(resultPath));
+        string probe = temp.WriteFile("probe.mjs", """
+            import assert from "node:assert/strict";
+            import { Shell } from "./dist/src/Shell.js";
+            import { Copy } from "./dist/src/Shell.node.js";
+            import { readFileSync } from "node:fs";
+
+            const shell = Shell("Article title");
+            const slots = shell.children;
+            assert.deepEqual(slots.map(slot => slot.props["data-machina-box"]), ["navigation", "content", "outline"]);
+            assert.deepEqual(slots.map(slot => slot.children[0].tag), ["nav", "main", "nav"]);
+            assert.equal(slots[1].children[0].props.id, "content");
+            assert.equal(slots[1].children[0].children[0].children[0], "Article title");
+            assert.ok(Copy().some(part => part.tag === "Run" && part.payload.text === "Article text"));
+            assert.match(readFileSync(new URL("./dist/generated/layouts.css", import.meta.url), "utf8"), /flex-direction: row/);
+            """);
+        CliResult execution = await RunExecutableAsync("node", temp.Path, probe);
+        Assert.True(execution.ExitCode == 0, execution.StdErr);
     }
 
     [Fact]

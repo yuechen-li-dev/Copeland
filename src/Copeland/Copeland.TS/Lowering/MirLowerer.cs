@@ -84,7 +84,8 @@ public static class MirLowerer
             import.Function.Name,
             import.Function.IsPromise,
             import.Function.IsAvailableToJavaScript,
-            import.Function.IsAvailableToClrSidecar)).Concat(program.NpmComponentImports.Select(import => new MirNpmImport(
+            import.Function.IsAvailableToClrSidecar,
+            IsFallible: import.Function.RemoteErrorType is not null)).Concat(program.NpmComponentImports.Select(import => new MirNpmImport(
                 import.Component.PackageName,
                 import.Component.PackageVersion,
                 import.Component.ExportName,
@@ -170,7 +171,7 @@ public static class MirLowerer
             tablePlan is null
                 ? LowerTsonValuePlan(plan.RootType)
                 : new MirTsonTableValuePlan(tablePlan.TableId),
-            plan.Definitions.Select(LowerTsonNominalPlan).ToArray(),
+            plan.Definitions.Select(type => LowerTsonNominalPlan(type, plan.SchemaIdentity)).ToArray(),
             new MirTsonEncodingLimits(1_048_576, 262_144),
             tablePlan);
     }
@@ -191,7 +192,7 @@ public static class MirLowerer
                 column.ExpectedElementCount)).ToArray());
     }
 
-    private static MirTsonNominalPlan LowerTsonNominalPlan(TypeSymbol type)
+    private static MirTsonNominalPlan LowerTsonNominalPlan(TypeSymbol type, string schemaIdentity)
     {
         return type switch
         {
@@ -204,19 +205,21 @@ public static class MirLowerer
                     field.Name,
                     $"{record.StableIdentity}.{field.Name}",
                     LowerTsonValuePlan(field.Type))).ToArray()),
-            EnumTypeSymbol @enum => new MirTsonEnumPlan(
-                @enum.Name,
-                @enum.StableIdentity ?? throw new InvalidOperationException("TSON enum plan has no stable identity."),
-                @enum.Cases.Select(@case => new MirTsonEnumCasePlan(
-                    @case.Name,
-                    $"{@enum.StableIdentity}.{@case.Name}",
-                    @case.PayloadFields.Select(field => new MirTsonEnumPayloadPlan(
-                        field.Name,
-                        $"{@enum.StableIdentity}.{@case.Name}.{field.Name}",
-                        LowerTsonValuePlan(field.Type))).ToArray())).ToArray()),
+            OptionTypeSymbol option => LowerTsonEnumPlan(option, option.EmissionName, $"{schemaIdentity}#{option.EmissionName}"),
+            EnumTypeSymbol @enum => LowerTsonEnumPlan(@enum, @enum.Name,
+                @enum.StableIdentity ?? throw new InvalidOperationException("TSON enum plan has no stable identity.")),
             _ => throw new InvalidOperationException($"Unsupported TSON nominal plan type '{type.Name}'."),
         };
     }
+
+    private static MirTsonEnumPlan LowerTsonEnumPlan(EnumTypeSymbol type, string name, string identity)
+        => new(name, identity, type.Cases.Select(@case => new MirTsonEnumCasePlan(
+            @case.Name,
+            $"{identity}.{@case.Name}",
+            @case.PayloadFields.Select(field => new MirTsonEnumPayloadPlan(
+                field.Name,
+                $"{identity}.{@case.Name}.{field.Name}",
+                LowerTsonValuePlan(field.Type))).ToArray())).ToArray());
 
     private static MirTsonValuePlan LowerTsonValuePlan(TypeSymbol type)
     {
@@ -226,6 +229,7 @@ public static class MirLowerer
         return type switch
         {
             RecordTypeSymbol record => new MirTsonRecordValuePlan(ToMirRecordTypeId(record.Id)),
+            OptionTypeSymbol option => new MirTsonEnumValuePlan(option.EmissionName),
             EnumTypeSymbol @enum => new MirTsonEnumValuePlan(@enum.Name),
             ArrayTypeSymbol array => new MirTsonArrayPlan(LowerTsonValuePlan(array.ElementType)),
             _ => throw new InvalidOperationException($"Unsupported TSON value plan type '{type.Name}'."),

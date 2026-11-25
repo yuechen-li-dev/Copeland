@@ -17,6 +17,7 @@ with explicit, portable language rules.
 
 - [First SDK project and runnable example](#quick-start-in-an-sdk-project)
 - [xUnit and .tsxtest](#xunit-tests)
+- [Testing a mixed TSPack workspace](#testing-a-mixed-tspack-workspace)
 - [Numbers and explicit conversion](#numeric-types-and-conversion)
 - [Records and immutable updates](#records-and-object-shape)
 - [Option values](#optional-values-use-optiont)
@@ -175,6 +176,37 @@ public static class Names
 The call becomes direct C#. Authored C# can call generated Copeland module APIs
 in the same final assembly. Do not create cross-language base, constraint,
 partial-type, or recursive declaration cycles.
+
+## Testing a mixed TSPack workspace
+
+Use the runner that matches the artifact under test.
+
+| Test source | Command | Boundary |
+| --- | --- | --- |
+| Vitest `*.test.ts` and `*.spec.ts` | `tspack test --vitest` | Test JavaScript-facing APIs, including Copeland's emitted Node modules. |
+| TSPack `*.xtest.tsx` | `tspack test --xtest` | Use native xTest suites and assertions against the same emitted modules. |
+| Copeland `*.tsxtest` | `dotnet test <project>.csproj` | Test public Copeland APIs on the CLR through the Copeland SDK and xUnit. |
+
+Build the Copeland Node target before the JavaScript suites. When tests use
+record-shaped JavaScript inputs, build with `tscl build --node-interop` and
+import the emitted `.node.js` facade. Vitest and native xTest can both
+import it without their TypeScript transformers needing to understand
+Copeland source. Keep the runner-owned tests outside the `tscl` ownership glob.
+
+For a consistent workspace entry point, declare a `RunTargets` row for the
+.NET suite and invoke `tspack run test-copeland`. The same mechanism can run
+any other project-selected test command.
+
+```tsx
+<RunTargets rows={[
+    {
+        name: "test-copeland",
+        runtime: "system",
+        cwd: "package",
+        command: ["dotnet", "test", "App.csproj"],
+    },
+]} />
+```
 
 ## Traditional TypeScript versus Copeland
 

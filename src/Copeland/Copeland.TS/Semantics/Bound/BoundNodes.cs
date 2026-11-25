@@ -999,8 +999,8 @@ public sealed class BoundTemplateLiteral(SyntaxToken anchor, object? value, Type
 public sealed class BoundTemplateArray(
     SyntaxToken anchor,
     IReadOnlyList<BoundTemplateValue> elements,
-    TypeSymbol? emptyElementType = null)
-    : BoundTemplateValue(anchor, new ArrayTypeSymbol(elements.FirstOrDefault()?.Type ?? emptyElementType ?? PrimitiveTypeSymbol.Error))
+    TypeSymbol? elementType = null)
+    : BoundTemplateValue(anchor, new ArrayTypeSymbol(elementType ?? elements.FirstOrDefault()?.Type ?? PrimitiveTypeSymbol.Error))
 {
     public IReadOnlyList<BoundTemplateValue> Elements { get; } = elements;
 }

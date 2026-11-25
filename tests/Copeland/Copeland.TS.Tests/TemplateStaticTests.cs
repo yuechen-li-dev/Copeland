@@ -194,8 +194,8 @@ template<> ProjectTemplate: DotNetSolution {
         const string source = """
 template<> App: DotNetSolution {
     const definition: ProjectFile = csProjectFile("Demo.csproj", <Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>);
-    const project: DotNetProject = dotNetProject("Demo", [definition]);
-    return dotNetSolution("Demo", project, [slnxFile("Demo.slnx", "Demo/Demo.csproj")]);
+    const project: DotNetProject = dotNetProject("Demo", [definition, textFile("Notes.txt", "notes")]);
+    return dotNetSolution("Demo", project, [slnxFile("Demo.slnx", "Demo/Demo.csproj"), textFile("README.md", "demo")]);
 }
 """;
 
@@ -208,6 +208,8 @@ template<> App: DotNetSolution {
         FileArtifact project = result.Project!.Files.Single(file => file.Path.EndsWith(".csproj", StringComparison.Ordinal));
         string text = System.Text.Encoding.UTF8.GetString(project.Bytes);
         Assert.Contains("<TargetFramework>net10.0</TargetFramework>", text, StringComparison.Ordinal);
+        Assert.Contains(result.Project.Files, file => file.Path == "Demo/Notes.txt" && file.Kind == "text");
+        Assert.Contains(result.Project.Files, file => file.Path == "README.md" && file.Kind == "text");
     }
 
     [Fact]

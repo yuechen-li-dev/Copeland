@@ -19,7 +19,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     controllers = (vscode.workspace.workspaceFolders ?? []).map((folder) => new WorkspaceController(folder, output, updateStatus, extensionVersion));
     context.subscriptions.push({ dispose: () => void disposeControllers() });
     registerCommands(context);
-    registerMigrationHints(context, output);
+    registerMigrationHints(context, output, (uri) => controllerForUri(uri)?.ownerForUri(uri)?.owner === "tscl");
+    context.subscriptions.push(vscode.languages.registerCodeActionsProvider(
+        [{ language: "copeland-typescript" }, { language: "copeland-typescriptreact" }],
+        {
+            provideCodeActions(document, _range, context) {
+                const diagnostic = context.diagnostics.find((item) => item.code === "CTS-LSP-NUGET-BINDINGS");
+                if (!diagnostic) {
+                    return;
+                }
+                const title = "Generate NuGet bindings";
+                const action = new vscode.CodeAction(title, vscode.CodeActionKind.QuickFix);
+                action.diagnostics = [diagnostic];
+                action.isPreferred = true;
+                action.command = { title, command: "copeland.generateNugetBindings", arguments: [document.uri] };
+                return [action];
+            }
+        }, { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }));
     context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(() => updateStatus()));
     context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders((event) => void refreshWorkspaceControllers(event)));
 
@@ -39,14 +55,30 @@ function registerCommands(context: vscode.ExtensionContext): void {
                 return;
             }
 
-            const result = await runTool(await resolveTscl(controller.rootPath), ["workspace", "sync"], controller.rootPath, output);
+            const success = await controller.syncWorkspace();
             output.show(true);
-            if (result.exitCode === 0) {
-                await controller.reloadOwnership();
+            if (success) {
                 vscode.window.showInformationMessage("Copeland workspace ownership synchronized.");
             } else {
                 vscode.window.showErrorMessage("Copeland workspace sync failed. See Copeland TS Language Server output.");
             }
+        }),
+        vscode.commands.registerCommand("copeland.generateNugetBindings", async (uri?: vscode.Uri) => {
+            const controller = controllerForUri(uri) ?? controllerForActiveDocument() ?? controllers[0];
+            if (!controller || !vscode.workspace.isTrusted) {
+                return;
+            }
+            const generated = await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: "Generating Copeland NuGet bindings"
+            }, async () => runTool(await resolveTscl(controller.rootPath),
+                ["nuget", "generate", "."], controller.rootPath, output));
+            if (generated.exitCode !== 0) {
+                output.show(true);
+                void vscode.window.showErrorMessage("NuGet binding generation failed. See Copeland TS Language Server output.");
+                return;
+            }
+            await controller.syncWorkspace();
         }),
         vscode.commands.registerCommand("copeland.workspaceValidate", async (uri?: vscode.Uri) => {
             const controller = controllerForUri(uri) ?? controllerForActiveDocument();

@@ -6,8 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="CSharp/NpmSidecarGuest.mjs" LogicalName="Copeland.NpmSidecarGuest.mjs" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     <ProjectReference Include="../Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
+    <ProjectReference Include="../Copeland.TS.Sidecar/Copeland.TS.Sidecar.csproj" />
     <ProjectReference Include="../Copeland.TS/Copeland.TS.csproj" />
   </ItemGroup>
 </Project>

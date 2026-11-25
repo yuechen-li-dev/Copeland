@@ -1,0 +1,30 @@
+name: Set up Aurelian SPIR-V tools
+description: Install the pinned Vulkan SDK's SPIR-V tools for Windows shader checks.
+runs:
+  using: composite
+  steps:
+    - name: Install Vulkan SDK into the runner's temporary directory
+      shell: pwsh
+      run: |
+        $version = '1.4.350.0'
+        $fileName = "vulkansdk-windows-X64-$version.exe"
+        $installer = Join-Path $env:RUNNER_TEMP $fileName
+        $sdk = Join-Path $env:RUNNER_TEMP "VulkanSDK-$version"
+        $url = "https://sdk.lunarg.com/sdk/download/$version/windows/$fileName"
+        curl.exe --fail --retry 3 --location --silent --show-error --output $installer $url
+        if ($LASTEXITCODE -ne 0) { throw "Vulkan SDK download failed with exit code $LASTEXITCODE." }
+        $expectedHash = '855B27BA05D2D8119C5114C5D4FF870CA38F2C632B11E1BB9923B9B7E6ECFE7B'
+        if ((Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash -ne $expectedHash) {
+          throw 'Vulkan SDK installer checksum mismatch.'
+        }
+        $arguments = @('--root', ('"{0}"' -f $sdk), '--accept-licenses', '--default-answer',
+          '--confirm-command', 'install', 'copy_only=1')
+        $process = Start-Process -FilePath $installer -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru
+        if ($process.ExitCode -ne 0) { throw "Vulkan SDK installation failed with exit code $($process.ExitCode)." }
+        $bin = Join-Path $sdk 'Bin'
+        foreach ($tool in @('spirv-val.exe', 'spirv-dis.exe', 'spirv-opt.exe')) {
+          & (Join-Path $bin $tool) --version
+          if ($LASTEXITCODE -ne 0) { throw "$tool failed its version check." }
+        }
+        "$bin" >> $env:GITHUB_PATH
+        "VULKAN_SDK=$sdk" >> $env:GITHUB_ENV

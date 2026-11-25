@@ -4,13 +4,12 @@ Copeland TS is a project-aware VS Code extension for workspaces that use
 `tsconfig.tsx`. It does not replace VS Code TypeScript globally. The generated
 workspace metadata decides which implementation owns each source file.
 
-For a TSPack workspace rooted at `manifest.tsx`, the language server instead
-opens the materialized manifest project context under
-`.tspack/build-manifests`. It sees the same sources, npm contracts, browser
-contracts, and TSX profile as the TSPack compiler invocation. Open buffers are
-immutable text overlays on that context, so stream/layout hover and diagnostics
-update before a document is saved. TSPack materialization remains explicit: the
-language server never installs packages or starts a browser.
+For a TSPack workspace rooted at `manifest.tsx`, the language server uses the
+first declared target with a materialized descriptor under
+`.tspack/build-manifests`. It takes package contracts from that target and
+source ownership from the current workspace. Open buffers overlay the disk
+contents so hover and diagnostics update before a save. With no descriptor,
+the server uses the standalone project context.
 
 ## Install and build
 
@@ -31,16 +30,17 @@ server and avoids silent duplicate compiler versions.
 
 ## Workspace ownership
 
-Run this once after adding or changing `tsconfig.tsx`:
+The extension normally runs `tscl workspace sync` when a Copeland workspace
+opens and when source files are added or removed. Use the command manually to
+refresh ownership on demand.
 
 ```text
 tscl workspace sync
 ```
 
 It creates `obj/copeland/workspace/editor-ownership.generated.json`. That file
-is the sole routing input read by the extension. It is not reconstructed from
-include/exclude glob patterns and source syntax is never inspected to decide
-ownership.
+records the compiler's ownership decisions. Explicit file profiles are also
+checked by the compiler. The extension does not guess ownership from syntax.
 
 For each listed source, the extension applies exactly one route:
 
@@ -61,8 +61,9 @@ false-squiggle suppression mechanism; the extension never disables TypeScript
 validation globally. `tscl workspace sync` additionally produces a stable
 `tsconfig.generated.json` with only `tsc` files for external TypeScript tools.
 
-`tsconfig.tsx` itself is opened with the Copeland TSX language ID so the
-language server can provide its bounded manifest completion and hover support.
+`tsconfig.tsx` and the root TSPack `manifest.tsx` use the Copeland TSX
+language ID. The language server checks the TSPack manifest with Copeland's
+manifest parser.
 The extension does not infer TS-XML profiles: the server evaluates the
 metadata-declared project for each Copeland project snapshot.
 
@@ -75,6 +76,9 @@ tscl` in the status bar. Click it to view the generated rule and project.
   existing `tscl workspace` commands in the workspace root.
 - `Copeland: Reload Workspace Ownership` reloads the generated metadata and
   switches open documents without restarting VS Code.
+- `Copeland: Generate NuGet Bindings` restores the declared NuGet packages
+  and writes `src/generated/Nuget.ts`. A missing generated import offers the
+  same action as a quick fix. Open files refresh when generation finishes.
 - `Copeland: Build Project` and `Copeland: Run Project` run `dotnet build` or
   `dotnet run` for the active `tscl` file's generated project. They refuse to
   guess when there is no associated project; set `copeland.projectPath` for an
@@ -85,9 +89,18 @@ tscl` in the status bar. Click it to view the generated rule and project.
   remains clean.
 - `Copeland: Open tsconfig.tsx` opens the workspace authority.
 
-`copeland.workspace.autoSync` is off by default. When enabled, changing
-`tsconfig.tsx` invokes the same explicit workspace-sync command; it never
-edits user settings globally.
+`copeland.workspace.autoSync` is on by default. Set it to `false` to refresh
+source ownership manually.
+
+## Linters in mixed workspaces
+
+ESLint's default language selectors cover ordinary TypeScript and TSX, so it
+continues to report warnings in those files while Copeland reports diagnostics
+in Copeland buffers. This boundary also applies to other extensions that use
+language IDs. For a linter or formatter that scans by path, scope its inputs
+to the traditional TypeScript source paths. A terminal TypeScript check can
+use `tsconfig.generated.json`, which lists the `tsc` partition.
+[ESLint extension settings](https://github.com/microsoft/vscode-eslint#settings-options)
 
 ## Compatibility and troubleshooting
 

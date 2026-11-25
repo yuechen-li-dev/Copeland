@@ -9,8 +9,10 @@ namespace Copeland.TS.Backend.CSharp.Tests.Runtime;
 
 public sealed class NpmSidecarExecutionTests
 {
-    [Fact]
-    public async Task Manifest_resolved_npm_calls_use_canonical_sidecar_tuples_for_values_failures_and_promises()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Manifest_resolved_npm_calls_use_canonical_sidecar_tuples_for_values_failures_and_promises(bool generateGuest)
     {
         string root = Path.Combine(Path.GetTempPath(), "copeland-npm-sidecar-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(root, "sidecar"));
@@ -29,15 +31,25 @@ public sealed class NpmSidecarExecutionTests
                 NpmDependencies = Dependencies,
             });
             Assert.True(source.Success, string.Join(Environment.NewLine, source.Diagnostics));
-            CSharpCompilation emitted = CSharpBackend.EmitForRootManifest(source.MirCompilation!.Program!, manifest.Manifest!);
+            CSharpCompilation emitted = CSharpBackend.EmitForRootManifest(source.MirCompilation!.Program!, manifest.Manifest!, generateGuest);
             Assert.Empty(emitted.Diagnostics);
             RoslynCompileResult compiled = RoslynCompileHelper.CompileGeneratedSource(emitted.SourceText);
             Assert.True(compiled.Success, string.Join(Environment.NewLine, compiled.Diagnostics));
             AssertZeroArgumentTupleEncodes(compiled.Assembly!);
 
-            ResponsePayloads payloads = ResponsePayloads.Create(compiled.Assembly!);
-            AssertRecordResponseDecodes(compiled.Assembly!, payloads.Record);
-            await File.WriteAllTextAsync(Path.Combine(root, "sidecar", "fixture.mjs"), Script(payloads), new UTF8Encoding(false));
+            string script;
+            if (generateGuest)
+            {
+                Assert.NotNull(emitted.NpmGuestSource);
+                script = emitted.NpmGuestSource;
+            }
+            else
+            {
+                ResponsePayloads payloads = ResponsePayloads.Create(compiled.Assembly!);
+                AssertRecordResponseDecodes(compiled.Assembly!, payloads.Record);
+                script = Script(payloads);
+            }
+            await File.WriteAllTextAsync(Path.Combine(root, "sidecar", "fixture.mjs"), script, new UTF8Encoding(false));
             await using CSharpSidecarHost host = CSharpSidecarHost.Attach(compiled.Assembly!, emitted.SidecarContract!);
 
             object zero = GeneratedModuleInvoker.Invoke(compiled.Assembly!, "zero")!;
@@ -78,6 +90,19 @@ public sealed class NpmSidecarExecutionTests
             Assert.True(ReadOk(fast));
             Assert.Equal(new[] { "1" }, (string[])ReadResultValue(slow));
             Assert.Equal(new[] { "2" }, (string[])ReadResultValue(fast));
+
+            if (generateGuest)
+            {
+                const string label = "quoted \"\\\"\t\b\f\u0001\u2028🐍";
+                object escapedRequest = CreateInputRecord(compiled.Assembly!, 2d, label);
+                object escaped = GeneratedModuleInvoker.Invoke(compiled.Assembly!, "mapRecord", escapedRequest, 3d)!;
+                object invalid = GeneratedModuleInvoker.Invoke(compiled.Assembly!, "mapArray", new[] { 1d }, -1d)!;
+                await WaitForCompletion(escaped);
+                await WaitForCompletion(invalid);
+                Assert.True(ReadOk(escaped));
+                AssertRecord(ReadResultValue(escaped), label + "-5", true);
+                Assert.True(IsTransportFailed(invalid));
+            }
         }
         finally
         {
@@ -330,9 +355,16 @@ public sealed class NpmSidecarExecutionTests
     private const string PackageImplementation = """
         export function zero() { return true; }
         export function sum(left, right) { return left + right; }
-        export function mirrorArray(values, increment) { return values.map(value => value + increment); }
+        export function mirrorArray(values, increment) {
+            if (increment < 0) return ["wrong result type"];
+            return values.map(value => value + increment);
+        }
         export function mirrorRecord(request, increment) { return { output: request.label + "-" + (request.value + increment), passed: true }; }
-        export function reject(message) { throw new Error(message); }
+        export function reject(message) {
+            const error = new Error(message);
+            error.code = 7;
+            throw error;
+        }
         export async function delayed(value, delay) { await new Promise(resolve => setTimeout(resolve, delay)); return [String(value)]; }
         """;
 

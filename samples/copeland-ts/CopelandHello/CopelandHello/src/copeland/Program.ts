@@ -1,5 +1,6 @@
 using System;
 using CopelandHello;
+using Newtonsoft.Json;
 
 import { camelCase } from "lodash-es";
 import { normalizeName } from "./Greeting";
@@ -27,4 +28,8 @@ export function dotNetGreeting(name: string): string {
 export async function npmGreeting(value: string): string ! NpmError {
     const pending: Async<string ! NpmError> = camelCase(value);
     return await pending;
+}
+
+export function quoteTitle(value: string): string {
+    return JsonConvert.ToString(value);
 }

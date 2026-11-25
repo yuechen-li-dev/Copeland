@@ -45,6 +45,7 @@ internal sealed class NodeInteropEmitter(MirProgram program, string prefix, stri
         var emitter = new NodeInteropEmitter(program, prefix, check, arrayProjection);
         var declarations = new List<string>();
         var bindings = new List<(string Wrapper, string Export)>();
+        bool declaresDocument = false;
         var functions = module.Functions.ToDictionary(function => function.Name, StringComparer.Ordinal);
         foreach (MirModuleExport export in exports)
         {
@@ -55,6 +56,10 @@ internal sealed class NodeInteropEmitter(MirProgram program, string prefix, stri
             string wrapper = $"{prefix}export_{bindings.Count}";
             string? functionSnapshot = compilation.NodeArraySnapshotFunctions.Contains(function.Name) ? snapshot : null;
             emitter.EmitWrapper(lines, wrapper, function, functionSnapshot);
+            if (IsDocument(function.ReturnType))
+            {
+                declaresDocument = true;
+            }
             declarations.Add($"declare function {wrapper}({emitter.TypeParameters(function.Parameters.Select(parameter => parameter.Type))}): {emitter.TypeScript(function.ReturnType)};");
             bindings.Add((wrapper, JavaScriptIdentifierEncoder.Encode(export.Name)));
         }
@@ -72,6 +77,14 @@ internal sealed class NodeInteropEmitter(MirProgram program, string prefix, stri
             lines.Add($"function {snapshot}(value) {{ return {arrayProjection}(value); }}");
         }
         emitter.EmitProjections(lines, declarations);
+        if (declaresDocument)
+        {
+            declarations.Add($"type {prefix}DocumentNode = Readonly<{{ tag: \"Document\" | \"Paragraph\" | \"Strong\" | \"Emphasis\" | \"InlineCode\" | \"Item\" | \"Quote\" | \"Callout\" | \"Break\" | \"ThematicBreak\" }}>"
+                + " | Readonly<{ tag: \"Heading\"; payload: Readonly<{ level: string }> }>"
+                + " | Readonly<{ tag: \"List\"; payload: Readonly<{ kind: string }> }>"
+                + " | Readonly<{ tag: \"CodeBlock\"; payload: Readonly<{ language: string }> }>"
+                + " | Readonly<{ tag: \"Link\"; payload: Readonly<{ target: string }> }>;");
+        }
         string localExports = string.Join(", ", bindings.Select(binding => binding.Wrapper));
         string facadeExports = string.Join(", ", bindings.Select(binding => $"{binding.Wrapper} as {binding.Export}"));
         lines.Add($"export {{ {localExports} }};");
@@ -82,7 +95,7 @@ internal sealed class NodeInteropEmitter(MirProgram program, string prefix, stri
 
     private bool Supports(MirFunction function)
         => !function.IsAsync && !function.IsRemote && !function.IsGenerator && function.ComponentState is null
-            && (IsVoid(function.ReturnType) || SupportsValue(function.ReturnType, []))
+            && (IsVoid(function.ReturnType) || IsDocument(function.ReturnType) || SupportsValue(function.ReturnType, []))
             && function.Parameters.All(parameter => parameter.Type is MirCallableType callable
                 ? callable.Parameters.All(input => SupportsValue(input.Type, []))
                     && (IsVoid(callable.ReturnType) || SupportsValue(callable.ReturnType, []))
@@ -90,6 +103,8 @@ internal sealed class NodeInteropEmitter(MirProgram program, string prefix, stri
 
     private static bool IsScalar(MirType type)
         => type is MirNamedType { Identifier: "boolean" or "int" or "long" or "float" or "number" or "string" };
+
+    private static bool IsDocument(MirType type) => type is MirNamedType { Identifier: "Document" };
 
     private static bool CanFuseArraySnapshot(MirFunction function)
     {
@@ -228,6 +243,7 @@ internal sealed class NodeInteropEmitter(MirProgram program, string prefix, stri
         MirRecordType or MirResultType => $"{prefix}Value{ProjectionIndex(type)}",
         MirNamedType named when enums.ContainsKey(named.Identifier) => $"{prefix}Value{ProjectionIndex(type)}",
         MirNamedType { Identifier: "long" } => "bigint",
+        MirNamedType { Identifier: "Document" } => $"ReadonlyArray<Readonly<{{ tag: \"Open\"; payload: Readonly<{{ node: {prefix}DocumentNode; role: string }}> }}> | Readonly<{{ tag: \"Close\"; payload: Readonly<{{ node: {prefix}DocumentNode }}> }}> | Readonly<{{ tag: \"Run\"; payload: Readonly<{{ text: string }}> }}>>",
         MirNamedType { Identifier: "int" or "float" } => "number",
         _ => type.Identifier,
     };

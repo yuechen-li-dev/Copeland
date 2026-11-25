@@ -1,0 +1,37 @@
+{
+    "schemaVersion": 2,
+    "packages": [
+        { "id": "Newtonsoft.Json", "version": "13.0.4" },
+        { "id": "Humanizer.Core", "version": "2.14.1" }
+    ],
+    "operations": [
+        {
+            "name": "json:quote",
+            "package": "Newtonsoft.Json",
+            "type": "Newtonsoft.Json.JsonConvert",
+            "method": "ToString",
+            "parameters": ["string"],
+            "export": "Quote"
+        },
+        {
+            "name": "json:boolean",
+            "package": "Newtonsoft.Json",
+            "type": "Newtonsoft.Json.JsonConvert",
+            "method": "ToString",
+            "parameters": ["boolean"],
+            "export": "FormatBoolean"
+        },
+        {
+            "name": "humanizer:ordinalize",
+            "package": "Humanizer.Core",
+            "type": "Humanizer.OrdinalizeExtensions",
+            "method": "Ordinalize",
+            "parameters": ["string"],
+            "export": "Ordinalize"
+        }
+    ],
+    "browserTargets": {
+        "browser-wasm": "wasm",
+        "browser-service": "service"
+    }
+}

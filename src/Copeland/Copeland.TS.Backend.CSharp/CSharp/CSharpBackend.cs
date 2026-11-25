@@ -59,11 +59,17 @@ public static partial class CSharpBackend
         public MirFrameSlotId? HandlerErrorSlot { get; } = handlerErrorSlot;
     }
 
-    private sealed class CSharpEmissionState(IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records)
+    private sealed class CSharpEmissionState(
+        IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records,
+        List<MirNpmCallExpression>? npmCalls = null,
+        bool autoAttachNpm = false)
     {
         public Dictionary<MirHandlerId, HandlerTransfer> Handlers { get; } = [];
         public Stack<MirExpression?> ContinueIncrements { get; } = new();
         public IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> Records { get; } = records;
+        public List<MirNpmCallExpression>? NpmCalls { get; } = npmCalls;
+        public bool AutoAttachNpm { get; } = autoAttachNpm;
+        public Dictionary<string, string> AsyncBindings { get; } = new(StringComparer.Ordinal);
         public int TryIndex { get; set; }
     }
 
@@ -142,18 +148,35 @@ public static partial class CSharpBackend
     /// manifest-declared default sidecar. This is the production emission seam.
     /// </summary>
     public static CSharpCompilation EmitForRootManifest(MirProgram program, Copeland.TS.Manifest.CopelandManifest manifest)
+        => EmitForRootManifest(program, manifest, generateNpmGuest: false);
+
+    /// <summary>Optionally emits the Node guest alongside its matching CLR client.</summary>
+    public static CSharpCompilation EmitForRootManifest(
+        MirProgram program,
+        Copeland.TS.Manifest.CopelandManifest manifest,
+        bool generateNpmGuest)
     {
+        bool usesTransport = ProgramUsesTsonTransport(program);
         CSharpSidecarContract? contract = null;
-        if (ProgramUsesTsonTransport(program)
+        if (usesTransport
             && !CSharpSidecarContracts.TryCreate(program, manifest, out contract, out CSharpDiagnostic? diagnostic))
         {
             return new CSharpCompilation(string.Empty, [diagnostic!]);
         }
 
-        return EmitCore(program, ProgramUsesTsonTransport(program) ? contract : null, new CSharpEmissionOptions());
+        return EmitCore(program, contract, new CSharpEmissionOptions(), generateNpmGuest);
     }
 
-    private static CSharpCompilation EmitCore(MirProgram program, CSharpSidecarContract? sidecarContract, CSharpEmissionOptions options)
+    public static CSharpCompilation EmitWithGeneratedNpmGuest(MirProgram program, CSharpEmissionOptions options, string guestPath)
+        => EmitCore(program, CSharpSidecarContracts.CreateGeneratedNpm(program, guestPath), options,
+            generateNpmGuest: true, automaticGuestPath: guestPath);
+
+    private static CSharpCompilation EmitCore(
+        MirProgram program,
+        CSharpSidecarContract? sidecarContract,
+        CSharpEmissionOptions options,
+        bool generateNpmGuest = false,
+        string? automaticGuestPath = null)
     {
         if (program.Functions.Any(function => function.ComponentState is not null))
         {
@@ -184,6 +207,9 @@ public static partial class CSharpBackend
         CurrentSourcePath.Value = program.CSharpSourcePath;
         CSharpEmissionOptions? previousOptions = CurrentOptions.Value;
         CurrentOptions.Value = options;
+        NugetDtoProjection? previousProjection = CurrentNugetProjection.Value;
+        CurrentNugetProjection.Value = null;
+        List<MirNpmCallExpression>? npmCalls = generateNpmGuest ? [] : null;
         var previousTables = CurrentTables.Value;
         CurrentTables.Value = program.Tables.ToDictionary(table => table.Id);
         bool previousNativeStrings = UsesNativeStrings.Value;
@@ -194,6 +220,11 @@ public static partial class CSharpBackend
         {
             var enumNames = program.Enums.Select(@enum => @enum.Name).ToHashSet(StringComparer.Ordinal);
             var recordsById = program.Records.ToDictionary(record => record.Id);
+            if (options.NugetBindings is { Count: > 0 })
+            {
+                var enumsByName = program.Enums.ToDictionary(item => item.Name, StringComparer.Ordinal);
+                CurrentNugetProjection.Value = new NugetDtoProjection(recordsById, enumsByName, options.NugetDtoRecords);
+            }
             var tablesById = program.Tables.ToDictionary(table => table.Id);
             var tsonTableIds = program.TsonEncodingPlans
                 .Where(plan => plan.TablePlan is not null)
@@ -201,7 +232,8 @@ public static partial class CSharpBackend
                 .ToHashSet();
             var usesResult = ProgramUsesResult(program) || program.Tables.Count > 0;
             var usesUnwrap = ProgramUsesUnwrap(program);
-            var needsUnit = EnumerateTypes(program).Any(ContainsVoidResult);
+            var needsUnit = EnumerateTypes(program).Any(ContainsVoidResult)
+                || program.Functions.Any(function => function.IsAsync && function.ReturnType.Identifier == "void");
             var errorTypes = CollectErrorNominalTypes(program, enumNames);
             var usesAsync = program.Functions.Any(function => function.IsAsync);
             var usesGenerators = program.Functions.Any(function => function.IsGenerator);
@@ -229,6 +261,8 @@ public static partial class CSharpBackend
             if (usesAsync) EmitAsyncRuntime(writer);
             if (usesGenerators) EmitGeneratorRuntime(writer);
             if (usesTsonTransport) EmitTsonTransportRuntime(writer, sidecarContract);
+            if (EmissionOptions.NugetBindings is { Count: > 0 }) EmitDirectNugetRuntime(writer);
+            CurrentNugetProjection.Value?.Emit(writer);
             foreach (var errorType in errorTypes) writer.WriteLine($"public readonly record struct {CSharpNameMangler.Mangle(errorType)};");
             if (errorTypes.Count > 0) writer.WriteLine();
             foreach (var record in program.Records) EmitRecord(writer, record, usesSystemTextJson);
@@ -289,7 +323,10 @@ public static partial class CSharpBackend
                     EmitAsyncFrame(writer, function);
                 }
             }
-            foreach (var function in program.Functions) EmitFunction(writer, function, enumNames, recordsById, diagnostics);
+            foreach (var function in program.Functions)
+            {
+                EmitFunction(writer, function, enumNames, recordsById, diagnostics, npmCalls, automaticGuestPath is not null);
+            }
             foreach (MirModuleValue value in program.ModuleValues)
             {
                 writer.WriteLine($"private static readonly {MapType(value.Type)} {CSharpNameMangler.Mangle(value.Name)} = {CSharpNameMangler.Mangle(value.InitializerFunction)}();");
@@ -297,8 +334,17 @@ public static partial class CSharpBackend
             if (UsesNativeStrings.Value) NativeStringRuntime.Emit(writer);
             if (UsesIntegerRuntime.Value) IntegerRuntime.Emit(writer);
             writer.Unindent(); writer.WriteLine("}");
+            string? npmGuest = null;
+            if (diagnostics.Count == 0 && npmCalls is { Count: > 0 })
+            {
+                npmGuest = NpmSidecarGuestEmitter.Emit(program, sidecarContract, npmCalls, diagnostics);
+                if (npmGuest is not null && automaticGuestPath is not null)
+                {
+                    EmitGeneratedNpmHost(writer, automaticGuestPath);
+                }
+            }
             return diagnostics.Count == 0
-                ? new CSharpCompilation(writer.ToString(), diagnostics, sidecarContract)
+                ? new CSharpCompilation(writer.ToString(), diagnostics, sidecarContract) { NpmGuestSource = npmGuest }
                 : new CSharpCompilation(string.Empty, diagnostics);
         }
         finally
@@ -306,9 +352,30 @@ public static partial class CSharpBackend
             CurrentTables.Value = previousTables;
             CurrentSourcePath.Value = previousSourcePath;
             CurrentOptions.Value = previousOptions;
+            CurrentNugetProjection.Value = previousProjection;
             UsesNativeStrings.Value = previousNativeStrings;
             UsesIntegerRuntime.Value = previousIntegerRuntime;
         }
+    }
+
+    private static void EmitGeneratedNpmHost(CSharpTextWriter writer, string guestPath)
+    {
+        writer.WriteLine($$"""
+            internal static class CopeGeneratedNpmHost
+            {
+                private static readonly global::System.Lazy<global::Copeland.TS.Sidecar.SidecarProcessHost> Host = new(() =>
+                    global::Copeland.TS.Sidecar.SidecarProcessHost.AttachNode(
+                        {{CSharpLiteralWriter.Write(guestPath)}}, CopeTsonTransport.ProtocolVersion, CopeTsonTransport.ExpectedDigest,
+                        dispatch => CopeTsonTransport.Dispatch = dispatch,
+                        CopeTsonTransport.Receive, CopeTsonTransport.ConnectionLost, CopeTsonTransport.Envelope));
+
+                internal static CopeAsync<T> Start<T>(string operation, string request, global::System.Func<string, string, T> decode)
+                {
+                    _ = Host.Value;
+                    return CopeTsonTransport.Start(operation, request, decode);
+                }
+            }
+            """);
     }
 
     private static void EmitFlow(CSharpTextWriter writer, MirFlowDefinition flow, IReadOnlySet<string> enumNames, List<CSharpDiagnostic> diagnostics)
@@ -472,8 +539,9 @@ public static partial class CSharpBackend
         writer.WriteLine("public sealed class CopeAsync<T>");
         writer.WriteLine("{");
         writer.Indent();
+        writer.WriteLine("private readonly object gate = new();");
         writer.WriteLine("private readonly global::System.Collections.Generic.List<(global::System.Action Success, global::System.Action Cancelled, global::System.Action Failed, global::System.Action Panicked)> continuations = []; ");
-        writer.WriteLine("private int terminalState;");
+        writer.WriteLine("private volatile int terminalState;");
         writer.WriteLine("public bool IsCompleted => terminalState != 0;");
         writer.WriteLine("public bool IsCancelled => terminalState == 2;");
         writer.WriteLine("public bool IsPanicked => terminalState == 3;");
@@ -483,50 +551,49 @@ public static partial class CSharpBackend
         writer.WriteLine("public bool SubscribeTransport(global::System.Action success, global::System.Action cancelled, global::System.Action failed, global::System.Action panicked)");
         writer.WriteLine("{");
         writer.Indent();
+        writer.WriteLine("lock (gate)");
+        writer.WriteLine("{");
+        writer.Indent();
         writer.WriteLine("if (IsCompleted) return true;");
         writer.WriteLine("continuations.Add((success, cancelled, failed, panicked));");
         writer.WriteLine("return false;");
         writer.Unindent();
         writer.WriteLine("}");
-        writer.WriteLine("public void Resolve(T value)");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("public void Resolve(T value) => Complete(1, value);");
+        writer.WriteLine("public void Cancel() => Complete(2, default!);");
+        writer.WriteLine("public void Fail() => Complete(4, default!);");
+        writer.WriteLine("public void Panic() => Complete(3, default!);");
+        writer.WriteLine("private void Complete(int state, T value)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("(global::System.Action Success, global::System.Action Cancelled, global::System.Action Failed, global::System.Action Panicked)[] pending;");
+        writer.WriteLine("lock (gate)");
         writer.WriteLine("{");
         writer.Indent();
         writer.WriteLine("if (terminalState != 0) return;");
-        writer.WriteLine("terminalState = 1;");
         writer.WriteLine("Value = value;");
-        writer.WriteLine("var pending = continuations.ToArray();");
+        writer.WriteLine("terminalState = state;");
+        writer.WriteLine("pending = continuations.ToArray();");
         writer.WriteLine("continuations.Clear();");
-        writer.WriteLine("foreach (var continuation in pending) continuation.Success();");
         writer.Unindent();
         writer.WriteLine("}");
-        writer.WriteLine("public void Cancel()");
+        writer.WriteLine("foreach (var continuation in pending)");
         writer.WriteLine("{");
         writer.Indent();
-        writer.WriteLine("if (terminalState != 0) return;");
-        writer.WriteLine("terminalState = 2;");
-        writer.WriteLine("var pending = continuations.ToArray();");
-        writer.WriteLine("continuations.Clear();");
-        writer.WriteLine("foreach (var continuation in pending) continuation.Cancelled();");
+        writer.WriteLine("global::System.Action notify = state switch");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("1 => continuation.Success,");
+        writer.WriteLine("2 => continuation.Cancelled,");
+        writer.WriteLine("3 => continuation.Panicked,");
+        writer.WriteLine("_ => continuation.Failed,");
+        writer.Unindent();
+        writer.WriteLine("};");
+        writer.WriteLine("notify();");
         writer.Unindent();
         writer.WriteLine("}");
-        writer.WriteLine("public void Fail()");
-        writer.WriteLine("{");
-        writer.Indent();
-        writer.WriteLine("if (terminalState != 0) return;");
-        writer.WriteLine("terminalState = 4;");
-        writer.WriteLine("var pending = continuations.ToArray();");
-        writer.WriteLine("continuations.Clear();");
-        writer.WriteLine("foreach (var continuation in pending) continuation.Failed();");
-        writer.Unindent();
-        writer.WriteLine("}");
-        writer.WriteLine("public void Panic()");
-        writer.WriteLine("{");
-        writer.Indent();
-        writer.WriteLine("if (terminalState != 0) return;");
-        writer.WriteLine("terminalState = 3;");
-        writer.WriteLine("var pending = continuations.ToArray();");
-        writer.WriteLine("continuations.Clear();");
-        writer.WriteLine("foreach (var continuation in pending) continuation.Panicked();");
         writer.Unindent();
         writer.WriteLine("}");
         writer.Unindent();
@@ -604,7 +671,7 @@ public static partial class CSharpBackend
         writer.WriteLine("internal static CopeAsync<T> Start<T>(string operation, string request, global::System.Func<string, string, T> decode)");
         writer.WriteLine("{");
         writer.Indent();
-        writer.WriteLine("string correlation = (++nextCorrelation).ToString(global::System.Globalization.CultureInfo.InvariantCulture);");
+        writer.WriteLine("string correlation = global::System.Threading.Interlocked.Increment(ref nextCorrelation).ToString(global::System.Globalization.CultureInfo.InvariantCulture);");
         writer.WriteLine("var computation = CopeAsyncPending.Create<T>();");
         writer.WriteLine("lock (Gate) { PendingByCorrelation.Add(correlation, new Pending<T>(computation, decode)); }");
         writer.WriteLine("try { Dispatch?.Invoke(Envelope(correlation, \"request\", operation, request)); } catch { FailCorrelation(correlation); }");
@@ -1323,12 +1390,14 @@ public static partial class CSharpBackend
         MirFunction function,
         IReadOnlySet<string> enumNames,
         IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records,
-        List<CSharpDiagnostic> diagnostics)
+        List<CSharpDiagnostic> diagnostics,
+        List<MirNpmCallExpression>? npmCalls,
+        bool autoAttachNpm)
     {
         if (function.IsAsync)
         {
             var asyncPreviousState = CurrentEmissionState.Value;
-            CurrentEmissionState.Value = new CSharpEmissionState(records);
+            CurrentEmissionState.Value = new CSharpEmissionState(records, npmCalls, autoAttachNpm);
             try
             {
                 EmitAsyncFunction(writer, function, diagnostics);
@@ -1639,8 +1708,11 @@ public static partial class CSharpBackend
             MirLiteralExpression literal => CSharpLiteralWriter.Write(literal.Value),
             MirTextDocumentExpression document => "throw new global::System.InvalidOperationException(\"Text values are not supported in async functions in M0.\")",
             MirUnitExpression => "CopeUnit.Value",
-            MirVariableExpression variable => "frame." + CSharpNameMangler.Mangle(variable.Name),
+            MirVariableExpression variable => CurrentEmissionState.Value?.AsyncBindings.GetValueOrDefault(variable.Name)
+                ?? "frame." + CSharpNameMangler.Mangle(variable.Name),
             MirAsyncFrameSlotExpression slot => "frame.__" + slot.SlotId.Value,
+            MirArrayExpression { Counts: null, Type: MirArrayType type } array => EmitAsyncArray(array, type, function),
+            MirArrayLengthExpression length => $"({EmitAsyncExpression(length.Receiver, function)}).Length",
             MirMutableArrayConstructionExpression construction => $"CopeArray.Create<{MapType(construction.MutableArrayType.ElementType)}>({EmitAsyncExpression(construction.Length, function)})",
             MirMutableArrayElementAssignmentExpression assignment => $"CopeArray.Set({EmitAsyncExpression(assignment.Receiver, function)}, {EmitAsyncExpression(assignment.Index, function)}, {EmitAsyncExpression(assignment.Value, function)})",
             MirMutableArrayLengthExpression length => $"({EmitAsyncExpression(length.Receiver, function)}).{MutableCollectionLengthMember(length.Receiver.Type)}",
@@ -1653,14 +1725,60 @@ public static partial class CSharpBackend
             MirCallExpression call => EmitNativeOrDirectCall(call, call.Arguments.Select(argument => EmitAsyncExpression(argument, function)).ToArray()),
             MirRecordConstructionExpression construction => EmitAsyncRecordConstruction(construction, function),
             MirRecordFieldAccessExpression access => $"({EmitAsyncExpression(access.Receiver, function)}).{RecordFieldName(access.FieldId)}",
+            MirEnumValueExpression value => EmitAsyncEnumValue(value, function),
             MirTsonTransportExpression transport => EmitAsyncTsonTransport(transport, function),
             MirNpmCallExpression npm => EmitAsyncNpmCall(npm, function),
+            MirResultMatchExpression match => EmitAsyncResultMatch(match, function),
             MirClrInvocationExpression invocation => EmitClrInvocation(invocation, function),
             MirClrPropertyAccessExpression property => EmitClrProperty(property, function),
             MirOkExpression ok => $"CopeResult<{MapResultComponentType(((MirResultType)ok.Type).SuccessType)}, {MapType(((MirResultType)ok.Type).ErrorType)}>.Ok({EmitAsyncExpression(ok.Payload, function)})",
             MirErrExpression err => $"CopeResult<{MapResultComponentType(((MirResultType)err.Type).SuccessType)}, {MapType(((MirResultType)err.Type).ErrorType)}>.Err({EmitAsyncExpression(err.Payload, function)})",
             _ => throw new InvalidOperationException($"Async function '{function.Name}' uses expression '{expression.GetType().Name}' which has not been lowered into an explicit state expression."),
         };
+    }
+
+    private static string EmitAsyncEnumValue(MirEnumValueExpression value, MirFunction function)
+    {
+        string caseType = $"{CSharpNameMangler.Mangle(value.EnumName)}.{CSharpNameMangler.Mangle(value.CaseName)}";
+        if (value.Arguments.Count == 0)
+        {
+            return caseType + ".__Singleton";
+        }
+        string arguments = string.Join(", ", value.Arguments.Select(argument => EmitAsyncExpression(argument, function)));
+        return $"new {caseType}({arguments})";
+    }
+
+    private static string EmitAsyncArray(MirArrayExpression array, MirArrayType type, MirFunction function)
+    {
+        string elements = string.Join(", ", array.Elements.Select(element => EmitAsyncExpression(element, function)));
+        return $"new {MapType(type.ElementType)}[] {{ {elements} }}";
+    }
+
+    private static string EmitAsyncResultMatch(MirResultMatchExpression match, MirFunction function)
+    {
+        CSharpEmissionState state = CurrentEmissionState.Value!;
+        string parameter = "__cope_match" + state.TryIndex++;
+        string scrutinee = EmitAsyncExpression(match.Scrutinee, function);
+        string success = EmitAsyncMatchArm(match.OkBinding.Name, parameter + ".Value", match.OkExpression, function, state);
+        string error = EmitAsyncMatchArm(match.ErrBinding.Name, parameter + ".Error", match.ErrExpression, function, state);
+        return $"new global::System.Func<{MapType(match.Scrutinee.Type)}, {MapType(match.Type)}>({parameter} => "
+            + $"{parameter}.IsOk ? ({success}) : ({error}))({scrutinee})";
+    }
+
+    private static string EmitAsyncMatchArm(
+        string name, string value, MirExpression expression, MirFunction function, CSharpEmissionState state)
+    {
+        string? previous = state.AsyncBindings.GetValueOrDefault(name);
+        state.AsyncBindings[name] = value;
+        try
+        {
+            return EmitAsyncExpression(expression, function);
+        }
+        finally
+        {
+            if (previous is null) state.AsyncBindings.Remove(name);
+            else state.AsyncBindings[name] = previous;
+        }
     }
 
     private static string EmitAsyncRecordConstruction(MirRecordConstructionExpression construction, MirFunction function)
@@ -1675,6 +1793,27 @@ public static partial class CSharpBackend
     private static string EmitAsyncTsonTransport(MirTsonTransportExpression transport, MirFunction function)
     {
         var result = (MirResultType)transport.AsyncType.EventualType;
+        if (transport.Operation is MirLiteralExpression { Value: string name }
+            && EmissionOptions.NugetBindings?.TryGetValue(name, out NugetWorkerBinding? binding) == true
+            && transport.Request.Type is MirRecordType requestRecord
+            && result.SuccessType is MirRecordType responseRecord
+            && result.ErrorType is MirRecordType)
+        {
+            string requestType = RecordTypeName(requestRecord.RecordTypeId);
+            string responseType = MapType(result.SuccessType);
+            string errorType = MapType(result.ErrorType);
+            string requestArgument = EmitAsyncExpression(transport.Request, function);
+            var records = CurrentEmissionState.Value!.Records;
+            MirRecordFieldDefinition? responseField = records[responseRecord.RecordTypeId].Fields.FirstOrDefault();
+            string invocation = CurrentNugetProjection.Value!.Invoke(binding, records[requestRecord.RecordTypeId],
+                responseField?.Type ?? result.SuccessType);
+            string validReply = responseField is null
+                ? "true"
+                : NugetResponseValidation(responseField.Type, "reply." + RecordFieldName(responseField.Id));
+            return $"CopeNugetDirect.Start<{requestType}, {responseType}, {errorType}>({requestArgument}, "
+                + $"request => new {responseType}({invocation}), "
+                + $"message => new {errorType}(message), reply => {validReply})";
+        }
         string resultType = $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>";
         string operation = EmitAsyncExpression(transport.Operation, function);
         string request = EmitAsyncExpression(transport.Request, function);
@@ -1684,17 +1823,62 @@ public static partial class CSharpBackend
         return $"CopeTsonTransport.Start<{resultType}>({operation}, {encodedRequest}.Value, (kind, payload) => kind == \"ok\" ? {resultType}.Ok({decodedResponse}) : {resultType}.Err({decodedError}))";
     }
 
+    private static string NugetResponseValidation(MirType type, string value)
+        => type switch
+        {
+            MirArrayType { ElementType: MirNamedType { Identifier: "string" } }
+                => $"{value} is not null && global::System.Array.TrueForAll({value}, item => item is not null)",
+            MirArrayType or MirNamedType { Identifier: "string" } => $"{value} is not null",
+            _ => "true",
+        };
+
+    private static void EmitDirectNugetRuntime(CSharpTextWriter writer)
+    {
+        writer.WriteLine("""
+            internal static class CopeNugetDirect
+            {
+                internal static CopeAsync<CopeResult<TResponse, TError>> Start<TRequest, TResponse, TError>(
+                    TRequest request, global::System.Func<TRequest, TResponse> invoke,
+                    global::System.Func<string, TError> error, global::System.Func<TResponse, bool> isValid)
+                {
+                    var computation = CopeAsyncPending.Create<CopeResult<TResponse, TError>>();
+                    TResponse response;
+                    try
+                    {
+                        response = invoke(request);
+                    }
+                    catch (global::System.Exception exception)
+                    {
+                        computation.Resolve(CopeResult<TResponse, TError>.Err(error(exception.Message)));
+                        return computation;
+                    }
+                    if (isValid(response))
+                    {
+                        computation.Resolve(CopeResult<TResponse, TError>.Ok(response));
+                    }
+                    else
+                    {
+                        computation.Fail();
+                    }
+                    return computation;
+                }
+            }
+            """);
+    }
+
     private static string EmitAsyncNpmCall(MirNpmCallExpression npm, MirFunction function)
     {
+        CurrentEmissionState.Value?.NpmCalls?.Add(npm);
         var result = (MirResultType)npm.AsyncType.EventualType;
         string resultType = $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>";
         string request = npm.ArgumentTuple is MirRecordConstructionExpression tuple
             ? $"new {RecordTypeName(tuple.RecordTypeId)}({string.Join(", ", tuple.Initializers.Select(initializer => EmitAsyncExpression(initializer.Value, function)))})"
             : EmitAsyncExpression(npm.ArgumentTuple, function);
-        string operation = CSharpLiteralWriter.Write("npm:" + npm.PackageName + "@" + npm.PackageVersion + ":" + npm.ExportName);
+        string operation = CSharpLiteralWriter.Write(NpmSidecarGuestEmitter.Operation(npm));
         string response = $"{TsonDecodeMethodName(npm.ResponsePlanId)}(payload).{RecordFieldName(npm.ResponseValueFieldId)}";
         string error = $"{TsonDecodeMethodName(npm.RemoteErrorPlanId)}(payload).{RecordFieldName(npm.RemoteErrorValueFieldId)}";
-        return $"CopeTsonTransport.Start<{resultType}>({operation}, {TsonEncodeMethodName(npm.RequestPlanId)}({request}).Value, (kind, payload) => kind == \"ok\" ? {resultType}.Ok({response}) : {resultType}.Err({error}))";
+        string transport = CurrentEmissionState.Value?.AutoAttachNpm == true ? "CopeGeneratedNpmHost" : "CopeTsonTransport";
+        return $"{transport}.Start<{resultType}>({operation}, {TsonEncodeMethodName(npm.RequestPlanId)}({request}).Value, (kind, payload) => kind == \"ok\" ? {resultType}.Ok({response}) : {resultType}.Err({error}))";
     }
 
     private static string EmitClrInvocation(MirClrInvocationExpression invocation, MirFunction function)
@@ -2918,7 +3102,7 @@ public static partial class CSharpBackend
             EmitTsonReader(writer);
             foreach (MirTsonEncodingPlan plan in plans.Where(plan => plan.RootType is MirRecordType && plan.TablePlan is null))
             {
-                EmitTsonFlatRecordDecoder(writer, plan, records);
+                EmitTsonRecordDecoder(writer, plan, records);
             }
         }
     }
@@ -2978,6 +3162,16 @@ public static partial class CSharpBackend
                         else if (escape == 'n') builder.Append('\n');
                         else if (escape == 'r') builder.Append('\r');
                         else if (escape == 't') builder.Append('\t');
+                        else if (escape == 'b') builder.Append('\b');
+                        else if (escape == 'f') builder.Append('\f');
+                        else if (escape == 'u')
+                        {
+                            if (position > text.Length - 4
+                                || !ushort.TryParse(text.Substring(position, 4), global::System.Globalization.NumberStyles.AllowHexSpecifier, global::System.Globalization.CultureInfo.InvariantCulture, out ushort code)
+                                || (code >= ' ' && code is not (0x2028 or 0x2029))) return false;
+                            position += 4;
+                            builder.Append((char)code);
+                        }
                         else return false;
                     }
                     return false;
@@ -2985,107 +3179,6 @@ public static partial class CSharpBackend
             }
             """);
         writer.WriteLine();
-    }
-
-    private static void EmitTsonFlatRecordDecoder(
-        CSharpTextWriter writer,
-        MirTsonEncodingPlan plan,
-        IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records)
-    {
-        if (plan.RootValuePlan is not MirTsonRecordValuePlan root
-            || !records.TryGetValue(root.RecordTypeId, out MirRecordDefinition? record)
-            || plan.Definitions.OfType<MirTsonRecordPlan>().SingleOrDefault(candidate => candidate.RecordTypeId == root.RecordTypeId) is not MirTsonRecordPlan recordPlan)
-        {
-            return;
-        }
-
-        writer.WriteLine($"private static {RecordTypeName(record.Id)} {TsonDecodeMethodName(plan.Id)}(string text)");
-        writer.WriteLine("{");
-        writer.Indent();
-        string rootPrefix = "$record." + record.Name + "({\n";
-        writer.WriteLine("if (!text.StartsWith(\"const $schema: string = \\\"\", global::System.StringComparison.Ordinal)) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at schema.\");");
-        writer.WriteLine($"int rootPosition = text.IndexOf({CSharpLiteralWriter.Write(rootPrefix)}, global::System.StringComparison.Ordinal);");
-        writer.WriteLine("if (rootPosition < 0) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at record prefix.\");");
-        writer.WriteLine("var reader = new __TsonReader(text.Substring(rootPosition));");
-        writer.WriteLine($"if (!reader.Expect({CSharpLiteralWriter.Write(rootPrefix)})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at record prefix.\");");
-        var valuesByFieldId = new Dictionary<MirRecordFieldId, string>();
-        int temporaryIndex = 0;
-        for (int index = 0; index < recordPlan.Fields.Count; index++)
-        {
-            MirTsonRecordFieldPlan fieldPlan = recordPlan.Fields[index];
-            MirRecordFieldDefinition field = record.Fields.Single(candidate => candidate.Id == fieldPlan.FieldId);
-            writer.WriteLine($"if (!reader.Expect({CSharpLiteralWriter.Write("    \"" + fieldPlan.Name + "\": ")})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at field label {fieldPlan.Name}.\");");
-            string variable = EmitTsonDecoderValue(writer, plan, fieldPlan.ValuePlan, field.Type, records, indentation: 1, ref temporaryIndex);
-            writer.WriteLine($"if (!reader.Expect({CSharpLiteralWriter.Write(",\n")})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at field separator.\");");
-            valuesByFieldId.Add(field.Id, variable);
-        }
-        writer.WriteLine("if (!reader.Expect(\"})\") || !reader.Expect(\";\\n\") || !reader.End) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at suffix.\");");
-        writer.WriteLine($"return new {RecordTypeName(record.Id)}({string.Join(", ", record.Fields.Select(field => valuesByFieldId[field.Id]))});");
-        writer.Unindent();
-        writer.WriteLine("}");
-        writer.WriteLine();
-    }
-
-    private static string EmitTsonDecoderValue(
-        CSharpTextWriter writer,
-        MirTsonEncodingPlan plan,
-        MirTsonValuePlan valuePlan,
-        MirType type,
-        IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records,
-        int indentation,
-        ref int temporaryIndex)
-    {
-        string variable = "field" + temporaryIndex++;
-        switch (valuePlan)
-        {
-            case MirTsonBooleanPlan:
-                writer.WriteLine($"if (!reader.TryBoolean(out bool {variable})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at boolean value.\");");
-                return variable;
-            case MirTsonNumberPlan:
-                writer.WriteLine($"if (!reader.TryNumber(out double {variable})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at number value.\");");
-                return variable;
-            case MirTsonStringPlan:
-                writer.WriteLine($"if (!reader.TryString(out string {variable})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at string value.\");");
-                return variable;
-            case MirTsonArrayPlan arrayPlan when type is MirArrayType arrayType:
-                string elementType = MapType(arrayType.ElementType);
-                string items = "items" + temporaryIndex++;
-                writer.WriteLine($"var {items} = new global::System.Collections.Generic.List<{elementType}>();");
-                writer.WriteLine("reader.SkipWhitespace();");
-                writer.WriteLine("if (!reader.Expect(\"[\")) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at array prefix.\");");
-                writer.WriteLine("while (true)");
-                writer.WriteLine("{");
-                writer.Indent();
-                writer.WriteLine("reader.SkipWhitespace();");
-                writer.WriteLine("if (reader.Expect(\"]\")) break;");
-                string element = EmitTsonDecoderValue(writer, plan, arrayPlan.ElementPlan, arrayType.ElementType, records, indentation + 1, ref temporaryIndex);
-                writer.WriteLine($"{items}.Add({element});");
-                writer.WriteLine("reader.SkipWhitespace();");
-                writer.WriteLine("if (!reader.Expect(\",\")) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at array separator.\");");
-                writer.Unindent();
-                writer.WriteLine("}");
-                writer.WriteLine($"var {variable} = {items}.ToArray();");
-                return variable;
-            case MirTsonRecordValuePlan recordValue when type is MirRecordType recordType
-                && records.TryGetValue(recordValue.RecordTypeId, out MirRecordDefinition? record)
-                && plan.Definitions.OfType<MirTsonRecordPlan>().SingleOrDefault(candidate => candidate.RecordTypeId == recordValue.RecordTypeId) is MirTsonRecordPlan recordPlan:
-                writer.WriteLine($"if (!reader.Expect({CSharpLiteralWriter.Write("$record." + record.Name + "({\n")})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at nested record prefix.\");");
-                var values = new Dictionary<MirRecordFieldId, string>();
-                for (int index = 0; index < recordPlan.Fields.Count; index++)
-                {
-                    MirTsonRecordFieldPlan fieldPlan = recordPlan.Fields[index];
-                    MirRecordFieldDefinition field = record.Fields.Single(candidate => candidate.Id == fieldPlan.FieldId);
-                    string fieldPrefix = new string(' ', 4 * (indentation + 1)) + "\"" + fieldPlan.Name + "\": ";
-                    writer.WriteLine($"if (!reader.Expect({CSharpLiteralWriter.Write(fieldPrefix)})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at nested field label.\");");
-                    values.Add(field.Id, EmitTsonDecoderValue(writer, plan, fieldPlan.ValuePlan, field.Type, records, indentation + 1, ref temporaryIndex));
-                    writer.WriteLine($"if (!reader.Expect({CSharpLiteralWriter.Write(",\n")})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at nested field separator.\");");
-                }
-                writer.WriteLine($"if (!reader.Expect({CSharpLiteralWriter.Write(new string(' ', 4 * indentation) + "})")})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at nested record suffix.\");");
-                writer.WriteLine($"var {variable} = new {RecordTypeName(record.Id)}({string.Join(", ", record.Fields.Select(field => values[field.Id]))});");
-                return variable;
-            default:
-                throw new InvalidOperationException("Transport decoder received an unsupported nested TSON value plan.");
-        }
     }
 
     private static void EmitTsonWriter(CSharpTextWriter writer, bool needsArrayWriter)

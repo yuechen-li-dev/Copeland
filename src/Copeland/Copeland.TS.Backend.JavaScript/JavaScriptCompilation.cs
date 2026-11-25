@@ -16,6 +16,7 @@ public sealed class JavaScriptCompilation(
     internal string? NodeArraySnapshotHelper { get; init; }
     internal IReadOnlySet<string> NodeArraySnapshotFunctions { get; init; } = new HashSet<string>(StringComparer.Ordinal);
     internal JavaScriptNodeProjectionBindings? SharedNodeProjections { get; init; }
+    internal IReadOnlyList<Copeland.TS.Mir.MirTsonTransportExpression> NugetCalls { get; init; } = [];
 
     public bool Success => SourceText is not null && Diagnostics.Count == 0;
 }

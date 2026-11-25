@@ -1,5 +1,7 @@
 # CTS-NPM-M1 npm import boundary
 
+See the [automatic package interop milestones](copeland-package-interop-milestones.md) for generated guests and build integration.
+
 Copeland consumes an already-resolved, statically described, materialized npm dependency graph. It does not acquire packages, choose versions, write lockfiles, run lifecycle scripts, or inspect a package manager installation.
 
 TSPack owns acquisition, installation, version selection, lockfiles, lifecycle scripts, workspaces, testing, templating, publishing, and advanced project policy.

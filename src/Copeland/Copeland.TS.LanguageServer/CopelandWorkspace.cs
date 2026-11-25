@@ -6,6 +6,7 @@ using Copeland.TS.Semantics;
 using Copeland.TS.Semantics.Bound;
 using Copeland.TS.Syntax;
 using Copeland.TS.MSBuild;
+using Copeland.TS.Manifest;
 using Copeland.TS.MachinaSource;
 using Copeland.TS.Mir.Machina;
 
@@ -35,6 +36,18 @@ internal sealed class CopelandWorkspace
     private DateTime _manifestContextLastWriteUtc;
     private string? _manifestContextDirectory;
     private DateTime _manifestContextDirectoryLastWriteUtc;
+    private string? _manifestContextDescriptor;
+
+    public IReadOnlyList<string> ReloadFiles()
+    {
+        if (!TryLoadManifestProjectContext())
+        {
+            LoadOwnership();
+            LoadProjectModel();
+        }
+        RebuildSnapshot();
+        return _documents.Keys.ToArray();
+    }
 
     public void Initialize(JsonElement parameters)
     {
@@ -88,8 +101,12 @@ internal sealed class CopelandWorkspace
         ReloadIfOwnershipChanged();
         if (!TryGetOwnedDocument(uri, out DocumentSnapshot? document, out string? owner)) return [];
         if (!string.Equals(owner, "tscl", StringComparison.Ordinal)) return [];
-        if (_loadError is not null) return [DiagnosticObject(_loadError, "CTS-LSP-OWNERSHIP", 1, document!.Text, 0, 1)];
+        if (_manifestPath is not null && PathsEqual(_manifestPath, document!.Path))
+        {
+            return RootManifestDiagnostics(document);
+        }
         if (IsWorkspaceManifest(document!.Path)) return WorkspaceManifestDiagnostics(document.Text);
+        if (_loadError is not null) return [DiagnosticObject(_loadError, "CTS-LSP-OWNERSHIP", 1, document.Text, 0, 1)];
         IReadOnlyList<Diagnostic> projectDiagnostics = Compile(document).Diagnostics;
         SyntaxTree syntax = SyntaxTree.Parse(document.Text, document.Path);
         IReadOnlyList<Diagnostic> syntaxDiagnostics = syntax.Diagnostics;
@@ -101,16 +118,52 @@ internal sealed class CopelandWorkspace
             .Where(diagnostic => diagnostic.SourcePath is null || PathsEqual(diagnostic.SourcePath, document.Path))
             .OrderBy(diagnostic => diagnostic.Position)
             .ThenBy(diagnostic => diagnostic.Id, StringComparer.Ordinal)
-            .Select(diagnostic => DiagnosticObject(diagnostic.Message, diagnostic.Id, 1, document.Text, diagnostic.Position, diagnostic.Length))
+            .Select(diagnostic => SourceDiagnostic(diagnostic, document, syntax))
             .Concat(syntax.Warnings.Select(warning => DiagnosticObject(warning.Message, warning.Id, 2,
                 document.Text, warning.Position, warning.Length)))
             .ToArray();
+    }
+
+    private object SourceDiagnostic(Diagnostic diagnostic, DocumentSnapshot document, SyntaxTree syntax)
+    {
+        if (diagnostic.Id == "COPE-MODULE-0002" && _rootPath is not null
+            && File.Exists(Path.Combine(_rootPath, "nuget-worker.json")))
+        {
+            SyntaxToken? token = syntax.Tokens.FirstOrDefault(item => item.Position == diagnostic.Position);
+            if (token?.Value is string specifier && specifier.StartsWith(".", StringComparison.Ordinal))
+            {
+                string generated = Path.Combine(_rootPath, "src", "generated", "Nuget.ts");
+                string import = Path.GetFullPath(specifier, Path.GetDirectoryName(document.Path)!);
+                if (!File.Exists(generated) && (PathsEqual(import, generated) || PathsEqual(import + ".ts", generated)))
+                {
+                    return DiagnosticObject("Generate NuGet bindings with Copeland: Generate NuGet Bindings or tscl nuget generate .",
+                        "CTS-LSP-NUGET-BINDINGS", 3, document.Text, diagnostic.Position, diagnostic.Length);
+                }
+            }
+        }
+        return DiagnosticObject(diagnostic.Message, diagnostic.Id, 1, document.Text, diagnostic.Position, diagnostic.Length);
+    }
+
+    private object[] RootManifestDiagnostics(DocumentSnapshot document)
+    {
+        SyntaxTree tree = SyntaxTree.Parse(document.Text, document.Path);
+        IReadOnlyList<Diagnostic> diagnostics = tree.Diagnostics;
+        if (diagnostics.Count == 0)
+        {
+            diagnostics = ManifestBinder.Bind(tree, _rootPath!, document.Path, ManifestBindingContext.RootProject).Diagnostics;
+        }
+        return diagnostics.Select(diagnostic => DiagnosticObject(diagnostic.Message, diagnostic.Id, 1,
+            document.Text, diagnostic.Position, diagnostic.Length)).ToArray();
     }
 
     public object? Hover(string uri, JsonElement position)
     {
         ReloadIfOwnershipChanged();
         if (!TryGetCopelandDocument(uri, out DocumentSnapshot? document)) return null;
+        if (_manifestPath is not null && PathsEqual(document!.Path, _manifestPath))
+        {
+            return new { contents = new { kind = "markdown", value = "manifest.tsx declares the TSPack package graph and build targets." } };
+        }
         if (IsWorkspaceManifest(document!.Path)) return ManifestHover(document.Text, ToOffset(document.Text, position));
         CopelandCompilation compilation = Compile(document);
         int offset = ToOffset(document.Text, position);
@@ -477,8 +530,9 @@ internal sealed class CopelandWorkspace
             bool manifestChanged = File.Exists(_manifestPath) &&
                 File.GetLastWriteTimeUtc(_manifestPath) != _manifestLastWriteUtc;
             bool contextChanged = _manifestContextDirectory is not null &&
-                Directory.Exists(_manifestContextDirectory) &&
                 Directory.GetLastWriteTimeUtc(_manifestContextDirectory) != _manifestContextDirectoryLastWriteUtc;
+            contextChanged |= _manifestContextDescriptor is not null &&
+                File.GetLastWriteTimeUtc(_manifestContextDescriptor) != _manifestContextLastWriteUtc;
             if (!manifestChanged && !contextChanged)
             {
                 return;
@@ -529,6 +583,7 @@ internal sealed class CopelandWorkspace
     private bool TryLoadManifestProjectContext()
     {
         _manifestProjectContext = null;
+        _manifestContextDescriptor = null;
         _manifestPath = _rootPath is null
             ? null
             : CopelandProjectContextResolver.DiscoverManifest(_rootPath);
@@ -537,25 +592,21 @@ internal sealed class CopelandWorkspace
             return false;
         }
 
-        _owners.Clear();
+        LoadOwnership();
         _loadError = null;
+        _manifestLastWriteUtc = File.GetLastWriteTimeUtc(_manifestPath);
         try
         {
             _manifestContextDirectory = Path.Combine(
                 Path.GetDirectoryName(_manifestPath)!,
                 ".tspack",
                 "build-manifests");
-            _manifestContextDirectoryLastWriteUtc = Directory.Exists(_manifestContextDirectory)
-                ? Directory.GetLastWriteTimeUtc(_manifestContextDirectory)
-                : DateTime.MinValue;
-            CopelandProjectContext context = Directory.Exists(_manifestContextDirectory)
-                ? CopelandProjectContextResolver.Load(_manifestPath)
-                : CopelandProjectContext.LoadStandalone(Path.GetDirectoryName(_manifestPath)!);
+            _manifestContextDirectoryLastWriteUtc = Directory.GetLastWriteTimeUtc(_manifestContextDirectory);
+            CopelandProjectContext context = CopelandProjectContextResolver.LoadForEditor(Path.GetDirectoryName(_manifestPath)!);
             _manifestProjectContext = context;
-            _manifestLastWriteUtc = File.GetLastWriteTimeUtc(_manifestPath);
-            _manifestContextLastWriteUtc = File.Exists(context.DescriptorPath)
-                ? File.GetLastWriteTimeUtc(context.DescriptorPath)
-                : File.GetLastWriteTimeUtc(Path.Combine(Path.GetDirectoryName(_manifestPath)!, "tsconfig.tsx"));
+            _manifestContextDescriptor = File.Exists(context.DescriptorPath) ? context.DescriptorPath : null;
+            _manifestContextLastWriteUtc = _manifestContextDescriptor is null
+                ? DateTime.MinValue : File.GetLastWriteTimeUtc(_manifestContextDescriptor);
             _projectTypes = context.Options.ProjectTypes;
             foreach (CopelandProjectSource source in context.Sources)
             {
@@ -567,6 +618,11 @@ internal sealed class CopelandWorkspace
         catch (CopelandProjectContextException exception)
         {
             _loadError = exception.Code + ": " + exception.Message;
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or JsonException or UnauthorizedAccessException)
+        {
+            _loadError = "CTS-LSP-PROJECT: " + exception.Message;
             return true;
         }
     }

@@ -29,7 +29,7 @@ public sealed class NpmImportEmissionTests
     }
 
     [Fact]
-    public void Emits_a_native_named_esm_import_for_npm_calls()
+    public void Emits_a_native_esm_loader_for_fallible_npm_calls()
     {
         CopelandCompilation compilation = CopelandCompiler.CompileToMir(Source, new CopelandCompilationOptions
         {
@@ -39,8 +39,8 @@ public sealed class NpmImportEmissionTests
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
         JavaScriptCompilation emitted = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
         Assert.Empty(emitted.Diagnostics);
-        Assert.Contains("import { delayedTransform } from \"@fixture/transform\";", emitted.SourceText, StringComparison.Ordinal);
-        Assert.Contains("Promise.resolve(delayedTransform(", emitted.SourceText, StringComparison.Ordinal);
+        Assert.Contains("const delayedTransform = () => import(\"@fixture/transform\");", emitted.SourceText, StringComparison.Ordinal);
+        Assert.Contains("__cope_npm_call(delayedTransform, \"delayedTransform\"", emitted.SourceText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -61,12 +61,12 @@ public sealed class NpmImportEmissionTests
 
         JavaScriptCompilation emitted = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
         Assert.Empty(emitted.Diagnostics);
-        Assert.Contains("import { delayedTransform as transformLater } from \"@fixture/transform\";", emitted.SourceText, StringComparison.Ordinal);
-        Assert.Contains("transformLater(", emitted.SourceText, StringComparison.Ordinal);
+        Assert.Contains("const transformLater = () => import(\"@fixture/transform\");", emitted.SourceText, StringComparison.Ordinal);
+        Assert.Contains("__cope_npm_call(transformLater, \"delayedTransform\"", emitted.SourceText, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Deduplicates_repeated_identical_named_imports()
+    public void Deduplicates_repeated_fallible_package_loaders()
     {
         CopelandCompilation compilation = CopelandCompiler.CompileToMir(RepeatedImportSource, new CopelandCompilationOptions
         {
@@ -83,7 +83,7 @@ public sealed class NpmImportEmissionTests
 
         JavaScriptCompilation emitted = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
         Assert.Empty(emitted.Diagnostics);
-        Assert.Equal(1, emitted.SourceText!.Split("import { delayedTransform } from \"@fixture/transform\";", StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, emitted.SourceText!.Split("const delayedTransform = () => import(\"@fixture/transform\");", StringSplitOptions.None).Length - 1);
     }
 
     [Fact]
@@ -100,7 +100,6 @@ public sealed class NpmImportEmissionTests
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
         JavaScriptCompilation emitted = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
         Assert.Empty(emitted.Diagnostics);
-        Assert.Contains("sum(frame.__parameter_left, frame.__parameter_right)", emitted.SourceText, StringComparison.Ordinal);
 
         string root = Path.Combine(Path.GetTempPath(), "copeland-npm-js-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(root, "node_modules", "@fixture", "math"));
@@ -153,8 +152,6 @@ public sealed class NpmImportEmissionTests
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
         JavaScriptCompilation emitted = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
         Assert.Empty(emitted.Diagnostics);
-        Assert.Contains("npmMirrorArray(frame.__parameter_values, frame.__parameter_increment)", emitted.SourceText, StringComparison.Ordinal);
-        Assert.Contains("npmMirrorRecord(frame.__parameter_input, frame.__parameter_increment)", emitted.SourceText, StringComparison.Ordinal);
 
         string root = Path.Combine(Path.GetTempPath(), "copeland-npm-js-interop-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(root, "node_modules", "@fixture", "interop"));
@@ -164,7 +161,7 @@ public sealed class NpmImportEmissionTests
             await File.WriteAllTextAsync(Path.Combine(root, "node_modules", "@fixture", "interop", "index.js"), """
                 export function zero() { console.log("zero"); return true; }
                 export function mirrorArray(values, increment) { console.log("array:" + values.join(",") + ":" + increment); return values.map(value => value + increment); }
-                export function mirrorRecord(input, increment) { const [value, label] = Object.getOwnPropertySymbols(input).map(symbol => input[symbol]).filter(value => typeof value === "number" || typeof value === "string"); console.log("record:" + label + ":" + value + ":" + increment); return { output: label + "-" + (value + increment), passed: true }; }
+                export function mirrorRecord({ value, label }, increment) { console.log("record:" + label + ":" + value + ":" + increment); return { output: label + "-" + (value + increment), passed: true }; }
                 export async function delayed(value, delay) { await new Promise(resolve => setTimeout(resolve, delay)); console.log("delayed:" + value); return [String(value)]; }
                 """, new UTF8Encoding(false));
             await File.WriteAllTextAsync(Path.Combine(root, "program.mjs"), emitted.SourceText + """

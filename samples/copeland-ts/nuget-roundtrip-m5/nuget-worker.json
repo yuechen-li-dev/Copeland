@@ -1,0 +1,39 @@
+{
+    "schemaVersion": 3,
+    "packages": [{ "id": "Newtonsoft.Json", "version": "13.0.4" }],
+    "records": {
+        "Address": {
+            "city": "string",
+            "unit": "Option<string>",
+            "floor": "Option<number>"
+        },
+        "Shipment": {
+            "name": "string",
+            "address": "Address",
+            "backup": "Option<Address>",
+            "active": "Option<boolean>",
+            "stops": "Address[]",
+            "tags": "Option<string>[]"
+        }
+    },
+    "operations": [
+        {
+            "name": "json:serialize-shipment",
+            "package": "Newtonsoft.Json",
+            "type": "Newtonsoft.Json.JsonConvert",
+            "method": "SerializeObject",
+            "parameters": ["object"],
+            "wireParameters": ["Shipment"],
+            "export": "SerializeShipment"
+        },
+        {
+            "name": "json:deserialize-shipment",
+            "package": "Newtonsoft.Json",
+            "type": "Newtonsoft.Json.JsonConvert",
+            "method": "DeserializeObject",
+            "parameters": ["string"],
+            "typeArguments": ["Shipment"],
+            "export": "DeserializeShipment"
+        }
+    ]
+}

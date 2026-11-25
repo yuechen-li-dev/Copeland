@@ -8,9 +8,12 @@ public sealed class Lexer
     private readonly DiagnosticBag _diagnostics = new();
     private int _position;
 
-    public Lexer(string text)
+    public Lexer(string text) : this(text, 0) { }
+
+    internal Lexer(string text, int position)
     {
         _text = text;
+        _position = position;
     }
 
     public IReadOnlyList<Diagnostic> Diagnostics => _diagnostics.Diagnostics;

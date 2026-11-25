@@ -414,6 +414,48 @@ public sealed class ContributionStreamTests
     }
 
     [Fact]
+    public async Task Node_facade_materializes_text_documents_and_evaluates_text_slots_once()
+    {
+        CopelandProjectCompilation compilation = CopelandProjectCompiler.CompileToMir(
+        [
+            new CopelandProjectSource("Main.tsx", "Main.tsx", """
+                export function Page(next: () => string): Document {
+                    return <Document>
+                        <Heading level="2">Hello, {next()}</Heading>
+                        <Paragraph>Use the author's **semantics** and [links](/guide/).</Paragraph>
+                        <CodeBlock language="tsx">
+                export function Example() {
+                <Box>{example}</Box>
+                }
+                        </CodeBlock>
+                    </Document>;
+                }
+                """),
+        ], new CopelandCompilationOptions { ProjectTypes = CopelandProjectTypeSet.TextDocuments });
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptProjectCompilation emitted = JavaScriptProjectEmitter.Emit(compilation.MirProjectGraph!,
+            new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Production, EmitNodeInterop = true });
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        Assert.Contains("ReadonlyArray<Readonly<", emitted.Files["Main.node.d.ts"], StringComparison.Ordinal);
+        var files = new Dictionary<string, string>(emitted.Files) { ["package.json"] = "{\"type\":\"module\"}" };
+        Assert.Equal("ok", await RunNode("""
+            import assert from 'node:assert/strict';
+            import { Page } from './Main.node.js';
+            let calls = 0;
+            const parts = Page(() => { calls++; return 'Copeland'; });
+            assert.equal(calls, 1);
+            assert.ok(Object.isFrozen(parts));
+            assert.ok(parts.every(Object.isFrozen));
+            assert.ok(parts.some(part => part.tag === 'Open' && part.payload.node.tag === 'Heading' && part.payload.node.payload.level === '2'));
+            assert.ok(parts.some(part => part.tag === 'Open' && part.payload.node.tag === 'Link' && part.payload.node.payload.target === '/guide/'));
+            assert.ok(parts.some(part => part.tag === 'Run' && part.payload.text.includes("author's")));
+            assert.ok(parts.some(part => part.tag === 'Run' && part.payload.text.replaceAll('\r\n', '\n') === 'export function Example() {\n<Box>{example}</Box>\n}'));
+            assert.ok(parts.some(part => part.tag === 'Run' && part.payload.text === 'Copeland'));
+            console.log('ok');
+            """, files));
+    }
+
+    [Fact]
     public async Task Node_array_snapshot_fusion_preserves_raw_freeze_and_boundary_isolation()
     {
         CopelandProjectCompilation compilation = CopelandProjectCompiler.CompileToMir(

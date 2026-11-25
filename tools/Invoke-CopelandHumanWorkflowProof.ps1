@@ -17,6 +17,7 @@ $projectRoot = Join-Path $proofRoot "CopelandHello"
 $userDataRoot = Join-Path $proofRoot "vscode-user-data"
 $extensionsRoot = Join-Path $proofRoot "vscode-extensions"
 $nugetRoot = Join-Path $proofRoot "nuget-packages"
+$nugetConfig = Join-Path $proofRoot "NuGet.Config"
 $vsix = Join-Path $releaseRoot "copeland-ts-0.1.0-preview.1.vsix"
 
 function Assert-LastExitCode {
@@ -36,7 +37,25 @@ Copy-Item -LiteralPath (Join-Path $sampleRoot "CopelandHello/tsconfig.tsx") -Des
 Copy-Item -LiteralPath (Join-Path $sampleRoot "CopelandHello/Program.cs") -Destination $projectRoot
 Copy-Item -Recurse -LiteralPath (Join-Path $sampleRoot "CopelandHello/src") -Destination $projectRoot
 Copy-Item -Recurse -LiteralPath (Join-Path $sampleRoot "CopelandHello/contracts") -Destination $projectRoot
-Copy-Item -Recurse -LiteralPath (Join-Path $sampleRoot "CopelandHello/scripts") -Destination $projectRoot
+
+$localFeed = [System.Security.SecurityElement]::Escape($releaseRoot)
+@"
+<configuration>
+  <packageSources>
+    <clear />
+    <add key="preview" value="$localFeed" />
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+  </packageSources>
+  <packageSourceMapping>
+    <packageSource key="preview">
+      <package pattern="Copeland.TS.*" />
+    </packageSource>
+    <packageSource key="nuget.org">
+      <package pattern="*" />
+    </packageSource>
+  </packageSourceMapping>
+</configuration>
+"@ | Set-Content -LiteralPath $nugetConfig
 
 $env:NUGET_PACKAGES = $nugetRoot
 Push-Location $projectRoot
@@ -45,11 +64,11 @@ try {
     Assert-LastExitCode "dotnet new tool-manifest"
     dotnet tool install Copeland.TS.Tool `
         --version 0.1.0-preview.1 `
-        --add-source $releaseRoot
+        --configfile $nugetConfig
     Assert-LastExitCode "dotnet tool install"
     npm ci
     Assert-LastExitCode "npm ci"
-    dotnet restore --source $releaseRoot
+    dotnet restore --configfile $nugetConfig
     Assert-LastExitCode "dotnet restore"
     dotnet build --no-restore
     Assert-LastExitCode "dotnet build"
