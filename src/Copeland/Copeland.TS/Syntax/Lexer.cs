@@ -76,105 +76,107 @@ public sealed class Lexer
             switch (current)
             {
                 case '(':
-                    return SingleCharToken(SyntaxKind.OpenParenToken);
+                    return FixedToken(SyntaxKind.OpenParenToken, "(");
                 case ')':
-                    return SingleCharToken(SyntaxKind.CloseParenToken);
+                    return FixedToken(SyntaxKind.CloseParenToken, ")");
                 case '{':
-                    return SingleCharToken(SyntaxKind.OpenBraceToken);
+                    return FixedToken(SyntaxKind.OpenBraceToken, "{");
                 case '}':
-                    return SingleCharToken(SyntaxKind.CloseBraceToken);
+                    return FixedToken(SyntaxKind.CloseBraceToken, "}");
                 case '[':
-                    return SingleCharToken(SyntaxKind.OpenBracketToken);
+                    return FixedToken(SyntaxKind.OpenBracketToken, "[");
                 case ']':
-                    return SingleCharToken(SyntaxKind.CloseBracketToken);
+                    return FixedToken(SyntaxKind.CloseBracketToken, "]");
                 case ',':
-                    return SingleCharToken(SyntaxKind.CommaToken);
+                    return FixedToken(SyntaxKind.CommaToken, ",");
                 case '.':
                     if (Peek(1) == '.' && Peek(2) == '.')
                     {
-                        return TripleCharToken(SyntaxKind.EllipsisToken);
+                        return FixedToken(SyntaxKind.EllipsisToken, "...");
                     }
-                    return SingleCharToken(SyntaxKind.DotToken);
+                    return FixedToken(SyntaxKind.DotToken, ".");
                 case ':':
-                    return SingleCharToken(SyntaxKind.ColonToken);
+                    return FixedToken(SyntaxKind.ColonToken, ":");
                 case ';':
-                    return SingleCharToken(SyntaxKind.SemicolonToken);
+                    return FixedToken(SyntaxKind.SemicolonToken, ";");
                 case '?':
-                    return SingleCharToken(SyntaxKind.QuestionToken);
+                    return FixedToken(SyntaxKind.QuestionToken, "?");
                 case '@':
-                    return SingleCharToken(SyntaxKind.AtToken);
+                    return FixedToken(SyntaxKind.AtToken, "@");
                 case '+':
-                    if (Peek(1) == '=') return DoubleCharToken(SyntaxKind.PlusEqualsToken);
-                    if (Peek(1) == '+') return DoubleCharToken(SyntaxKind.PlusPlusToken);
-                    return SingleCharToken(SyntaxKind.PlusToken);
+                    if (Peek(1) == '=') return FixedToken(SyntaxKind.PlusEqualsToken, "+=");
+                    if (Peek(1) == '+') return FixedToken(SyntaxKind.PlusPlusToken, "++");
+                    return FixedToken(SyntaxKind.PlusToken, "+");
                 case '-':
-                    if (Peek(1) == '=') return DoubleCharToken(SyntaxKind.MinusEqualsToken);
-                    if (Peek(1) == '-') return DoubleCharToken(SyntaxKind.MinusMinusToken);
+                    if (Peek(1) == '=') return FixedToken(SyntaxKind.MinusEqualsToken, "-=");
+                    if (Peek(1) == '-') return FixedToken(SyntaxKind.MinusMinusToken, "--");
                     if (Peek(1) == '>')
                     {
-                        return DoubleCharToken(SyntaxKind.ArrowToken);
+                        return FixedToken(SyntaxKind.ArrowToken, "->");
                     }
-                    return SingleCharToken(SyntaxKind.MinusToken);
+                    return FixedToken(SyntaxKind.MinusToken, "-");
                 case '*':
-                    if (Peek(1) == '=') return DoubleCharToken(SyntaxKind.StarEqualsToken);
-                    return SingleCharToken(SyntaxKind.StarToken);
+                    if (Peek(1) == '=') return FixedToken(SyntaxKind.StarEqualsToken, "*=");
+                    return FixedToken(SyntaxKind.StarToken, "*");
                 case '%':
-                    if (Peek(1) == '=') return DoubleCharToken(SyntaxKind.PercentEqualsToken);
-                    return SingleCharToken(SyntaxKind.PercentToken);
+                    if (Peek(1) == '=') return FixedToken(SyntaxKind.PercentEqualsToken, "%=");
+                    return FixedToken(SyntaxKind.PercentToken, "%");
                 case '/':
-                    if (Peek(1) == '=') return DoubleCharToken(SyntaxKind.SlashEqualsToken);
-                    return SingleCharToken(SyntaxKind.SlashToken);
+                    if (Peek(1) == '=') return FixedToken(SyntaxKind.SlashEqualsToken, "/=");
+                    return FixedToken(SyntaxKind.SlashToken, "/");
                 case '<':
-                    return MatchOrSingle('=', SyntaxKind.LessOrEqualsToken, SyntaxKind.LessToken);
+                    if (Peek(1) == '=') return FixedToken(SyntaxKind.LessOrEqualsToken, "<=");
+                    return FixedToken(SyntaxKind.LessToken, "<");
                 case '>':
-                    return MatchOrSingle('=', SyntaxKind.GreaterOrEqualsToken, SyntaxKind.GreaterToken);
+                    if (Peek(1) == '=') return FixedToken(SyntaxKind.GreaterOrEqualsToken, ">=");
+                    return FixedToken(SyntaxKind.GreaterToken, ">");
                 case '^':
-                    return SingleCharToken(SyntaxKind.CaretToken);
+                    return FixedToken(SyntaxKind.CaretToken, "^");
                 case '&':
                     if (Peek(1) == '&')
                     {
-                        return DoubleCharToken(SyntaxKind.AmpersandAmpersandToken);
+                        return FixedToken(SyntaxKind.AmpersandAmpersandToken, "&&");
                     }
-                    return SingleCharToken(SyntaxKind.AmpersandToken);
+                    return FixedToken(SyntaxKind.AmpersandToken, "&");
                 case '|':
                     if (Peek(1) == '>')
                     {
-                        return DoubleCharToken(SyntaxKind.PipeGreaterToken);
+                        return FixedToken(SyntaxKind.PipeGreaterToken, "|>");
                     }
                     if (Peek(1) == '|')
                     {
-                        return DoubleCharToken(SyntaxKind.PipePipeToken);
+                        return FixedToken(SyntaxKind.PipePipeToken, "||");
                     }
-                    return SingleCharToken(SyntaxKind.PipeToken);
+                    return FixedToken(SyntaxKind.PipeToken, "|");
                 case '=':
                     if (Peek(1) == '=' && Peek(2) == '=')
                     {
-                        return TripleCharToken(SyntaxKind.EqualsEqualsEqualsToken);
+                        return FixedToken(SyntaxKind.EqualsEqualsEqualsToken, "===");
                     }
 
                     if (Peek(1) == '=')
                     {
-                        return DoubleCharToken(SyntaxKind.EqualsEqualsToken);
+                        return FixedToken(SyntaxKind.EqualsEqualsToken, "==");
                     }
 
                     if (Peek(1) == '>')
                     {
-                        return DoubleCharToken(SyntaxKind.ArrowToken);
+                        return FixedToken(SyntaxKind.ArrowToken, "=>");
                     }
 
-                    return SingleCharToken(SyntaxKind.EqualsToken);
+                    return FixedToken(SyntaxKind.EqualsToken, "=");
                 case '!':
                     if (Peek(1) == '=' && Peek(2) == '=')
                     {
-                        return TripleCharToken(SyntaxKind.BangEqualsEqualsToken);
+                        return FixedToken(SyntaxKind.BangEqualsEqualsToken, "!==");
                     }
 
                     if (Peek(1) == '=')
                     {
-                        return DoubleCharToken(SyntaxKind.BangEqualsToken);
+                        return FixedToken(SyntaxKind.BangEqualsToken, "!=");
                     }
 
-                    return SingleCharToken(SyntaxKind.BangToken);
+                    return FixedToken(SyntaxKind.BangToken, "!");
             }
 
             _position++;
@@ -425,35 +427,11 @@ public sealed class Lexer
         return false;
     }
 
-    private SyntaxToken MatchOrSingle(char expected, SyntaxKind matchKind, SyntaxKind singleKind)
+    private SyntaxToken FixedToken(SyntaxKind kind, string text)
     {
-        if (Peek(1) == expected)
-        {
-            return DoubleCharToken(matchKind);
-        }
-
-        return SingleCharToken(singleKind);
-    }
-
-    private SyntaxToken SingleCharToken(SyntaxKind kind)
-    {
-        var start = _position;
-        _position++;
-        return new SyntaxToken(kind, start, _text.Substring(start, 1), null);
-    }
-
-    private SyntaxToken DoubleCharToken(SyntaxKind kind)
-    {
-        var start = _position;
-        _position += 2;
-        return new SyntaxToken(kind, start, _text.Substring(start, 2), null);
-    }
-
-    private SyntaxToken TripleCharToken(SyntaxKind kind)
-    {
-        var start = _position;
-        _position += 3;
-        return new SyntaxToken(kind, start, _text.Substring(start, 3), null);
+        int start = _position;
+        _position += text.Length;
+        return new SyntaxToken(kind, start, text, null);
     }
 
     private char Current => Peek(0);

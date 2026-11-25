@@ -48,8 +48,9 @@ public sealed class SyntaxTree
         var root = parser.ParseCompilationUnit();
         var diagnostics = parser.Diagnostics.Concat(profileDiagnostics.Select(diagnostic => new Diagnostic(
             diagnostic.Code, diagnostic.Message, diagnostic.Position, diagnostic.Length))).ToArray();
-        var tokens = CollectTokens(root).ToArray();
-        return new SyntaxTree(text, root, tokens, diagnostics);
+        var tokens = new List<SyntaxToken>();
+        CollectTokens(root, tokens);
+        return new SyntaxTree(text, root, tokens.ToArray(), diagnostics);
     }
 
     public static SyntaxTree ParseTypeSchema(string text, string path)
@@ -99,21 +100,17 @@ public sealed class SyntaxTree
         return new SyntaxTree(text, root, tokens, lexer.Diagnostics.ToArray());
     }
 
-    private static IEnumerable<SyntaxToken> CollectTokens(SyntaxNode node)
+    private static void CollectTokens(SyntaxNode node, List<SyntaxToken> tokens)
     {
         foreach (var child in node.GetChildren())
         {
             switch (child)
             {
                 case SyntaxToken token:
-                    yield return token;
+                    tokens.Add(token);
                     break;
                 case SyntaxNode childNode:
-                    foreach (var descendant in CollectTokens(childNode))
-                    {
-                        yield return descendant;
-                    }
-
+                    CollectTokens(childNode, tokens);
                     break;
             }
         }

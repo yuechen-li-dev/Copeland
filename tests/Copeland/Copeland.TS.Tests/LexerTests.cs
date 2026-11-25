@@ -81,6 +81,20 @@ public sealed class LexerTests
     }
 
     [Fact]
+    public void Fixed_Tokens_Preserve_Their_Source_Spelling_And_Offsets()
+    {
+        var tree = SyntaxTree.ParseTokens("-> => & ...");
+
+        Assert.Collection(tree.Tokens,
+            token => Assert.Equal(new SyntaxToken(SyntaxKind.ArrowToken, 0, "->", null), token),
+            token => Assert.Equal(new SyntaxToken(SyntaxKind.ArrowToken, 3, "=>", null), token),
+            token => Assert.Equal(new SyntaxToken(SyntaxKind.AmpersandToken, 6, "&", null), token),
+            token => Assert.Equal(new SyntaxToken(SyntaxKind.EllipsisToken, 8, "...", null), token),
+            token => Assert.Equal(new SyntaxToken(SyntaxKind.EndOfFileToken, 11, "", null), token));
+        Assert.Empty(tree.Diagnostics);
+    }
+
+    [Fact]
     public void Lexes_Number_And_String_Values()
     {
         var tree = SyntaxTree.ParseTokens("42 \"abc\" 'def'");
