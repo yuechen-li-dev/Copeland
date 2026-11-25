@@ -95,14 +95,19 @@ public sealed class CopelandProjectContext
             contract.Materialized = Directory.Exists(binding.MaterializationPath);
         }
 
-        IReadOnlyList<CompilerTargetSource> selectedSources = SelectCompilerOwnedSources(target, fullDescriptorPath);
+        IReadOnlyList<CompilerTargetSource> selectedSources = SelectCompilerOwnedSources(target, out var ownership);
+        MirPresentationAdapter? adapter = CreateWorkspaceAdapter(ownership?.PresentationAdapter);
+        string? profile = string.IsNullOrWhiteSpace(payload.TsXmlProfile) && adapter is not null
+            ? ProjectTypesProfile(ownership?.ProjectTypes)
+            : payload.TsXmlProfile;
         return Create(
             fullDescriptorPath,
             new CopelandProjectContextDescriptor
             {
                 ProjectRoot = target.ProjectRoot,
                 JavaScriptRuntime = target.Runtime.Name,
-                TsXmlProfile = payload.TsXmlProfile,
+                TsXmlProfile = profile,
+                PresentationAdapter = adapter,
                 Sources = selectedSources.Select(source => new CopelandProjectContextSource
                 {
                     LogicalPath = source.LogicalPath,
@@ -225,6 +230,7 @@ public sealed class CopelandProjectContext
             throw new CopelandProjectContextException(diagnostic.Code, diagnostic.Message);
         }
 
+        MirPresentationAdapter? adapter = CreateWorkspaceAdapter(ownership.PresentationAdapter);
         var contracts = new List<CopelandProjectContextNpmContract>();
         foreach ((string source, string packageName) in StandalonePackageRequirements(manifestResult.Manifest!))
         {
@@ -248,7 +254,16 @@ public sealed class CopelandProjectContext
                 Version = ReadLocalPackageVersion(materializationPath),
                 MaterializationPath = materializationPath,
                 Materialized = true,
+                Exports = source == "npm" && adapter?.ElementModule == packageName
+                    ? [new() { Name = adapter.ElementExport, Result = "View" }]
+                    : [],
             });
+        }
+        if (adapter is not null && !contracts.Any(contract =>
+            contract.PackageName == adapter.ElementModule && contract.Exports.Count != 0))
+        {
+            throw new CopelandProjectContextException("COPE-VIEW-0003",
+                $"The presentation adapter factory '{adapter.ElementModule}' must be a declared npm dependency in manifest.tsx.");
         }
 
         return Create(
@@ -258,6 +273,7 @@ public sealed class CopelandProjectContext
                 ProjectRoot = fullProjectRoot,
                 JavaScriptRuntime = target?.RuntimeId ?? "node",
                 TsXmlProfile = ProjectTypesProfile(ownership.ProjectTypes),
+                PresentationAdapter = adapter,
                 Sources = ownership.Sources.Select(source => new CopelandProjectContextSource
                 {
                     LogicalPath = Path.GetRelativePath(fullProjectRoot, source.Path).Replace('\\', '/'),
@@ -266,6 +282,10 @@ public sealed class CopelandProjectContext
                 NpmContracts = contracts,
             }, target);
     }
+
+    private static MirPresentationAdapter? CreateWorkspaceAdapter(CopelandWorkspacePresentationAdapter? adapter)
+        => adapter is null ? null : new MirPresentationAdapter(
+            adapter.Identity, adapter.ElementModule, adapter.ElementExport, MirPresentationChildren.Array, "class", "for");
 
     private static IReadOnlyList<(string Source, string Package)> StandalonePackageRequirements(
         CopelandManifest manifest)
@@ -353,8 +373,9 @@ public sealed class CopelandProjectContext
 
     private static IReadOnlyList<CompilerTargetSource> SelectCompilerOwnedSources(
         CompilerTargetDescriptor target,
-        string descriptorPath)
+        out CopelandWorkspaceOwnershipResult? ownership)
     {
+        ownership = null;
         if (string.IsNullOrWhiteSpace(target.CompilerConfig.Path))
         {
             return target.Sources;
@@ -369,7 +390,7 @@ public sealed class CopelandProjectContext
                 $"Copeland compiler config '{configPath}' does not exist.");
         }
 
-        CopelandWorkspaceOwnershipResult ownership = CopelandWorkspaceOwnership.Resolve(configPath);
+        ownership = CopelandWorkspaceOwnership.Resolve(configPath);
         if (!ownership.Success)
         {
             CopelandWorkspaceOwnershipDiagnostic diagnostic = ownership.Diagnostics[0];

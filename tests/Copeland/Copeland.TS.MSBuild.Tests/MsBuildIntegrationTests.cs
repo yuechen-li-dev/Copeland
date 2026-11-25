@@ -200,10 +200,10 @@ public sealed class MsBuildIntegrationTests
 
         string cleanPackageCache = Path.Combine(fixture.Root, "nuget-packages");
         fixture.RunWithNugetPackages("Demo", cleanPackageCache, "restore");
-        fixture.RunWithNugetPackages("Demo", cleanPackageCache, "build", "--no-restore");
+        string productionOutput = Path.Combine(fixture.Root, "Demo", "bin", "Debug", "net10.0", "Demo.dll");
+        Assert.False(File.Exists(productionOutput));
         ProcessResult result = fixture.RunWithNugetPackages("Demo", cleanPackageCache, "test", "--no-restore");
 
-        string productionOutput = Path.Combine(fixture.Root, "Demo", "bin", "Debug", "net10.0", "Demo.dll");
         string[] testOutputs = Directory.GetFiles(
             Path.Combine(fixture.Root, "Demo"),
             "Demo.CopelandTests.dll",

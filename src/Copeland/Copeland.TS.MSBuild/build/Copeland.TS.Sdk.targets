@@ -143,9 +143,13 @@
                       Lines="&lt;Project Sdk=&quot;Microsoft.NET.Sdk&quot;&gt;&#x0A;  &lt;PropertyGroup&gt;&#x0A;    &lt;TargetFramework&gt;$(TargetFramework)&lt;/TargetFramework&gt;&#x0A;    &lt;ManagePackageVersionsCentrally&gt;false&lt;/ManagePackageVersionsCentrally&gt;&#x0A;    &lt;IsTestProject&gt;true&lt;/IsTestProject&gt;&#x0A;    &lt;CopelandCompileTestsInProject&gt;true&lt;/CopelandCompileTestsInProject&gt;&#x0A;    &lt;CopelandResolvedProjectTypes&gt;$(CopelandResolvedProjectTypes)&lt;/CopelandResolvedProjectTypes&gt;&#x0A;    &lt;GenerateRuntimeConfigurationFiles&gt;true&lt;/GenerateRuntimeConfigurationFiles&gt;&#x0A;    &lt;AssemblyName&gt;$(AssemblyName).CopelandTests&lt;/AssemblyName&gt;&#x0A;    &lt;RootNamespace&gt;$(RootNamespace)&lt;/RootNamespace&gt;&#x0A;    &lt;CopelandTaskAssembly&gt;$(CopelandTaskAssembly)&lt;/CopelandTaskAssembly&gt;&#x0A;    &lt;CopyLocalLockFileAssemblies&gt;true&lt;/CopyLocalLockFileAssemblies&gt;&#x0A;  &lt;/PropertyGroup&gt;&#x0A;  &lt;ItemGroup&gt;&#x0A;    &lt;PackageReference Include=&quot;Microsoft.NET.Test.Sdk&quot; Version=&quot;$(CopelandTestSdkVersion)&quot; /&gt;&#x0A;    &lt;PackageReference Include=&quot;xunit&quot; Version=&quot;$(CopelandXunitVersion)&quot; /&gt;&#x0A;    &lt;PackageReference Include=&quot;xunit.runner.visualstudio&quot; Version=&quot;$(CopelandXunitRunnerVersion)&quot; PrivateAssets=&quot;all&quot; /&gt;&#x0A;    &lt;Reference Include=&quot;$(AssemblyName)&quot;&gt;&lt;HintPath&gt;$(TargetPath)&lt;/HintPath&gt;&lt;/Reference&gt;&#x0A;    &lt;CopelandTest Include=&quot;$(MSBuildProjectDirectory)\**\*.tsxtest&quot; /&gt;&#x0A;    &lt;None Include=&quot;$(NuGetPackageRoot)\xunit.runner.visualstudio\$(CopelandXunitRunnerVersion)\build\net8.0\xunit.abstractions.dll&quot; Link=&quot;xunit.abstractions.dll&quot; CopyToOutputDirectory=&quot;PreserveNewest&quot; /&gt;&#x0A;    &lt;None Include=&quot;$(NuGetPackageRoot)\xunit.runner.visualstudio\$(CopelandXunitRunnerVersion)\build\net8.0\xunit.runner.visualstudio.testadapter.dll&quot; Link=&quot;xunit.runner.visualstudio.testadapter.dll&quot; CopyToOutputDirectory=&quot;PreserveNewest&quot; /&gt;&#x0A;  &lt;/ItemGroup&gt;&#x0A;  &lt;Import Project=&quot;$(MSBuildThisFileFullPath)&quot; /&gt;&#x0A;&lt;/Project&gt;" />
   </Target>
 
+  <Target Name="CopelandBuildSameProjectTestAssembly"
+          DependsOnTargets="Build"
+          Condition="'$(VSTestNoBuild)' != 'true'" />
+
   <Target Name="CopelandRunSameProjectTests"
           BeforeTargets="VSTest"
-          DependsOnTargets="CopelandCreateSameProjectTestProject"
+          DependsOnTargets="CopelandBuildSameProjectTestAssembly;CopelandCreateSameProjectTestProject"
           Condition="'@(CopelandTest)' != '' and '$(CopelandSameProjectTestHost)' == 'true' and '$(CopelandAuxiliaryTestBuild)' != 'true'">
     <MSBuild Projects="$(CopelandSameProjectTestProject)"
              Targets="Restore;Build"

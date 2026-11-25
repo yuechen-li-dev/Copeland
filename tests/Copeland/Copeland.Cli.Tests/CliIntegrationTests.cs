@@ -590,6 +590,151 @@ public sealed partial class CliIntegrationTests
         Assert.Equal("Standalone CLR\n", execution.StdOut);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Tscl_build_binds_article_layout_and_stream_with_a_workspace_view_adapter(bool managed)
+    {
+        using var temp = new TempDir();
+        Directory.CreateDirectory(Path.Combine(temp.Path, "src"));
+        Directory.CreateDirectory(Path.Combine(temp.Path, "node_modules", "docs-view"));
+        temp.WriteFile("App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\" />");
+        temp.WriteFile("node_modules/docs-view/package.json", """
+            { "name": "docs-view", "version": "1.0.0", "type": "module", "exports": "./index.js" }
+            """);
+        temp.WriteFile("node_modules/docs-view/index.js", """
+            export function create(tag, props, children) {
+                return { tag, props, children };
+            }
+            """);
+        temp.WriteFile("tsconfig.tsx", """
+            import { defineTypeScriptWorkspace } from "copeland/workspace";
+            export default defineTypeScriptWorkspace({
+                ownership: "partial",
+                tscl: {
+                    project: "./App.csproj",
+                    include: ["src/**"],
+                    types: ["TextDocuments", "CopelandViews"],
+                    presentationAdapter: {
+                        identity: "docs-static",
+                        elementModule: "docs-view",
+                        elementExport: "create",
+                    },
+                    targets: { node: { backend: "javascript", runtime: "node" } }
+                }
+            });
+            """);
+        temp.WriteFile("manifest.tsx", """
+            import { Package, Targets, Workspace, define } from "tspack/manifest";
+            export default define(
+              <Workspace name="docs" runtime="nodejs">
+                <Package name="docs" version="1.0.0" kind="app"
+                  dependencies={{ values: [{ kind: "npm", package: "docs-view", version: "1.0.0" }] }}>
+                  <Targets rows={[
+                    { name: "node", entry: "src/Shell.tsx", runtime: "dist/main.js", deps: [], peers: [] }
+                  ]} />
+                </Package>
+              </Workspace>,
+            );
+            """);
+        string sourcePath = temp.WriteFile("src/Shell.tsx", """
+            layout ArticleLayout<0px, 0px> {
+                width: fill;
+                height: fit;
+                row root {
+                    slot navigation { width: 192px; height: fit; }
+                    slot content { width: fill; height: fit; }
+                    slot outline { width: 192px; height: fit; }
+                }
+            }
+            export function Shell(title: string): View {
+                stream Content {
+                    navigation: <nav aria-label="Project documentation">Project</nav>;
+                    content: <main id="content"><h1>{title}</h1></main>;
+                    outline: <nav aria-label="On this page">Outline</nav>;
+                }
+                return bind ArticleLayout using Content;
+            }
+            export function Copy(): Document {
+                return <Document><Paragraph>Article text</Paragraph></Document>;
+            }
+            """);
+        string resultPath = Path.Combine(temp.Path, "result.json");
+
+        CliResult build;
+        if (managed)
+        {
+            var sources = new[] { new { logicalPath = "src/Shell.tsx", path = sourcePath } };
+            string descriptor = temp.WriteFile("compiler-target.json", JsonSerializer.Serialize(new
+            {
+                schemaVersion = 1,
+                projectRoot = temp.Path,
+                target = new { package = "docs", name = "node" },
+                language = new { id = "copeland-ts" },
+                compiler = new { id = "tscl", version = "test" },
+                compilerConfig = new { path = "tsconfig.tsx" },
+                sources,
+                packages = new[]
+                {
+                    new
+                    {
+                        semanticIdentity = "npm:docs-view",
+                        version = "1.0.0",
+                        materializationPath = Path.Combine(temp.Path, "node_modules", "docs-view"),
+                    },
+                },
+                runtime = new { name = "node" },
+                compilerPayload = new
+                {
+                    kind = "copeland-v1",
+                    schemaVersion = 1,
+                    data = new
+                    {
+                        projectRoot = temp.Path,
+                        sources,
+                        entry = new { module = "src/Shell.tsx", @export = "Main" },
+                        javaScriptRuntime = "node",
+                        outputDirectory = Path.Combine(temp.Path, "dist"),
+                        npmContracts = new[]
+                        {
+                            new
+                            {
+                                packageName = "docs-view",
+                                exports = new[] { new { name = "create", result = "View" } },
+                            },
+                        },
+                    },
+                },
+            }));
+            build = await RunCliAsync(temp.Path, "build", "--project", descriptor, "--node-interop", "--result", resultPath);
+        }
+        else
+        {
+            CliResult check = await RunCliAsync(temp.Path, "check", "--standalone", temp.Path);
+            Assert.True(check.ExitCode == 0, check.StdErr);
+            build = await RunCliAsync(temp.Path, "build", "--standalone", temp.Path,
+                "--target", "node", "--node-interop", "--result", resultPath);
+        }
+        Assert.True(build.ExitCode == 0, await File.ReadAllTextAsync(resultPath));
+        string probe = temp.WriteFile("probe.mjs", """
+            import assert from "node:assert/strict";
+            import { Shell } from "./dist/src/Shell.js";
+            import { Copy } from "./dist/src/Shell.node.js";
+            import { readFileSync } from "node:fs";
+
+            const shell = Shell("Article title");
+            const slots = shell.children;
+            assert.deepEqual(slots.map(slot => slot.props["data-machina-box"]), ["navigation", "content", "outline"]);
+            assert.deepEqual(slots.map(slot => slot.children[0].tag), ["nav", "main", "nav"]);
+            assert.equal(slots[1].children[0].props.id, "content");
+            assert.equal(slots[1].children[0].children[0].children[0], "Article title");
+            assert.ok(Copy().some(part => part.tag === "Run" && part.payload.text === "Article text"));
+            assert.match(readFileSync(new URL("./dist/generated/layouts.css", import.meta.url), "utf8"), /flex-direction: row/);
+            """);
+        CliResult execution = await RunExecutableAsync("node", temp.Path, probe);
+        Assert.True(execution.ExitCode == 0, execution.StdErr);
+    }
+
     [Fact]
     public async Task Tscl_build_emits_a_multi_module_production_browser_project_without_node_launcher_artifacts()
     {

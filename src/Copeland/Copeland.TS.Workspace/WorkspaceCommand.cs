@@ -298,7 +298,8 @@ internal sealed record WorkspaceCompiler(
     IReadOnlyList<string> Exclude,
     IReadOnlyList<string> ProjectTypes,
     JsonElement? CompilerOptions,
-    IReadOnlyDictionary<string, CopelandWorkspaceTarget> Targets);
+    IReadOnlyDictionary<string, CopelandWorkspaceTarget> Targets,
+    CopelandWorkspacePresentationAdapter? PresentationAdapter);
 internal sealed record WorkspaceRule(string Owner, string Include, IReadOnlyList<string> Exclude, string Project);
 internal sealed record WorkspaceOwnedFile(string Path, string Owner, string Project, WorkspaceRule Rule, string? Profile = null);
 internal sealed record WorkspaceOwnership(IReadOnlyList<WorkspaceOwnedFile> Files, int UnownedCount, int OverlappingCount);
@@ -387,7 +388,10 @@ public static class CopelandWorkspaceOwnership
                 sources,
                 [],
                 workspace.Tscl?.ProjectTypes ?? [],
-                workspace.Tscl?.Targets ?? new Dictionary<string, CopelandWorkspaceTarget>());
+                workspace.Tscl?.Targets ?? new Dictionary<string, CopelandWorkspaceTarget>())
+            {
+                PresentationAdapter = workspace.Tscl?.PresentationAdapter,
+            };
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -410,7 +414,15 @@ public sealed record CopelandWorkspaceOwnershipResult(
     IReadOnlyList<CopelandWorkspaceOwnedSource> Sources,
     IReadOnlyList<CopelandWorkspaceOwnershipDiagnostic> Diagnostics,
     IReadOnlyList<string>? ProjectTypes = null,
-    IReadOnlyDictionary<string, CopelandWorkspaceTarget>? Targets = null);
+    IReadOnlyDictionary<string, CopelandWorkspaceTarget>? Targets = null)
+{
+    public CopelandWorkspacePresentationAdapter? PresentationAdapter { get; init; }
+}
+
+public sealed record CopelandWorkspacePresentationAdapter(
+    string Identity,
+    string ElementModule,
+    string ElementExport);
 
 public sealed record CopelandWorkspaceTarget(
     string Backend,
@@ -521,7 +533,7 @@ internal sealed class WorkspaceParser
 
         HashSet<string> allowed = owner == "tsc"
             ? ["include", "exclude", "compilerOptions"]
-            : ["project", "include", "exclude", "types", "targets"];
+            : ["project", "include", "exclude", "types", "targets", "presentationAdapter"];
         foreach (string key in config.Properties.Keys)
         {
             if (!allowed.Contains(key))
@@ -546,6 +558,7 @@ internal sealed class WorkspaceParser
 
         string? project = null;
         IReadOnlyList<string> projectTypes = [];
+        CopelandWorkspacePresentationAdapter? presentationAdapter = null;
         if (requiresProject)
         {
             if (!config.Properties.TryGetValue("project", out WorkspaceValue? projectValue) || projectValue is not WorkspaceString projectString)
@@ -565,12 +578,14 @@ internal sealed class WorkspaceParser
             string? unknownType = projectTypes.FirstOrDefault(type =>
                 !type.Equals("TextDocuments", StringComparison.OrdinalIgnoreCase)
                 && !type.Equals("ReactComponents", StringComparison.OrdinalIgnoreCase)
-                && !type.Equals("FlowAuthoring", StringComparison.OrdinalIgnoreCase));
+                && !type.Equals("FlowAuthoring", StringComparison.OrdinalIgnoreCase)
+                && !type.Equals("CopelandViews", StringComparison.OrdinalIgnoreCase));
             if (unknownType is not null)
             {
                 int offset = config.Properties.TryGetValue("types", out WorkspaceValue? typesValue) ? typesValue.Offset : config.Offset;
-                _values.Report("COPE-WORKSPACE-0014", $"Unknown Copeland project type '{unknownType}'. Supported types are TextDocuments, ReactComponents, and FlowAuthoring.", offset);
+                _values.Report("COPE-WORKSPACE-0014", $"Unknown Copeland project type '{unknownType}'. Supported types are TextDocuments, ReactComponents, FlowAuthoring, and CopelandViews.", offset);
             }
+            presentationAdapter = BindPresentationAdapter(config);
         }
 
         JsonElement? compilerOptions = null;
@@ -589,7 +604,44 @@ internal sealed class WorkspaceParser
         IReadOnlyDictionary<string, CopelandWorkspaceTarget> targets = owner == "tscl"
             ? BindCopelandTargets(config)
             : new Dictionary<string, CopelandWorkspaceTarget>();
-        return new WorkspaceCompiler(owner, project, include, exclude, projectTypes, compilerOptions, targets);
+        return new WorkspaceCompiler(owner, project, include, exclude, projectTypes, compilerOptions, targets, presentationAdapter);
+    }
+
+    private CopelandWorkspacePresentationAdapter? BindPresentationAdapter(WorkspaceObject config)
+    {
+        if (!config.Properties.TryGetValue("presentationAdapter", out WorkspaceValue? value))
+        {
+            return null;
+        }
+        if (value is not WorkspaceObject fields)
+        {
+            _values.Report("COPE-WORKSPACE-0016", "tscl.presentationAdapter must be an object literal.", value.Offset);
+            return null;
+        }
+
+        HashSet<string> allowed = ["identity", "elementModule", "elementExport"];
+        foreach (string key in fields.Properties.Keys.Where(key => !allowed.Contains(key)))
+        {
+            _values.Report("COPE-WORKSPACE-0005", $"Unknown tscl.presentationAdapter property '{key}'.", fields.PropertyOffsets[key]);
+        }
+
+        string? identity = ReadField("identity");
+        string? module = ReadField("elementModule");
+        string? export = ReadField("elementExport");
+        return identity is not null && module is not null && export is not null
+            ? new CopelandWorkspacePresentationAdapter(identity, module, export)
+            : null;
+
+        string? ReadField(string name)
+        {
+            if (fields.Properties.TryGetValue(name, out WorkspaceValue? field)
+                && field is WorkspaceString text && !string.IsNullOrWhiteSpace(text.Value))
+            {
+                return text.Value;
+            }
+            _values.Report("COPE-WORKSPACE-0016", $"tscl.presentationAdapter.{name} must be a non-empty string.", fields.Offset);
+            return null;
+        }
     }
 
     private IReadOnlyDictionary<string, CopelandWorkspaceTarget> BindCopelandTargets(WorkspaceObject config)
