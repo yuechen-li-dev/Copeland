@@ -1,5 +1,6 @@
 import * as path from "path";
 import * as vscode from "vscode";
+import { registerMigrationHints } from "./migrationHints";
 import { WorkspaceController } from "./workspaceController";
 import { resolveTscl, runTool } from "./toolchain";
 
@@ -18,6 +19,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     controllers = (vscode.workspace.workspaceFolders ?? []).map((folder) => new WorkspaceController(folder, output, updateStatus, extensionVersion));
     context.subscriptions.push({ dispose: () => void disposeControllers() });
     registerCommands(context);
+    registerMigrationHints(context, output);
     context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(() => updateStatus()));
     context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders((event) => void refreshWorkspaceControllers(event)));
 

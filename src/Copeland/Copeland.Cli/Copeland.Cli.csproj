@@ -33,6 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="MigrationReport.cjs" LogicalName="Copeland.Cli.MigrationReport.cjs" />
     <None Include="README.md" Pack="true" PackagePath="" />
     <None Include="../../../LICENSE" Pack="true" PackagePath="" />
     <None Include="../THIRD_PARTY_NOTICES.md" Pack="true" PackagePath="" />
