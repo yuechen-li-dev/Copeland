@@ -20,6 +20,7 @@ public sealed class CopelandClrMetadataResolver
 {
     private readonly IReadOnlyList<Assembly> _assemblies;
     private readonly IReadOnlyDictionary<Assembly, bool> _internalVisibility;
+    private readonly Lazy<ILookup<string, Type>> _typesByFullName;
 
     public CopelandClrMetadataResolver(IReadOnlyList<CopelandClrReference> references)
     {
@@ -46,6 +47,8 @@ public sealed class CopelandClrMetadataResolver
 
         _assemblies = assemblies.Values.ToArray();
         _internalVisibility = internalVisibility;
+        _typesByFullName = new Lazy<ILookup<string, Type>>(() =>
+            EnumerateFullNames().ToLookup(entry => entry.Name, entry => entry.Type, StringComparer.Ordinal));
     }
 
     public IReadOnlyList<Type> FindTypesInNamespace(string @namespace)
@@ -54,10 +57,7 @@ public sealed class CopelandClrMetadataResolver
             .ToArray();
 
     public IReadOnlyList<Type> FindTypes(string fullName)
-        => EnumeratePublicTypes()
-            .Where(type => string.Equals(type.FullName, fullName, StringComparison.Ordinal)
-                || string.Equals(type.FullName?.Replace('+', '.'), fullName, StringComparison.Ordinal))
-            .ToArray();
+        => _typesByFullName.Value[fullName].ToArray();
 
     public IReadOnlyList<Type> FindTypes(string assemblyIdentity, string fullName)
         => FindTypes(fullName)
@@ -108,6 +108,25 @@ public sealed class CopelandClrMetadataResolver
             || (_internalVisibility.TryGetValue(member.DeclaringType!.Assembly, out bool includeInternal)
                 && includeInternal
                 && member.IsAssembly);
+
+    private IEnumerable<(string Name, Type Type)> EnumerateFullNames()
+    {
+        // Binding probes dotted expressions as potential CLR names, even when
+        // they resolve to Copeland values. Index the names once per resolver.
+        foreach (Type type in EnumeratePublicTypes())
+        {
+            if (type.FullName is not { } fullName)
+            {
+                continue;
+            }
+
+            yield return (fullName, type);
+            if (fullName.Contains('+', StringComparison.Ordinal))
+            {
+                yield return (fullName.Replace('+', '.'), type);
+            }
+        }
+    }
 
     private IEnumerable<Type> EnumeratePublicTypes()
     {
