@@ -414,6 +414,89 @@ public sealed class ContributionStreamTests
     }
 
     [Fact]
+    public async Task Node_array_snapshot_fusion_preserves_raw_freeze_and_boundary_isolation()
+    {
+        CopelandProjectCompilation compilation = CopelandProjectCompiler.CompileToMir(
+        [
+            new CopelandProjectSource("Main.ts", "Main.ts", """
+                export function Snapshot(input: int[], combine: (a: int, b: int, c: int, d: int) => int): int[] {
+                    const buffer = MutableArray<int>(2);
+                    buffer[0] = input[0];
+                    buffer[1] = combine(buffer[0], 2, 3, 4);
+                    buffer[0] = input[0];
+                    return buffer.freeze();
+                }
+
+                export function MaybeCopy(input: int[], useInput: boolean): int[] {
+                    const buffer = MutableArray<int>(1);
+                    if (useInput) { return input; }
+                    buffer[0] = input[0];
+                    return buffer.freeze();
+                }
+
+                export function Fresh(value: int): int[] { return [value, 2]; }
+
+                export function Captured(value: int): int {
+                    const thunk: () => int = capture { value } () => value + 1;
+                    return thunk();
+                }
+                """),
+        ], Options());
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptProjectCompilation emitted = JavaScriptProjectEmitter.Emit(compilation.MirProjectGraph!,
+            new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Production, EmitNodeInterop = true });
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        string main = emitted.Files["Main.js"];
+        Assert.Matches(@"function Snapshot\([^)]* = undefined\)", main);
+        Assert.DoesNotMatch(@"function MaybeCopy\([^)]* = undefined\)", main);
+        Assert.DoesNotContain("__cope_callable_invoke(combine,", main, StringComparison.Ordinal);
+
+        var files = new Dictionary<string, string>(emitted.Files) { ["package.json"] = "{\"type\":\"module\"}" };
+        files["Main.js"] += "\nexport { __cope_callable_ref as testCarrier };\n";
+        Assert.Equal("ok", await RunNode("""
+            import assert from 'node:assert/strict';
+            import { Snapshot as rawSnapshot, testCarrier } from './Main.js';
+            import { Snapshot, MaybeCopy, Fresh, Captured } from './Main.node.js';
+            let reads = 0;
+            let value = 1;
+            const input = [];
+            Object.defineProperty(input, 0, { get() { reads++; return value; } });
+            const first = Snapshot(input, (...args) => {
+                assert.deepEqual(args, [1, 2, 3, 4]);
+                value = -1;
+                return 10;
+            });
+            assert.equal(reads, 1);
+            assert.deepEqual(first, [1, 10]);
+            first[0] = 7;
+            assert.deepEqual(Snapshot(input, () => 9), [-1, 9]);
+            assert.throws(() => Snapshot(new Array(1), () => assert.fail()), /expected a dense array/);
+            assert.throws(() => Snapshot([1], () => 'bad'), /expected int/);
+            assert.equal(rawSnapshot.length, 2);
+            assert.throws(() => rawSnapshot([1], () => 2, true), /invariant failure/);
+            const signature = '(named:int,named:int,named:int,named:int)->named:int';
+            const carrier = testCarrier(signature, (a, b, c, d) => a + b + c + d);
+            const wrong = testCarrier('()->named:int', () => assert.fail());
+            assert.throws(() => rawSnapshot([1], wrong), /invariant failure/);
+            const raw = rawSnapshot([1], carrier, true);
+            assert.deepEqual(raw, [1, 10]);
+            assert.equal(Object.isFrozen(raw), true);
+            const plain = [3];
+            const copied = MaybeCopy(plain, true);
+            assert.notEqual(copied, plain);
+            assert.deepEqual(copied, [3]);
+            assert.equal(Object.isFrozen(MaybeCopy(plain, false)), false);
+            const fresh = Fresh(8);
+            assert.deepEqual(fresh, [8, 2]);
+            fresh[0] = 0;
+            assert.deepEqual(Fresh(8), [8, 2]);
+            assert.equal(Captured(4), 5);
+            assert.equal(Captured(8), 9);
+            console.log('ok');
+            """, files));
+    }
+
+    [Fact]
     public async Task Node_facades_project_tagged_values_across_modules_and_callback_boundaries()
     {
         CopelandProjectCompilation compilation = CopelandProjectCompiler.CompileToMir(

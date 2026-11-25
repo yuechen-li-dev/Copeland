@@ -3,7 +3,7 @@ using Copeland.TS.Mir;
 namespace Copeland.TS.Backend.JavaScript;
 
 /// <summary>Projects public Node values at the ESM boundary while preserving internal MIR carriers.</summary>
-internal sealed class NodeInteropEmitter(MirProgram program, string prefix)
+internal sealed class NodeInteropEmitter(MirProgram program, string prefix, string check, string arrayProjection)
 {
     private readonly Dictionary<MirRecordTypeId, MirRecordDefinition> records = program.Records.ToDictionary(record => record.Id);
     private readonly Dictionary<string, MirEnum> enums = program.Enums.ToDictionary(item => item.Name, StringComparer.Ordinal);
@@ -15,19 +15,34 @@ internal sealed class NodeInteropEmitter(MirProgram program, string prefix)
     private sealed record Field(string Name, MirType Type);
     private sealed record Variant(string Tag, IReadOnlyList<Field> Fields, bool NestedPayload);
 
+    public static IReadOnlySet<string> FindArraySnapshotCandidates(MirProgram program, IReadOnlySet<string> boundaryFunctions)
+    {
+        var emitter = new NodeInteropEmitter(program, string.Empty, string.Empty, string.Empty);
+        return program.Functions
+            .Where(function => boundaryFunctions.Contains(function.Name) && CanFuseArraySnapshot(function) && emitter.Supports(function))
+            .Select(function => function.Name)
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
     public static Facade? Emit(
         MirProgram program,
         MirProjectModule module,
         IReadOnlyList<MirModuleExport> exports,
         List<string> lines,
-        string moduleSpecifier)
+        string moduleSpecifier,
+        JavaScriptCompilation compilation)
     {
         string prefix = "__cope_node_";
         while (lines.Any(line => line.Contains(prefix, StringComparison.Ordinal)))
         {
             prefix += "_";
         }
-        var emitter = new NodeInteropEmitter(program, prefix);
+        string? snapshot = exports.Any(export => compilation.NodeArraySnapshotFunctions.Contains(export.RuntimeName!))
+            ? compilation.NodeArraySnapshotHelper : null;
+        JavaScriptNodeProjectionBindings? shared = compilation.SharedNodeProjections;
+        string check = shared?.Check ?? prefix + "check";
+        string arrayProjection = shared?.CopyArray ?? snapshot ?? prefix + "array";
+        var emitter = new NodeInteropEmitter(program, prefix, check, arrayProjection);
         var declarations = new List<string>();
         var bindings = new List<(string Wrapper, string Export)>();
         var functions = module.Functions.ToDictionary(function => function.Name, StringComparer.Ordinal);
@@ -38,13 +53,23 @@ internal sealed class NodeInteropEmitter(MirProgram program, string prefix)
                 continue;
             }
             string wrapper = $"{prefix}export_{bindings.Count}";
-            emitter.EmitWrapper(lines, wrapper, function);
+            string? functionSnapshot = compilation.NodeArraySnapshotFunctions.Contains(function.Name) ? snapshot : null;
+            emitter.EmitWrapper(lines, wrapper, function, functionSnapshot);
             declarations.Add($"declare function {wrapper}({emitter.TypeParameters(function.Parameters.Select(parameter => parameter.Type))}): {emitter.TypeScript(function.ReturnType)};");
             bindings.Add((wrapper, JavaScriptIdentifierEncoder.Encode(export.Name)));
         }
         if (bindings.Count == 0)
         {
             return null;
+        }
+        if (shared is null)
+        {
+            lines.Add(ProjectionRuntime(check, arrayProjection));
+        }
+        else if (snapshot is not null)
+        {
+            // The module-private function also selects the optimized return path.
+            lines.Add($"function {snapshot}(value) {{ return {arrayProjection}(value); }}");
         }
         emitter.EmitProjections(lines, declarations);
         string localExports = string.Join(", ", bindings.Select(binding => binding.Wrapper));
@@ -62,6 +87,40 @@ internal sealed class NodeInteropEmitter(MirProgram program, string prefix)
                 ? callable.Parameters.All(input => SupportsValue(input.Type, []))
                     && (IsVoid(callable.ReturnType) || SupportsValue(callable.ReturnType, []))
                 : SupportsValue(parameter.Type, []));
+
+    private static bool IsScalar(MirType type)
+        => type is MirNamedType { Identifier: "boolean" or "int" or "long" or "float" or "number" or "string" };
+
+    private static bool CanFuseArraySnapshot(MirFunction function)
+    {
+        if (function.ReturnType is not MirArrayType array || !IsScalar(array.ElementType)
+            || function.Body.Count == 0
+            || function.Body[^1] is not MirReturnStatement
+            {
+                Expression: MirMutableArrayFreezeExpression { Receiver: MirVariableExpression receiver },
+            })
+        {
+            return false;
+        }
+
+        // The terminal freeze has a plain compiler-allocated receiver. The Node path can
+        // take its own snapshot directly, even when the body retains an alias to the buffer.
+        return function.Body.Take(function.Body.Count - 1).All(HasNoReturn)
+            && function.Body.OfType<MirVariableDeclarationStatement>().Any(declaration =>
+                declaration.Local.IsReadOnly && declaration.Local.Name == receiver.Name
+                && declaration.Initializer is MirMutableArrayConstructionExpression);
+    }
+
+    private static bool HasNoReturn(MirStatement statement) => statement switch
+    {
+        MirVariableDeclarationStatement or MirExpressionStatement or MirBreakStatement or MirContinueStatement => true,
+        MirIfStatement conditional => conditional.ThenStatements.All(HasNoReturn)
+            && (conditional.ElseStatements?.All(HasNoReturn) ?? true),
+        MirWhileStatement loop => loop.BodyStatements.All(HasNoReturn),
+        MirForStatement loop => (loop.Initializer is null || HasNoReturn(loop.Initializer)) && loop.BodyStatements.All(HasNoReturn),
+        MirForOfStatement loop => loop.BodyStatements.All(HasNoReturn),
+        _ => false,
+    };
 
     private bool SupportsValue(MirType type, HashSet<MirType> activeTypes)
     {
@@ -91,18 +150,32 @@ internal sealed class NodeInteropEmitter(MirProgram program, string prefix)
             activeTypes.Remove(type);
             return supported;
         }
-        return type is MirNamedType { Identifier: "boolean" or "int" or "long" or "float" or "number" or "string" };
+        return IsScalar(type);
     }
 
-    private void EmitWrapper(List<string> lines, string wrapper, MirFunction function)
+    private void EmitWrapper(List<string> lines, string wrapper, MirFunction function, string? snapshot)
     {
         string[] parameters = function.Parameters.Select((_, index) => $"{prefix}arg_{index}").ToArray();
-        string[] arguments = function.Parameters.Select((parameter, index) => parameter.Type is MirCallableType callback
+        var arguments = function.Parameters.Select((parameter, index) => parameter.Type is MirCallableType callback
             ? WrapCallback(callback, parameters[index])
-            : Project(parameter.Type, parameters[index], ingress: true)).ToArray();
+            : Project(parameter.Type, parameters[index], ingress: true)).ToList();
+        if (snapshot is not null)
+        {
+            arguments.Add(snapshot);
+        }
         string invocation = $"{JavaScriptIdentifierEncoder.Encode(function.Name)}({string.Join(", ", arguments)})";
+        bool freshLiteral = function.ReturnType is MirArrayType array && IsScalar(array.ElementType)
+            && function.Body is [MirReturnStatement { Expression: MirArrayExpression { Counts: null } }];
         lines.Add($"function {wrapper}({string.Join(", ", parameters)}) {{");
-        lines.Add(IsVoid(function.ReturnType) ? $"    {invocation};" : $"    return {Project(function.ReturnType, invocation, ingress: false)};");
+        if (IsVoid(function.ReturnType))
+        {
+            lines.Add($"    {invocation};");
+        }
+        else
+        {
+            string result = snapshot is not null || freshLiteral ? invocation : Project(function.ReturnType, invocation, ingress: false);
+            lines.Add($"    return {result};");
+        }
         lines.Add("}");
     }
 
@@ -113,20 +186,25 @@ internal sealed class NodeInteropEmitter(MirProgram program, string prefix)
         string[] arguments = callback.Parameters.Select((parameter, index) => Project(parameter.Type, parameters[index], ingress: false)).ToArray();
         string call = $"{value}({string.Join(", ", arguments)})";
         string result = IsVoid(callback.ReturnType) ? $"{{ {call}; }}" : Project(callback.ReturnType, call, ingress: true);
-        return $"__cope_callable_host({signature}, ({prefix}check({value}, \"function\"), ({string.Join(", ", parameters)}) => {result}))";
+        return $"__cope_callable_ref({signature}, ({check}({value}, \"function\"), ({string.Join(", ", parameters)}) => {result}))";
     }
 
     private string Project(MirType type, string value, bool ingress)
     {
         if (type is MirArrayType array)
         {
-            return $"{prefix}array({value}, item => {Project(array.ElementType, "item", ingress)})";
+            if (IsScalar(array.ElementType))
+            {
+                string scalarCheck = ingress ? ", " + Quote(array.ElementType.Identifier) : string.Empty;
+                return $"{arrayProjection}({value}{scalarCheck})";
+            }
+            return $"{arrayProjection}({value}, item => {Project(array.ElementType, "item", ingress)})";
         }
         if (type is MirRecordType or MirResultType || type is MirNamedType named && enums.ContainsKey(named.Identifier))
         {
             return $"{prefix}value_{(ingress ? "in" : "out")}_{ProjectionIndex(type)}({value})";
         }
-        return ingress ? $"{prefix}check({value}, {Quote(type.Identifier)})" : value;
+        return ingress ? $"{check}({value}, {Quote(type.Identifier)})" : value;
     }
 
     private int ProjectionIndex(MirType type)
@@ -169,10 +247,9 @@ internal sealed class NodeInteropEmitter(MirProgram program, string prefix)
             !definition.IsOption && item.PayloadFields.Count > 0)).ToArray();
     }
 
-    private void EmitProjections(List<string> lines, List<string> declarations)
-    {
-        lines.Add("""
-            function __cope_node_check(value, type) {
+    public static string ProjectionRuntime(string check, string arrayProjection)
+        => """
+            function CHECK_VALUE(value, type) {
                 let valid;
                 switch (type) {
                     case "int": valid = Number.isInteger(value) && value >= -2147483648 && value <= 2147483647; break;
@@ -184,17 +261,25 @@ internal sealed class NodeInteropEmitter(MirProgram program, string prefix)
                 if (!valid) throw new TypeError("Copeland Node interop expected " + type);
                 return value;
             }
-            function __cope_node_array(value, convert) {
+            function ARRAY_PROJECTION(value, convert) {
                 if (!Array.isArray(value)) throw new TypeError("Copeland Node interop expected an array");
                 const length = value.length;
                 const items = new Array(length);
+                const scalarType = typeof convert === "string" ? convert : undefined;
                 for (let index = 0; index < length; index++) {
                     if (!Object.hasOwn(value, index)) throw new TypeError("Copeland Node interop expected a dense array");
-                    items[index] = convert(value[index]);
+                    const item = value[index];
+                    if (scalarType !== undefined) items[index] = CHECK_VALUE(item, scalarType);
+                    else if (convert === undefined) items[index] = item;
+                    else items[index] = convert(item);
                 }
                 return items;
             }
-            """.Replace("__cope_node_", prefix, StringComparison.Ordinal));
+            """.Replace("CHECK_VALUE", check, StringComparison.Ordinal)
+                .Replace("ARRAY_PROJECTION", arrayProjection, StringComparison.Ordinal);
+
+    private void EmitProjections(List<string> lines, List<string> declarations)
+    {
         // Projecting a field can append another type for a later iteration.
         for (int index = 0; index < projections.Count; index++)
         {

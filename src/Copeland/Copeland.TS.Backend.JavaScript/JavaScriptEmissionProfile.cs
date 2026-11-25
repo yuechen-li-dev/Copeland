@@ -32,6 +32,7 @@ public sealed record JavaScriptEmissionOptions
     public bool EmitNodeInterop { get; init; }
     public bool EmitModuleInitializers { get; init; } = true;
     internal bool CaptureProjectSections { get; init; }
+    internal IReadOnlySet<string> NodeArraySnapshotCandidates { get; init; } = new HashSet<string>(StringComparer.Ordinal);
     /// <summary>A host-written module path, relative to the project output directory.</summary>
     public string? ProjectEntryOutputPath { get; init; }
     public IReadOnlySet<string> BoundaryFunctionNames { get; init; } = new HashSet<string>(StringComparer.Ordinal);

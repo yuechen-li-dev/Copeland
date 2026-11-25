@@ -38,6 +38,9 @@ public static class JavaScriptProjectEmitter
             EmitModuleInitializers = false,
             BoundaryFunctionNames = boundaryFunctions,
             CaptureProjectSections = shareRuntime,
+            NodeArraySnapshotCandidates = effectiveOptions.EmitNodeInterop
+                ? NodeInteropEmitter.FindArraySnapshotCandidates(program, boundaryFunctions)
+                : effectiveOptions.NodeArraySnapshotCandidates,
         });
         if (!aggregate.Success)
         {
@@ -168,7 +171,7 @@ public static class JavaScriptProjectEmitter
             {
                 string facadePath = outputPath[..^".js".Length] + ".node.js";
                 NodeInteropEmitter.Facade? facade = NodeInteropEmitter.Emit(graph.AggregateProgram, module, exports, lines,
-                    GetRelativeSpecifier(facadePath, outputPath));
+                    GetRelativeSpecifier(facadePath, outputPath), aggregate);
                 if (facade is not null)
                 {
                     if (modulePaths.Contains(facadePath))

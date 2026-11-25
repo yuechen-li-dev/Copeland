@@ -13,11 +13,15 @@ public sealed class JavaScriptCompilation(
     public JavaScriptReachabilityReport? Reachability { get; } = reachability;
 
     internal JavaScriptProjectSections? ProjectSections { get; init; }
+    internal string? NodeArraySnapshotHelper { get; init; }
+    internal IReadOnlySet<string> NodeArraySnapshotFunctions { get; init; } = new HashSet<string>(StringComparer.Ordinal);
+    internal JavaScriptNodeProjectionBindings? SharedNodeProjections { get; init; }
 
     public bool Success => SourceText is not null && Diagnostics.Count == 0;
 }
 
 internal sealed record JavaScriptProjectSections(string RuntimeSource, IReadOnlyDictionary<string, string> Functions);
+internal sealed record JavaScriptNodeProjectionBindings(string Check, string CopyArray);
 
 public sealed record JavaScriptDiagnostic(string Id, string Message);
 

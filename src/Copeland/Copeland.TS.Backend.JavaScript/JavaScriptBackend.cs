@@ -253,7 +253,9 @@ public static partial class JavaScriptBackend
             EmitCallableRuntime(writer, usesCapturedCallables, usesSharedBrowserInteropRuntime);
         }
 
-        if (catalog.Enums.Count > 0 || catalog.Records.Count > 0 || program.Tables.Count > 0 || results.Types.Count > 0 || usesTryExcept)
+        bool usesValueRuntime = catalog.Enums.Count > 0 || catalog.Records.Count > 0
+            || program.Tables.Count > 0 || results.Types.Count > 0 || usesTryExcept;
+        if (usesValueRuntime)
         {
             writer.WriteLine();
             EmitValueRuntime(
@@ -283,7 +285,9 @@ public static partial class JavaScriptBackend
             else
             {
                 bool isTransition = program.Functions.Any(owner => owner.ComponentState?.Endpoints.Any(endpoint => endpoint.TransitionFunction == function.Name) == true);
-                EmitFunction(writer, function, catalog, results, names, effectiveOptions.BoundaryFunctionNames.Contains(function.Name) || isTransition, isTransition);
+                EmitFunction(writer, function, catalog, results, names,
+                    effectiveOptions.BoundaryFunctionNames.Contains(function.Name) || isTransition, isTransition,
+                    effectiveOptions.NodeArraySnapshotCandidates.Contains(function.Name));
             }
             if (projectFunctions is not null)
             {
@@ -309,7 +313,18 @@ public static partial class JavaScriptBackend
 
         if (UsesNativeStrings.Value) NativeStringRuntime.Emit(writer);
         if (UsesIntegerRuntime.Value) IntegerRuntime.Emit(writer);
+        if (!usesValueRuntime && names.UsesBoundaryPanic)
+        {
+            EmitInvariantPanic(writer, names);
+        }
         names.EmitArrayHelpers(writer);
+        names.EmitFixedCallableHelpers(writer, usesCapturedCallables || usesSharedBrowserInteropRuntime);
+        JavaScriptNodeProjectionBindings? sharedNodeProjections = null;
+        if (effectiveOptions.EmitNodeInterop && effectiveOptions.CaptureProjectSections)
+        {
+            sharedNodeProjections = names.AllocateNodeProjections();
+            writer.WriteLine(NodeInteropEmitter.ProjectionRuntime(sharedNodeProjections.Check, sharedNodeProjections.CopyArray));
+        }
         string sourceText = writer.ToString();
         if (effectiveOptions.Profile == JavaScriptEmissionProfile.Symbolic)
         {
@@ -318,6 +333,9 @@ public static partial class JavaScriptBackend
 
         var compilation = new JavaScriptCompilation(sourceText, [], writer.ReachabilityReport)
         {
+            NodeArraySnapshotHelper = names.NodeArraySnapshotHelper,
+            NodeArraySnapshotFunctions = names.NodeArraySnapshotFunctions,
+            SharedNodeProjections = sharedNodeProjections,
             ProjectSections = projectFunctions is null ? null : new JavaScriptProjectSections(
                 sourceText[..writer.GetRenderedOffset(runtimeEnd)] + sourceText[writer.GetRenderedOffset(functionStart)..],
                 projectFunctions.ToDictionary(
@@ -1577,11 +1595,7 @@ public static partial class JavaScriptBackend
         bool usesTableWith,
         bool emitNodeInterop)
     {
-        writer.WriteLine($"function {names.Panic}() {{");
-        writer.Indent();
-        writer.WriteLine("throw new Error(\"Copeland JavaScript backend invariant failure.\");");
-        writer.Unindent();
-        writer.WriteLine("}");
+        EmitInvariantPanic(writer, names);
         writer.WriteLine();
         if (usesUnwrap)
         {
@@ -1818,16 +1832,7 @@ public static partial class JavaScriptBackend
         writer.WriteLine("return Object.freeze(carrier);");
         writer.Unindent();
         writer.WriteLine("}");
-        writer.WriteLine("function __cope_callable_invoke(carrier, signature, argumentsInOrder) {");
-        writer.Indent();
-        writer.WriteLine("if (!__cope_callable_instances.has(carrier) || __cope_callable_signatures.get(carrier) !== signature) throw new Error(\"COPE-PANIC-CALLABLE: invalid callable\");");
-        writer.WriteLine("const code = __cope_callable_codes.get(carrier);");
-        writer.WriteLine("const environment = __cope_callable_environments.get(carrier);");
-        writer.WriteLine("if (environment === undefined) return code(...argumentsInOrder);");
-        writer.WriteLine("if (!__cope_callable_environment_instances.has(environment)) throw new Error(\"COPE-PANIC-CALLABLE: invalid environment\");");
-        writer.WriteLine("return code(...__cope_callable_environment_values.get(environment), ...argumentsInOrder);");
-        writer.Unindent();
-        writer.WriteLine("}");
+        EmitCallableDispatch(writer, "__cope_callable_invoke", signature: null, arity: 0, usesEnvironments: true);
     }
 
     private static void EmitLocalCallableRuntime(JavaScriptTextWriter writer, bool usesCapturedCallables)
@@ -1896,20 +1901,31 @@ public static partial class JavaScriptBackend
             writer.WriteLine("}");
         }
 
-        writer.WriteLine("function __cope_callable_invoke(carrier, signature, argumentsInOrder) {");
+        EmitCallableDispatch(writer, "__cope_callable_invoke", signature: null, arity: 0, usesCapturedCallables);
+    }
+
+    private static void EmitCallableDispatch(JavaScriptTextWriter writer, string name, string? signature, int arity, bool usesEnvironments)
+    {
+        string parameters = signature is null
+            ? ", signature, argumentsInOrder"
+            : string.Concat(Enumerable.Range(0, arity).Select(index => $", arg{index}"));
+        string arguments = signature is null ? "...argumentsInOrder" : parameters.TrimStart(',', ' ');
+        string expectedSignature = signature is null ? "signature" : JavaScriptLiteralWriter.WriteString(signature);
+        writer.WriteLine($"function {name}(carrier{parameters}) {{");
         writer.Indent();
-        writer.WriteLine("if (!__cope_callable_instances.has(carrier) || __cope_callable_signatures.get(carrier) !== signature) throw new Error(\"COPE-PANIC-CALLABLE: invalid callable\");");
+        writer.WriteLine($"if (!__cope_callable_instances.has(carrier) || __cope_callable_signatures.get(carrier) !== {expectedSignature}) throw new Error(\"COPE-PANIC-CALLABLE: invalid callable\");");
         writer.WriteLine("const code = __cope_callable_codes.get(carrier);");
-        if (usesCapturedCallables)
+        if (usesEnvironments)
         {
             writer.WriteLine("const environment = __cope_callable_environments.get(carrier);");
-            writer.WriteLine("if (environment === undefined) return code(...argumentsInOrder);");
+            writer.WriteLine($"if (environment === undefined) return code({arguments});");
             writer.WriteLine("if (!__cope_callable_environment_instances.has(environment)) throw new Error(\"COPE-PANIC-CALLABLE: invalid environment\");");
-            writer.WriteLine("return code(...__cope_callable_environment_values.get(environment), ...argumentsInOrder);");
+            string capturedArguments = arguments.Length == 0 ? string.Empty : $", {arguments}";
+            writer.WriteLine($"return code(...__cope_callable_environment_values.get(environment){capturedArguments});");
         }
         else
         {
-            writer.WriteLine("return code(...argumentsInOrder);");
+            writer.WriteLine($"return code({arguments});");
         }
         writer.Unindent();
         writer.WriteLine("}");
@@ -2919,6 +2935,15 @@ public static partial class JavaScriptBackend
         writer.WriteLine("}");
     }
 
+    private static void EmitInvariantPanic(JavaScriptTextWriter writer, GeneratedNames names)
+    {
+        writer.WriteLine($"function {names.Panic}() {{");
+        writer.Indent();
+        writer.WriteLine("throw new Error(\"Copeland JavaScript backend invariant failure.\");");
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
     private static void EmitBoundaryParameterValidation(
         JavaScriptTextWriter writer,
         MirFunction function,
@@ -2951,6 +2976,7 @@ public static partial class JavaScriptBackend
             }
             else
             {
+                names.UsesBoundaryPanic = true;
                 writer.WriteLine($"if (!({condition})) {{ {names.Panic}(); }}");
             }
         }
@@ -2978,7 +3004,7 @@ public static partial class JavaScriptBackend
         return PayloadTypeCondition(value, type, catalog, results, names);
     }
 
-    private static void EmitFunction(JavaScriptTextWriter writer, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool isBoundaryFunction, bool isComponentTransition = false)
+    private static void EmitFunction(JavaScriptTextWriter writer, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool isBoundaryFunction, bool isComponentTransition, bool nodeArraySnapshot)
     {
         if (function.ComponentState is not null)
         {
@@ -2993,12 +3019,21 @@ public static partial class JavaScriptBackend
         JavaScriptScopeId functionScope = names.EnterFunction(function);
         writer.EnterScope(functionScope);
         string parameters = string.Join(", ", function.Parameters.Select(parameter => JavaScriptIdentifierEncoder.Encode(parameter.Name)));
+        bool usesTryExcept = FunctionUsesTryExcept(function);
+        string? nodeSnapshotMode = null;
+        string? snapshotHelper = null;
+        if (nodeArraySnapshot && !usesTryExcept)
+        {
+            nodeSnapshotMode = names.NextTemporary("node_snapshot");
+            snapshotHelper = names.RegisterNodeArraySnapshot(function.Name);
+            string separator = parameters.Length == 0 ? string.Empty : ", ";
+            parameters += $"{separator}{nodeSnapshotMode} = undefined";
+        }
         string generatorMarker = function.IsGenerator ? "*" : string.Empty;
         writer.WriteLine($"function{generatorMarker} {JavaScriptIdentifierEncoder.Encode(function.Name)}({parameters}) {{");
         writer.Indent();
         EmitBoundaryParameterValidation(writer, function, catalog, results, names, isBoundaryFunction, isComponentTransition);
 
-        bool usesTryExcept = FunctionUsesTryExcept(function);
         if (usesTryExcept)
         {
             var flow = names.NextTemporary("function_flow");
@@ -3037,9 +3072,22 @@ public static partial class JavaScriptBackend
             return;
         }
 
-        foreach (MirStatement statement in function.Body)
+        int normalStatementCount = function.Body.Count;
+        if (snapshotHelper is not null)
         {
-            EmitStatement(writer, statement, function, catalog, results, names, flowEnabled: false);
+            normalStatementCount--;
+        }
+        for (int index = 0; index < normalStatementCount; index++)
+        {
+            EmitStatement(writer, function.Body[index], function, catalog, results, names, flowEnabled: false);
+        }
+        if (snapshotHelper is not null)
+        {
+            var returned = (MirReturnStatement)function.Body[^1];
+            var freeze = (MirMutableArrayFreezeExpression)returned.Expression!;
+            EmittedExpression receiver = EmitExpression(freeze.Receiver, function, catalog, results, names, flowEnabled: false);
+            WritePrelude(writer, receiver.Prelude);
+            writer.WriteLine($"return {nodeSnapshotMode} === {snapshotHelper} ? {snapshotHelper}({receiver.Value}) : Object.freeze({receiver.Value}.slice());");
         }
 
         writer.Unindent();
@@ -4960,6 +5008,11 @@ public static partial class JavaScriptBackend
         var expressions = new List<EmittedExpression> { EmitExpression(invoke.Callee, function, catalog, results, names, flowEnabled) };
         expressions.AddRange(invoke.Arguments.Select(argument => EmitExpression(argument, function, catalog, results, names, flowEnabled)));
         string signature = invoke.Callee.Type is MirCallableType callable ? CallableTypeIdentity(callable) : "invalid";
+        if (IsProduction(names) && invoke.Callee.Type is MirCallableType && invoke.Arguments.Count <= 4)
+        {
+            string helper = names.FixedCallableHelper(signature, invoke.Arguments.Count);
+            return CombineOrdered(expressions, names, values => $"{helper}({string.Join(", ", values)})");
+        }
         return CombineOrdered(expressions, names, values => $"__cope_callable_invoke({values[0]}, {JavaScriptLiteralWriter.WriteString(signature)}, [{string.Join(", ", values.Skip(1))}])");
     }
 
@@ -6648,6 +6701,7 @@ public static partial class JavaScriptBackend
     {
         public Dictionary<string, string>? AsyncFrameVariables { get; set; }
         public MirPresentationAdapter? PresentationAdapter { get; private set; }
+        public bool UsesBoundaryPanic { get; set; }
 
         private readonly Dictionary<EnumInfo, JavaScriptBindingReference> typeTokens;
         private readonly Dictionary<EnumInfo, JavaScriptBindingReference> enumInstances;
@@ -6679,6 +6733,9 @@ public static partial class JavaScriptBackend
         private string? arrayReadHelper;
         private string? checkedIndexHelper;
         private string? arrayAllocationHelper;
+        private readonly Dictionary<(string Signature, int Arity), string> fixedCallableHelpers = [];
+        public string? NodeArraySnapshotHelper { get; private set; }
+        public HashSet<string> NodeArraySnapshotFunctions { get; } = new(StringComparer.Ordinal);
 
         private GeneratedNames(
             NameAllocator allocator,
@@ -6805,6 +6862,34 @@ public static partial class JavaScriptBackend
         public string CheckedIndexHelper() => checkedIndexHelper ??= allocator.AllocateRuntimeHelper("idx");
 
         public string ArrayAllocationHelper() => arrayAllocationHelper ??= allocator.AllocateRuntimeHelper("array");
+
+        public string RegisterNodeArraySnapshot(string functionName)
+        {
+            NodeArraySnapshotFunctions.Add(functionName);
+            return NodeArraySnapshotHelper ??= allocator.AllocateRuntimeHelper("node_snapshot");
+        }
+
+        public JavaScriptNodeProjectionBindings AllocateNodeProjections()
+            => new(allocator.AllocateRuntimeHelper("node_check"), allocator.AllocateRuntimeHelper("node_array"));
+
+        public string FixedCallableHelper(string signature, int arity)
+        {
+            if (!fixedCallableHelpers.TryGetValue((signature, arity), out string? name))
+            {
+                name = allocator.AllocateRuntimeHelper("call");
+                fixedCallableHelpers.Add((signature, arity), name);
+            }
+            return name;
+        }
+
+        public void EmitFixedCallableHelpers(JavaScriptTextWriter writer, bool usesEnvironments)
+        {
+            foreach (var (key, name) in fixedCallableHelpers)
+            {
+                writer.WriteLine();
+                EmitCallableDispatch(writer, name, key.Signature, key.Arity, usesEnvironments);
+            }
+        }
 
         public void EmitArrayHelpers(JavaScriptTextWriter writer)
         {
