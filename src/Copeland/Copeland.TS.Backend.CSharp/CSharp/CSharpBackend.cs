@@ -785,7 +785,25 @@ public static partial class CSharpBackend
         writer.WriteLine("if (index < 0 || index >= values.Length)"); writer.WriteLine("{"); writer.Indent();
         writer.WriteLine("throw new global::System.IndexOutOfRangeException(\"Copeland array index is out of bounds.\");"); writer.Unindent(); writer.WriteLine("}");
         writer.WriteLine("values[index] = value;");
-        writer.WriteLine("return value;"); writer.Unindent(); writer.WriteLine("}"); writer.Unindent(); writer.WriteLine("}"); writer.WriteLine();
+        writer.WriteLine("return value;"); writer.Unindent(); writer.WriteLine("}");
+        writer.WriteLine("public static T Get<T>(global::System.Collections.Generic.List<T> values, int index)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("if (index < 0 || index >= values.Count) throw new global::System.IndexOutOfRangeException(\"Copeland array index is out of bounds.\");");
+        writer.WriteLine("return values[index];");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("public static T Set<T>(global::System.Collections.Generic.List<T> values, int index, T value)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("if (index < 0 || index >= values.Count) throw new global::System.IndexOutOfRangeException(\"Copeland array index is out of bounds.\");");
+        writer.WriteLine("values[index] = value;");
+        writer.WriteLine("return value;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
     }
 
     private static void EmitCallableDelegates(CSharpTextWriter writer, MirProgram program)
@@ -1625,7 +1643,10 @@ public static partial class CSharpBackend
             MirAsyncFrameSlotExpression slot => "frame.__" + slot.SlotId.Value,
             MirMutableArrayConstructionExpression construction => $"CopeArray.Create<{MapType(construction.MutableArrayType.ElementType)}>({EmitAsyncExpression(construction.Length, function)})",
             MirMutableArrayElementAssignmentExpression assignment => $"CopeArray.Set({EmitAsyncExpression(assignment.Receiver, function)}, {EmitAsyncExpression(assignment.Index, function)}, {EmitAsyncExpression(assignment.Value, function)})",
-            MirMutableArrayFreezeExpression freeze => $"({MapType(freeze.ArrayType)}){EmitAsyncExpression(freeze.Receiver, function)}.Clone()",
+            MirMutableArrayLengthExpression length => $"({EmitAsyncExpression(length.Receiver, function)}).{MutableCollectionLengthMember(length.Receiver.Type)}",
+            MirMutableArrayElementAccessExpression access => $"CopeArray.Get({EmitAsyncExpression(access.Receiver, function)}, {EmitAsyncExpression(access.Index, function)})",
+            MirMutableArrayIterableExpression iterable => EmitMutableCollectionIteration(iterable, EmitAsyncExpression(iterable.Receiver, function)),
+            MirMutableArrayFreezeExpression freeze => EmitMutableCollectionFreeze(freeze, EmitAsyncExpression(freeze.Receiver, function)),
             MirAssignmentExpression assignment => AssignmentText(assignment, "frame." + CSharpNameMangler.Mangle(assignment.Name), EmitAsyncExpression(assignment.Expression, function)),
             MirBinaryExpression binary => BinaryText(binary, EmitAsyncExpression(binary.Left, function), EmitAsyncExpression(binary.Right, function)),
             MirUnaryExpression unary => UnaryText(unary, EmitAsyncExpression(unary.Operand, function)),
@@ -1970,11 +1991,11 @@ public static partial class CSharpBackend
             MirArrayElementAccessExpression access => $"CopeArray.Get({EmitExpression(writer, access.Receiver, function, enumNames, ref tempIndex, diagnostics)}, {EmitExpression(writer, access.Index, function, enumNames, ref tempIndex, diagnostics)})",
             MirArrayIterableExpression iterable => EmitExpression(writer, iterable.Receiver, function, enumNames, ref tempIndex, diagnostics),
             MirMutableArrayConstructionExpression construction => $"CopeArray.Create<{MapType(construction.MutableArrayType.ElementType)}>({EmitExpression(writer, construction.Length, function, enumNames, ref tempIndex, diagnostics)})",
-            MirMutableArrayLengthExpression length => $"{ParenthesizeAssignmentOperand(length.Receiver, EmitExpression(writer, length.Receiver, function, enumNames, ref tempIndex, diagnostics))}.Length",
+            MirMutableArrayLengthExpression length => $"{ParenthesizeAssignmentOperand(length.Receiver, EmitExpression(writer, length.Receiver, function, enumNames, ref tempIndex, diagnostics))}.{MutableCollectionLengthMember(length.Receiver.Type)}",
             MirMutableArrayElementAccessExpression access => $"CopeArray.Get({EmitExpression(writer, access.Receiver, function, enumNames, ref tempIndex, diagnostics)}, {EmitExpression(writer, access.Index, function, enumNames, ref tempIndex, diagnostics)})",
             MirMutableArrayElementAssignmentExpression assignment => $"CopeArray.Set({EmitExpression(writer, assignment.Receiver, function, enumNames, ref tempIndex, diagnostics)}, {EmitExpression(writer, assignment.Index, function, enumNames, ref tempIndex, diagnostics)}, {EmitExpression(writer, assignment.Value, function, enumNames, ref tempIndex, diagnostics)})",
-            MirMutableArrayIterableExpression iterable => EmitExpression(writer, iterable.Receiver, function, enumNames, ref tempIndex, diagnostics),
-            MirMutableArrayFreezeExpression freeze => $"({MapType(freeze.ArrayType)}){EmitExpression(writer, freeze.Receiver, function, enumNames, ref tempIndex, diagnostics)}.Clone()",
+            MirMutableArrayIterableExpression iterable => EmitMutableCollectionIteration(iterable, EmitExpression(writer, iterable.Receiver, function, enumNames, ref tempIndex, diagnostics)),
+            MirMutableArrayFreezeExpression freeze => EmitMutableCollectionFreeze(freeze, EmitExpression(writer, freeze.Receiver, function, enumNames, ref tempIndex, diagnostics)),
             MirBatchExpression batch => EmitBatchExpression(writer, batch, function, enumNames, ref tempIndex, diagnostics),
             MirRecordConstructionExpression construction => EmitRecordConstruction(writer, construction, function, enumNames, ref tempIndex, diagnostics),
             MirRecordFieldAccessExpression access => EmitRecordFieldAccess(writer, access, function, enumNames, ref tempIndex, diagnostics),
@@ -2040,10 +2061,25 @@ public static partial class CSharpBackend
         return binary.Operator is "+" or "-" or "*" ? $"unchecked({expression})" : expression;
     }
 
+    private static string MutableCollectionLengthMember(MirType type)
+        => type is MirMutableArrayType { IsGrowable: true } ? "Count" : "Length";
+
+    private static string EmitMutableCollectionIteration(MirMutableArrayIterableExpression iterable, string receiver)
+        => iterable.Receiver.Type is MirMutableArrayType { IsGrowable: true } ? $"({receiver}).ToArray()" : receiver;
+
+    private static string EmitMutableCollectionFreeze(MirMutableArrayFreezeExpression freeze, string receiver)
+        => freeze.Receiver.Type is MirMutableArrayType { IsGrowable: true }
+            ? $"({receiver}).ToArray()"
+            : $"({MapType(freeze.ArrayType)})({receiver}).Clone()";
+
     private static string? NativeCallName(MirCallExpression call)
     {
         if (call.NativeOperation is null) return null;
         UsesNativeStrings.Value = true;
+        if (call.NativeOperation == MirNativeOperation.MutableListCreate && call.Type is MirMutableArrayType list)
+        {
+            return $"__cope_native_MutableListCreate<{MapType(list.ElementType)}>";
+        }
         return "__cope_native_" + call.NativeOperation.Value;
     }
 
@@ -3544,7 +3580,30 @@ public static partial class CSharpBackend
         return "global::" + definition + "<" + string.Join(", ", type.TypeArguments.Select(MapType)) + ">";
     }
 
-    private static string MapType(MirType type) => type switch { MirType { Identifier: "int" } => "int", MirType { Identifier: "long" } => "long", MirType { Identifier: "float" or "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirType { Identifier: "Document" } => "TextDocument", MirClrType clr => MapClrType(clr), MirArrayType array => MapType(array.ElementType) + "[]", MirMutableArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirAsyncType async => $"CopeAsync<{MapValueStorageType(async.EventualType)}>", MirIterableType iterable => $"global::System.Collections.Generic.IEnumerable<{MapValueStorageType(iterable.ElementType)}>", MirCallableType callable => CallableDelegateName(callable), MirRecordType record => RecordTypeName(record.RecordTypeId), MirTableType table => TableTypeName(table.TableId), MirTableRowType row => TableRowTypeName(row.RowTypeId), MirColumnType column => $"CopeColumn<{MapType(column.ElementType)}>", MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
+    private static string MapType(MirType type) => type switch
+    {
+        MirType { Identifier: "int" } => "int",
+        MirType { Identifier: "long" } => "long",
+        MirType { Identifier: "float" or "number" } => "double",
+        MirType { Identifier: "string" } => "string",
+        MirType { Identifier: "boolean" } => "bool",
+        MirType { Identifier: "void" } => "void",
+        MirType { Identifier: "Document" } => "TextDocument",
+        MirClrType clr => MapClrType(clr),
+        MirArrayType array => MapType(array.ElementType) + "[]",
+        MirMutableArrayType { IsGrowable: true } list => $"global::System.Collections.Generic.List<{MapType(list.ElementType)}>",
+        MirMutableArrayType array => MapType(array.ElementType) + "[]",
+        MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>",
+        MirAsyncType async => $"CopeAsync<{MapValueStorageType(async.EventualType)}>",
+        MirIterableType iterable => $"global::System.Collections.Generic.IEnumerable<{MapValueStorageType(iterable.ElementType)}>",
+        MirCallableType callable => CallableDelegateName(callable),
+        MirRecordType record => RecordTypeName(record.RecordTypeId),
+        MirTableType table => TableTypeName(table.TableId),
+        MirTableRowType row => TableRowTypeName(row.RowTypeId),
+        MirColumnType column => $"CopeColumn<{MapType(column.ElementType)}>",
+        MirType named => CSharpNameMangler.Mangle(named.Identifier),
+        _ => throw new InvalidOperationException("Unknown structured MIR type."),
+    };
 
     private static string EmitTextDocument(
         CSharpTextWriter writer,
@@ -4116,6 +4175,7 @@ public static partial class CSharpBackend
     private static string MirTypeIdentity(MirType type) => type switch
     {
         MirArrayType array => "array(" + MirTypeIdentity(array.ElementType) + ")",
+        MirMutableArrayType { IsGrowable: true } list => "mutable-list(" + MirTypeIdentity(list.ElementType) + ")",
         MirResultType result => "result(" + MirTypeIdentity(result.SuccessType) + "," + MirTypeIdentity(result.ErrorType) + ")",
         MirCallableType callable => CallableTypeIdentity(callable),
         MirRecordType record => "record:" + record.RecordTypeId.Value,

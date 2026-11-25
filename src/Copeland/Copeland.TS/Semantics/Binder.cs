@@ -8578,10 +8578,31 @@ public static partial class Binder
                 {
                     if (c.Arguments.Count != 0)
                     {
-                        Report("COPE-ARRAY-0007", "MutableArray.freeze() does not accept arguments.", c.OpenParenToken);
+                        string collection = mutableArray.IsGrowable ? "MutableList" : "MutableArray";
+                        Report("COPE-ARRAY-0007", $"{collection}.freeze() does not accept arguments.", c.OpenParenToken);
                         return new BoundErrorExpression();
                     }
                     return new BoundMutableArrayFreezeExpression(tableReceiver, new ArrayTypeSymbol(mutableArray.ElementType));
+                }
+                if (tableReceiver.Type is MutableArrayTypeSymbol { IsGrowable: true } list && tableMember.NameToken.Text == "append")
+                {
+                    if (c.Arguments.Count != 1)
+                    {
+                        Report("COPE-ARRAY-0009", "MutableList.append(value) expects one element.", c.OpenParenToken);
+                        return new BoundErrorExpression();
+                    }
+                    BoundExpression value = BindExpression(c.Arguments[0], list.ElementType);
+                    if (!IsAssignable(list.ElementType, value.Type))
+                    {
+                        ReportTypeMismatch("COPE-TYPE-0005", list.ElementType, value.Type, InferenceAnchor(c.Arguments[0]));
+                        return new BoundErrorExpression();
+                    }
+                    var append = new FunctionSymbol("MutableList.append",
+                        [new ParameterSymbol("list", list), new ParameterSymbol("value", list.ElementType)], PrimitiveTypeSymbol.Void)
+                    {
+                        NativeOperation = Copeland.TS.Mir.MirNativeOperation.MutableListAppend,
+                    };
+                    return new BoundCallExpression(append, [tableReceiver, value]);
                 }
                 if (tableReceiver.Type is ClrTypeSymbol clrReceiver)
                 {
@@ -10612,6 +10633,29 @@ public static partial class Binder
                     closed.GetConstructors().Where(_clrResolver.IsMemberVisible), null, closed.FullName ?? closed.Name);
             }
 
+            if (call.Target is NameExpressionSyntax { IdentifierToken.Text: "MutableList" } listName)
+            {
+                if (call.TypeArguments.Count != 1 || call.Arguments.Count != 0)
+                {
+                    Report("COPE-ARRAY-0009", "MutableList<T>() expects one element type and no arguments.", listName.IdentifierToken);
+                    return new BoundErrorExpression();
+                }
+                TypeSymbol elementType = BindType(call.TypeArguments[0], call.LessToken, "COPE-ARRAY-0009", "mutable list element");
+                if (elementType == PrimitiveTypeSymbol.Error)
+                {
+                    return new BoundErrorExpression();
+                }
+                if (elementType == PrimitiveTypeSymbol.Void)
+                {
+                    Report("COPE-ARRAY-0009", "MutableList<T>() requires a value element type.", call.LessToken);
+                    return new BoundErrorExpression();
+                }
+                var create = new FunctionSymbol("MutableList", [], new MutableArrayTypeSymbol(elementType, isGrowable: true))
+                {
+                    NativeOperation = Copeland.TS.Mir.MirNativeOperation.MutableListCreate,
+                };
+                return new BoundCallExpression(create, []);
+            }
             if (call.Target is NameExpressionSyntax { IdentifierToken.Text: "MutableArray" } mutableArrayName)
             {
                 if (call.TypeArguments.Count != 1 || call.Arguments.Count is not 1 and not 2)
@@ -11231,7 +11275,7 @@ public static partial class Binder
                 TableRowTypeSymbol row => "row:" + row.StableIdentity,
                 ColumnTypeSymbol column => "column(" + ClosedTypeIdentity(column.ElementType, depthRemaining - 1) + ")",
                 ArrayTypeSymbol array => "array(" + ClosedTypeIdentity(array.ElementType, depthRemaining - 1) + ")",
-                MutableArrayTypeSymbol array => "mutable-array(" + ClosedTypeIdentity(array.ElementType, depthRemaining - 1) + ")",
+                MutableArrayTypeSymbol array => (array.IsGrowable ? "mutable-list(" : "mutable-array(") + ClosedTypeIdentity(array.ElementType, depthRemaining - 1) + ")",
                 SpanTypeSymbol span => "span(" + ClosedTypeIdentity(span.ElementType, depthRemaining - 1) + ")",
                 ResultTypeSymbol result => "result(" + ClosedTypeIdentity(result.SuccessType, depthRemaining - 1) + "," + ClosedTypeIdentity(result.ErrorType, depthRemaining - 1) + ")",
                 CallableTypeSymbol callable => "callable(" + string.Join(",", callable.Parameters.Select(parameter => ClosedTypeIdentity(parameter.Type, depthRemaining - 1))) + ")->" + ClosedTypeIdentity(callable.ReturnType, depthRemaining - 1),
@@ -11492,7 +11536,7 @@ public static partial class Binder
                 OptionTypeSymbol option => GetOrCreateOptionType(SubstituteType(option.ValueType, substitutions)),
                 RecordTypeSymbol { GenericDefinition: not null } record => CloseHostRecord(record.GenericDefinition, record.GenericArguments.Select(argument => SubstituteType(argument, substitutions)).ToArray()),
                 ArrayTypeSymbol array => new ArrayTypeSymbol(SubstituteType(array.ElementType, substitutions)),
-                MutableArrayTypeSymbol array => new MutableArrayTypeSymbol(SubstituteType(array.ElementType, substitutions)),
+                MutableArrayTypeSymbol array => new MutableArrayTypeSymbol(SubstituteType(array.ElementType, substitutions), array.IsGrowable),
                 SpanTypeSymbol span => new SpanTypeSymbol(SubstituteType(span.ElementType, substitutions)),
                 IterableTypeSymbol iterable => new IterableTypeSymbol(SubstituteType(iterable.ElementType, substitutions)),
                 ResultTypeSymbol result => new ResultTypeSymbol(SubstituteType(result.SuccessType, substitutions), SubstituteType(result.ErrorType, substitutions)),
@@ -13639,7 +13683,7 @@ public static partial class Binder
                 StructuralObjectTypeSyntax o => BindStructuralObjectType(o, anchor, missingId, missingPrefix),
                 UnionTypeSyntax u => new UnionTypeSymbol([BindType(u.Left, anchor, missingId, missingPrefix), BindType(u.Right, anchor, missingId, missingPrefix)]),
                 IntersectionTypeSyntax i => new IntersectionTypeSymbol([BindType(i.Left, anchor, missingId, missingPrefix), BindType(i.Right, anchor, missingId, missingPrefix)]),
-                GenericTypeSyntax generic => generic.Identifier.Text == "MutableArray"
+                GenericTypeSyntax generic => generic.Identifier.Text is "MutableArray" or "MutableList"
                     ? BindMutableArrayType(generic, anchor, missingId, missingPrefix)
                     : generic.Identifier.Text == "Span"
                         ? BindSpanType(generic, anchor, missingId, missingPrefix)
@@ -13738,10 +13782,17 @@ public static partial class Binder
         {
             if (syntax.TypeArguments.Count != 1)
             {
-                Report("COPE-ARRAY-0005", "MutableArray expects exactly one element type.", syntax.Identifier);
+                Report("COPE-ARRAY-0005", $"{syntax.Identifier.Text} expects exactly one element type.", syntax.Identifier);
                 return PrimitiveTypeSymbol.Error;
             }
-            return new MutableArrayTypeSymbol(BindType(syntax.TypeArguments[0], anchor, missingId, missingPrefix));
+            TypeSymbol element = BindType(syntax.TypeArguments[0], anchor, missingId, missingPrefix);
+            bool isGrowable = syntax.Identifier.Text == "MutableList";
+            if (isGrowable && element == PrimitiveTypeSymbol.Void)
+            {
+                Report("COPE-ARRAY-0009", "MutableList<T> requires a value element type.", syntax.Identifier);
+                return PrimitiveTypeSymbol.Error;
+            }
+            return new MutableArrayTypeSymbol(element, isGrowable);
         }
 
         private TypeSymbol BindSpanType(GenericTypeSyntax syntax, SyntaxToken anchor, string missingId, string missingPrefix)

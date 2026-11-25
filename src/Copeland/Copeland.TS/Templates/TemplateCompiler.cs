@@ -985,7 +985,7 @@ public static partial class TemplateCompiler
                 ArrayTypeSymbol array => new ArrayTypeSymbol(
                     ResolveTypeArgument(array.ElementType, activeTypeArguments)),
                 MutableArrayTypeSymbol array => new MutableArrayTypeSymbol(
-                    ResolveTypeArgument(array.ElementType, activeTypeArguments)),
+                    ResolveTypeArgument(array.ElementType, activeTypeArguments), array.IsGrowable),
                 SpanTypeSymbol span => new SpanTypeSymbol(
                     ResolveTypeArgument(span.ElementType, activeTypeArguments)),
                 ResultTypeSymbol result => new ResultTypeSymbol(

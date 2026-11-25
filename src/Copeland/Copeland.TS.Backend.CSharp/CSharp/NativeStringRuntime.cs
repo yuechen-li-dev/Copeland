@@ -5,6 +5,16 @@ internal static class NativeStringRuntime
     internal static void Emit(CSharpTextWriter writer)
     {
         const string source = """
+internal static global::System.Collections.Generic.List<T> __cope_native_MutableListCreate<T>()
+{
+    return new global::System.Collections.Generic.List<T>();
+}
+
+internal static void __cope_native_MutableListAppend<T>(global::System.Collections.Generic.List<T> list, T value)
+{
+    list.Add(value);
+}
+
 internal static T[] __cope_native_MutableArrayFilled<T>(int length, T initializer)
 {
     if (length < 0) throw new global::System.ArgumentOutOfRangeException(nameof(length), "Copeland mutable array length cannot be negative.");

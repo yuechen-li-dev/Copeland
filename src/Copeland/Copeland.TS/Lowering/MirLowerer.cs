@@ -1612,7 +1612,7 @@ public static class MirLowerer
     {
         ArrayTypeSymbol array => new MirArrayType(ToMirType(array.ElementType)),
         SpanTypeSymbol span => new MirArrayType(ToMirType(span.ElementType)),
-        MutableArrayTypeSymbol array => new MirMutableArrayType(ToMirType(array.ElementType)),
+        MutableArrayTypeSymbol array => new MirMutableArrayType(ToMirType(array.ElementType), array.IsGrowable),
         AsyncTypeSymbol async => new MirAsyncType(ToMirType(async.EventualType)),
         IterableTypeSymbol iterable => new MirIterableType(ToMirType(iterable.ElementType)),
         TableRowsTypeSymbol rows => new MirIterableType(ToMirType(rows.TableType.RowType)),

@@ -89,6 +89,31 @@
     "ClrOnly": false
   },
   {
+    "Id": "mutable-list-growth-and-snapshot",
+    "Category": "collections",
+    "Input": "function append<T>(items: MutableList<T>, value: T): void { items.append(value); } function run(): int[] { const items = MutableList<int>(); for (let index = 0; index < 40; index++) { append<int>(items, index); } const snapshot = items.freeze(); items[0] = 8; items.append(40); return [snapshot.length, snapshot[0], items[0], items[items.length - 1]]; }",
+    "Outcome": "compile",
+    "ExpectedJson": "[40,0,8,40]",
+    "ClrOnly": false
+  },
+  {
+    "Id": "mutable-list-checked-index",
+    "Category": "collections",
+    "Input": "function run(): int { const items = MutableList<int>(); items.append(7); return items[1]; }",
+    "Outcome": "compile",
+    "ExpectedJson": null,
+    "ExpectedFailure": "Copeland array index is out of bounds.",
+    "ClrOnly": false
+  },
+  {
+    "Id": "mutable-list-iteration-snapshot",
+    "Category": "collections",
+    "Input": "function run(): int[] { const items = MutableList<int>(); items.append(1); items.append(2); let sum = 0; for (const item of items) { sum += item; if (item == 1) { items.append(3); } } return [sum, items.length]; }",
+    "Outcome": "compile",
+    "ExpectedJson": "[3,3]",
+    "ClrOnly": false
+  },
+  {
     "Id": "increment-postfix",
     "Category": "loops",
     "Input": "function run(): int { let value: int = 3; const previous: int = value++; return previous * 10 + value; }",

@@ -5,6 +5,14 @@ internal static class NativeStringRuntime
     internal static void Emit(JavaScriptTextWriter writer)
     {
         const string source = """
+function __cope_native_MutableListCreate() {
+    return [];
+}
+
+function __cope_native_MutableListAppend(list, value) {
+    list.push(value);
+}
+
 function __cope_native_MutableArrayFilled(length, initializer) {
     if (length < 0) throw new Error("Copeland mutable array length cannot be negative.");
     return new Array(length).fill(initializer);

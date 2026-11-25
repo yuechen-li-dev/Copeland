@@ -69,7 +69,7 @@ public static partial class JavaScriptBackend
     private static bool IsProduction(GeneratedNames names)
         => names.Profile == JavaScriptEmissionProfile.Production;
 
-    private static string ProductionRecordFieldName(MirRecordDefinition record, MirRecordFieldDefinition field)
+    internal static string ProductionRecordFieldName(MirRecordDefinition record, MirRecordFieldDefinition field)
     {
         int index = FindIndex(record.Fields, field);
         return "$f" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -870,6 +870,10 @@ public static partial class JavaScriptBackend
             case MirMutableArrayConstructionExpression construction:
                 ValidateExpression(construction.Length, functionReturnType, context, functions, catalog, diagnostics);
                 RequireType(construction.Length.Type, "int", $"mutable array length in {context}", diagnostics);
+                if (construction.MutableArrayType.IsGrowable)
+                {
+                    AddInvalid(diagnostics, $"fixed-length construction in {context} cannot create a MutableList");
+                }
                 break;
             case MirMutableArrayLengthExpression length:
                 ValidateExpression(length.Receiver, functionReturnType, context, functions, catalog, diagnostics);
@@ -2073,12 +2077,13 @@ public static partial class JavaScriptBackend
         _ => false,
     };
 
-    private static string CallableTypeIdentity(MirCallableType callable)
+    internal static string CallableTypeIdentity(MirCallableType callable)
         => "(" + string.Join(",", callable.Parameters.Select(parameter => MirTypeIdentity(parameter.Type))) + ")->" + MirTypeIdentity(callable.ReturnType);
 
     private static string MirTypeIdentity(MirType type) => type switch
     {
         MirArrayType array => "array(" + MirTypeIdentity(array.ElementType) + ")",
+        MirMutableArrayType { IsGrowable: true } list => "mutable-list(" + MirTypeIdentity(list.ElementType) + ")",
         MirResultType result => "result(" + MirTypeIdentity(result.SuccessType) + "," + MirTypeIdentity(result.ErrorType) + ")",
         MirCallableType callable => CallableTypeIdentity(callable),
         MirRecordType record => "record:" + record.RecordTypeId.Value,
@@ -3373,18 +3378,27 @@ public static partial class JavaScriptBackend
             ? AsyncFrameSlotReference(new MirFrameSlotId(slot))
             : "frame." + JavaScriptIdentifierEncoder.Encode(name);
 
-    private static string EmitAsyncArrayAssignment(MirMutableArrayElementAssignmentExpression assignment, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    private static string EmitAsyncMutableArrayFreeze(
+        MirMutableArrayFreezeExpression freeze, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
     {
-        string receiver = EmitAsyncExpression(assignment.Receiver, catalog, results, names);
-        string index = EmitAsyncExpression(assignment.Index, catalog, results, names);
-        string value = EmitAsyncExpression(assignment.Value, catalog, results, names);
-        return "((array, index, value) => {\n"
-            + "    if (index < 0 || index >= array.length) {\n"
-            + "        throw new RangeError(\"Copeland array index is out of bounds.\");\n"
-            + "    }\n"
-            + "    array[index] = value;\n"
-            + "    return value;\n"
-            + $"}})({receiver}, {index}, {value})";
+        string receiver = EmitAsyncExpression(freeze.Receiver, catalog, results, names);
+        return freeze.Receiver.Type is MirMutableArrayType { IsGrowable: true }
+            ? $"Object.freeze(({receiver}).slice())"
+            : $"{receiver}.slice()";
+    }
+
+    private static string EmitAsyncMutableArrayOperation(MirExpression receiver, MirExpression index, MirExpression? value,
+        EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    {
+        string arrayExpression = EmitAsyncExpression(receiver, catalog, results, names);
+        string indexExpression = EmitAsyncExpression(index, catalog, results, names);
+        string boundsCheck = "if (index < 0 || index >= array.length) throw new RangeError(\"Copeland array index is out of bounds.\");";
+        if (value is null)
+        {
+            return $"((array, index) => {{ {boundsCheck} return array[index]; }})({arrayExpression}, {indexExpression})";
+        }
+        string valueExpression = EmitAsyncExpression(value, catalog, results, names);
+        return $"((array, index, value) => {{ {boundsCheck} array[index] = value; return value; }})({arrayExpression}, {indexExpression}, {valueExpression})";
     }
 
     private static string EmitAsyncExpression(MirExpression expression, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
@@ -3398,8 +3412,11 @@ public static partial class JavaScriptBackend
             MirVariableExpression variable => AsyncFrameVariableReference(variable.Name, names),
             MirAsyncFrameSlotExpression slot => AsyncFrameSlotReference(slot.SlotId),
             MirMutableArrayConstructionExpression construction => $"Array({EmitAsyncExpression(construction.Length, catalog, results, names)}).fill({DefaultJavaScriptValue(construction.MutableArrayType.ElementType)})",
-            MirMutableArrayElementAssignmentExpression assignment => EmitAsyncArrayAssignment(assignment, catalog, results, names),
-            MirMutableArrayFreezeExpression freeze => $"{EmitAsyncExpression(freeze.Receiver, catalog, results, names)}.slice()",
+            MirMutableArrayLengthExpression length => $"({EmitAsyncExpression(length.Receiver, catalog, results, names)}).length",
+            MirMutableArrayElementAccessExpression access => EmitAsyncMutableArrayOperation(access.Receiver, access.Index, null, catalog, results, names),
+            MirMutableArrayElementAssignmentExpression assignment => EmitAsyncMutableArrayOperation(assignment.Receiver, assignment.Index, assignment.Value, catalog, results, names),
+            MirMutableArrayIterableExpression iterable => MutableCollectionIteration(iterable, EmitAsyncExpression(iterable.Receiver, catalog, results, names)),
+            MirMutableArrayFreezeExpression freeze => EmitAsyncMutableArrayFreeze(freeze, catalog, results, names),
             MirAssignmentExpression assignment => AsyncAssignmentText(assignment, AsyncFrameVariableReference(assignment.Name, names), EmitAsyncExpression(assignment.Expression, catalog, results, names)),
             MirBinaryExpression binary => BinaryText(binary, EmitAsyncExpression(binary.Left, catalog, results, names), EmitAsyncExpression(binary.Right, catalog, results, names)),
             MirUnaryExpression unary => UnaryText(unary, EmitAsyncExpression(unary.Operand, catalog, results, names)),
@@ -3705,7 +3722,7 @@ public static partial class JavaScriptBackend
             MirMutableArrayLengthExpression length => EmitMutableArrayLength(length, function, catalog, results, names, flowEnabled),
             MirMutableArrayElementAccessExpression access => EmitMutableArrayElementAccess(access, function, catalog, results, names, flowEnabled),
             MirMutableArrayElementAssignmentExpression assignment => EmitMutableArrayElementAssignment(assignment, function, catalog, results, names, flowEnabled),
-            MirMutableArrayIterableExpression iterable => EmitExpression(iterable.Receiver, function, catalog, results, names, flowEnabled),
+            MirMutableArrayIterableExpression iterable => EmitMutableArrayIterable(iterable, function, catalog, results, names, flowEnabled),
             MirMutableArrayFreezeExpression freeze => EmitMutableArrayFreeze(freeze, function, catalog, results, names, flowEnabled),
             MirBatchExpression batch => EmitBatchExpression(batch, function, catalog, results, names, flowEnabled),
             MirRecordConstructionExpression construction => EmitRecordConstruction(construction, function, catalog, results, names, flowEnabled),
@@ -4953,6 +4970,17 @@ public static partial class JavaScriptBackend
         string expression = $"(() => {{ const {arrayTemporary} = {receiver.Value}; const {indexTemporary} = {index.Value}; if ({indexTemporary} < 0 || {indexTemporary} >= {arrayTemporary}.length) throw new RangeError(\"Copeland array index is out of bounds.\"); {operation}; }})()";
         return new EmittedExpression(prelude, expression);
     }
+
+    private static EmittedExpression EmitMutableArrayIterable(
+        MirMutableArrayIterableExpression iterable, MirFunction function, EnumCatalog catalog,
+        ResultCatalog results, GeneratedNames names, bool flowEnabled)
+    {
+        EmittedExpression receiver = EmitExpression(iterable.Receiver, function, catalog, results, names, flowEnabled);
+        return new EmittedExpression(receiver.Prelude, MutableCollectionIteration(iterable, receiver.Value));
+    }
+
+    private static string MutableCollectionIteration(MirMutableArrayIterableExpression iterable, string receiver)
+        => iterable.Receiver.Type is MirMutableArrayType { IsGrowable: true } ? $"({receiver}).slice()" : receiver;
 
     private static EmittedExpression EmitMutableArrayFreeze(MirMutableArrayFreezeExpression freeze, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
@@ -6705,7 +6733,7 @@ public static partial class JavaScriptBackend
                 MirTableRowType row => "row(" + row.RowTypeId + ")",
                 MirColumnType column => "column(" + StableTypeIdentity(column.ElementType) + ")",
                 MirArrayType array => "array(" + StableTypeIdentity(array.ElementType) + ")",
-                MirMutableArrayType array => "mutable-array(" + StableTypeIdentity(array.ElementType) + ")",
+                MirMutableArrayType array => (array.IsGrowable ? "mutable-list(" : "mutable-array(") + StableTypeIdentity(array.ElementType) + ")",
                 MirResultType nested => "result(" + StableTypeIdentity(nested.SuccessType) + "!" + StableTypeIdentity(nested.ErrorType) + ")",
                 _ => type.Identifier,
             };

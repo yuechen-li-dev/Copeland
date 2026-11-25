@@ -342,6 +342,66 @@ public sealed class ContributionStreamTests
     }
 
     [Fact]
+    public async Task Node_facades_project_record_snapshots_and_validate_demand_driven_callbacks()
+    {
+        CopelandProjectCompilation compilation = CopelandProjectCompiler.CompileToMir(
+        [
+            new CopelandProjectSource("Data.ts", "Data.ts", """
+                export record Item { id: int; labels: string[]; }
+                export function __cope_node_export_0(): int { return 31; }
+                export function arg0(value: int): int { return value; }
+                export function Update(item: Item, transform: (value: Item) => Item): Item {
+                    if (item.id < 0) {
+                        return item;
+                    }
+                    return transform(item);
+                }
+                """),
+            new CopelandProjectSource("Main.ts", "Main.ts", """
+                import { Item, Update } from "./Data";
+                export record Packet { items: Item[]; }
+                export function Main(packet: Packet, transform: (value: Item) => Item): Packet {
+                    const items = MutableList<Item>();
+                    for (const item of packet.items) {
+                        items.append(Update(item, transform));
+                    }
+                    return { items: items.freeze() };
+                }
+                """)
+        ], Options());
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        var options = new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Production };
+        Assert.DoesNotContain("Main.node.js", JavaScriptProjectEmitter.Emit(compilation.MirProjectGraph!, options).Files.Keys);
+        JavaScriptProjectCompilation emitted = JavaScriptProjectEmitter.Emit(
+            compilation.MirProjectGraph!, options with { EmitNodeInterop = true });
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        var files = new Dictionary<string, string>(emitted.Files) { ["package.json"] = "{\"type\":\"module\"}" };
+        Assert.Equal("ok", await RunNode("""
+            import assert from 'node:assert/strict';
+            import { Main } from './Main.node.js';
+            import { __cope_node_export_0, arg0 } from './Data.node.js';
+            assert.equal(__cope_node_export_0(), 31);
+            assert.equal(arg0(42), 42);
+            const packet = { items: [{ id: -1, labels: [] }, { id: 4, labels: ['original'] }] };
+            const visited = [];
+            const result = Main(packet, item => {
+                visited.push(item.id);
+                assert.deepEqual(Reflect.ownKeys(item), ['id', 'labels']);
+                item.labels.push('changed');
+                return { id: item.id + 1, labels: item.labels };
+            });
+            assert.deepEqual(visited, [4]);
+            assert.deepEqual(result, { items: [{ id: -1, labels: [] }, { id: 5, labels: ['original', 'changed'] }] });
+            assert.deepEqual(packet.items[1].labels, ['original']);
+            assert.throws(() => Main(packet, () => ({ id: false, labels: [] })), /expected int/);
+            assert.throws(() => Main(packet, 7), /expected function/);
+            assert.throws(() => Main({ items: [{ id: 4 }] }, value => value), /expected fields for Item/);
+            assert.throws(() => Main({ items: new Array(1) }, value => value), /expected a dense array/);
+            console.log('ok');
+            """, files));
+    }
+
+    [Fact]
     public async Task Option_type_parameters_with_the_same_spelling_retain_their_generic_owner()
     {
         CopelandProjectCompilation compilation = Compile("""

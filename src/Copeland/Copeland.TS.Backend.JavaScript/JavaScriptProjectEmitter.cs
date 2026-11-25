@@ -14,6 +14,13 @@ public static class JavaScriptProjectEmitter
     {
         ArgumentNullException.ThrowIfNull(graph);
         JavaScriptEmissionOptions effectiveOptions = options ?? new JavaScriptEmissionOptions();
+        if (effectiveOptions.EmitNodeInterop
+            && (effectiveOptions.RuntimeTarget != JavaScriptRuntimeTarget.Node
+                || effectiveOptions.Profile != JavaScriptEmissionProfile.Production))
+        {
+            return new JavaScriptProjectCompilation(new Dictionary<string, string>(),
+                [new JavaScriptDiagnostic("COPE-JS-0028", "Node interop requires production Node project emission.")]);
+        }
         IReadOnlySet<string> boundaryFunctions = graph.Modules
             .SelectMany(module => module.Exports)
             .Where(export => export.RuntimeName is not null)
@@ -31,6 +38,9 @@ public static class JavaScriptProjectEmitter
         }
 
         var files = new Dictionary<string, string>(StringComparer.Ordinal);
+        var modulePaths = effectiveOptions.EmitNodeInterop
+            ? graph.Modules.Select(module => GetOutputPath(module.Id)).ToHashSet(StringComparer.OrdinalIgnoreCase)
+            : null;
         var runtimeExports = graph.AggregateProgram.Functions.Select(function => function.Name)
             .Concat(graph.AggregateProgram.Flows.Select(flow => flow.Name))
             .ToHashSet(StringComparer.Ordinal);
@@ -125,6 +135,21 @@ public static class JavaScriptProjectEmitter
                 lines.Add($"export {{ {helper} as {JavaScriptIdentifierEncoder.Encode(export.Name)} }};");
             }
 
+            if (modulePaths is not null)
+            {
+                string facadePath = outputPath[..^".js".Length] + ".node.js";
+                string? facade = NodeInteropEmitter.Emit(graph.AggregateProgram.Records, module, exports, lines,
+                    GetRelativeSpecifier(facadePath, outputPath));
+                if (facade is not null)
+                {
+                    if (modulePaths.Contains(facadePath))
+                    {
+                        return new JavaScriptProjectCompilation(new Dictionary<string, string>(),
+                            [new JavaScriptDiagnostic("COPE-JS-0028", $"Node interop output '{facadePath}' overlaps a source module.")]);
+                    }
+                    files.Add(facadePath, facade);
+                }
+            }
             files.Add(outputPath, string.Join(Environment.NewLine, lines) + Environment.NewLine);
         }
 

@@ -53,9 +53,9 @@ JavaScript emission.
 
 Copy or rewrite the operation into the scaffold's `src/`, keep its import
 closure Copeland-owned, and test its output against the original emitted
-library. Copeland's generated modules live under `dist/src/`. For records
-crossing the boundary, use typed accessors or another documented data
-projection so the facade exposes the original JavaScript API.
+library. Copeland's generated modules live under `dist/src/`. For a Node
+facade that passes records or callbacks, add `--node-interop` to the build and
+import the generated `*.node.js` module.
 
 For example, a facade beside the two builds can route the two-string
 `diffLines` contract while retaining support for legacy options and callbacks.
@@ -79,6 +79,52 @@ Run the existing TypeScript checks through the original config. Use
 `--noEmit` for the comparison check. Build the Copeland workspace and run the
 Node parity tests separately. Once a port handles the entire contract of an
 export, its facade can directly re-export that implementation.
+
+## Use typed builders and Node boundaries
+
+Use `MutableList<T>()` when the number of items is discovered during the
+operation. It starts empty, supports `append(value)`, `length`, checked
+indexing and indexed assignment, and takes a snapshot for `for...of`.
+`freeze()` returns a separate `T[]` snapshot. Use `MutableArray<T>` when the
+size is known up front.
+
+```ts
+export record Match {
+    index: int;
+    text: string;
+}
+
+export function collect(lines: string[], accept: (line: string) => boolean): Match[] {
+    const matches = MutableList<Match>();
+    for (let index = 0; index < lines.length; index++) {
+        const line: string = lines[index];
+        if (accept(line)) {
+            matches.append({ index: index, text: line });
+        }
+    }
+    return matches.freeze();
+}
+```
+
+```powershell
+tscl build --standalone copeland --target node --node-interop --result copeland/obj/build-result.json
+```
+
+```js
+import { collect } from './copeland/dist/src/Matches.node.js';
+
+const matches = collect(['keep this', 'skip this'], line => line.startsWith('keep'));
+// [{ index: 0, text: 'keep this' }]
+```
+
+The generated facade exposes synchronous functions with primitive values,
+dense arrays, and acyclic records with public fields. Incoming records need
+their declared fields as own properties. Outgoing records use the authored
+field names, with arrays and nested records copied across the boundary.
+Direct callback parameters receive the same plain values. Copeland calls the
+callback synchronously where the source invokes it and validates its result
+when it returns. Exceptions propagate to the Node caller. Other signature
+shapes stay available in the regular compiled module ABI.
 
 ## M2 verification
 
