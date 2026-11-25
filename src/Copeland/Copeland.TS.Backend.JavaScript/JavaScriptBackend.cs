@@ -60,6 +60,18 @@ public static partial class JavaScriptBackend
     public static string GetRecordFactoryName(MirRecordTypeId recordId)
         => "__cope_record_" + EncodeModuleIdentity(recordId.Value);
 
+    internal static string GetNodeResultFactoryName(MirResultType result)
+        => "__cope_node_result_" + EncodeModuleIdentity(NodeResultTypeIdentity(result));
+
+    private static string NodeResultTypeIdentity(MirType type) => type switch
+    {
+        MirNamedType { Identifier: "float" or "number" } => "named:float",
+        MirArrayType array => "array(" + NodeResultTypeIdentity(array.ElementType) + ")",
+        MirResultType result => "result(" + NodeResultTypeIdentity(result.SuccessType) + ","
+            + NodeResultTypeIdentity(result.ErrorType) + ")",
+        _ => MirTypeIdentity(type),
+    };
+
     private static string EncodeModuleIdentity(string value)
         => string.Concat(value.Select(character => ((int)character).ToString("x4", System.Globalization.CultureInfo.InvariantCulture)));
 
@@ -75,7 +87,7 @@ public static partial class JavaScriptBackend
         return "$f" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
-    private static string ProductionEnumPayloadName(int index)
+    internal static string ProductionEnumPayloadName(int index)
         => "$p" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     private static string ProductionEnumSingletonName(GeneratedNames names, EnumInfo enumInfo, MirEnumCase enumCase)
@@ -254,7 +266,8 @@ public static partial class JavaScriptBackend
                 usesTryExcept,
                 usesTsonTransport,
                 usesSharedBrowserInteropRuntime,
-                program.Functions.Any(function => function.Body.Any(StatementUsesTableWith)));
+                program.Functions.Any(function => function.Body.Any(StatementUsesTableWith)),
+                effectiveOptions.EmitNodeInterop);
         }
 
         foreach (MirFunction function in program.Functions)
@@ -1542,7 +1555,8 @@ public static partial class JavaScriptBackend
         bool usesTryExcept,
         bool usesTsonTransport,
         bool usesSharedBrowserInteropRuntime,
-        bool usesTableWith)
+        bool usesTableWith,
+        bool emitNodeInterop)
     {
         writer.WriteLine($"function {names.Panic}() {{");
         writer.Indent();
@@ -1669,6 +1683,14 @@ public static partial class JavaScriptBackend
                 ? $"__cope_m3_record_registration({JavaScriptLiteralWriter.WriteString("result:" + MirTypeIdentity(result.Type))}).type"
                 : "Object.freeze(Object.create(null))";
             writer.WriteLine($"const {names.TypeToken(result)} = {token};");
+            if (emitNodeInterop)
+            {
+                writer.WriteLine($"function {GetNodeResultFactoryName(result.Type)}(tag, value) {{");
+                writer.Indent();
+                writer.WriteLine($"return {names.MakeValue}({names.TypeToken(result)}, tag, [value]);");
+                writer.Unindent();
+                writer.WriteLine("}");
+            }
         }
 
         foreach (ResultInfo result in results.Types)
@@ -3420,7 +3442,7 @@ public static partial class JavaScriptBackend
             MirAssignmentExpression assignment => AsyncAssignmentText(assignment, AsyncFrameVariableReference(assignment.Name, names), EmitAsyncExpression(assignment.Expression, catalog, results, names)),
             MirBinaryExpression binary => BinaryText(binary, EmitAsyncExpression(binary.Left, catalog, results, names), EmitAsyncExpression(binary.Right, catalog, results, names)),
             MirUnaryExpression unary => UnaryText(unary, EmitAsyncExpression(unary.Operand, catalog, results, names)),
-            MirCallExpression call => $"{NativeCallName(call) ?? JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", call.Arguments.Select(argument => EmitAsyncExpression(argument, catalog, results, names)))})",
+            MirCallExpression call => EmitNativeOrDirectCall(call, call.Arguments.Select(argument => EmitAsyncExpression(argument, catalog, results, names)).ToArray(), names),
             MirInvokeExpression invoke => EmitAsyncInvoke(invoke, catalog, results, names),
             MirRecordConstructionExpression construction => EmitAsyncRecordConstruction(construction, catalog, results, names),
             MirRecordFieldAccessExpression access => EmitAsyncRecordFieldAccess(access, catalog, results, names),
@@ -3540,10 +3562,7 @@ public static partial class JavaScriptBackend
                     string loopDeclarationKeyword = loop.Local.IsReadOnly ? "const" : "let";
                     writer.WriteLine($"for ({loopDeclarationKeyword} {JavaScriptIdentifierEncoder.Encode(loop.Local.Name)} of {iterable.Value}) {{");
                     writer.Indent();
-                    foreach (MirStatement nested in loop.BodyStatements)
-                    {
-                        EmitStatement(writer, nested, function, catalog, results, names, flowEnabled);
-                    }
+                    EmitLoopBody(writer, loop.BodyStatements, null, function, catalog, results, names, flowEnabled);
                     writer.Unindent();
                     writer.WriteLine("}");
                 }
@@ -3835,10 +3854,7 @@ public static partial class JavaScriptBackend
             WritePrelude(writer, condition.Prelude);
             writer.WriteLine($"if (!{condition.Value}) continue;");
         }
-        foreach (MirStatement statement in loop.BodyStatements)
-        {
-            EmitStatement(writer, statement, function, catalog, results, names, flowEnabled);
-        }
+        EmitLoopBody(writer, loop.BodyStatements, null, function, catalog, results, names, flowEnabled);
         writer.Unindent();
         writer.WriteLine("}");
     }
@@ -4856,13 +4872,31 @@ public static partial class JavaScriptBackend
         return "__cope_native_" + call.NativeOperation.Value;
     }
 
+    private static string EmitNativeOrDirectCall(MirCallExpression call, IReadOnlyList<string> arguments, GeneratedNames names)
+    {
+        if (call.NativeOperation == MirNativeOperation.MatchCase)
+        {
+            return $"({arguments[0]}.$tag === {arguments[1]})";
+        }
+        if (call.NativeOperation == MirNativeOperation.MatchPayload)
+        {
+            if (call.Arguments[0].Type is MirResultType || !IsProduction(names))
+            {
+                return $"{arguments[0]}.$payload[{arguments[3]}]";
+            }
+            int index = (int)((MirLiteralExpression)call.Arguments[3]).Value!;
+            return $"{arguments[0]}.{ProductionEnumPayloadName(index)}";
+        }
+        return $"{NativeCallName(call) ?? JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", arguments)})";
+    }
+
     private static EmittedExpression EmitCall(MirCallExpression call, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
         var emittedArguments = call.Arguments.Select(argument => EmitExpression(argument, function, catalog, results, names, flowEnabled)).ToList();
         return CombineOrdered(
             emittedArguments,
             names,
-            values => $"{NativeCallName(call) ?? JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", values)})");
+            values => EmitNativeOrDirectCall(call, values, names));
     }
 
     private static EmittedExpression EmitInvoke(MirInvokeExpression invoke, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)

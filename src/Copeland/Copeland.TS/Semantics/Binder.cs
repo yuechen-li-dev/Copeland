@@ -5705,6 +5705,7 @@ public static partial class Binder
                 BoundReturnStatement => true,
                 BoundCSharpBlockStatement block when block.ExpectedResultType != PrimitiveTypeSymbol.Void => true,
                 BoundBlockStatement block => block.Statements.Any(AlwaysReturns),
+                BoundIfStatement { Condition: BoundLiteralExpression { Value: true } } conditional => AlwaysReturns(conditional.ThenStatement),
                 BoundIfStatement conditional when conditional.ElseStatement is not null
                     => AlwaysReturns(conditional.ThenStatement) && AlwaysReturns(conditional.ElseStatement),
                 _ => false,
@@ -5723,7 +5724,7 @@ public static partial class Binder
             CSharpBlockStatementSyntax c => BindCSharpBlock(c),
             ExpressionStatementSyntax e => BindExpressionStatement(e),
             IfStatementSyntax i => BindIf(i),
-            RuntimeMatchStatementSyntax match => RejectGpuStatementMatch(match),
+            RuntimeMatchStatementSyntax match => BindBlockMatch(match),
             WhileStatementSyntax w => BindWhile(w),
             ForStatementSyntax f => BindFor(f),
             ForOfStatementSyntax f => BindForOf(f),
@@ -5736,10 +5737,147 @@ public static partial class Binder
             _ => new BoundExpressionStatement(new BoundErrorExpression())
         };
 
-        private BoundStatement RejectGpuStatementMatch(RuntimeMatchStatementSyntax match)
+        private HashSet<string>? _blockMatchSourceNames;
+
+        private string BlockMatchTemporary(int position)
         {
-            Report("COPE-MATCH-0008", "Block-arm statement match currently requires the Visual TypeScript compute profile; host code can use expression match.", match.MatchKeyword);
-            return new BoundExpressionStatement(new BoundErrorExpression());
+            _blockMatchSourceNames ??= _tree.Tokens.Select(token => token.Text).ToHashSet(StringComparer.Ordinal);
+            string name = $"__cope_block_match_{position}";
+            while (_blockMatchSourceNames.Contains(name))
+            {
+                name += "_";
+            }
+            return name;
+        }
+
+        // Lower to ordinary scoped branches so loop control still targets the
+        // enclosing loop and arm exits use the enclosing function's return type.
+        private BoundStatement BindBlockMatch(RuntimeMatchStatementSyntax match)
+        {
+            BoundExpression subject = BindExpression(match.Expression);
+            if (subject.Type is not EnumTypeSymbol && subject.Type is not ResultTypeSymbol)
+            {
+                Report("COPE-MATCH-0001", "Block match requires an enum or Result value.", match.MatchKeyword);
+                return new BoundExpressionStatement(new BoundErrorExpression());
+            }
+
+            var temporary = new VariableSymbol(BlockMatchTemporary(match.MatchKeyword.Position), subject.Type, isReadOnly: true);
+            var receiver = new BoundVariableExpression(temporary);
+            var branches = new List<(BoundExpression Condition, BoundStatement Body)>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (StaticMatchArmSyntax arm in match.Arms)
+            {
+                string caseName = arm.Pattern.CaseIdentifier.Text;
+                IReadOnlyList<(string Name, TypeSymbol Type)>? fields = BlockMatchFields(subject.Type, arm.Pattern);
+                if (fields is null)
+                {
+                    continue;
+                }
+                if (!seen.Add(caseName))
+                {
+                    Report("COPE-MATCH-0003", $"Duplicate match arm for case '{caseName}'.", arm.Pattern.CaseIdentifier);
+                }
+                if (arm.Pattern.PayloadIdentifiers.Count != fields.Count)
+                {
+                    Report("COPE-MATCH-0005", $"Match arm for case '{caseName}' expects {fields.Count} payload values.", arm.Pattern.CaseIdentifier);
+                }
+
+                Scope previous = _scope;
+                _scope = new Scope(previous);
+                var statements = new List<BoundStatement>();
+                try
+                {
+                    for (int index = 0; index < Math.Min(fields.Count, arm.Pattern.PayloadIdentifiers.Count); index++)
+                    {
+                        SyntaxToken name = arm.Pattern.PayloadIdentifiers[index];
+                        var variable = new VariableSymbol(BlockMatchTemporary(name.Position), fields[index].Type, isReadOnly: true);
+                        if (!_scope.TryDeclare(name.Text, variable))
+                        {
+                            Report("COPE-MATCH-0006", $"Duplicate payload variable '{name.Text}' in match arm.", name);
+                            continue;
+                        }
+                        statements.Add(new BoundVariableDeclaration(variable, BindMatchIntrinsic(
+                            Copeland.TS.Mir.MirNativeOperation.MatchPayload, fields[index].Type,
+                            receiver, new BoundLiteralExpression(caseName, PrimitiveTypeSymbol.String),
+                            new BoundLiteralExpression(fields[index].Name, PrimitiveTypeSymbol.String),
+                            new BoundLiteralExpression(index, PrimitiveTypeSymbol.Int))));
+                    }
+                    statements.AddRange(((BlockStatementSyntax)arm.Statement).Statements.Select(BindStatement));
+                }
+                finally
+                {
+                    _scope = previous;
+                }
+
+                BoundExpression condition = BindMatchIntrinsic(Copeland.TS.Mir.MirNativeOperation.MatchCase,
+                    PrimitiveTypeSymbol.Boolean, receiver, new BoundLiteralExpression(caseName, PrimitiveTypeSymbol.String));
+                branches.Add((condition, new BoundBlockStatement(statements)));
+            }
+
+            IEnumerable<string> expected = subject.Type is EnumTypeSymbol enumeration
+                ? enumeration.Cases.Select(item => item.Name)
+                : new[] { "ok", "err" };
+            string[] missing = expected.Where(item => !seen.Contains(item)).ToArray();
+            if (missing.Length > 0)
+            {
+                Report("COPE-MATCH-0004", $"Block match is missing cases: {string.Join(", ", missing)}.", match.MatchKeyword);
+                return new BoundExpressionStatement(new BoundErrorExpression());
+            }
+            if (branches.Count == 0)
+            {
+                return new BoundVariableDeclaration(temporary, subject);
+            }
+            BoundStatement body = branches[^1].Body;
+            // Give even a single-case match a branch scope for its locals.
+            for (int index = branches.Count - 2; index >= 0; index--)
+            {
+                body = new BoundIfStatement(branches[index].Condition, branches[index].Body, body);
+            }
+            if (branches.Count == 1)
+            {
+                body = new BoundIfStatement(new BoundLiteralExpression(true, PrimitiveTypeSymbol.Boolean), body, null);
+            }
+            return new BoundBlockStatement([new BoundVariableDeclaration(temporary, subject), body]);
+        }
+
+        private IReadOnlyList<(string Name, TypeSymbol Type)>? BlockMatchFields(TypeSymbol type, MatchPatternSyntax pattern)
+        {
+            string caseName = pattern.CaseIdentifier.Text;
+            if (type is EnumTypeSymbol enumeration)
+            {
+                if (pattern.EnumQualifier is { } qualifier
+                    && (!_enumTypes.TryGetValue(qualifier.Text, out EnumTypeSymbol? qualified)
+                        || !TypeFacts.AreEquivalent(enumeration, qualified)))
+                {
+                    Report("COPE-MATCH-0002", "Qualified match case must belong to the subject enum.", qualifier);
+                }
+                EnumCaseSymbol? variant = enumeration.Cases.FirstOrDefault(item => item.Name == caseName);
+                if (variant is not null)
+                {
+                    return variant.PayloadFields.Select(field => (field.Name, field.Type)).ToArray();
+                }
+            }
+            else if (type is ResultTypeSymbol result && pattern.EnumQualifier is null)
+            {
+                if (caseName == "ok")
+                {
+                    return result.SuccessType == PrimitiveTypeSymbol.Void ? [] : [("Value", result.SuccessType)];
+                }
+                if (caseName == "err")
+                {
+                    return [("Error", result.ErrorType)];
+                }
+            }
+            Report("COPE-MATCH-0002", $"Type '{type.Name}' has no match case '{caseName}'.", pattern.CaseIdentifier);
+            return null;
+        }
+
+        private static BoundExpression BindMatchIntrinsic(Copeland.TS.Mir.MirNativeOperation operation, TypeSymbol type,
+            params BoundExpression[] arguments)
+        {
+            ParameterSymbol[] parameters = arguments.Select((argument, index) => new ParameterSymbol($"argument{index}", argument.Type)).ToArray();
+            var function = new FunctionSymbol(operation.ToString(), parameters, type) { NativeOperation = operation };
+            return new BoundCallExpression(function, arguments);
         }
 
         private BoundStatement BindComponentState(ComponentStateDeclarationStatementSyntax declaration)
@@ -7725,6 +7863,31 @@ public static partial class Binder
                 && primitive != PrimitiveTypeSymbol.Error
                 || type is RecordTypeSymbol and not ClassTypeSymbol
                 || type is ArrayTypeSymbol array && IsBatchPortableType(array.ElementType);
+
+        private static bool IsFilledArrayElement(TypeSymbol type)
+            => type is EnumTypeSymbol
+                ? IsShareableValue(type, [])
+                : type is not ArrayTypeSymbol && IsBatchPortableType(type);
+
+        private static bool IsShareableValue(TypeSymbol type, HashSet<TypeSymbol> visited)
+        {
+            if (!visited.Add(type))
+            {
+                return true;
+            }
+            return type switch
+            {
+                PrimitiveTypeSymbol primitive => primitive != PrimitiveTypeSymbol.Error && primitive != PrimitiveTypeSymbol.Void,
+                ArrayTypeSymbol array => IsShareableValue(array.ElementType, visited),
+                EnumTypeSymbol enumeration => enumeration.Cases.All(item =>
+                    item.PayloadFields.All(field => IsShareableValue(field.Type, visited))),
+                RecordTypeSymbol record when record is not ClassTypeSymbol =>
+                    record.Fields.All(field => IsShareableValue(field.Type, visited)),
+                ResultTypeSymbol result => (result.SuccessType == PrimitiveTypeSymbol.Void || IsShareableValue(result.SuccessType, visited))
+                    && IsShareableValue(result.ErrorType, visited),
+                _ => false,
+            };
+        }
 
         private void ValidateBatchStatementEffects(BoundStatement statement, SyntaxToken anchor)
         {
@@ -10686,9 +10849,9 @@ public static partial class Binder
                 {
                     bool isReactValue = elementType == PresentationNodeType;
                     bool isDeferred = _currentFunction?.IsGeneric == true && ContainsOpenTypeParameter(elementType);
-                    if ((!IsBatchPortableType(elementType) || elementType is ArrayTypeSymbol) && !isReactValue && !isDeferred)
+                    if (!IsFilledArrayElement(elementType) && !isReactValue && !isDeferred)
                     {
-                        Report("COPE-ARRAY-0008", "MutableArray initializer elements must be primitive values, strings, immutable records, or opaque ReactNode values. Use columnar arrays for computational storage.", call.LessToken);
+                        Report("COPE-ARRAY-0008", "MutableArray initializer elements must be primitive values, strings, immutable records or enums, or opaque ReactNode values. Use columnar arrays for computational storage.", call.LessToken);
                         return new BoundErrorExpression();
                     }
                     BoundExpression initializer = BindExpression(call.Arguments[1], elementType);
@@ -11766,7 +11929,7 @@ public static partial class Binder
                 TypeSymbol resultType = SubstituteType(call.Function.ReturnType, substitutions);
                 if (operation == Copeland.TS.Mir.MirNativeOperation.MutableArrayFilled
                     && resultType is MutableArrayTypeSymbol array
-                    && ((!IsBatchPortableType(array.ElementType) || array.ElementType is ArrayTypeSymbol)
+                    && (!IsFilledArrayElement(array.ElementType)
                         && array.ElementType != owner.PresentationNodeType))
                 {
                     owner.Report("COPE-ARRAY-0008", $"MutableArray initializer type '{array.ElementType.Name}' is not supported after specialization.", new SyntaxToken(SyntaxKind.IdentifierToken, 0, call.Function.Name, null));

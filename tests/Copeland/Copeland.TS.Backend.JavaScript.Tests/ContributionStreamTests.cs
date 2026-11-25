@@ -402,6 +402,67 @@ public sealed class ContributionStreamTests
     }
 
     [Fact]
+    public async Task Node_facades_project_tagged_values_across_modules_and_callback_boundaries()
+    {
+        CopelandProjectCompilation compilation = CopelandProjectCompiler.CompileToMir(
+        [
+            new CopelandProjectSource("Data.ts", "Data.ts", """
+                export enum Choice { Stop, Message(text: string, attempts: int) }
+
+                export function Transform(input: Option<Choice>,
+                    handler: (value: Choice) => Option<Choice> ! string): Option<Choice> ! string {
+                    return match input {
+                        Some(choice) => handler(choice),
+                        None => ok(None),
+                    };
+                }
+                """),
+            new CopelandProjectSource("Main.ts", "Main.ts", """
+                import { Choice, Transform } from "./Data";
+
+                export function RoundTrip(input: Option<Choice>,
+                    handler: (value: Choice) => Option<Choice> ! string): Option<Choice> ! string {
+                    return Transform(input, handler);
+                }
+
+                export function Save(accept: boolean): void ! string {
+                    if (accept) { return; }
+                    return err("failed");
+                }
+                """)
+        ], Options());
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptProjectCompilation emitted = JavaScriptProjectEmitter.Emit(compilation.MirProjectGraph!,
+            new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Production, EmitNodeInterop = true });
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        string declarations = emitted.Files["Main.node.d.ts"];
+        Assert.Contains("tag: \"None\"", declarations, StringComparison.Ordinal);
+        Assert.Contains("tag: \"Message\"; payload: { \"text\": string; \"attempts\": number }", declarations, StringComparison.Ordinal);
+        Assert.Contains("tag: \"err\"; \"error\": string", declarations, StringComparison.Ordinal);
+        var files = new Dictionary<string, string>(emitted.Files) { ["package.json"] = "{\"type\":\"module\"}" };
+        Assert.Equal("ok", await RunNode("""
+            import assert from 'node:assert/strict';
+            import { RoundTrip, Save } from './Main.node.js';
+            const none = { tag: 'None' };
+            const message = { tag: 'Message', payload: { text: '', attempts: 3 } };
+            const some = { tag: 'Some', value: message };
+            assert.deepEqual(RoundTrip(none, () => assert.fail()), { tag: 'ok', value: none });
+            assert.deepEqual(RoundTrip(some, value => {
+                assert.deepEqual(value, message);
+                return { tag: 'ok', value: { tag: 'Some', value } };
+            }), { tag: 'ok', value: some });
+            assert.deepEqual(RoundTrip(some, () => ({ tag: 'err', error: 'host' })), { tag: 'err', error: 'host' });
+            assert.deepEqual(Save(true), { tag: 'ok' });
+            assert.deepEqual(Save(false), { tag: 'err', error: 'failed' });
+            assert.throws(() => RoundTrip({ tag: 'Unknown' }, () => assert.fail()), /unknown tag/);
+            assert.throws(() => RoundTrip({ tag: 'Some' }, () => assert.fail()), /payload fields/);
+            assert.throws(() => RoundTrip(some, () => ({ tag: 'err', error: 9 })), /expected string/);
+            assert.throws(() => RoundTrip({ tag: 'Some', value: { tag: 'Message', payload: {} } }, () => assert.fail()), /payload fields/);
+            console.log('ok');
+            """, files));
+    }
+
+    [Fact]
     public async Task Option_type_parameters_with_the_same_spelling_retain_their_generic_owner()
     {
         CopelandProjectCompilation compilation = Compile("""

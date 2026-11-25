@@ -12,6 +12,8 @@ public enum MirNativeOperation
     StringFromCode,
     MutableListCreate,
     MutableListAppend,
+    MatchCase,
+    MatchPayload,
 }
 
 public static class MirNativeOperations
@@ -54,6 +56,30 @@ public static class MirNativeOperations
             return call.Type.Identifier == "void" && call.Arguments.Count == 2
                 && call.Arguments[0].Type is MirMutableArrayType { IsGrowable: true } list
                 && MirTypeFacts.AreEquivalent(list.ElementType, call.Arguments[1].Type);
+        }
+        if (operation is MirNativeOperation.MatchCase or MirNativeOperation.MatchPayload)
+        {
+            if (call.Arguments.Count != (operation == MirNativeOperation.MatchCase ? 2 : 4)
+                || call.Arguments[0].Type is not (MirNamedType or MirResultType)
+                || call.Arguments[1] is not MirLiteralExpression { Value: string caseName, Type.Identifier: "string" })
+            {
+                return false;
+            }
+            if (call.Arguments[0].Type is MirResultType && caseName is not ("ok" or "err"))
+            {
+                return false;
+            }
+            if (operation == MirNativeOperation.MatchCase)
+            {
+                return call.Type.Identifier == "boolean";
+            }
+            if (call.Arguments[2] is not MirLiteralExpression { Value: string, Type.Identifier: "string" }
+                || call.Arguments[3] is not MirLiteralExpression { Value: int index, Type.Identifier: "int" } || index < 0)
+            {
+                return false;
+            }
+            return call.Arguments[0].Type is not MirResultType result
+                || index == 0 && MirTypeFacts.AreEquivalent(call.Type, caseName == "ok" ? result.SuccessType : result.ErrorType);
         }
         var signature = Signature(operation);
         return MirTypeFacts.AreEquivalent(call.Type, signature.Result)

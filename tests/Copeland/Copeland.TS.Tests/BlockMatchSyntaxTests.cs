@@ -43,7 +43,7 @@ public sealed class BlockMatchSyntaxTests
     }
 
     [Fact]
-    public void Host_profile_reports_the_compute_only_statement_match_boundary()
+    public void Host_profile_accepts_exhaustive_block_match()
     {
         const string source = """
             enum Phase { Start, Stop }
@@ -55,7 +55,17 @@ public sealed class BlockMatchSyntaxTests
             }
             """;
         var compilation = CopelandCompiler.CompileToMir(source);
-        Assert.False(compilation.Success);
-        Assert.Contains(compilation.Diagnostics, item => item.Id == "COPE-MATCH-0008");
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+    }
+
+    [Theory]
+    [InlineData("Start => { return; },", "COPE-MATCH-0004")]
+    [InlineData("Start => { return; }, Start => { return; }, Stop => { return; },", "COPE-MATCH-0003")]
+    [InlineData("Start(value) => { return; }, Stop => { return; },", "COPE-MATCH-0005")]
+    public void Host_profile_rejects_invalid_block_patterns(string arms, string code)
+    {
+        var compilation = CopelandCompiler.CompileToMir(
+            $"enum Phase {{ Start, Stop }} function Main(): void {{ match Phase.Start {{ {arms} }} }}");
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == code);
     }
 }

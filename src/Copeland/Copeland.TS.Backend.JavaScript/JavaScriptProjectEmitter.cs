@@ -138,7 +138,7 @@ public static class JavaScriptProjectEmitter
             if (modulePaths is not null)
             {
                 string facadePath = outputPath[..^".js".Length] + ".node.js";
-                string? facade = NodeInteropEmitter.Emit(graph.AggregateProgram.Records, module, exports, lines,
+                NodeInteropEmitter.Facade? facade = NodeInteropEmitter.Emit(graph.AggregateProgram, module, exports, lines,
                     GetRelativeSpecifier(facadePath, outputPath));
                 if (facade is not null)
                 {
@@ -147,7 +147,8 @@ public static class JavaScriptProjectEmitter
                         return new JavaScriptProjectCompilation(new Dictionary<string, string>(),
                             [new JavaScriptDiagnostic("COPE-JS-0028", $"Node interop output '{facadePath}' overlaps a source module.")]);
                     }
-                    files.Add(facadePath, facade);
+                    files.Add(facadePath, facade.Source);
+                    files.Add(facadePath[..^".js".Length] + ".d.ts", facade.Declarations);
                 }
             }
             files.Add(outputPath, string.Join(Environment.NewLine, lines) + Environment.NewLine);
