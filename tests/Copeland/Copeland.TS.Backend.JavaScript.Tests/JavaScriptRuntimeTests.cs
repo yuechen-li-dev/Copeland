@@ -10,6 +10,77 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptRuntimeTests
 {
     [Fact]
+    public async Task Production_array_checks_preserve_operand_order_and_assignment_value()
+    {
+        var compilation = CopelandCompiler.CompileToMir("""
+            function tick(log: MutableArray<int>, digit: int, value: int): int {
+                log[0] = log[0] * 10 + digit;
+                return value;
+            }
+            function store(log: MutableArray<int>, index: int): int {
+                const output = MutableArray<int>(1);
+                return output[tick(log, 1, index)] = tick(log, 2, 9);
+            }
+            function source(log: MutableArray<int>): int[] {
+                tick(log, 1, 0);
+                return [7];
+            }
+            function read(log: MutableArray<int>): int {
+                return source(log)[tick(log, 2, 0)];
+            }
+            """);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptCompilation emitted = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!,
+            new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Production });
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        Assert.Equal(2, Regex.Matches(emitted.SourceText!, "Copeland array index is out of bounds").Count);
+
+        ProcessResult result = await RunNodeAsync(emitted.SourceText + """
+
+            const valid = [0];
+            const invalid = [0];
+            const readOrder = [0];
+            console.log(store(valid, 0), valid[0]);
+            try { store(invalid, 1); } catch (error) { console.log(error instanceof RangeError, invalid[0]); }
+            console.log(read(readOrder), readOrder[0]);
+            """);
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("9 12\ntrue 1\n7 12\n", result.StdOut);
+    }
+
+    [Fact]
+    public async Task Production_folds_constant_branches_and_proven_array_reads()
+    {
+        var compilation = CopelandCompiler.CompileToMir("""
+            function mark(log: MutableArray<int>, digit: int): int {
+                log[0] = log[0] * 10 + digit;
+                return digit;
+            }
+            function fold(log: MutableArray<int>): int {
+                if (false) { mark(log, 7); }
+                return if (true) { [31, 47][1] } else { mark(log, 8) };
+            }
+            function effects(log: MutableArray<int>): int {
+                return [mark(log, 1), mark(log, 2)][1];
+            }
+            """);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptCompilation emitted = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!,
+            new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Production });
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        Assert.Contains("return 47;", emitted.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("if (false)", emitted.SourceText, StringComparison.Ordinal);
+        ProcessResult result = await RunNodeAsync(emitted.SourceText + """
+
+            const log = [0];
+            console.log(fold(log), log[0]);
+            console.log(effects(log), log[0]);
+            """);
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("47 0\n2 12\n", result.StdOut);
+    }
+
+    [Fact]
     public async Task Node_executes_Option_optional_fields_chaining_and_lazy_coalescing_without_truthiness()
     {
         JavaScriptCompilation emitted = Emit("""

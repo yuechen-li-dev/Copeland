@@ -309,6 +309,7 @@ public static partial class JavaScriptBackend
 
         if (UsesNativeStrings.Value) NativeStringRuntime.Emit(writer);
         if (UsesIntegerRuntime.Value) IntegerRuntime.Emit(writer);
+        names.EmitArrayHelpers(writer);
         string sourceText = writer.ToString();
         if (effectiveOptions.Profile == JavaScriptEmissionProfile.Symbolic)
         {
@@ -3614,6 +3615,25 @@ public static partial class JavaScriptBackend
 
     private static void EmitIfStatement(JavaScriptTextWriter writer, MirIfStatement conditional, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
+        if (IsProduction(names) && conditional.Condition is MirLiteralExpression { Value: bool selected })
+        {
+            IReadOnlyList<MirStatement>? statements = selected ? conditional.ThenStatements : conditional.ElseStatements;
+            if (statements is not { Count: > 0 })
+            {
+                return;
+            }
+
+            writer.WriteLine("{");
+            writer.Indent();
+            foreach (MirStatement nested in statements)
+            {
+                EmitStatement(writer, nested, function, catalog, results, names, flowEnabled);
+            }
+            writer.Unindent();
+            writer.WriteLine("}");
+            return;
+        }
+
         EmittedExpression condition = EmitExpression(conditional.Condition, function, catalog, results, names, flowEnabled);
         WritePrelude(writer, condition.Prelude);
         writer.WriteLine($"if ({condition.Value}) {{");
@@ -4172,8 +4192,26 @@ public static partial class JavaScriptBackend
         GeneratedNames names,
         bool flowEnabled)
     {
+        if (IsProduction(names)
+            && access.Receiver is MirArrayExpression { Counts: null } array
+            && access.Index is MirLiteralExpression { Value: int position }
+            && (uint)position < (uint)array.Elements.Count)
+        {
+            if (array.Elements.All(element => element is MirLiteralExpression))
+            {
+                return EmitExpression(array.Elements[position], function, catalog, results, names, flowEnabled);
+            }
+
+            EmittedExpression literal = EmitExpression(array, function, catalog, results, names, flowEnabled);
+            return new EmittedExpression(literal.Prelude, $"({literal.Value})[{position}]");
+        }
+
         EmittedExpression receiver = EmitExpression(access.Receiver, function, catalog, results, names, flowEnabled);
         EmittedExpression index = EmitExpression(access.Index, function, catalog, results, names, flowEnabled);
+        if (IsProduction(names))
+        {
+            return EmitOutlinedArrayRead(receiver, index, names);
+        }
         var prelude = new List<EmittedLine>(receiver.Prelude);
         prelude.AddRange(index.Prelude);
         string receiverTemporary = names.NextTemporary("array_receiver");
@@ -4986,6 +5024,12 @@ public static partial class JavaScriptBackend
     private static EmittedExpression EmitMutableArrayConstruction(MirMutableArrayConstructionExpression construction, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
         EmittedExpression length = EmitExpression(construction.Length, function, catalog, results, names, flowEnabled);
+        if (IsProduction(names))
+        {
+            return new EmittedExpression(length.Prelude,
+                $"{names.ArrayAllocationHelper()}({length.Value}, {DefaultJavaScriptValue(construction.MutableArrayType.ElementType)})");
+        }
+
         string lengthTemporary = names.NextTemporary("array_length");
         string expression = $"(() => {{ const {lengthTemporary} = {length.Value}; if ({lengthTemporary} < 0) throw new RangeError(\"Copeland mutable array length cannot be negative.\"); return Array({lengthTemporary}).fill({DefaultJavaScriptValue(construction.MutableArrayType.ElementType)}); }})()";
         return new EmittedExpression(length.Prelude, expression);
@@ -5008,6 +5052,23 @@ public static partial class JavaScriptBackend
         EmittedExpression receiver = EmitExpression(receiverExpression, function, catalog, results, names, flowEnabled);
         EmittedExpression index = EmitExpression(indexExpression, function, catalog, results, names, flowEnabled);
         EmittedExpression? value = valueExpression is null ? null : EmitExpression(valueExpression, function, catalog, results, names, flowEnabled);
+        if (IsProduction(names))
+        {
+            if (value is null)
+            {
+                return EmitOutlinedArrayRead(receiver, index, names);
+            }
+
+            // JavaScript resolves the member reference before evaluating the
+            // assignment value. Re-reading a local has no intervening effects.
+            if (receiverExpression is MirVariableExpression
+                && index.Prelude.Count == 0 && value.Prelude.Count == 0)
+            {
+                return EmittedExpression.ValueOnly(
+                    $"({receiver.Value}[{names.CheckedIndexHelper()}({receiver.Value}, {index.Value})] = {value.Value})");
+            }
+        }
+
         var prelude = new List<EmittedLine>(receiver.Prelude);
         prelude.AddRange(index.Prelude);
         if (value is not null) prelude.AddRange(value.Prelude);
@@ -5021,6 +5082,13 @@ public static partial class JavaScriptBackend
         }
         string expression = $"(() => {{ const {arrayTemporary} = {receiver.Value}; const {indexTemporary} = {index.Value}; if ({indexTemporary} < 0 || {indexTemporary} >= {arrayTemporary}.length) throw new RangeError(\"Copeland array index is out of bounds.\"); {operation}; }})()";
         return new EmittedExpression(prelude, expression);
+    }
+
+    private static EmittedExpression EmitOutlinedArrayRead(
+        EmittedExpression receiver, EmittedExpression index, GeneratedNames names)
+    {
+        string helper = names.ArrayReadHelper();
+        return CombineOrdered([receiver, index], names, values => $"{helper}({values[0]}, {values[1]})");
     }
 
     private static EmittedExpression EmitMutableArrayIterable(
@@ -5621,6 +5689,12 @@ public static partial class JavaScriptBackend
 
     private static EmittedExpression EmitIfExpression(MirIfExpression conditional, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
+        if (IsProduction(names) && conditional.Condition is MirLiteralExpression { Value: bool selected })
+        {
+            MirExpression branch = selected ? conditional.ThenExpression : conditional.ElseExpression;
+            return EmitExpression(branch, function, catalog, results, names, flowEnabled);
+        }
+
         EmittedExpression condition = EmitExpression(conditional.Condition, function, catalog, results, names, flowEnabled);
         EmittedExpression thenExpression = EmitExpression(conditional.ThenExpression, function, catalog, results, names, flowEnabled);
         EmittedExpression elseExpression = EmitExpression(conditional.ElseExpression, function, catalog, results, names, flowEnabled);
@@ -6602,6 +6676,9 @@ public static partial class JavaScriptBackend
         private readonly Dictionary<MirFunction, JavaScriptScopeId> functionScopes;
         private readonly NameAllocator allocator;
         private readonly JavaScriptGeneratedDefinitionGraph generatedDefinitions;
+        private string? arrayReadHelper;
+        private string? checkedIndexHelper;
+        private string? arrayAllocationHelper;
 
         private GeneratedNames(
             NameAllocator allocator,
@@ -6722,6 +6799,47 @@ public static partial class JavaScriptBackend
         public JavaScriptEmissionDocument Document => allocator.Document;
 
         public JavaScriptGeneratedDefinitionGraph GeneratedDefinitions => generatedDefinitions;
+
+        public string ArrayReadHelper() => arrayReadHelper ??= allocator.AllocateRuntimeHelper("get");
+
+        public string CheckedIndexHelper() => checkedIndexHelper ??= allocator.AllocateRuntimeHelper("idx");
+
+        public string ArrayAllocationHelper() => arrayAllocationHelper ??= allocator.AllocateRuntimeHelper("array");
+
+        public void EmitArrayHelpers(JavaScriptTextWriter writer)
+        {
+            const string check = "if (index < 0 || index >= array.length) throw new RangeError(\"Copeland array index is out of bounds.\");";
+            if (arrayReadHelper is not null)
+            {
+                writer.WriteLine();
+                writer.WriteLine($"function {arrayReadHelper}(array, index) {{");
+                writer.Indent();
+                writer.WriteLine(check);
+                writer.WriteLine("return array[index];");
+                writer.Unindent();
+                writer.WriteLine("}");
+            }
+            if (checkedIndexHelper is not null)
+            {
+                writer.WriteLine();
+                writer.WriteLine($"function {checkedIndexHelper}(array, index) {{");
+                writer.Indent();
+                writer.WriteLine(check);
+                writer.WriteLine("return index;");
+                writer.Unindent();
+                writer.WriteLine("}");
+            }
+            if (arrayAllocationHelper is not null)
+            {
+                writer.WriteLine();
+                writer.WriteLine($"function {arrayAllocationHelper}(length, initial) {{");
+                writer.Indent();
+                writer.WriteLine("if (length < 0) throw new RangeError(\"Copeland mutable array length cannot be negative.\");");
+                writer.WriteLine("return Array(length).fill(initial);");
+                writer.Unindent();
+                writer.WriteLine("}");
+            }
+        }
 
         public JavaScriptBindingReference ColumnCarrierToken { get; }
 
@@ -6877,6 +6995,14 @@ public static partial class JavaScriptBackend
             foreach (MirNpmImport import in program.NpmImports)
             {
                 occupied.Add(JavaScriptIdentifierEncoder.Encode(import.LocalBinding));
+            }
+            foreach (MirJavaScriptHostImport import in program.JavaScriptHostImports)
+            {
+                occupied.Add(JavaScriptIdentifierEncoder.Encode(import.LocalBinding));
+            }
+            foreach (MirModuleValue value in program.ModuleValues)
+            {
+                occupied.Add(JavaScriptIdentifierEncoder.Encode(value.Name));
             }
 
             var allocator = new NameAllocator(occupied, profile);
@@ -7074,6 +7200,10 @@ public static partial class JavaScriptBackend
         {
             return allocator.Allocate(currentScope, role, diagnosticPurpose, symbolicRole: symbolicRole).Reference;
         }
+
+        public string AllocateRuntimeHelper(string purpose)
+            => allocator.Allocate(document.ProgramScope, JavaScriptBindingRole.RuntimeHelper, purpose,
+                JavaScriptDeclarationKind.Function).Name;
 
         public void Validate()
         {
