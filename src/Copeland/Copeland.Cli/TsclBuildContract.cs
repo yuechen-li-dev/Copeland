@@ -31,9 +31,9 @@ internal static class TsclBuildContract
 
     public static int Run(string[] args)
     {
-        if (!TryParseArguments(args, out string? projectPath, out string? standaloneRoot, out string? targetName, out string? resultPath))
+        if (!TryParseArguments(args, out string? projectPath, out string? standaloneRoot, out string? targetName, out string? resultPath, out bool nodeInterop))
         {
-            Console.Error.WriteLine("COPE-TSCL-0001 error: Usage: tscl build (--project <descriptor.json> | --standalone <project-root> [--target <name>]) --result <result.json>.");
+            Console.Error.WriteLine("COPE-TSCL-0001 error: Usage: tscl build (--project <descriptor.json> | --standalone <project-root> [--target <name>]) [--node-interop] --result <result.json>.");
             return UsageErrorExitCode;
         }
 
@@ -43,6 +43,7 @@ internal static class TsclBuildContract
             TsclBuildRequest request = standaloneRoot is null
                 ? ReadRequest(projectPath!)
                 : ReadStandaloneRequest(standaloneRoot, targetName);
+            request.NodeInterop |= nodeInterop;
             result = Build(request);
         }
         catch (TsclContractException exception)
@@ -84,12 +85,14 @@ internal static class TsclBuildContract
         out string? projectPath,
         out string? standaloneRoot,
         out string? targetName,
-        out string? resultPath)
+        out string? resultPath,
+        out bool nodeInterop)
     {
         projectPath = null;
         standaloneRoot = null;
         targetName = null;
         resultPath = null;
+        nodeInterop = false;
         if (args.Length < 5 || !string.Equals(args[0], "build", StringComparison.Ordinal))
         {
             return false;
@@ -116,6 +119,11 @@ internal static class TsclBuildContract
             if (args[index] == "--target" && index + 1 < args.Length)
             {
                 targetName = args[++index];
+                continue;
+            }
+            if (args[index] == "--node-interop")
+            {
+                nodeInterop = true;
                 continue;
             }
 
@@ -274,6 +282,10 @@ internal static class TsclBuildContract
             request.ExecutionRuntime ?? request.JavaScriptRuntime,
             request.TargetFramework,
             request.RuntimeIdentifier);
+        if (request.NodeInterop && (target.Backend != CopelandBackend.JavaScript || target.Runtime != CopelandExecutionRuntime.Node))
+        {
+            throw new TsclContractException("COPE-TSCL-0001", "--node-interop requires a JavaScript Node target.");
+        }
         foreach (CopelandProjectSource source in sources)
         {
             SourceFileProfile profile = SourceFileProfiles.Read(source.SourceText);
@@ -315,11 +327,21 @@ internal static class TsclBuildContract
             {
                 Profile = JavaScriptEmissionProfile.Production,
                 RuntimeTarget = runtimeTarget,
+                EmitNodeInterop = request.NodeInterop,
             });
         JavaScriptProjectCompilation emission = LayoutJavaScriptProjectEmitter.AddLayouts(baseEmission, compilation.Modules);
         if (!emission.Success)
         {
             return TsclBuildResult.FromJavaScriptDiagnostics(emission.Diagnostics);
+        }
+
+        string entryOutput = string.IsNullOrWhiteSpace(request.EntryOutputPath) ? "entry.js" : request.EntryOutputPath;
+        string? normalizedEntryOutput = request.NodeInterop
+            ? Path.GetRelativePath(outputDirectory, Path.GetFullPath(entryOutput, outputDirectory)).Replace('\\', '/')
+            : null;
+        if (normalizedEntryOutput is not null && emission.Files.Keys.Contains(normalizedEntryOutput, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new TsclContractException("COPE-TSCL-0001", $"Node entry output '{entryOutput}' overlaps a generated module.");
         }
 
         string stagingDirectory = outputDirectory + ".tscl-staging-" + Guid.NewGuid().ToString("N");
@@ -345,7 +367,6 @@ internal static class TsclBuildContract
                     ComponentFrameArtifactEmitter.Emit(compilation));
             }
 
-            string entryOutput = string.IsNullOrWhiteSpace(request.EntryOutputPath) ? "entry.js" : request.EntryOutputPath;
             string entryModuleOutput = JavaScriptProjectEmitter.GetOutputPath(new Copeland.TS.Mir.MirModuleId(request.Entry!.Module));
             WriteStagedFile(
                 stagingDirectory,
@@ -685,6 +706,7 @@ internal static class TsclBuildContract
         public string? Backend { get; set; }
         public string? ExecutionRuntime { get; set; }
         public string? TargetFramework { get; set; }
+        public bool NodeInterop { get; set; }
         public string? RuntimeIdentifier { get; set; }
         public string JavaScriptProfile { get; init; } = string.Empty;
         public string? TsXmlProfile { get; init; }

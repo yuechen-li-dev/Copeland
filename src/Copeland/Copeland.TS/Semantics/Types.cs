@@ -42,11 +42,12 @@ public sealed class ArrayTypeSymbol(TypeSymbol elementType) : TypeSymbol
 /// Explicit mutable, fixed-length computational storage. Unlike <see cref="ArrayTypeSymbol"/>,
 /// this type permits indexed writes and is never produced by an array literal.
 /// </summary>
-public sealed class MutableArrayTypeSymbol(TypeSymbol elementType) : TypeSymbol
+public sealed class MutableArrayTypeSymbol(TypeSymbol elementType, bool isGrowable = false) : TypeSymbol
 {
     public TypeSymbol ElementType { get; } = elementType;
+    public bool IsGrowable { get; } = isGrowable;
 
-    public override string Name => $"MutableArray<{ElementType.Name}>";
+    public override string Name => $"{(IsGrowable ? "MutableList" : "MutableArray")}<{ElementType.Name}>";
 }
 
 /// <summary>
@@ -422,7 +423,8 @@ public static class TypeFacts
             (TableRowsTypeSymbol leftRows, TableRowsTypeSymbol rightRows) => leftRows.TableType.Id == rightRows.TableType.Id,
             (ColumnTypeSymbol leftColumn, ColumnTypeSymbol rightColumn) => AreEquivalent(leftColumn.ElementType, rightColumn.ElementType),
             (ArrayTypeSymbol leftArray, ArrayTypeSymbol rightArray) => AreEquivalent(leftArray.ElementType, rightArray.ElementType),
-            (MutableArrayTypeSymbol leftArray, MutableArrayTypeSymbol rightArray) => AreEquivalent(leftArray.ElementType, rightArray.ElementType),
+            (MutableArrayTypeSymbol leftArray, MutableArrayTypeSymbol rightArray) =>
+                leftArray.IsGrowable == rightArray.IsGrowable && AreEquivalent(leftArray.ElementType, rightArray.ElementType),
             (SpanTypeSymbol leftSpan, SpanTypeSymbol rightSpan) => AreEquivalent(leftSpan.ElementType, rightSpan.ElementType),
             (ResultTypeSymbol leftResult, ResultTypeSymbol rightResult) =>
                 AreEquivalent(leftResult.SuccessType, rightResult.SuccessType)

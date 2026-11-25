@@ -322,7 +322,11 @@ public static class FunctionEffectClassifier
                     }
                     if (variable.Variable.IsReadOnly
                         && (variable.Initializer is BoundMutableArrayConstructionExpression
-                            || variable.Initializer is BoundCallExpression { Function.NativeOperation: Copeland.TS.Mir.MirNativeOperation.MutableArrayFilled }))
+                            || variable.Initializer is BoundCallExpression
+                            {
+                                Function.NativeOperation: Copeland.TS.Mir.MirNativeOperation.MutableArrayFilled
+                                    or Copeland.TS.Mir.MirNativeOperation.MutableListCreate
+                            }))
                     {
                         _freshArrays.Add(variable.Variable);
                     }
@@ -466,6 +470,18 @@ public static class FunctionEffectClassifier
             }
         }
 
+        private void VisitCollectionWrite(BoundExpression receiver)
+        {
+            if (receiver is BoundVariableExpression variable && _freshArrays.Contains(variable.Variable))
+            {
+                _info.SafeEffects.Add(FunctionEffect.LocalMutation);
+            }
+            else
+            {
+                _info.SetRuntime(FunctionEffect.WritesRuntimeState, "mutable-array write through input or alias; build a fresh local array and return its frozen value");
+            }
+        }
+
         private void VisitExpression(BoundExpression expression)
         {
             switch (expression)
@@ -517,6 +533,10 @@ public static class FunctionEffectClassifier
                     }
                     if (call.Function.NativeOperation is not null)
                     {
+                        if (call.Function.NativeOperation == Copeland.TS.Mir.MirNativeOperation.MutableListAppend)
+                        {
+                            VisitCollectionWrite(call.Arguments[0]);
+                        }
                         VisitExpressions(call.Arguments);
                         return;
                     }
@@ -684,14 +704,7 @@ public static class FunctionEffectClassifier
                     VisitExpression(access.Index);
                     return;
                 case BoundMutableArrayElementAssignmentExpression assignment:
-                    if (assignment.Receiver is BoundVariableExpression receiver && _freshArrays.Contains(receiver.Variable))
-                    {
-                        _info.SafeEffects.Add(FunctionEffect.LocalMutation);
-                    }
-                    else
-                    {
-                        _info.SetRuntime(FunctionEffect.WritesRuntimeState, "mutable-array write through input or alias; build a fresh local array and return its frozen value");
-                    }
+                    VisitCollectionWrite(assignment.Receiver);
                     VisitExpression(assignment.Receiver);
                     VisitExpression(assignment.Index);
                     VisitExpression(assignment.Value);

@@ -468,7 +468,7 @@ internal static class Program
     {
         Console.Error.WriteLine("Usage:");
         Console.Error.WriteLine("  copeland compile <source-file> --emit mir|csharp|javascript [--javascript-profile diagnostic|symbolic|production] [--out <path>]");
-        Console.Error.WriteLine("  tscl build (--project <descriptor.json> | --standalone <project-root> [--target <name>]) --result <result.json>");
+        Console.Error.WriteLine("  tscl build (--project <descriptor.json> | --standalone <project-root> [--target <name>]) [--node-interop] --result <result.json>");
         Console.Error.WriteLine("  tscl migrate init [-p <tsconfig.json>] [--out <directory>]");
         Console.Error.WriteLine("  tscl migrate report [-p <tsconfig.json>] [--format text|json]");
         Console.Error.WriteLine("  tscl asset build <manifest.tsx> [--output <directory>]");

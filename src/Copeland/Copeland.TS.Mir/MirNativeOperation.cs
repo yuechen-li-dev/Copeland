@@ -9,6 +9,9 @@ public enum MirNativeOperation
     StringSlice,
     StringJoin,
     MutableArrayFilled,
+    StringFromCode,
+    MutableListCreate,
+    MutableListAppend,
 }
 
 public static class MirNativeOperations
@@ -23,6 +26,7 @@ public static class MirNativeOperations
             MirNativeOperation.StringSplit => ([text, text], texts),
             MirNativeOperation.StringIndexOf => ([text, text], integer),
             MirNativeOperation.StringCodeAt => ([text, integer], integer),
+            MirNativeOperation.StringFromCode => ([integer], text),
             MirNativeOperation.StringSlice => ([text, integer, integer], text),
             MirNativeOperation.StringJoin => ([texts, text], text),
             _ => throw new ArgumentOutOfRangeException(nameof(operation)),
@@ -37,9 +41,19 @@ public static class MirNativeOperations
         }
         if (operation == MirNativeOperation.MutableArrayFilled)
         {
-            return call.Type is MirMutableArrayType array && call.Arguments.Count == 2
+            return call.Type is MirMutableArrayType { IsGrowable: false } array && call.Arguments.Count == 2
                 && call.Arguments[0].Type.Identifier == "int"
                 && MirTypeFacts.AreEquivalent(array.ElementType, call.Arguments[1].Type);
+        }
+        if (operation == MirNativeOperation.MutableListCreate)
+        {
+            return call.Type is MirMutableArrayType { IsGrowable: true } && call.Arguments.Count == 0;
+        }
+        if (operation == MirNativeOperation.MutableListAppend)
+        {
+            return call.Type.Identifier == "void" && call.Arguments.Count == 2
+                && call.Arguments[0].Type is MirMutableArrayType { IsGrowable: true } list
+                && MirTypeFacts.AreEquivalent(list.ElementType, call.Arguments[1].Type);
         }
         var signature = Signature(operation);
         return MirTypeFacts.AreEquivalent(call.Type, signature.Result)

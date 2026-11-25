@@ -5,6 +5,14 @@ internal static class NativeStringRuntime
     internal static void Emit(JavaScriptTextWriter writer)
     {
         const string source = """
+function __cope_native_MutableListCreate() {
+    return [];
+}
+
+function __cope_native_MutableListAppend(list, value) {
+    list.push(value);
+}
+
 function __cope_native_MutableArrayFilled(length, initializer) {
     if (length < 0) throw new Error("Copeland mutable array length cannot be negative.");
     return new Array(length).fill(initializer);
@@ -31,6 +39,11 @@ function __cope_native_StringSlice(value, start, end) {
 
 function __cope_native_StringJoin(parts, separator) {
     return parts.join(separator);
+}
+
+function __cope_native_StringFromCode(code) {
+    if (code < 0 || code > 65535) throw new Error("Invalid UTF-16 code unit.");
+    return String.fromCharCode(code);
 }
 """;
         foreach (string line in source.Split('\n'))
