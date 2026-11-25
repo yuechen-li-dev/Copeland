@@ -7,6 +7,7 @@ using Copeland.TS.Backend.CSharp;
 using Copeland.TS.Compiler;
 using Copeland.TS.Diagnostics;
 using Copeland.TS.Manifest;
+using Copeland.TS.Mir;
 using Copeland.TS.Workspace;
 
 namespace Copeland.Cli;
@@ -367,14 +368,19 @@ internal static class TsclBuildContract
                     ComponentFrameArtifactEmitter.Emit(compilation));
             }
 
-            string entryModuleOutput = JavaScriptProjectEmitter.GetOutputPath(new Copeland.TS.Mir.MirModuleId(request.Entry!.Module));
+            var entryModuleId = new MirModuleId(request.Entry!.Module);
+            string entryModuleOutput = JavaScriptProjectEmitter.GetOutputPath(entryModuleId);
+            MirProjectModule? entryModule = compilation.MirProjectGraph!.Modules.FirstOrDefault(
+                module => string.Equals(module.Id.Value, entryModuleId.Value, StringComparison.OrdinalIgnoreCase));
+            string? entryRuntimeName = entryModule?.Exports.FirstOrDefault(export => export.Name == request.Entry.Export)?.RuntimeName;
+            MirFunction? entry = entryModule?.Functions.FirstOrDefault(function => function.Name == entryRuntimeName);
             WriteStagedFile(
                 stagingDirectory,
                 entryOutput,
                 target.Runtime == CopelandExecutionRuntime.Browser
                     ? CreateBrowserEntryLauncher(entryModuleOutput, request.Entry.Export, emission.Files.ContainsKey("generated/layouts.css"),
                         compilation.MirProjectGraph!.AggregateProgram.Functions.Any(function => function.ComponentState is not null))
-                    : CreateNodeEntryLauncher(entryModuleOutput, request.Entry.Export));
+                    : CreateNodeEntryLauncher(entryModuleOutput, request.Entry.Export, AsyncEntryResult(entry) is not null));
             if (target.Runtime == CopelandExecutionRuntime.Node)
             {
                 WriteStagedFile(stagingDirectory, "package.json", "{\n  \"type\": \"module\"\n}\n");
@@ -406,7 +412,8 @@ internal static class TsclBuildContract
         string outputDirectory,
         CopelandBackendTarget target)
     {
-        CSharpCompilation emission = CSharpBackend.Emit(compilation.MirProjectGraph!.AggregateProgram);
+        MirProgram program = compilation.MirProjectGraph!.AggregateProgram;
+        CSharpCompilation emission = CSharpBackend.Emit(program);
         if (emission.Diagnostics.Count > 0)
         {
             return TsclBuildResult.FromCSharpDiagnostics(emission.Diagnostics);
@@ -424,7 +431,9 @@ internal static class TsclBuildContract
                 assemblyName = "CopelandTarget_" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(request.BuildFingerprint ?? context.Fingerprint)))[..12];
             }
             WriteStagedFile(projectDirectory, "Generated.cs", emission.SourceText);
-            WriteStagedFile(projectDirectory, "Program.cs", DotNetHostSource);
+            MirType? asyncResult = AsyncEntryResult(program.Functions.FirstOrDefault(function => function.Name == "Main"));
+            string hostSource = asyncResult is null ? DotNetHostSource : CreateDotNetAsyncHostSource(asyncResult);
+            WriteStagedFile(projectDirectory, "Program.cs", hostSource);
             WriteStagedFile(projectDirectory, assemblyName + ".csproj", CreateDotNetProject(assemblyName, target));
             RunDotNetPublish(projectDirectory, assemblyName + ".csproj", publishDirectory, target);
 
@@ -604,12 +613,68 @@ internal static class TsclBuildContract
             }).ToList(),
         };
 
-    private static string CreateNodeEntryLauncher(string entryModuleOutput, string entryExport)
+    private static MirType? AsyncEntryResult(MirFunction? entry)
+        => entry is { IsAsync: true } ? entry.ReturnType : (entry?.ReturnType as MirAsyncType)?.EventualType;
+
+    private static string CreateDotNetAsyncHostSource(MirType resultType)
+    {
+        string launch = "await AwaitEntry(CopelandModule.Main()).ConfigureAwait(false);";
+        bool printsResult = resultType is not MirNamedType { Identifier: "void" };
+        return $$"""
+            using System;
+            using System.Threading.Tasks;
+            using Copeland.Generated;
+
+            internal static class CopelandTargetHost
+            {
+                private static async Task<int> Main()
+                {
+                    {{(printsResult ? "var result = " : string.Empty)}}{{launch}}
+                    {{(printsResult ? "Console.WriteLine(result);" : string.Empty)}}
+                    return 0;
+                }
+
+                private static Task<T> AwaitEntry<T>(CopeAsync<T> pending)
+                {
+                    var completion = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+                    void Resolve() => completion.TrySetResult(pending.Value);
+                    void Cancel() => completion.TrySetException(new InvalidOperationException("Copeland entry computation was cancelled."));
+                    void Fail() => completion.TrySetException(new InvalidOperationException("Copeland entry transport failed."));
+                    void Panic() => completion.TrySetException(new InvalidOperationException("Copeland entry computation panicked."));
+
+                    if (pending.SubscribeTransport(Resolve, Cancel, Fail, Panic))
+                    {
+                        if (pending.IsCancelled) Cancel();
+                        else if (pending.IsTransportFailed) Fail();
+                        else if (pending.IsPanicked) Panic();
+                        else Resolve();
+                    }
+                    return completion.Task;
+                }
+            }
+            """;
+    }
+
+    private static string CreateNodeEntryLauncher(string entryModuleOutput, string entryExport, bool asyncEntry)
     {
         string specifier = "./" + entryModuleOutput.Replace('\\', '/');
-        return $"import {{ {entryExport} }} from {JsonSerializer.Serialize(specifier)};\n" +
-            $"const __cope_result = await {entryExport}();\n" +
-            "if (__cope_result !== undefined) {\n    console.log(__cope_result);\n}\n";
+        string import = $"import {{ {entryExport} }} from {JsonSerializer.Serialize(specifier)};\n";
+        string launch = asyncEntry ? $$"""
+            const __cope_pending = {{entryExport}}();
+            const __cope_result = await new Promise((resolve, reject) => {
+                const success = () => resolve(__cope_pending.value);
+                const cancel = () => reject(new Error("Copeland entry computation was cancelled."));
+                const fail = () => reject(new Error("Copeland entry transport failed."));
+                const panic = () => reject(new Error("Copeland entry computation panicked."));
+                if (__cope_pending.subscribe(success, cancel, fail, panic)) {
+                    if (__cope_pending.cancelled) cancel();
+                    else if (__cope_pending.transportFailed) fail();
+                    else if (__cope_pending.panicked) panic();
+                    else success();
+                }
+            });
+            """ + "\n" : $"const __cope_result = await {entryExport}();\n";
+        return import + launch + "if (__cope_result !== undefined) {\n    console.log(__cope_result);\n}\n";
     }
 
     private static string CreateBrowserEntryLauncher(string entryModuleOutput, string entryExport, bool hasLayouts, bool hasReactState)
