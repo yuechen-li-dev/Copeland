@@ -135,10 +135,7 @@ public static class CopelandProjectCompiler
         foreach (ProjectModule module in ordered)
         {
             BoundModuleImports imports = CreateImports(module, diagnostics);
-            string rewritten = RewriteModule(module);
-            SyntaxTree tree = ReferenceEquals(rewritten, module.Source.SourceText)
-                ? module.SourceSyntax
-                : SyntaxTree.Parse(rewritten, module.Source.SourcePath);
+            SyntaxTree tree = module.TakeBindingTree();
             diagnostics.AddRange(tree.Diagnostics.Select(diagnostic => diagnostic with { SourcePath = module.Source.SourcePath }));
             if (tree.Diagnostics.Count > 0)
             {
@@ -250,8 +247,12 @@ public static class CopelandProjectCompiler
             SyntaxTree sourceSyntax = ReferenceEquals(visibleSource, source.SourceText)
                 ? visibleSyntax
                 : SyntaxTree.Parse(source.SourceText, source.SourcePath);
-            result.Add(new ProjectModule(source, logicalPath, ReadImports(importSyntax), ReadExports(tokens),
-                ReadDeclarations(tokens, sourceSyntax), tokens, visibleSyntax.Root, sourceSyntax));
+            IReadOnlyList<ProjectImport> imports = ReadImports(importSyntax);
+            IReadOnlySet<string> exports = ReadExports(tokens, out var exportOffsets);
+            bool rewritesSource = exportOffsets.Count != 0 || imports.Any(import => IsRelative(import.Specifier));
+            result.Add(new ProjectModule(source, logicalPath, imports, exports,
+                ReadDeclarations(tokens, sourceSyntax), exportOffsets, tokens, visibleSyntax.Root,
+                rewritesSource ? null : sourceSyntax));
         }
 
         return result.OrderBy(module => module.LogicalPath, StringComparer.OrdinalIgnoreCase).ToArray();
@@ -393,73 +394,86 @@ public static class CopelandProjectCompiler
             .GroupBy(item => item.Name, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
 
+        var functionNames = functions.GetAlternateLookup<ReadOnlySpan<char>>();
+        var typeNames = types.GetAlternateLookup<ReadOnlySpan<char>>();
         foreach (ProjectModule module in modules)
         {
             var allowedImports = module.Imports
                 .Where(import => import.Target is not null)
                 .SelectMany(import => import.Bindings.Select(binding => binding.LocalName))
                 .ToHashSet(StringComparer.Ordinal);
-            SyntaxToken[] tokens = module.MetadataTokens;
-            CompilationUnitSyntax syntax = module.VisibleSyntax;
-            IReadOnlySet<int> nonCallIdentifiers = NonCallIdentifierPositions(syntax);
-            IReadOnlySet<int> genericParameterIdentifiers = GenericParameterIdentifierPositions(syntax);
-            foreach (var pair in functions)
+            var (tokens, syntax) = module.TakePrivacyInput();
+            IReadOnlySet<int>? nonCallIdentifiers = null;
+            IReadOnlySet<int>? genericParameterIdentifiers = null;
+            Dictionary<string, List<SyntaxToken>>? functionHits = null;
+            Dictionary<string, List<SyntaxToken>>? typeHits = null;
+            for (int index = 0; index < tokens.Length; index++)
             {
-                if (pair.Value.Length != 1 || pair.Value[0].Module == module || allowedImports.Contains(pair.Key))
+                SyntaxToken token = tokens[index];
+                if (token.Kind != SyntaxKind.IdentifierToken)
                 {
                     continue;
                 }
 
-                for (int index = 0; index + 1 < tokens.Length; index++)
+                SyntaxKind before = index > 0 ? tokens[index - 1].Kind : SyntaxKind.EndOfFileToken;
+                SyntaxKind after = index + 1 < tokens.Length ? tokens[index + 1].Kind : SyntaxKind.EndOfFileToken;
+                if (after == SyntaxKind.OpenParenToken && before is not (SyntaxKind.DotToken or SyntaxKind.FunctionKeyword)
+                    && functionNames.TryGetValue(token.TextSpan, out string? functionName, out var declarations)
+                    && declarations.Length == 1 && declarations[0].Module != module && !allowedImports.Contains(functionName)
+                    && !(nonCallIdentifiers ??= NonCallIdentifierPositions(syntax)).Contains(token.Position))
                 {
-                    SyntaxToken token = tokens[index];
-                    if (token.Kind != SyntaxKind.IdentifierToken
-                        || token.Text != pair.Key
-                        || tokens[index + 1].Kind != SyntaxKind.OpenParenToken
-                        || nonCallIdentifiers.Contains(token.Position)
-                        || index > 0 && tokens[index - 1].Kind is SyntaxKind.DotToken or SyntaxKind.FunctionKeyword)
-                    {
-                        continue;
-                    }
+                    AddPrivacyHit(functionHits ??= new(StringComparer.Ordinal), functionName, token);
+                }
 
-                    diagnostics.Add(new Diagnostic(
-                        "COPE-MODULE-0007",
-                        $"Function '{pair.Key}' belongs to module '{pair.Value[0].Module.LogicalPath}' and is not imported into '{module.LogicalPath}'. Module-private declarations may not be referenced across Copeland modules.",
-                        token.Position,
-                        token.Text.Length,
-                        module.Source.SourcePath));
+                if ((before == SyntaxKind.ColonToken || after == SyntaxKind.DotToken)
+                    && typeNames.TryGetValue(token.TextSpan, out string? typeName, out var owners)
+                    && owners.Length == 1 && owners[0].Owner != module && !allowedImports.Contains(typeName)
+                    && !(genericParameterIdentifiers ??= GenericParameterIdentifierPositions(syntax)).Contains(token.Position))
+                {
+                    AddPrivacyHit(typeHits ??= new(StringComparer.Ordinal), typeName, token);
                 }
             }
 
-            foreach (var pair in types)
+            // Report names in the same declaration order as the module graph.
+            if (functionHits is not null)
             {
-                if (pair.Value.Length != 1 || pair.Value[0].Owner == module || allowedImports.Contains(pair.Key))
+                foreach (var pair in functions)
                 {
-                    continue;
-                }
-
-                for (int index = 0; index < tokens.Length; index++)
-                {
-                    SyntaxToken token = tokens[index];
-                    bool appearsInTypePosition = index > 0 && tokens[index - 1].Kind == SyntaxKind.ColonToken;
-                    bool appearsAsEnumReceiver = index + 1 < tokens.Length && tokens[index + 1].Kind == SyntaxKind.DotToken;
-                    if (token.Kind != SyntaxKind.IdentifierToken
-                        || token.Text != pair.Key
-                        || genericParameterIdentifiers.Contains(token.Position)
-                        || !appearsInTypePosition && !appearsAsEnumReceiver)
+                    if (!functionHits.TryGetValue(pair.Key, out var hits)) continue;
+                    foreach (SyntaxToken token in hits)
                     {
-                        continue;
+                        diagnostics.Add(new Diagnostic(
+                            "COPE-MODULE-0007",
+                            $"Function '{pair.Key}' belongs to module '{pair.Value[0].Module.LogicalPath}' and is not imported into '{module.LogicalPath}'. Module-private declarations may not be referenced across Copeland modules.",
+                            token.Position, token.TextLength, module.Source.SourcePath));
                     }
-
-                    diagnostics.Add(new Diagnostic(
-                        "COPE-MODULE-0007",
-                        $"Declaration '{pair.Key}' belongs to module '{pair.Value[0].Owner.LogicalPath}' and is not imported into '{module.LogicalPath}'. Module-private declarations may not be referenced across Copeland modules.",
-                        token.Position,
-                        token.Text.Length,
-                        module.Source.SourcePath));
+                }
+            }
+            if (typeHits is not null)
+            {
+                foreach (var pair in types)
+                {
+                    if (!typeHits.TryGetValue(pair.Key, out var hits)) continue;
+                    foreach (SyntaxToken token in hits)
+                    {
+                        diagnostics.Add(new Diagnostic(
+                            "COPE-MODULE-0007",
+                            $"Declaration '{pair.Key}' belongs to module '{pair.Value[0].Owner.LogicalPath}' and is not imported into '{module.LogicalPath}'. Module-private declarations may not be referenced across Copeland modules.",
+                            token.Position, token.TextLength, module.Source.SourcePath));
+                    }
                 }
             }
         }
+    }
+
+    private static void AddPrivacyHit(Dictionary<string, List<SyntaxToken>> hits, string name, SyntaxToken token)
+    {
+        if (!hits.TryGetValue(name, out var tokens))
+        {
+            tokens = [];
+            hits.Add(name, tokens);
+        }
+        tokens.Add(token);
     }
 
     private static IReadOnlySet<int> GenericParameterIdentifierPositions(SyntaxNode root)
@@ -567,13 +581,10 @@ public static class CopelandProjectCompiler
             }
         }
 
-        foreach (SyntaxToken token in module.MetadataTokens)
+        foreach (int position in module.ExportOffsets)
         {
-            if (token.Kind == SyntaxKind.IdentifierToken && token.Text == "export")
-            {
-                text ??= module.Source.SourceText.ToCharArray();
-                text.AsSpan(token.Position, token.Text.Length).Fill(' ');
-            }
+            text ??= module.Source.SourceText.ToCharArray();
+            text.AsSpan(position, "export".Length).Fill(' ');
         }
         return text is null ? module.Source.SourceText : new string(text);
     }
@@ -858,15 +869,18 @@ public static class CopelandProjectCompiler
     }
 
     internal static IReadOnlySet<string> ReadExports(CopelandProjectSource source)
-        => ReadExports(SyntaxTree.ParseTokens(EmbeddedSourceBlockScanner.MaskBodies(source.SourceText)).Tokens.ToArray());
+        => ReadExports(SyntaxTree.ParseTokens(EmbeddedSourceBlockScanner.MaskBodies(source.SourceText)).Tokens.ToArray(), out _);
 
-    private static IReadOnlySet<string> ReadExports(SyntaxToken[] tokens)
+    private static IReadOnlySet<string> ReadExports(SyntaxToken[] tokens, out IReadOnlyList<int> exportOffsets)
     {
         var exports = new HashSet<string>(StringComparer.Ordinal);
+        var offsets = new List<int>();
+        exportOffsets = offsets;
         for (int index = 0; index + 1 < tokens.Length; index++)
         {
-            if (tokens[index].Kind != SyntaxKind.IdentifierToken || tokens[index].Text != "export") continue;
-            int nameIndex = tokens[index + 1].Text switch
+            if (tokens[index].Kind != SyntaxKind.IdentifierToken || !tokens[index].TextEquals("export")) continue;
+            offsets.Add(tokens[index].Position);
+            int nameIndex = tokens[index + 1].TextSpan switch
             {
                 "remote" when index + 4 < tokens.Length && tokens[index + 2].Kind == SyntaxKind.FunctionKeyword => index + 3,
                 "remote" when index + 5 < tokens.Length && tokens[index + 2].Kind == SyntaxKind.AsyncKeyword && tokens[index + 3].Kind == SyntaxKind.FunctionKeyword => index + 4,
@@ -904,11 +918,11 @@ public static class CopelandProjectCompiler
                 SyntaxKind.RecordKeyword when tokens[index + 1].Kind == SyntaxKind.TableKeyword => "table",
                 SyntaxKind.RecordKeyword => "record",
                 SyntaxKind.LayoutKeyword => "layout",
-                _ when tokens[index].Kind == SyntaxKind.IdentifierToken && tokens[index].Text == "layers" => "layers",
-                _ when tokens[index].Kind == SyntaxKind.IdentifierToken && tokens[index].Text == "type" => "type",
-                _ when tokens[index].Kind == SyntaxKind.IdentifierToken && tokens[index].Text == "interface" => "interface",
-                _ when tokens[index].Kind == SyntaxKind.IdentifierToken && tokens[index].Text == "flow" => "flow",
-                _ when tokens[index].Kind == SyntaxKind.IdentifierToken && tokens[index].Text == "class" => "class",
+                _ when tokens[index].Kind == SyntaxKind.IdentifierToken && tokens[index].TextEquals("layers") => "layers",
+                _ when tokens[index].Kind == SyntaxKind.IdentifierToken && tokens[index].TextEquals("type") => "type",
+                _ when tokens[index].Kind == SyntaxKind.IdentifierToken && tokens[index].TextEquals("interface") => "interface",
+                _ when tokens[index].Kind == SyntaxKind.IdentifierToken && tokens[index].TextEquals("flow") => "flow",
+                _ when tokens[index].Kind == SyntaxKind.IdentifierToken && tokens[index].TextEquals("class") => "class",
                 _ => null,
             };
             int nameIndex = kind == "table"
@@ -1013,20 +1027,36 @@ public static class CopelandProjectCompiler
         IReadOnlyList<ProjectImport> imports,
         IReadOnlySet<string> exports,
         IReadOnlyList<ProjectDeclaration> declarations,
+        IReadOnlyList<int> exportOffsets,
         SyntaxToken[] metadataTokens,
         CompilationUnitSyntax visibleSyntax,
-        SyntaxTree sourceSyntax)
+        SyntaxTree? sourceSyntax)
     {
+        private (SyntaxToken[], CompilationUnitSyntax)? _privacyInput = (metadataTokens, visibleSyntax);
+        private SyntaxTree? _sourceSyntax = sourceSyntax;
+
         public CopelandProjectSource Source { get; } = source;
         public string LogicalPath { get; } = logicalPath;
         public IReadOnlyList<ProjectImport> Imports { get; } = imports;
         public IReadOnlySet<string> Exports { get; } = exports;
         public IReadOnlyList<ProjectDeclaration> Declarations { get; } = declarations;
-        public SyntaxToken[] MetadataTokens { get; } = metadataTokens;
-        public CompilationUnitSyntax VisibleSyntax { get; } = visibleSyntax;
-        public SyntaxTree SourceSyntax { get; } = sourceSyntax;
+        public IReadOnlyList<int> ExportOffsets { get; } = exportOffsets;
         public BoundCompilation? Bound { get; set; }
         public MirProgram? Mir { get; set; }
+
+        public (SyntaxToken[] Tokens, CompilationUnitSyntax Syntax) TakePrivacyInput()
+        {
+            var input = _privacyInput!.Value;
+            _privacyInput = null;
+            return input;
+        }
+
+        public SyntaxTree TakeBindingTree()
+        {
+            SyntaxTree? existing = _sourceSyntax;
+            _sourceSyntax = null;
+            return existing ?? SyntaxTree.Parse(RewriteModule(this), Source.SourcePath);
+        }
     }
 
     private sealed class ProjectImport(string specifier, IReadOnlyList<ProjectImportBinding> bindings, int position, int length, int start, int end)

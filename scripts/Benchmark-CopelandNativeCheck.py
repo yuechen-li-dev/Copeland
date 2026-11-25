@@ -1,4 +1,4 @@
-"""Measure standalone tscl check and JsDiff's pinned TypeScript compilers on Windows."""
+"""Measure standalone tscl check and pinned TypeScript compilers on Windows."""
 
 import argparse
 from datetime import datetime, timezone
@@ -18,11 +18,16 @@ def main():
     parser.add_argument("--native", type=Path, required=True)
     parser.add_argument("--managed", type=Path, help="Framework-dependent Copeland.Cli.dll")
     parser.add_argument("--baseline-native", type=Path)
+    parser.add_argument("--baseline-managed", type=Path)
+    parser.add_argument("--copeland-project", type=Path, help="Standalone Copeland project directory")
+    parser.add_argument("--typescript-project", type=Path, help="TypeScript control tsconfig.json")
     parser.add_argument("--jsdiff", type=Path, default=REPO.parent / "jsdiff")
     parser.add_argument("--output", type=Path, default=REPO / "artifacts/local/native-check")
     arguments = parser.parse_args()
     if os.name != "nt" or platform.python_implementation() != "CPython":
         parser.error("The harness requires Windows CPython for process memory counters.")
+    if bool(arguments.copeland_project) != bool(arguments.typescript_project):
+        parser.error("Supply both project paths for a comparison corpus other than JsDiff.")
 
     harness_path = arguments.jsdiff.resolve() / "copeland-port/benchmark/benchmark.py"
     spec = importlib.util.spec_from_file_location("jsdiff_benchmark", harness_path)
@@ -32,11 +37,16 @@ def main():
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     run = arguments.output.resolve() / run_id
     run.mkdir(parents=True)
-    port = run / "m6-port"
-    harness.copy_port(port)
+    if arguments.copeland_project:
+        port = arguments.copeland_project.resolve()
+        tsconfig = arguments.typescript_project.resolve()
+    else:
+        port = run / "m6-port"
+        harness.copy_port(port)
+        tsconfig = harness.REPO / "tsconfig.json"
 
     check_args = ["check", "--standalone", str(port)]
-    ts_flags = ["-p", "tsconfig.json", "--incremental", "false", "--pretty", "false", "--noEmit"]
+    ts_flags = ["-p", str(tsconfig), "--incremental", "false", "--pretty", "false", "--noEmit"]
     tsgo = harness.TOOLS / "@typescript/typescript-win32-x64/lib/tsc.exe"
     tsrs = harness.TOOLS / "@tsrs/win32-x64/tsrs.exe"
     commands = {
@@ -48,6 +58,8 @@ def main():
         commands["copeland-managed"] = ["dotnet", str(arguments.managed.resolve()), *check_args]
     if arguments.baseline_native:
         commands["copeland-baseline-native"] = [str(arguments.baseline_native.resolve()), *check_args]
+    if arguments.baseline_managed:
+        commands["copeland-baseline-managed"] = ["dotnet", str(arguments.baseline_managed.resolve()), *check_args]
 
     environment = os.environ.copy()
     for key in list(environment):

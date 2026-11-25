@@ -95,6 +95,23 @@ public sealed class LexerTests
     }
 
     [Fact]
+    public void Source_Backed_Tokens_Have_The_Same_Value_Semantics_As_Authored_Tokens()
+    {
+        var tree = SyntaxTree.ParseTokens("ident \"quoted\" `template`");
+        SyntaxToken identifier = tree.Tokens[0];
+        var expected = new SyntaxToken(SyntaxKind.IdentifierToken, 0, "ident", null);
+
+        Assert.Equal(expected, identifier);
+        Assert.Equal(expected.GetHashCode(), identifier.GetHashCode());
+        Assert.Equal("ident", identifier.Text);
+        Assert.Equal(expected, identifier);
+        Assert.Equal("ident", (identifier with { Position = 30 }).Text);
+        Assert.Equal("renamed", (identifier with { Text = "renamed" }).Text);
+        Assert.Equal(new SyntaxToken(SyntaxKind.StringToken, 6, "\"quoted\"", "quoted"), tree.Tokens[1]);
+        Assert.Equal(new SyntaxToken(SyntaxKind.TemplateToken, 15, "`template`", "template"), tree.Tokens[2]);
+    }
+
+    [Fact]
     public void Lexes_Number_And_String_Values()
     {
         var tree = SyntaxTree.ParseTokens("42 \"abc\" 'def'");
