@@ -3894,7 +3894,13 @@ public static partial class Binder
                         .Select(element => BindTemplateValue(element, contextualElementType))
                         .ToArray();
                     TypeSymbol? elementType = contextualElementType ?? elements.FirstOrDefault()?.Type;
-                    foreach (BoundTemplateValue element in elements.Skip(1))
+                    if (contextualElementType is null && IsFileArtifact(elementType)
+                        && elements.Any(element => element.Type != elementType)
+                        && elements.All(element => IsFileArtifact(element.Type)))
+                    {
+                        elementType = ArtifactTypeSymbol.FileArtifact;
+                    }
+                    foreach (BoundTemplateValue element in elements)
                     {
                         if (elementType is not null && !IsAssignable(elementType, element.Type))
                         {
@@ -3904,7 +3910,7 @@ public static partial class Binder
                                 element.Anchor);
                         }
                     }
-                    return new BoundTemplateArray(array.OpenBracketToken, elements, contextualElementType);
+                    return new BoundTemplateArray(array.OpenBracketToken, elements, elementType);
                 case BinaryExpressionSyntax binary when binary.OperatorToken.Kind == SyntaxKind.PlusToken:
                     BoundTemplateValue left = BindTemplateValue(binary.Left);
                     BoundTemplateValue right = BindTemplateValue(binary.Right);
@@ -14568,11 +14574,20 @@ public static partial class Binder
             return new BoundEnumValueExpression(@case, args);
         }
 
+        private static bool IsFileArtifact(TypeSymbol? type) =>
+            type == ArtifactTypeSymbol.FileArtifact || type == ArtifactTypeSymbol.TextFileArtifact
+            || type == ArtifactTypeSymbol.SourceFileArtifact || type == ArtifactTypeSymbol.ProjectFile
+            || type == ArtifactTypeSymbol.TestFile;
+
         private static bool IsAssignable(TypeSymbol target, TypeSymbol actual)
         {
             if (target == PrimitiveTypeSymbol.Error || actual == PrimitiveTypeSymbol.Error || TypeFacts.AreEquivalent(target, actual))
             {
                 return true;
+            }
+            if (target == ArtifactTypeSymbol.FileArtifact)
+            {
+                return IsFileArtifact(actual);
             }
             if (target is UnionTypeSymbol union)
             {
