@@ -76,105 +76,107 @@ public sealed class Lexer
             switch (current)
             {
                 case '(':
-                    return SingleCharToken(SyntaxKind.OpenParenToken);
+                    return FixedToken(SyntaxKind.OpenParenToken, "(");
                 case ')':
-                    return SingleCharToken(SyntaxKind.CloseParenToken);
+                    return FixedToken(SyntaxKind.CloseParenToken, ")");
                 case '{':
-                    return SingleCharToken(SyntaxKind.OpenBraceToken);
+                    return FixedToken(SyntaxKind.OpenBraceToken, "{");
                 case '}':
-                    return SingleCharToken(SyntaxKind.CloseBraceToken);
+                    return FixedToken(SyntaxKind.CloseBraceToken, "}");
                 case '[':
-                    return SingleCharToken(SyntaxKind.OpenBracketToken);
+                    return FixedToken(SyntaxKind.OpenBracketToken, "[");
                 case ']':
-                    return SingleCharToken(SyntaxKind.CloseBracketToken);
+                    return FixedToken(SyntaxKind.CloseBracketToken, "]");
                 case ',':
-                    return SingleCharToken(SyntaxKind.CommaToken);
+                    return FixedToken(SyntaxKind.CommaToken, ",");
                 case '.':
                     if (Peek(1) == '.' && Peek(2) == '.')
                     {
-                        return TripleCharToken(SyntaxKind.EllipsisToken);
+                        return FixedToken(SyntaxKind.EllipsisToken, "...");
                     }
-                    return SingleCharToken(SyntaxKind.DotToken);
+                    return FixedToken(SyntaxKind.DotToken, ".");
                 case ':':
-                    return SingleCharToken(SyntaxKind.ColonToken);
+                    return FixedToken(SyntaxKind.ColonToken, ":");
                 case ';':
-                    return SingleCharToken(SyntaxKind.SemicolonToken);
+                    return FixedToken(SyntaxKind.SemicolonToken, ";");
                 case '?':
-                    return SingleCharToken(SyntaxKind.QuestionToken);
+                    return FixedToken(SyntaxKind.QuestionToken, "?");
                 case '@':
-                    return SingleCharToken(SyntaxKind.AtToken);
+                    return FixedToken(SyntaxKind.AtToken, "@");
                 case '+':
-                    if (Peek(1) == '=') return DoubleCharToken(SyntaxKind.PlusEqualsToken);
-                    if (Peek(1) == '+') return DoubleCharToken(SyntaxKind.PlusPlusToken);
-                    return SingleCharToken(SyntaxKind.PlusToken);
+                    if (Peek(1) == '=') return FixedToken(SyntaxKind.PlusEqualsToken, "+=");
+                    if (Peek(1) == '+') return FixedToken(SyntaxKind.PlusPlusToken, "++");
+                    return FixedToken(SyntaxKind.PlusToken, "+");
                 case '-':
-                    if (Peek(1) == '=') return DoubleCharToken(SyntaxKind.MinusEqualsToken);
-                    if (Peek(1) == '-') return DoubleCharToken(SyntaxKind.MinusMinusToken);
+                    if (Peek(1) == '=') return FixedToken(SyntaxKind.MinusEqualsToken, "-=");
+                    if (Peek(1) == '-') return FixedToken(SyntaxKind.MinusMinusToken, "--");
                     if (Peek(1) == '>')
                     {
-                        return DoubleCharToken(SyntaxKind.ArrowToken);
+                        return FixedToken(SyntaxKind.ArrowToken, "->");
                     }
-                    return SingleCharToken(SyntaxKind.MinusToken);
+                    return FixedToken(SyntaxKind.MinusToken, "-");
                 case '*':
-                    if (Peek(1) == '=') return DoubleCharToken(SyntaxKind.StarEqualsToken);
-                    return SingleCharToken(SyntaxKind.StarToken);
+                    if (Peek(1) == '=') return FixedToken(SyntaxKind.StarEqualsToken, "*=");
+                    return FixedToken(SyntaxKind.StarToken, "*");
                 case '%':
-                    if (Peek(1) == '=') return DoubleCharToken(SyntaxKind.PercentEqualsToken);
-                    return SingleCharToken(SyntaxKind.PercentToken);
+                    if (Peek(1) == '=') return FixedToken(SyntaxKind.PercentEqualsToken, "%=");
+                    return FixedToken(SyntaxKind.PercentToken, "%");
                 case '/':
-                    if (Peek(1) == '=') return DoubleCharToken(SyntaxKind.SlashEqualsToken);
-                    return SingleCharToken(SyntaxKind.SlashToken);
+                    if (Peek(1) == '=') return FixedToken(SyntaxKind.SlashEqualsToken, "/=");
+                    return FixedToken(SyntaxKind.SlashToken, "/");
                 case '<':
-                    return MatchOrSingle('=', SyntaxKind.LessOrEqualsToken, SyntaxKind.LessToken);
+                    if (Peek(1) == '=') return FixedToken(SyntaxKind.LessOrEqualsToken, "<=");
+                    return FixedToken(SyntaxKind.LessToken, "<");
                 case '>':
-                    return MatchOrSingle('=', SyntaxKind.GreaterOrEqualsToken, SyntaxKind.GreaterToken);
+                    if (Peek(1) == '=') return FixedToken(SyntaxKind.GreaterOrEqualsToken, ">=");
+                    return FixedToken(SyntaxKind.GreaterToken, ">");
                 case '^':
-                    return SingleCharToken(SyntaxKind.CaretToken);
+                    return FixedToken(SyntaxKind.CaretToken, "^");
                 case '&':
                     if (Peek(1) == '&')
                     {
-                        return DoubleCharToken(SyntaxKind.AmpersandAmpersandToken);
+                        return FixedToken(SyntaxKind.AmpersandAmpersandToken, "&&");
                     }
-                    return SingleCharToken(SyntaxKind.AmpersandToken);
+                    return FixedToken(SyntaxKind.AmpersandToken, "&");
                 case '|':
                     if (Peek(1) == '>')
                     {
-                        return DoubleCharToken(SyntaxKind.PipeGreaterToken);
+                        return FixedToken(SyntaxKind.PipeGreaterToken, "|>");
                     }
                     if (Peek(1) == '|')
                     {
-                        return DoubleCharToken(SyntaxKind.PipePipeToken);
+                        return FixedToken(SyntaxKind.PipePipeToken, "||");
                     }
-                    return SingleCharToken(SyntaxKind.PipeToken);
+                    return FixedToken(SyntaxKind.PipeToken, "|");
                 case '=':
                     if (Peek(1) == '=' && Peek(2) == '=')
                     {
-                        return TripleCharToken(SyntaxKind.EqualsEqualsEqualsToken);
+                        return FixedToken(SyntaxKind.EqualsEqualsEqualsToken, "===");
                     }
 
                     if (Peek(1) == '=')
                     {
-                        return DoubleCharToken(SyntaxKind.EqualsEqualsToken);
+                        return FixedToken(SyntaxKind.EqualsEqualsToken, "==");
                     }
 
                     if (Peek(1) == '>')
                     {
-                        return DoubleCharToken(SyntaxKind.ArrowToken);
+                        return FixedToken(SyntaxKind.ArrowToken, "=>");
                     }
 
-                    return SingleCharToken(SyntaxKind.EqualsToken);
+                    return FixedToken(SyntaxKind.EqualsToken, "=");
                 case '!':
                     if (Peek(1) == '=' && Peek(2) == '=')
                     {
-                        return TripleCharToken(SyntaxKind.BangEqualsEqualsToken);
+                        return FixedToken(SyntaxKind.BangEqualsEqualsToken, "!==");
                     }
 
                     if (Peek(1) == '=')
                     {
-                        return DoubleCharToken(SyntaxKind.BangEqualsToken);
+                        return FixedToken(SyntaxKind.BangEqualsToken, "!=");
                     }
 
-                    return SingleCharToken(SyntaxKind.BangToken);
+                    return FixedToken(SyntaxKind.BangToken, "!");
             }
 
             _position++;
@@ -192,9 +194,11 @@ public sealed class Lexer
             _position++;
         }
 
-        var text = _text.Substring(start, _position - start);
-        var kind = SyntaxFacts.GetKeywordKind(text);
-        return new SyntaxToken(kind, start, text, null);
+        ReadOnlyMemory<char> text = _text.AsMemory(start, _position - start);
+        SyntaxKind kind = SyntaxFacts.GetKeywordKind(text.Span);
+        return kind == SyntaxKind.IdentifierToken
+            ? new SyntaxToken(kind, start, text, null)
+            : new SyntaxToken(kind, start, SyntaxFacts.GetText(kind)!, null);
     }
 
     private SyntaxToken LexNumber()
@@ -205,14 +209,14 @@ public sealed class Lexer
             _position += 2;
             int digitsStart = _position;
             while (char.IsAsciiLetterOrDigit(Current)) _position++;
-            string radixText = _text[start.._position];
             if (_position - digitsStart is >= 1 and <= 8
-                && uint.TryParse(_text[digitsStart.._position], System.Globalization.NumberStyles.AllowHexSpecifier, System.Globalization.CultureInfo.InvariantCulture, out uint bits))
+                && uint.TryParse(_text.AsSpan(digitsStart, _position - digitsStart),
+                    System.Globalization.NumberStyles.AllowHexSpecifier, System.Globalization.CultureInfo.InvariantCulture, out uint bits))
             {
-                return new SyntaxToken(SyntaxKind.NumberToken, start, radixText, unchecked((int)bits));
+                return NumberToken(start, unchecked((int)bits));
             }
-            _diagnostics.Report("COPE-LEX-0004", "Hexadecimal int literals must contain one to eight hex digits (a signed 32-bit bit pattern).", start, radixText.Length);
-            return new SyntaxToken(SyntaxKind.NumberToken, start, radixText, null);
+            _diagnostics.Report("COPE-LEX-0004", "Hexadecimal int literals must contain one to eight hex digits (a signed 32-bit bit pattern).", start, _position - start);
+            return NumberToken(start, null);
         }
 
         while (char.IsAsciiDigit(Current))
@@ -248,7 +252,7 @@ public sealed class Lexer
             }
         }
 
-        string numericText = _text.Substring(start, _position - start);
+        ReadOnlySpan<char> numericText = _text.AsSpan(start, _position - start);
         double floatValue = default;
         int intValue = default;
         System.Globalization.NumberStyles floatStyles = hasExponent
@@ -266,54 +270,51 @@ public sealed class Lexer
                 _position++;
             }
 
-            string suffix = _text.Substring(suffixStart, _position - suffixStart);
-            string unitText = _text.Substring(start, _position - start);
-            if (!hasDecimalPoint && suffix == "L")
+            ReadOnlySpan<char> suffix = _text.AsSpan(suffixStart, _position - suffixStart);
+            if (!hasDecimalPoint && suffix is "L")
             {
                 if (long.TryParse(numericText, System.Globalization.NumberStyles.None,
                     System.Globalization.CultureInfo.InvariantCulture, out long integer))
                 {
-                    return new SyntaxToken(SyntaxKind.NumberToken, start, unitText, integer);
+                    return NumberToken(start, integer);
                 }
-                if (numericText == "9223372036854775808")
+                if (numericText is "9223372036854775808")
                 {
-                    return new SyntaxToken(SyntaxKind.NumberToken, start, unitText, new MinimumLongMagnitudeTokenValue());
+                    return NumberToken(start, new MinimumLongMagnitudeTokenValue());
                 }
-                _diagnostics.Report("COPE-NUM-0064", "Int64 literal is outside the signed 64-bit range.", start, unitText.Length);
-                return new SyntaxToken(SyntaxKind.NumberToken, start, unitText, null);
+                _diagnostics.Report("COPE-NUM-0064", "Int64 literal is outside the signed 64-bit range.", start, _position - start);
+                return NumberToken(start, null);
             }
             if (parsed && suffix is "px" or "ui")
             {
                 double unitValue = hasDecimalPoint ? floatValue : intValue;
-                return new SyntaxToken(
-                    SyntaxKind.NumberToken,
-                    start,
-                    unitText,
-                    new LengthLiteralTokenValue(unitValue, suffix));
+                return NumberToken(start, new LengthLiteralTokenValue(unitValue, suffix.ToString()));
             }
 
-            _diagnostics.Report("COPE-LEX-0004", "Invalid number literal.", start, unitText.Length);
-            return new SyntaxToken(SyntaxKind.NumberToken, start, unitText, null);
+            _diagnostics.Report("COPE-LEX-0004", "Invalid number literal.", start, _position - start);
+            return NumberToken(start, null);
         }
 
-        var text = numericText;
         object? value = null;
         if (parsed)
         {
             value = hasDecimalPoint ? (object)floatValue : intValue;
         }
-        else if (numericText == "2147483648")
+        else if (numericText is "2147483648")
         {
             // Only unary minus may consume this magnitude as the minimum int.
             value = new MinimumIntMagnitudeTokenValue();
         }
         if (!parsed && value is null)
         {
-            _diagnostics.Report("COPE-LEX-0004", "Invalid number literal.", start, text.Length);
+            _diagnostics.Report("COPE-LEX-0004", "Invalid number literal.", start, numericText.Length);
         }
 
-        return new SyntaxToken(SyntaxKind.NumberToken, start, text, value);
+        return NumberToken(start, value);
     }
+
+    private SyntaxToken NumberToken(int start, object? value)
+        => new(SyntaxKind.NumberToken, start, _text.AsMemory(start, _position - start), value);
 
     private SyntaxToken LexTemplate()
     {
@@ -345,16 +346,14 @@ public sealed class Lexer
             if (Current == '`' && interpolationDepth == 0)
             {
                 _position++;
-                var text = _text.Substring(start, _position - start);
-                return new SyntaxToken(SyntaxKind.TemplateToken, start, text, text[1..^1]);
+                return QuotedToken(SyntaxKind.TemplateToken, start, terminated: true);
             }
 
             _position++;
         }
 
-        var unterminated = _text.Substring(start, _position - start);
-        _diagnostics.Report("COPE-LEX-0005", "Unterminated template literal.", start, Math.Max(1, unterminated.Length));
-        return new SyntaxToken(SyntaxKind.TemplateToken, start, unterminated, unterminated.Length > 1 ? unterminated[1..] : string.Empty);
+        _diagnostics.Report("COPE-LEX-0005", "Unterminated template literal.", start, Math.Max(1, _position - start));
+        return QuotedToken(SyntaxKind.TemplateToken, start, terminated: false);
     }
 
     private SyntaxToken LexString()
@@ -367,9 +366,8 @@ public sealed class Lexer
         {
             if (_position >= _text.Length || Current is '\r' or '\n')
             {
-                var text = _text.Substring(start, _position - start);
-                _diagnostics.Report("COPE-LEX-0001", "Unterminated string literal.", start, Math.Max(1, text.Length));
-                return new SyntaxToken(SyntaxKind.StringToken, start, text, text.Length > 1 ? text[1..] : string.Empty);
+                _diagnostics.Report("COPE-LEX-0001", "Unterminated string literal.", start, Math.Max(1, _position - start));
+                return QuotedToken(SyntaxKind.StringToken, start, terminated: false);
             }
 
             if (Current == '\\' && _position + 1 < _text.Length)
@@ -381,13 +379,18 @@ public sealed class Lexer
             if (Current == quote)
             {
                 _position++;
-                var text = _text.Substring(start, _position - start);
-                var value = text[1..^1];
-                return new SyntaxToken(SyntaxKind.StringToken, start, text, value);
+                return QuotedToken(SyntaxKind.StringToken, start, terminated: true);
             }
 
             _position++;
         }
+    }
+
+    private SyntaxToken QuotedToken(SyntaxKind kind, int start, bool terminated)
+    {
+        ReadOnlyMemory<char> text = _text.AsMemory(start, _position - start);
+        int valueLength = text.Length - (terminated ? 2 : 1);
+        return new SyntaxToken(kind, start, text, text.Span.Slice(1, valueLength).ToString());
     }
 
     private void SkipWhitespace()
@@ -425,35 +428,11 @@ public sealed class Lexer
         return false;
     }
 
-    private SyntaxToken MatchOrSingle(char expected, SyntaxKind matchKind, SyntaxKind singleKind)
+    private SyntaxToken FixedToken(SyntaxKind kind, string text)
     {
-        if (Peek(1) == expected)
-        {
-            return DoubleCharToken(matchKind);
-        }
-
-        return SingleCharToken(singleKind);
-    }
-
-    private SyntaxToken SingleCharToken(SyntaxKind kind)
-    {
-        var start = _position;
-        _position++;
-        return new SyntaxToken(kind, start, _text.Substring(start, 1), null);
-    }
-
-    private SyntaxToken DoubleCharToken(SyntaxKind kind)
-    {
-        var start = _position;
-        _position += 2;
-        return new SyntaxToken(kind, start, _text.Substring(start, 2), null);
-    }
-
-    private SyntaxToken TripleCharToken(SyntaxKind kind)
-    {
-        var start = _position;
-        _position += 3;
-        return new SyntaxToken(kind, start, _text.Substring(start, 3), null);
+        int start = _position;
+        _position += text.Length;
+        return new SyntaxToken(kind, start, text, null);
     }
 
     private char Current => Peek(0);

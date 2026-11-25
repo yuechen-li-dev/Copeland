@@ -24,12 +24,13 @@ internal static class Program
 
         if (args.Length == 0)
         {
-            return UsageError("COPE-CLI-0004", "Missing command. Supported commands: 'compile', 'profile', 'build', 'asset', 'workspace', 'migrate', 'database', 'markdown', 'template', 'flow', 'language-server'.");
+            return UsageError("COPE-CLI-0004", "Missing command. Supported commands: 'compile', 'check', 'profile', 'build', 'asset', 'workspace', 'migrate', 'database', 'markdown', 'template', 'flow', 'language-server'.");
         }
 
         return args[0] switch
         {
             "compile" => FileProfileCommand.Compile(args, RunCompile),
+            "check" => CheckCommand.Run(args),
             "profile" => FileProfileCommand.Run(args),
             "build" => TsclBuildContract.Run(args),
             "asset" => AssetCommand.Run(args),
@@ -44,7 +45,7 @@ internal static class Program
             "language-server" or "lsp" => RunLanguageServer(args),
             "doctor" => DistributionCommand.RunDoctor(args[1..]),
             "install-info" => DistributionCommand.RunInstallInfo(args[1..]),
-            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'profile', 'build', 'asset', 'workspace', 'migrate', 'database', 'markdown', 'table', 'template', 'flow', 'language-server'."),
+            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'check', 'profile', 'build', 'asset', 'workspace', 'migrate', 'database', 'markdown', 'table', 'template', 'flow', 'language-server'."),
         };
     }
 

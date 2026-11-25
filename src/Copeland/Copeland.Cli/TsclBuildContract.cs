@@ -139,8 +139,8 @@ internal static class TsclBuildContract
     private static TsclBuildRequest ReadStandaloneRequest(string projectRoot, string? requestedTarget)
     {
         string fullProjectRoot = Path.GetFullPath(projectRoot);
-        CopelandProjectContext context = CopelandProjectContext.LoadStandalone(fullProjectRoot);
-        ManifestProjectLoadResult manifestResult = CopelandProject.LoadRootManifest(fullProjectRoot);
+        CopelandProjectContext context = CopelandProjectContext.LoadStandalone(fullProjectRoot,
+            out ManifestProjectLoadResult manifestResult, out CopelandWorkspaceOwnershipResult ownership);
         ManifestTarget[] availableTargets = manifestResult.Manifest!.Packages.SelectMany(package => package.Targets).ToArray();
         ManifestTarget[] targets = string.IsNullOrWhiteSpace(requestedTarget)
             ? availableTargets
@@ -155,7 +155,6 @@ internal static class TsclBuildContract
         }
         string entry = RequiredManifestString(row, "entry");
         string runtime = RequiredManifestString(row, "runtime");
-        CopelandWorkspaceOwnershipResult ownership = CopelandWorkspaceOwnership.Resolve(Path.Combine(fullProjectRoot, "tsconfig.tsx"));
         CopelandWorkspaceTarget? configuredTarget = null;
         ownership.Targets?.TryGetValue(targets[0].Name, out configuredTarget);
         return new TsclBuildRequest
@@ -321,6 +320,10 @@ internal static class TsclBuildContract
             ? JavaScriptRuntimeTarget.Browser
             : JavaScriptRuntimeTarget.Node;
 
+        string entryOutput = string.IsNullOrWhiteSpace(request.EntryOutputPath) ? "entry.js" : request.EntryOutputPath;
+        string? normalizedEntryOutput = request.NodeInterop
+            ? Path.GetRelativePath(outputDirectory, Path.GetFullPath(entryOutput, outputDirectory)).Replace('\\', '/')
+            : null;
         JavaScriptProjectCompilation baseEmission = JavaScriptProjectEmitter.Emit(
             compilation.MirProjectGraph!,
             new JavaScriptEmissionOptions
@@ -328,6 +331,7 @@ internal static class TsclBuildContract
                 Profile = JavaScriptEmissionProfile.Production,
                 RuntimeTarget = runtimeTarget,
                 EmitNodeInterop = request.NodeInterop,
+                ProjectEntryOutputPath = normalizedEntryOutput,
             });
         JavaScriptProjectCompilation emission = LayoutJavaScriptProjectEmitter.AddLayouts(baseEmission, compilation.Modules);
         if (!emission.Success)
@@ -335,10 +339,6 @@ internal static class TsclBuildContract
             return TsclBuildResult.FromJavaScriptDiagnostics(emission.Diagnostics);
         }
 
-        string entryOutput = string.IsNullOrWhiteSpace(request.EntryOutputPath) ? "entry.js" : request.EntryOutputPath;
-        string? normalizedEntryOutput = request.NodeInterop
-            ? Path.GetRelativePath(outputDirectory, Path.GetFullPath(entryOutput, outputDirectory)).Replace('\\', '/')
-            : null;
         if (normalizedEntryOutput is not null && emission.Files.Keys.Contains(normalizedEntryOutput, StringComparer.OrdinalIgnoreCase))
         {
             throw new TsclContractException("COPE-TSCL-0001", $"Node entry output '{entryOutput}' overlaps a generated module.");

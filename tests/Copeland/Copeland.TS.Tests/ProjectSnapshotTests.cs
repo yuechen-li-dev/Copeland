@@ -16,15 +16,17 @@ public sealed class ProjectSnapshotTests
 
         CopelandProjectCompilation baseline = snapshot.CompileToMir();
         Assert.True(baseline.Success);
+        Assert.Empty(snapshot.Check());
         CopelandProjectModuleCompilation app = Assert.Single(baseline.Modules, module => module.LogicalPath == "App.ts");
         CopelandProjectImport import = Assert.Single(app.Imports);
         Assert.Equal("Library.ts", import.TargetLogicalPath);
         Assert.Equal("Score", import.ExportedName);
 
-        CopelandProjectCompilation unsaved = snapshot
-            .WithSourceText("C:/workspace/App.ts", "import { Score } from \"./Library\"; function Main(): number { return Score(); }")
-            .CompileToMir();
+        CopelandProjectSnapshot overlay = snapshot
+            .WithSourceText("C:/workspace/App.ts", "import { Score } from \"./Library\"; function Main(): number { return Score(); }");
+        CopelandProjectCompilation unsaved = overlay.CompileToMir();
 
         Assert.Contains(unsaved.Diagnostics, diagnostic => diagnostic.SourcePath == "C:/workspace/App.ts");
+        Assert.Equal(unsaved.Diagnostics, overlay.Check());
     }
 }

@@ -350,6 +350,7 @@ public sealed class ContributionStreamTests
                 export record Item { id: int; labels: string[]; }
                 export function __cope_node_export_0(): int { return 31; }
                 export function arg0(value: int): int { return value; }
+                export function braces(): string { return "literal } function Main("; }
                 export function Update(item: Item, transform: (value: Item) => Item): Item {
                     if (item.id < 0) {
                         return item;
@@ -375,13 +376,24 @@ public sealed class ContributionStreamTests
         JavaScriptProjectCompilation emitted = JavaScriptProjectEmitter.Emit(
             compilation.MirProjectGraph!, options with { EmitNodeInterop = true });
         Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        Assert.Contains("function __cope_callable_invoke", emitted.Files["__copeland-runtime.js"], StringComparison.Ordinal);
+        Assert.DoesNotContain("function __cope_callable_invoke", emitted.Files["Main.js"], StringComparison.Ordinal);
+        Assert.Contains("from \"./__copeland-runtime.js\"", emitted.Files["Main.js"], StringComparison.Ordinal);
+        var reserved = JavaScriptProjectEmitter.Emit(compilation.MirProjectGraph!, options with
+        {
+            EmitNodeInterop = true,
+            ProjectEntryOutputPath = "__copeland-runtime.js",
+        });
+        Assert.DoesNotContain("__copeland-runtime.js", reserved.Files.Keys);
+        Assert.Contains("from \"./__copeland-runtime-1.js\"", reserved.Files["Main.js"], StringComparison.Ordinal);
         var files = new Dictionary<string, string>(emitted.Files) { ["package.json"] = "{\"type\":\"module\"}" };
         Assert.Equal("ok", await RunNode("""
             import assert from 'node:assert/strict';
             import { Main } from './Main.node.js';
-            import { __cope_node_export_0, arg0 } from './Data.node.js';
+            import { __cope_node_export_0, arg0, braces } from './Data.node.js';
             assert.equal(__cope_node_export_0(), 31);
             assert.equal(arg0(42), 42);
+            assert.equal(braces(), 'literal } function Main(');
             const packet = { items: [{ id: -1, labels: [] }, { id: 4, labels: ['original'] }] };
             const visited = [];
             const result = Main(packet, item => {
@@ -397,6 +409,150 @@ public sealed class ContributionStreamTests
             assert.throws(() => Main(packet, 7), /expected function/);
             assert.throws(() => Main({ items: [{ id: 4 }] }, value => value), /expected fields for Item/);
             assert.throws(() => Main({ items: new Array(1) }, value => value), /expected a dense array/);
+            console.log('ok');
+            """, files));
+    }
+
+    [Fact]
+    public async Task Node_array_snapshot_fusion_preserves_raw_freeze_and_boundary_isolation()
+    {
+        CopelandProjectCompilation compilation = CopelandProjectCompiler.CompileToMir(
+        [
+            new CopelandProjectSource("Main.ts", "Main.ts", """
+                export function Snapshot(input: int[], combine: (a: int, b: int, c: int, d: int) => int): int[] {
+                    const buffer = MutableArray<int>(2);
+                    buffer[0] = input[0];
+                    buffer[1] = combine(buffer[0], 2, 3, 4);
+                    buffer[0] = input[0];
+                    return buffer.freeze();
+                }
+
+                export function MaybeCopy(input: int[], useInput: boolean): int[] {
+                    const buffer = MutableArray<int>(1);
+                    if (useInput) { return input; }
+                    buffer[0] = input[0];
+                    return buffer.freeze();
+                }
+
+                export function Fresh(value: int): int[] { return [value, 2]; }
+
+                export function Captured(value: int): int {
+                    const thunk: () => int = capture { value } () => value + 1;
+                    return thunk();
+                }
+                """),
+        ], Options());
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptProjectCompilation emitted = JavaScriptProjectEmitter.Emit(compilation.MirProjectGraph!,
+            new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Production, EmitNodeInterop = true });
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        string main = emitted.Files["Main.js"];
+        Assert.Matches(@"function Snapshot\([^)]* = undefined\)", main);
+        Assert.DoesNotMatch(@"function MaybeCopy\([^)]* = undefined\)", main);
+        Assert.DoesNotContain("__cope_callable_invoke(combine,", main, StringComparison.Ordinal);
+
+        var files = new Dictionary<string, string>(emitted.Files) { ["package.json"] = "{\"type\":\"module\"}" };
+        files["Main.js"] += "\nexport { __cope_callable_ref as testCarrier };\n";
+        Assert.Equal("ok", await RunNode("""
+            import assert from 'node:assert/strict';
+            import { Snapshot as rawSnapshot, testCarrier } from './Main.js';
+            import { Snapshot, MaybeCopy, Fresh, Captured } from './Main.node.js';
+            let reads = 0;
+            let value = 1;
+            const input = [];
+            Object.defineProperty(input, 0, { get() { reads++; return value; } });
+            const first = Snapshot(input, (...args) => {
+                assert.deepEqual(args, [1, 2, 3, 4]);
+                value = -1;
+                return 10;
+            });
+            assert.equal(reads, 1);
+            assert.deepEqual(first, [1, 10]);
+            first[0] = 7;
+            assert.deepEqual(Snapshot(input, () => 9), [-1, 9]);
+            assert.throws(() => Snapshot(new Array(1), () => assert.fail()), /expected a dense array/);
+            assert.throws(() => Snapshot([1], () => 'bad'), /expected int/);
+            assert.equal(rawSnapshot.length, 2);
+            assert.throws(() => rawSnapshot([1], () => 2, true), /invariant failure/);
+            const signature = '(named:int,named:int,named:int,named:int)->named:int';
+            const carrier = testCarrier(signature, (a, b, c, d) => a + b + c + d);
+            const wrong = testCarrier('()->named:int', () => assert.fail());
+            assert.throws(() => rawSnapshot([1], wrong), /invariant failure/);
+            const raw = rawSnapshot([1], carrier, true);
+            assert.deepEqual(raw, [1, 10]);
+            assert.equal(Object.isFrozen(raw), true);
+            const plain = [3];
+            const copied = MaybeCopy(plain, true);
+            assert.notEqual(copied, plain);
+            assert.deepEqual(copied, [3]);
+            assert.equal(Object.isFrozen(MaybeCopy(plain, false)), false);
+            const fresh = Fresh(8);
+            assert.deepEqual(fresh, [8, 2]);
+            fresh[0] = 0;
+            assert.deepEqual(Fresh(8), [8, 2]);
+            assert.equal(Captured(4), 5);
+            assert.equal(Captured(8), 9);
+            console.log('ok');
+            """, files));
+    }
+
+    [Fact]
+    public async Task Node_facades_project_tagged_values_across_modules_and_callback_boundaries()
+    {
+        CopelandProjectCompilation compilation = CopelandProjectCompiler.CompileToMir(
+        [
+            new CopelandProjectSource("Data.ts", "Data.ts", """
+                export enum Choice { Stop, Message(text: string, attempts: int) }
+
+                export function Transform(input: Option<Choice>,
+                    handler: (value: Choice) => Option<Choice> ! string): Option<Choice> ! string {
+                    return match input {
+                        Some(choice) => handler(choice),
+                        None => ok(None),
+                    };
+                }
+                """),
+            new CopelandProjectSource("Main.ts", "Main.ts", """
+                import { Choice, Transform } from "./Data";
+
+                export function RoundTrip(input: Option<Choice>,
+                    handler: (value: Choice) => Option<Choice> ! string): Option<Choice> ! string {
+                    return Transform(input, handler);
+                }
+
+                export function Save(accept: boolean): void ! string {
+                    if (accept) { return; }
+                    return err("failed");
+                }
+                """)
+        ], Options());
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptProjectCompilation emitted = JavaScriptProjectEmitter.Emit(compilation.MirProjectGraph!,
+            new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Production, EmitNodeInterop = true });
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        string declarations = emitted.Files["Main.node.d.ts"];
+        Assert.Contains("tag: \"None\"", declarations, StringComparison.Ordinal);
+        Assert.Contains("tag: \"Message\"; payload: { \"text\": string; \"attempts\": number }", declarations, StringComparison.Ordinal);
+        Assert.Contains("tag: \"err\"; \"error\": string", declarations, StringComparison.Ordinal);
+        var files = new Dictionary<string, string>(emitted.Files) { ["package.json"] = "{\"type\":\"module\"}" };
+        Assert.Equal("ok", await RunNode("""
+            import assert from 'node:assert/strict';
+            import { RoundTrip, Save } from './Main.node.js';
+            const none = { tag: 'None' };
+            const message = { tag: 'Message', payload: { text: '', attempts: 3 } };
+            const some = { tag: 'Some', value: message };
+            assert.deepEqual(RoundTrip(none, () => assert.fail()), { tag: 'ok', value: none });
+            assert.deepEqual(RoundTrip(some, value => {
+                assert.deepEqual(value, message);
+                return { tag: 'ok', value: { tag: 'Some', value } };
+            }), { tag: 'ok', value: some });
+            assert.deepEqual(RoundTrip(some, () => ({ tag: 'err', error: 'host' })), { tag: 'err', error: 'host' });
+            assert.deepEqual(Save(true), { tag: 'ok' });
+            assert.deepEqual(Save(false), { tag: 'err', error: 'failed' });
+            assert.throws(() => RoundTrip({ tag: 'Unknown' }, () => assert.fail()), /unknown tag/);
+            assert.throws(() => RoundTrip({ tag: 'Some' }, () => assert.fail()), /payload fields/);
+            assert.throws(() => RoundTrip(some, () => ({ tag: 'err', error: 9 })), /expected string/);
+            assert.throws(() => RoundTrip({ tag: 'Some', value: { tag: 'Message', payload: {} } }, () => assert.fail()), /payload fields/);
             console.log('ok');
             """, files));
     }

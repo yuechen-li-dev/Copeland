@@ -726,8 +726,8 @@ internal sealed class WorkspaceParser
             return null;
         }
 
-        byte[] json = JsonSerializer.SerializeToUtf8Bytes(value);
-        return JsonDocument.Parse(json).RootElement.Clone();
+        return JsonSerializer.SerializeToElement(
+            (SortedDictionary<string, object?>)value, WorkspaceCompilerOptionsJsonContext.Default.SortedDictionaryStringObject);
     }
 
     private static bool IsValidCompilerOptionValue(string name, WorkspaceValue value)
@@ -783,6 +783,12 @@ internal sealed class WorkspaceParser
         }
     }
 }
+
+[System.Text.Json.Serialization.JsonSerializable(typeof(SortedDictionary<string, object?>))]
+[System.Text.Json.Serialization.JsonSerializable(typeof(List<object?>))]
+[System.Text.Json.Serialization.JsonSerializable(typeof(string))]
+[System.Text.Json.Serialization.JsonSerializable(typeof(bool))]
+internal sealed partial class WorkspaceCompilerOptionsJsonContext : System.Text.Json.Serialization.JsonSerializerContext;
 
 internal abstract record WorkspaceValue(int Offset)
 {

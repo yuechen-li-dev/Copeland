@@ -2359,6 +2359,28 @@ public static partial class MirValidator
                 {
                     ValidateEnumExpression(argument, enumsByName, diagnostics);
                 }
+                if (call.NativeOperation is MirNativeOperation.MatchCase or MirNativeOperation.MatchPayload
+                    && MirNativeOperations.IsValid(call) && call.Arguments[0].Type is MirNamedType named)
+                {
+                    string name = (string)((MirLiteralExpression)call.Arguments[1]).Value!;
+                    MirEnumCase? variant = enumsByName.TryGetValue(named.Identifier, out MirEnum? definition)
+                        ? definition.Cases.FirstOrDefault(item => item.Name == name)
+                        : null;
+                    if (variant is null)
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic($"Block match references unknown case '{named.Identifier}.{name}'."));
+                    }
+                    else if (call.NativeOperation == MirNativeOperation.MatchPayload)
+                    {
+                        string fieldName = (string)((MirLiteralExpression)call.Arguments[2]).Value!;
+                        int index = (int)((MirLiteralExpression)call.Arguments[3]).Value!;
+                        if (index >= variant.PayloadFields.Count || variant.PayloadFields[index].Name != fieldName
+                            || !MirTypeFacts.AreEquivalent(call.Type, variant.PayloadFields[index].Type))
+                        {
+                            diagnostics.Add(new MirValidationDiagnostic($"Block match payload does not match case '{named.Identifier}.{name}'."));
+                        }
+                    }
+                }
                 return;
             case MirArrayExpression array:
                 foreach (MirExpression element in array.Elements)

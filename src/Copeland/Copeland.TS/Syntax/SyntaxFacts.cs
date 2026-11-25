@@ -49,6 +49,11 @@ public static class SyntaxFacts
     public static SyntaxKind GetKeywordKind(string text)
         => KeywordKinds.GetValueOrDefault(text, SyntaxKind.IdentifierToken);
 
+    internal static SyntaxKind GetKeywordKind(ReadOnlySpan<char> text)
+        => KeywordKinds.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(text, out SyntaxKind kind)
+            ? kind
+            : SyntaxKind.IdentifierToken;
+
     public static int GetUnaryOperatorPrecedence(SyntaxKind kind)
         => kind switch
         {

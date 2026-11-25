@@ -26,11 +26,21 @@ public static class JavaScriptProjectEmitter
             .Where(export => export.RuntimeName is not null)
             .Select(export => export.RuntimeName!)
             .ToHashSet(StringComparer.Ordinal);
+        MirProgram program = graph.AggregateProgram;
+        bool shareRuntime = effectiveOptions.EmitNodeInterop && graph.Modules.Count > 1
+            && program.NpmImports.Count == 0 && program.JavaScriptHostImports.Count == 0 && program.PackageImports.Count == 0
+            && program.Tables.Count == 0 && program.Flows.Count == 0 && program.TsonEncodingPlans.Count == 0
+            && program.PresentationAdapter is null
+            && program.Functions.All(function => !function.IsRemote && function.ComponentState is null);
         JavaScriptCompilation aggregate = JavaScriptBackend.Emit(graph.AggregateProgram, effectiveOptions with
         {
             EmitModuleFactories = true,
             EmitModuleInitializers = false,
             BoundaryFunctionNames = boundaryFunctions,
+            CaptureProjectSections = shareRuntime,
+            NodeArraySnapshotCandidates = effectiveOptions.EmitNodeInterop
+                ? NodeInteropEmitter.FindArraySnapshotCandidates(program, boundaryFunctions)
+                : effectiveOptions.NodeArraySnapshotCandidates,
         });
         if (!aggregate.Success)
         {
@@ -41,6 +51,19 @@ public static class JavaScriptProjectEmitter
         var modulePaths = effectiveOptions.EmitNodeInterop
             ? graph.Modules.Select(module => GetOutputPath(module.Id)).ToHashSet(StringComparer.OrdinalIgnoreCase)
             : null;
+        JavaScriptProjectSections? sections = aggregate.ProjectSections;
+        JavaScriptSharedRuntime? runtime = sections is null ? null : new JavaScriptSharedRuntime(sections.RuntimeSource);
+        string runtimePath = "__copeland-runtime.js";
+        if (runtime is { Source.Length: > 0 })
+        {
+            int suffix = 1;
+            while (modulePaths!.Contains(runtimePath)
+                || string.Equals(runtimePath, effectiveOptions.ProjectEntryOutputPath, StringComparison.OrdinalIgnoreCase))
+            {
+                runtimePath = $"__copeland-runtime-{suffix++}.js";
+            }
+            files.Add(runtimePath, runtime.Source);
+        }
         var runtimeExports = graph.AggregateProgram.Functions.Select(function => function.Name)
             .Concat(graph.AggregateProgram.Flows.Select(flow => flow.Name))
             .ToHashSet(StringComparer.Ordinal);
@@ -84,7 +107,7 @@ public static class JavaScriptProjectEmitter
                     }
                 }
 
-                string[] helpers = imports
+                string[] helpers = sections is not null ? [] : imports
                     .SelectMany(import => GetRuntimeHelpers(graph, imports.Key, import.ExportedName))
                     .Distinct(StringComparer.Ordinal)
                     .OrderBy(name => name, StringComparer.Ordinal)
@@ -100,15 +123,24 @@ public static class JavaScriptProjectEmitter
                 .Where(export => export.RuntimeName is not null && runtimeExports.Contains(export.RuntimeName))
                 .OrderBy(export => export.Name, StringComparer.Ordinal)
                 .ToArray();
-            string source = StripFunctions(aggregate.SourceText!, graph.AggregateProgram.Functions
-                .Select(function => function.Name)
-                .Except(module.Functions.Select(function => function.Name), StringComparer.Ordinal));
-            source = StripFunctions(source, graph.AggregateProgram.Functions
-                .Where(function => function.ComponentState is not null && !module.Functions.Contains(function))
-                .Select(function => function.ComponentState!.HostFunction));
-            source = StripFunctions(source, importedHelpers);
-            source = StripExternalImports(source);
-            lines.Add(source.TrimEnd());
+            if (sections is not null)
+            {
+                foreach (MirFunction function in module.Functions)
+                {
+                    lines.Add(sections.Functions[function.Name].Trim());
+                }
+            }
+            else
+            {
+                string source = StripFunctions(aggregate.SourceText!, graph.AggregateProgram.Functions
+                    .Select(function => function.Name)
+                    .Except(module.Functions.Select(function => function.Name), StringComparer.Ordinal));
+                source = StripFunctions(source, graph.AggregateProgram.Functions
+                    .Where(function => function.ComponentState is not null && !module.Functions.Contains(function))
+                    .Select(function => function.ComponentState!.HostFunction));
+                source = StripFunctions(source, importedHelpers);
+                lines.Add(StripExternalImports(source));
+            }
             IReadOnlySet<string> ownedFunctions = module.Functions.Select(function => function.Name).ToHashSet(StringComparer.Ordinal);
             foreach (MirModuleValue value in graph.AggregateProgram.ModuleValues.Where(value => ownedFunctions.Contains(value.InitializerFunction)))
             {
@@ -138,8 +170,8 @@ public static class JavaScriptProjectEmitter
             if (modulePaths is not null)
             {
                 string facadePath = outputPath[..^".js".Length] + ".node.js";
-                string? facade = NodeInteropEmitter.Emit(graph.AggregateProgram.Records, module, exports, lines,
-                    GetRelativeSpecifier(facadePath, outputPath));
+                NodeInteropEmitter.Facade? facade = NodeInteropEmitter.Emit(graph.AggregateProgram, module, exports, lines,
+                    GetRelativeSpecifier(facadePath, outputPath), aggregate);
                 if (facade is not null)
                 {
                     if (modulePaths.Contains(facadePath))
@@ -147,7 +179,17 @@ public static class JavaScriptProjectEmitter
                         return new JavaScriptProjectCompilation(new Dictionary<string, string>(),
                             [new JavaScriptDiagnostic("COPE-JS-0028", $"Node interop output '{facadePath}' overlaps a source module.")]);
                     }
-                    files.Add(facadePath, facade);
+                    files.Add(facadePath, facade.Source);
+                    files.Add(facadePath[..^".js".Length] + ".d.ts", facade.Declarations);
+                }
+            }
+            if (runtime is { Source.Length: > 0 })
+            {
+                string bindings = runtime.GetImports(lines);
+                if (bindings.Length > 0)
+                {
+                    string specifier = GetRelativeSpecifier(outputPath, runtimePath);
+                    lines.Insert(0, $"import {{ {bindings} }} from {JavaScriptLiteralWriter.WriteString(specifier)};");
                 }
             }
             files.Add(outputPath, string.Join(Environment.NewLine, lines) + Environment.NewLine);

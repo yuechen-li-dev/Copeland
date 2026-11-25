@@ -28,4 +28,17 @@ public sealed class TypeScriptInstinctCorpusTests
         Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == code
             && diagnostic.Message.Contains($"expected '{expectedType}'", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void Filled_enum_array_rejects_mutable_nested_payloads()
+    {
+        var compilation = CopelandCompiler.CompileToMir("""
+            record Storage { values: MutableList<int>; }
+            enum Item { Empty, Present(value: Storage) }
+            function run(): void {
+                const items = MutableArray<Item>(2, Item.Empty);
+            }
+            """);
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-ARRAY-0008");
+    }
 }

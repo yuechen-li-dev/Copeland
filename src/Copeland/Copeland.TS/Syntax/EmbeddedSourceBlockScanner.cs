@@ -9,24 +9,34 @@ internal static class EmbeddedSourceBlockScanner
     /// </summary>
     public static string MaskBodies(string text)
     {
-        var masked = text.ToCharArray();
-        for (var position = 0; position < text.Length; position++)
+        char[]? masked = null;
+        int position = text.IndexOf("code", StringComparison.Ordinal);
+        while (position >= 0)
         {
-            if (!IsCodeWordAt(text, position)) continue;
+            if (!IsCodeWordAt(text, position))
+            {
+                position = text.IndexOf("code", position + 1, StringComparison.Ordinal);
+                continue;
+            }
 
             int cursor = position + 4;
             while (cursor < text.Length && char.IsWhiteSpace(text[cursor])) cursor++;
             if (cursor >= text.Length || text[cursor] != '{'
-                || !TryFindClosingBrace(text, cursor, out int closeBrace)) continue;
+                || !TryFindClosingBrace(text, cursor, out int closeBrace))
+            {
+                position = text.IndexOf("code", position + 1, StringComparison.Ordinal);
+                continue;
+            }
 
+            masked ??= text.ToCharArray();
             for (int index = position; index <= closeBrace; index++)
             {
                 if (masked[index] is not '\r' and not '\n') masked[index] = ' ';
             }
-            position = closeBrace;
+            position = text.IndexOf("code", closeBrace + 1, StringComparison.Ordinal);
         }
 
-        return new string(masked);
+        return masked is null ? text : new string(masked);
     }
 
     public static bool TryFindClosingBrace(string text, int openBracePosition, out int closeBracePosition)

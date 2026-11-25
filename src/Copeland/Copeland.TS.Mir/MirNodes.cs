@@ -506,6 +506,7 @@ public sealed class MirEnum(string name, IReadOnlyList<MirEnumCase> cases)
 {
     public string Name { get; } = name;
     public IReadOnlyList<MirEnumCase> Cases { get; } = cases;
+    public bool IsOption { get; init; }
 }
 
 public sealed class MirEnumCase(string name, IReadOnlyList<MirEnumPayloadField> payloadFields)

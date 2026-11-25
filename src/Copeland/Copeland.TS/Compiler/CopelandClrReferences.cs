@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace Copeland.TS.Compiler;
@@ -11,6 +12,12 @@ public sealed record CopelandClrReference(
     Assembly? DeclarationAssembly = null,
     bool IncludeInternalSymbols = false);
 
+internal static class CopelandClrReflection
+{
+    [FeatureSwitchDefinition("Copeland.Compiler.EnableClrReflection")]
+    internal static bool IsEnabled => !AppContext.TryGetSwitch("Copeland.Compiler.EnableClrReflection", out bool enabled) || enabled;
+}
+
 /// <summary>
 /// Compiler-time metadata source for the bounded CLR interop surface. It is not
 /// emitted into generated applications and does not participate in runtime
@@ -20,9 +27,25 @@ public sealed class CopelandClrMetadataResolver
 {
     private readonly IReadOnlyList<Assembly> _assemblies;
     private readonly IReadOnlyDictionary<Assembly, bool> _internalVisibility;
+    private readonly Lazy<ILookup<string, Type>> _typesByFullName;
 
     public CopelandClrMetadataResolver(IReadOnlyList<CopelandClrReference> references)
+        : this(references, allowClrInterop: true)
     {
+    }
+
+    internal CopelandClrMetadataResolver(IReadOnlyList<CopelandClrReference> references, bool allowClrInterop)
+    {
+        _typesByFullName = new Lazy<ILookup<string, Type>>(() =>
+            EnumerateFullNames().ToLookup(entry => entry.Name, entry => entry.Type, StringComparer.Ordinal));
+        if (!allowClrInterop || !CopelandClrReflection.IsEnabled)
+        {
+            _assemblies = [];
+            _internalVisibility = new Dictionary<Assembly, bool>();
+            return;
+        }
+
+        IsAvailable = true;
         var assemblies = new Dictionary<string, Assembly>(StringComparer.OrdinalIgnoreCase);
         var internalVisibility = new Dictionary<Assembly, bool>();
         AddAssemblies(assemblies, internalVisibility, AppDomain.CurrentDomain.GetAssemblies(), includeInternal: false);
@@ -48,16 +71,15 @@ public sealed class CopelandClrMetadataResolver
         _internalVisibility = internalVisibility;
     }
 
+    internal bool IsAvailable { get; }
+
     public IReadOnlyList<Type> FindTypesInNamespace(string @namespace)
         => EnumeratePublicTypes()
             .Where(type => string.Equals(type.Namespace, @namespace, StringComparison.Ordinal))
             .ToArray();
 
     public IReadOnlyList<Type> FindTypes(string fullName)
-        => EnumeratePublicTypes()
-            .Where(type => string.Equals(type.FullName, fullName, StringComparison.Ordinal)
-                || string.Equals(type.FullName?.Replace('+', '.'), fullName, StringComparison.Ordinal))
-            .ToArray();
+        => _typesByFullName.Value[fullName].ToArray();
 
     public IReadOnlyList<Type> FindTypes(string assemblyIdentity, string fullName)
         => FindTypes(fullName)
@@ -109,7 +131,29 @@ public sealed class CopelandClrMetadataResolver
                 && includeInternal
                 && member.IsAssembly);
 
+    private IEnumerable<(string Name, Type Type)> EnumerateFullNames()
+    {
+        // Binding probes dotted expressions as potential CLR names, even when
+        // they resolve to Copeland values. Index the names once per resolver.
+        foreach (Type type in EnumeratePublicTypes())
+        {
+            if (type.FullName is not { } fullName)
+            {
+                continue;
+            }
+
+            yield return (fullName, type);
+            if (fullName.Contains('+', StringComparison.Ordinal))
+            {
+                yield return (fullName.Replace('+', '.'), type);
+            }
+        }
+    }
+
     private IEnumerable<Type> EnumeratePublicTypes()
+        => CopelandClrReflection.IsEnabled ? EnumerateClrTypes() : [];
+
+    private IEnumerable<Type> EnumerateClrTypes()
     {
         foreach (Assembly assembly in _assemblies)
         {

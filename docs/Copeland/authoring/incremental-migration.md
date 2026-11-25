@@ -118,13 +118,24 @@ const matches = collect(['keep this', 'skip this'], line => line.startsWith('kee
 ```
 
 The generated facade exposes synchronous functions with primitive values,
-dense arrays, and acyclic records with public fields. Incoming records need
+dense arrays, acyclic records with public fields, and tagged values. The
+adjacent `*.node.d.ts` describes the projected functions and their callback
+signatures. Incoming records need
 their declared fields as own properties. Outgoing records use the authored
 field names, with arrays and nested records copied across the boundary.
 Direct callback parameters receive the same plain values. Copeland calls the
 callback synchronously where the source invokes it and validates its result
-when it returns. Exceptions propagate to the Node caller. Other signature
-shapes stay available in the regular compiled module ABI.
+when it returns. Exceptions propagate to the Node caller.
+
+The tag is an ordinary JavaScript property. `Option` uses
+`{ tag: "None" }` and `{ tag: "Some", value }`. A `Result` uses
+`{ tag: "ok", value }` or `{ tag: "err", error }`, with the value field
+omitted for a void success. A user-defined enum uses its authored case name
+and a `payload` object with the authored field names for cases with payloads.
+For example, `Moved(distance: int)` projects to
+`{ tag: "Moved", payload: { distance: 3 } }`. These shapes also work in
+nested records and callback arguments or results. The declaration file
+describes each set of cases as a discriminated union.
 
 ## M2 verification
 

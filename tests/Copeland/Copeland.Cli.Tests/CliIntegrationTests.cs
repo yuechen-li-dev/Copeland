@@ -10,6 +10,60 @@ namespace Copeland.Cli.Tests;
 public sealed partial class CliIntegrationTests
 {
     [Fact]
+    public async Task Check_standalone_checks_only_owned_sources_and_writes_no_output()
+    {
+        using var temp = new TempDir();
+        temp.WriteFile("manifest.tsx", """
+            import { Package, Workspace, define } from "tspack/manifest";
+            export default define(
+                <Workspace name="check-fixture" runtime="nodejs">
+                    <Package name="check-fixture" version="0.0.0" kind="app" dependencies={{ values: [] }} />
+                </Workspace>,
+            );
+            """);
+        temp.WriteFile("tsconfig.tsx", """
+            import { defineTypeScriptWorkspace } from "copeland/workspace";
+            export default defineTypeScriptWorkspace({
+                ownership: "partial",
+                tscl: { project: "./Check.csproj", include: ["src/**"] },
+                tsc: { include: ["legacy/**"], compilerOptions: {
+                    strict: true, lib: ["ES2024"], paths: { "legacy/*": ["legacy/*"] }
+                } }
+            });
+            """);
+        temp.WriteFile("Check.csproj", "<Project />");
+        Directory.CreateDirectory(Path.Combine(temp.Path, "legacy"));
+        Directory.CreateDirectory(Path.Combine(temp.Path, "src"));
+        temp.WriteFile("legacy/Upstream.ts", "This is intentionally outside Copeland ownership.");
+        string source = temp.WriteFile("src/Main.ts", """
+            export type CopelandProfile = "JavaScript";
+            export function Main(): int { return 1; }
+            """);
+
+        CliResult valid = await RunCliAsync(temp.Path, "check", "--standalone", ".");
+        Assert.Equal(0, valid.ExitCode);
+        Assert.Empty(valid.StdErr);
+        Assert.False(Directory.Exists(Path.Combine(temp.Path, "dist")));
+
+        File.WriteAllText(source, """
+            export type CopelandProfile = "JavaScript";
+            export function Main(): int { return missing(); }
+            """);
+        CliResult invalid = await RunCliAsync(temp.Path, "check", "--standalone", ".");
+        Assert.Equal(1, invalid.ExitCode);
+        Assert.Contains("COPE-BIND-0001", invalid.StdErr, StringComparison.Ordinal);
+
+        File.WriteAllText(source, """
+            export type CopelandProfile = "JavaScript";
+            using System;
+            export function Main(): int { return 1; }
+            """);
+        CliResult clr = await RunCliAsync(temp.Path, "check", "--standalone", ".");
+        Assert.Equal(1, clr.ExitCode);
+        Assert.Contains("COPE-CLR-0011", clr.StdErr, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Table_edits_use_logical_cells_across_counted_and_remainder_segments()
     {
         using var temp = new TempDir();

@@ -13,6 +13,28 @@ namespace Copeland.TS.Tests;
 public sealed class ClrInteropTests
 {
     [Fact]
+    public void Resolves_Nested_Clr_Types_By_Both_Names_With_Reference_Visibility()
+    {
+        Type exported = typeof(PublicNestedFixture);
+        Type internalType = typeof(InternalNestedFixture);
+        string exportedName = exported.FullName!;
+        string internalName = internalType.FullName!;
+        string assemblyName = exported.Assembly.GetName().Name!;
+        var publicResolver = new CopelandClrMetadataResolver([]);
+        var internalResolver = new CopelandClrMetadataResolver(
+            [new CopelandClrReference(null, exported.Assembly, IncludeInternalSymbols: true)]);
+
+        Assert.Same(exported, Assert.Single(publicResolver.FindTypes(exportedName)));
+        Assert.Same(exported, Assert.Single(publicResolver.FindTypes(assemblyName, exportedName.Replace('+', '.'))));
+        Assert.Empty(publicResolver.FindTypes(internalName.Replace('+', '.')));
+        Assert.Same(internalType, Assert.Single(internalResolver.FindTypes(internalName.Replace('+', '.'))));
+    }
+
+    public sealed class PublicNestedFixture { }
+
+    internal sealed class InternalNestedFixture { }
+
+    [Fact]
     public void Parser_Distinguishes_ClrUsing_And_ResourceUsing()
     {
         var tree = CopelandSyntaxTree.Parse("""

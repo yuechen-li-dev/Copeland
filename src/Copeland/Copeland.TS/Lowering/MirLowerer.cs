@@ -331,7 +331,7 @@ public static class MirLowerer
                 new MirEnumCase(
                     @case.Name,
                     @case.PayloadFields.Select(field => new MirEnumPayloadField(field.Name, ToMirType(field.Type))).ToArray()))
-                .ToArray());
+                .ToArray()) { IsOption = declaration.EnumType is OptionTypeSymbol };
 
     private static MirFunction LowerFunction(BoundFunctionDeclaration function)
     {

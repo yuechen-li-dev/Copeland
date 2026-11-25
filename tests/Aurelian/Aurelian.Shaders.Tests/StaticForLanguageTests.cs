@@ -36,6 +36,37 @@ public sealed class StaticForLanguageTests
     }
 
     [Fact]
+    public void Static_array_slots_lower_to_fields_and_can_still_be_folded()
+    {
+        var module = Compute("""
+            var lanes: Array<f32, 4> = [0.0, 0.0, 0.0, 0.0];
+            static for (let r of Indices<2>()) {
+                static for (let c of Indices<2>()) {
+                    const slot = r * 2 + c;
+                    lanes[slot] = lanes[slot] + 1.0;
+                }
+            }
+            Output[0] = lanes[3] + static FoldedLane();
+            """, """
+            function FoldedLane(): f32 {
+                var pair: Array<f32, 2> = [1.0, 2.0];
+                pair[1] = pair[1] + 2.0;
+                return pair[1];
+            }
+            """);
+        Assert.True(module.Success, Diagnostics(module.Diagnostics));
+        string hlsl = VdMirComputeHlslEmitter.Emit(module);
+        Assert.Contains("lanes.e0 =", hlsl);
+        Assert.Contains("lanes.e3 =", hlsl);
+        Assert.Contains("lanes.e3 + 4.0", hlsl);
+        Assert.DoesNotContain("VtsRead", hlsl);
+        Assert.DoesNotContain("VtsWrite", hlsl);
+        Assert.DoesNotContain("FoldedLane(", hlsl);
+        var backend = VdMirComputeBackend.Compile(module);
+        Assert.True(backend.SpirvValidated, backend.DxcOutput + backend.SpirvValidationOutput);
+    }
+
+    [Fact]
     public void Finite_array_results_use_the_existing_static_evaluator()
     {
         var module = Compute("""

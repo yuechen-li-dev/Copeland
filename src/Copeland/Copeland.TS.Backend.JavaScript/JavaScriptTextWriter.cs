@@ -20,6 +20,7 @@ internal sealed class JavaScriptTextWriter
     private JavaScriptScopeId currentScope;
     private int indent;
     private bool completed;
+    private Dictionary<int, int>? renderedOffsets;
 
     public JavaScriptTextWriter(
         JavaScriptEmissionDocument document,
@@ -42,6 +43,27 @@ internal sealed class JavaScriptTextWriter
     }
 
     public JavaScriptReachabilityReport? ReachabilityReport { get; private set; }
+
+    public int MarkSectionBoundary()
+    {
+        EnsureWritable();
+        if (indent != 0)
+        {
+            throw new InvalidOperationException("A JavaScript section must start at module scope.");
+        }
+        renderedOffsets ??= [];
+        renderedOffsets.TryAdd(events.Count, 0);
+        return events.Count;
+    }
+
+    public int GetRenderedOffset(int boundary)
+    {
+        if (!completed || renderedOffsets is null)
+        {
+            throw new InvalidOperationException("JavaScript sections have not been rendered.");
+        }
+        return renderedOffsets[boundary];
+    }
 
     public void BeginGeneratedDefinition(string stableId)
     {
@@ -102,8 +124,13 @@ internal sealed class JavaScriptTextWriter
         var builder = new System.Text.StringBuilder();
         IReadOnlySet<string> reachable = generatedDefinitions.MarkReachable();
         var bytesByDefinition = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (LineEvent line in events)
+        for (int index = 0; index < events.Count; index++)
         {
+            if (renderedOffsets?.ContainsKey(index) == true)
+            {
+                renderedOffsets[index] = builder.Length;
+            }
+            LineEvent line = events[index];
             bool hasContent = line.Parts.Any(part => part is BindingPart
                 || part is TextPart { Value.Length: > 0 });
             if (profile == JavaScriptEmissionProfile.Symbolic && !hasContent)
@@ -111,9 +138,9 @@ internal sealed class JavaScriptTextWriter
                 continue;
             }
 
-            int renderedBytes = RenderedByteCount(line, hasContent);
             if (line.GeneratedDefinition is not null)
             {
+                int renderedBytes = RenderedByteCount(line, hasContent);
                 bytesByDefinition[line.GeneratedDefinition] = bytesByDefinition.GetValueOrDefault(line.GeneratedDefinition) + renderedBytes;
                 if (enableGeneratedDefinitionReachability && !reachable.Contains(line.GeneratedDefinition))
                 {
@@ -143,6 +170,10 @@ internal sealed class JavaScriptTextWriter
             }
 
             builder.Append('\n');
+        }
+        if (renderedOffsets?.ContainsKey(events.Count) == true)
+        {
+            renderedOffsets[events.Count] = builder.Length;
         }
 
         document.Validate();

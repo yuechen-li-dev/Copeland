@@ -1,5 +1,37 @@
 [
   {
+    "Id": "host-block-match-loop-control",
+    "Category": "tagged-data",
+    "Input": "enum Move { Add(amount: int), Skip, Stop }\nfunction run(): int {\n    let total = 0;\n    const moves: Move[] = [Move.Skip, Move.Add(3), Move.Stop, Move.Add(99)];\n    for (let round = 0; round < 2; round++) {\n        for (const move of moves) {\n            match move {\n                Add(amount) => { total += amount; },\n                Skip => { continue; },\n                Stop => { break; },\n            }\n        }\n        total += 10;\n    }\n    return total;\n}",
+    "Outcome": "compile",
+    "ExpectedJson": "26",
+    "ClrOnly": false
+  },
+  {
+    "Id": "host-block-match-result-single-evaluation",
+    "Category": "tagged-data",
+    "Input": "function choose(visits: MutableArray<int>, accept: boolean): int ! string {\n    visits[0] = visits[0] + 1;\n    if (accept) { return 7; }\n    return err(\"failed\");\n}\nfunction measure(visits: MutableArray<int>, accept: boolean): int {\n    match choose(visits, accept) {\n        ok(value) => { return value; },\n        err(message) => { return message.length; },\n    }\n}\nfunction run(): int[] {\n    const visits = MutableArray<int>(1);\n    return [measure(visits, true), measure(visits, false), visits[0]];\n}",
+    "Outcome": "compile",
+    "ExpectedJson": "[7,6,2]",
+    "ClrOnly": false
+  },
+  {
+    "Id": "host-block-match-single-case",
+    "Category": "tagged-data",
+    "Input": "enum Value { Number(value: int) }\nfunction run(): int {\n    const amount: int = 10;\n    match Value.Number(7) {\n        Number(amount) => { return amount; },\n    }\n}",
+    "Outcome": "compile",
+    "ExpectedJson": "7",
+    "ClrOnly": false
+  },
+  {
+    "Id": "filled-payload-enum-array",
+    "Category": "collections",
+    "Input": "record Count { value: int; }\nenum Item { Empty, Counted(count: Count) }\nfunction read(item: Item): int {\n    return match item { Empty => 0, Counted(count) => count.value, };\n}\nfunction run(): int[] {\n    const items = MutableArray<Item>(3, Item.Counted({ value: 7 }));\n    const snapshot = items.freeze();\n    items[1] = Item.Empty;\n    return [read(items[0]), read(items[1]), read(snapshot[1]), read(items[2])];\n}",
+    "Outcome": "compile",
+    "ExpectedJson": "[7,0,7,7]",
+    "ClrOnly": false
+  },
+  {
     "Id": "string-split",
     "Category": "strings",
     "Input": "function run(): string[] { return String.Split(\",a,,b,\", \",\"); }",

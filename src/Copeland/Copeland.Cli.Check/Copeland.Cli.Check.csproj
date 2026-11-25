@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>tscl</AssemblyName>
+    <PublishAot Condition="'$(RuntimeIdentifier)' != ''">true</PublishAot>
+    <IlcTreatWarningsAsErrors>true</IlcTreatWarningsAsErrors>
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Copeland.TS/Copeland.TS.csproj" />
+    <Compile Include="../Copeland.Cli/CheckCommand.cs" Link="CheckCommand.cs" />
+    <RuntimeHostConfigurationOption Include="Copeland.Compiler.EnableClrReflection" Value="false" Trim="true" />
+  </ItemGroup>
+</Project>

@@ -60,6 +60,18 @@ public static partial class JavaScriptBackend
     public static string GetRecordFactoryName(MirRecordTypeId recordId)
         => "__cope_record_" + EncodeModuleIdentity(recordId.Value);
 
+    internal static string GetNodeResultFactoryName(MirResultType result)
+        => "__cope_node_result_" + EncodeModuleIdentity(NodeResultTypeIdentity(result));
+
+    private static string NodeResultTypeIdentity(MirType type) => type switch
+    {
+        MirNamedType { Identifier: "float" or "number" } => "named:float",
+        MirArrayType array => "array(" + NodeResultTypeIdentity(array.ElementType) + ")",
+        MirResultType result => "result(" + NodeResultTypeIdentity(result.SuccessType) + ","
+            + NodeResultTypeIdentity(result.ErrorType) + ")",
+        _ => MirTypeIdentity(type),
+    };
+
     private static string EncodeModuleIdentity(string value)
         => string.Concat(value.Select(character => ((int)character).ToString("x4", System.Globalization.CultureInfo.InvariantCulture)));
 
@@ -75,7 +87,7 @@ public static partial class JavaScriptBackend
         return "$f" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
-    private static string ProductionEnumPayloadName(int index)
+    internal static string ProductionEnumPayloadName(int index)
         => "$p" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     private static string ProductionEnumSingletonName(GeneratedNames names, EnumInfo enumInfo, MirEnumCase enumCase)
@@ -241,7 +253,9 @@ public static partial class JavaScriptBackend
             EmitCallableRuntime(writer, usesCapturedCallables, usesSharedBrowserInteropRuntime);
         }
 
-        if (catalog.Enums.Count > 0 || catalog.Records.Count > 0 || program.Tables.Count > 0 || results.Types.Count > 0 || usesTryExcept)
+        bool usesValueRuntime = catalog.Enums.Count > 0 || catalog.Records.Count > 0
+            || program.Tables.Count > 0 || results.Types.Count > 0 || usesTryExcept;
+        if (usesValueRuntime)
         {
             writer.WriteLine();
             EmitValueRuntime(
@@ -254,9 +268,13 @@ public static partial class JavaScriptBackend
                 usesTryExcept,
                 usesTsonTransport,
                 usesSharedBrowserInteropRuntime,
-                program.Functions.Any(function => function.Body.Any(StatementUsesTableWith)));
+                program.Functions.Any(function => function.Body.Any(StatementUsesTableWith)),
+                effectiveOptions.EmitNodeInterop);
         }
 
+        List<(string Name, int Start, int End)>? projectFunctions = effectiveOptions.CaptureProjectSections ? [] : null;
+        int functionStart = projectFunctions is null ? 0 : writer.MarkSectionBoundary();
+        int runtimeEnd = functionStart;
         foreach (MirFunction function in program.Functions)
         {
             writer.WriteLine();
@@ -267,7 +285,15 @@ public static partial class JavaScriptBackend
             else
             {
                 bool isTransition = program.Functions.Any(owner => owner.ComponentState?.Endpoints.Any(endpoint => endpoint.TransitionFunction == function.Name) == true);
-                EmitFunction(writer, function, catalog, results, names, effectiveOptions.BoundaryFunctionNames.Contains(function.Name) || isTransition, isTransition);
+                EmitFunction(writer, function, catalog, results, names,
+                    effectiveOptions.BoundaryFunctionNames.Contains(function.Name) || isTransition, isTransition,
+                    effectiveOptions.NodeArraySnapshotCandidates.Contains(function.Name));
+            }
+            if (projectFunctions is not null)
+            {
+                int functionEnd = writer.MarkSectionBoundary();
+                projectFunctions.Add((function.Name, functionStart, functionEnd));
+                functionStart = functionEnd;
             }
         }
 
@@ -287,13 +313,37 @@ public static partial class JavaScriptBackend
 
         if (UsesNativeStrings.Value) NativeStringRuntime.Emit(writer);
         if (UsesIntegerRuntime.Value) IntegerRuntime.Emit(writer);
+        if (!usesValueRuntime && names.UsesBoundaryPanic)
+        {
+            EmitInvariantPanic(writer, names);
+        }
+        names.EmitArrayHelpers(writer);
+        names.EmitFixedCallableHelpers(writer, usesCapturedCallables || usesSharedBrowserInteropRuntime);
+        JavaScriptNodeProjectionBindings? sharedNodeProjections = null;
+        if (effectiveOptions.EmitNodeInterop && effectiveOptions.CaptureProjectSections)
+        {
+            sharedNodeProjections = names.AllocateNodeProjections();
+            writer.WriteLine(NodeInteropEmitter.ProjectionRuntime(sharedNodeProjections.Check, sharedNodeProjections.CopyArray));
+        }
         string sourceText = writer.ToString();
         if (effectiveOptions.Profile == JavaScriptEmissionProfile.Symbolic)
         {
             SymbolicJavaScriptVocabulary.ValidateIdentifierFile(sourceText);
         }
 
-        return new JavaScriptCompilation(sourceText, [], writer.ReachabilityReport);
+        var compilation = new JavaScriptCompilation(sourceText, [], writer.ReachabilityReport)
+        {
+            NodeArraySnapshotHelper = names.NodeArraySnapshotHelper,
+            NodeArraySnapshotFunctions = names.NodeArraySnapshotFunctions,
+            SharedNodeProjections = sharedNodeProjections,
+            ProjectSections = projectFunctions is null ? null : new JavaScriptProjectSections(
+                sourceText[..writer.GetRenderedOffset(runtimeEnd)] + sourceText[writer.GetRenderedOffset(functionStart)..],
+                projectFunctions.ToDictionary(
+                    item => item.Name,
+                    item => sourceText[writer.GetRenderedOffset(item.Start)..writer.GetRenderedOffset(item.End)],
+                    StringComparer.Ordinal)),
+        };
+        return compilation;
         }
         finally
         {
@@ -1542,13 +1592,10 @@ public static partial class JavaScriptBackend
         bool usesTryExcept,
         bool usesTsonTransport,
         bool usesSharedBrowserInteropRuntime,
-        bool usesTableWith)
+        bool usesTableWith,
+        bool emitNodeInterop)
     {
-        writer.WriteLine($"function {names.Panic}() {{");
-        writer.Indent();
-        writer.WriteLine("throw new Error(\"Copeland JavaScript backend invariant failure.\");");
-        writer.Unindent();
-        writer.WriteLine("}");
+        EmitInvariantPanic(writer, names);
         writer.WriteLine();
         if (usesUnwrap)
         {
@@ -1669,6 +1716,14 @@ public static partial class JavaScriptBackend
                 ? $"__cope_m3_record_registration({JavaScriptLiteralWriter.WriteString("result:" + MirTypeIdentity(result.Type))}).type"
                 : "Object.freeze(Object.create(null))";
             writer.WriteLine($"const {names.TypeToken(result)} = {token};");
+            if (emitNodeInterop)
+            {
+                writer.WriteLine($"function {GetNodeResultFactoryName(result.Type)}(tag, value) {{");
+                writer.Indent();
+                writer.WriteLine($"return {names.MakeValue}({names.TypeToken(result)}, tag, [value]);");
+                writer.Unindent();
+                writer.WriteLine("}");
+            }
         }
 
         foreach (ResultInfo result in results.Types)
@@ -1777,16 +1832,7 @@ public static partial class JavaScriptBackend
         writer.WriteLine("return Object.freeze(carrier);");
         writer.Unindent();
         writer.WriteLine("}");
-        writer.WriteLine("function __cope_callable_invoke(carrier, signature, argumentsInOrder) {");
-        writer.Indent();
-        writer.WriteLine("if (!__cope_callable_instances.has(carrier) || __cope_callable_signatures.get(carrier) !== signature) throw new Error(\"COPE-PANIC-CALLABLE: invalid callable\");");
-        writer.WriteLine("const code = __cope_callable_codes.get(carrier);");
-        writer.WriteLine("const environment = __cope_callable_environments.get(carrier);");
-        writer.WriteLine("if (environment === undefined) return code(...argumentsInOrder);");
-        writer.WriteLine("if (!__cope_callable_environment_instances.has(environment)) throw new Error(\"COPE-PANIC-CALLABLE: invalid environment\");");
-        writer.WriteLine("return code(...__cope_callable_environment_values.get(environment), ...argumentsInOrder);");
-        writer.Unindent();
-        writer.WriteLine("}");
+        EmitCallableDispatch(writer, "__cope_callable_invoke", signature: null, arity: 0, usesEnvironments: true);
     }
 
     private static void EmitLocalCallableRuntime(JavaScriptTextWriter writer, bool usesCapturedCallables)
@@ -1855,20 +1901,31 @@ public static partial class JavaScriptBackend
             writer.WriteLine("}");
         }
 
-        writer.WriteLine("function __cope_callable_invoke(carrier, signature, argumentsInOrder) {");
+        EmitCallableDispatch(writer, "__cope_callable_invoke", signature: null, arity: 0, usesCapturedCallables);
+    }
+
+    private static void EmitCallableDispatch(JavaScriptTextWriter writer, string name, string? signature, int arity, bool usesEnvironments)
+    {
+        string parameters = signature is null
+            ? ", signature, argumentsInOrder"
+            : string.Concat(Enumerable.Range(0, arity).Select(index => $", arg{index}"));
+        string arguments = signature is null ? "...argumentsInOrder" : parameters.TrimStart(',', ' ');
+        string expectedSignature = signature is null ? "signature" : JavaScriptLiteralWriter.WriteString(signature);
+        writer.WriteLine($"function {name}(carrier{parameters}) {{");
         writer.Indent();
-        writer.WriteLine("if (!__cope_callable_instances.has(carrier) || __cope_callable_signatures.get(carrier) !== signature) throw new Error(\"COPE-PANIC-CALLABLE: invalid callable\");");
+        writer.WriteLine($"if (!__cope_callable_instances.has(carrier) || __cope_callable_signatures.get(carrier) !== {expectedSignature}) throw new Error(\"COPE-PANIC-CALLABLE: invalid callable\");");
         writer.WriteLine("const code = __cope_callable_codes.get(carrier);");
-        if (usesCapturedCallables)
+        if (usesEnvironments)
         {
             writer.WriteLine("const environment = __cope_callable_environments.get(carrier);");
-            writer.WriteLine("if (environment === undefined) return code(...argumentsInOrder);");
+            writer.WriteLine($"if (environment === undefined) return code({arguments});");
             writer.WriteLine("if (!__cope_callable_environment_instances.has(environment)) throw new Error(\"COPE-PANIC-CALLABLE: invalid environment\");");
-            writer.WriteLine("return code(...__cope_callable_environment_values.get(environment), ...argumentsInOrder);");
+            string capturedArguments = arguments.Length == 0 ? string.Empty : $", {arguments}";
+            writer.WriteLine($"return code(...__cope_callable_environment_values.get(environment){capturedArguments});");
         }
         else
         {
-            writer.WriteLine("return code(...argumentsInOrder);");
+            writer.WriteLine($"return code({arguments});");
         }
         writer.Unindent();
         writer.WriteLine("}");
@@ -2878,6 +2935,15 @@ public static partial class JavaScriptBackend
         writer.WriteLine("}");
     }
 
+    private static void EmitInvariantPanic(JavaScriptTextWriter writer, GeneratedNames names)
+    {
+        writer.WriteLine($"function {names.Panic}() {{");
+        writer.Indent();
+        writer.WriteLine("throw new Error(\"Copeland JavaScript backend invariant failure.\");");
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
     private static void EmitBoundaryParameterValidation(
         JavaScriptTextWriter writer,
         MirFunction function,
@@ -2910,6 +2976,7 @@ public static partial class JavaScriptBackend
             }
             else
             {
+                names.UsesBoundaryPanic = true;
                 writer.WriteLine($"if (!({condition})) {{ {names.Panic}(); }}");
             }
         }
@@ -2937,7 +3004,7 @@ public static partial class JavaScriptBackend
         return PayloadTypeCondition(value, type, catalog, results, names);
     }
 
-    private static void EmitFunction(JavaScriptTextWriter writer, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool isBoundaryFunction, bool isComponentTransition = false)
+    private static void EmitFunction(JavaScriptTextWriter writer, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool isBoundaryFunction, bool isComponentTransition, bool nodeArraySnapshot)
     {
         if (function.ComponentState is not null)
         {
@@ -2952,12 +3019,21 @@ public static partial class JavaScriptBackend
         JavaScriptScopeId functionScope = names.EnterFunction(function);
         writer.EnterScope(functionScope);
         string parameters = string.Join(", ", function.Parameters.Select(parameter => JavaScriptIdentifierEncoder.Encode(parameter.Name)));
+        bool usesTryExcept = FunctionUsesTryExcept(function);
+        string? nodeSnapshotMode = null;
+        string? snapshotHelper = null;
+        if (nodeArraySnapshot && !usesTryExcept)
+        {
+            nodeSnapshotMode = names.NextTemporary("node_snapshot");
+            snapshotHelper = names.RegisterNodeArraySnapshot(function.Name);
+            string separator = parameters.Length == 0 ? string.Empty : ", ";
+            parameters += $"{separator}{nodeSnapshotMode} = undefined";
+        }
         string generatorMarker = function.IsGenerator ? "*" : string.Empty;
         writer.WriteLine($"function{generatorMarker} {JavaScriptIdentifierEncoder.Encode(function.Name)}({parameters}) {{");
         writer.Indent();
         EmitBoundaryParameterValidation(writer, function, catalog, results, names, isBoundaryFunction, isComponentTransition);
 
-        bool usesTryExcept = FunctionUsesTryExcept(function);
         if (usesTryExcept)
         {
             var flow = names.NextTemporary("function_flow");
@@ -2996,9 +3072,22 @@ public static partial class JavaScriptBackend
             return;
         }
 
-        foreach (MirStatement statement in function.Body)
+        int normalStatementCount = function.Body.Count;
+        if (snapshotHelper is not null)
         {
-            EmitStatement(writer, statement, function, catalog, results, names, flowEnabled: false);
+            normalStatementCount--;
+        }
+        for (int index = 0; index < normalStatementCount; index++)
+        {
+            EmitStatement(writer, function.Body[index], function, catalog, results, names, flowEnabled: false);
+        }
+        if (snapshotHelper is not null)
+        {
+            var returned = (MirReturnStatement)function.Body[^1];
+            var freeze = (MirMutableArrayFreezeExpression)returned.Expression!;
+            EmittedExpression receiver = EmitExpression(freeze.Receiver, function, catalog, results, names, flowEnabled: false);
+            WritePrelude(writer, receiver.Prelude);
+            writer.WriteLine($"return {nodeSnapshotMode} === {snapshotHelper} ? {snapshotHelper}({receiver.Value}) : Object.freeze({receiver.Value}.slice());");
         }
 
         writer.Unindent();
@@ -3420,7 +3509,7 @@ public static partial class JavaScriptBackend
             MirAssignmentExpression assignment => AsyncAssignmentText(assignment, AsyncFrameVariableReference(assignment.Name, names), EmitAsyncExpression(assignment.Expression, catalog, results, names)),
             MirBinaryExpression binary => BinaryText(binary, EmitAsyncExpression(binary.Left, catalog, results, names), EmitAsyncExpression(binary.Right, catalog, results, names)),
             MirUnaryExpression unary => UnaryText(unary, EmitAsyncExpression(unary.Operand, catalog, results, names)),
-            MirCallExpression call => $"{NativeCallName(call) ?? JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", call.Arguments.Select(argument => EmitAsyncExpression(argument, catalog, results, names)))})",
+            MirCallExpression call => EmitNativeOrDirectCall(call, call.Arguments.Select(argument => EmitAsyncExpression(argument, catalog, results, names)).ToArray(), names),
             MirInvokeExpression invoke => EmitAsyncInvoke(invoke, catalog, results, names),
             MirRecordConstructionExpression construction => EmitAsyncRecordConstruction(construction, catalog, results, names),
             MirRecordFieldAccessExpression access => EmitAsyncRecordFieldAccess(access, catalog, results, names),
@@ -3540,10 +3629,7 @@ public static partial class JavaScriptBackend
                     string loopDeclarationKeyword = loop.Local.IsReadOnly ? "const" : "let";
                     writer.WriteLine($"for ({loopDeclarationKeyword} {JavaScriptIdentifierEncoder.Encode(loop.Local.Name)} of {iterable.Value}) {{");
                     writer.Indent();
-                    foreach (MirStatement nested in loop.BodyStatements)
-                    {
-                        EmitStatement(writer, nested, function, catalog, results, names, flowEnabled);
-                    }
+                    EmitLoopBody(writer, loop.BodyStatements, null, function, catalog, results, names, flowEnabled);
                     writer.Unindent();
                     writer.WriteLine("}");
                 }
@@ -3577,6 +3663,25 @@ public static partial class JavaScriptBackend
 
     private static void EmitIfStatement(JavaScriptTextWriter writer, MirIfStatement conditional, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
+        if (IsProduction(names) && conditional.Condition is MirLiteralExpression { Value: bool selected })
+        {
+            IReadOnlyList<MirStatement>? statements = selected ? conditional.ThenStatements : conditional.ElseStatements;
+            if (statements is not { Count: > 0 })
+            {
+                return;
+            }
+
+            writer.WriteLine("{");
+            writer.Indent();
+            foreach (MirStatement nested in statements)
+            {
+                EmitStatement(writer, nested, function, catalog, results, names, flowEnabled);
+            }
+            writer.Unindent();
+            writer.WriteLine("}");
+            return;
+        }
+
         EmittedExpression condition = EmitExpression(conditional.Condition, function, catalog, results, names, flowEnabled);
         WritePrelude(writer, condition.Prelude);
         writer.WriteLine($"if ({condition.Value}) {{");
@@ -3835,10 +3940,7 @@ public static partial class JavaScriptBackend
             WritePrelude(writer, condition.Prelude);
             writer.WriteLine($"if (!{condition.Value}) continue;");
         }
-        foreach (MirStatement statement in loop.BodyStatements)
-        {
-            EmitStatement(writer, statement, function, catalog, results, names, flowEnabled);
-        }
+        EmitLoopBody(writer, loop.BodyStatements, null, function, catalog, results, names, flowEnabled);
         writer.Unindent();
         writer.WriteLine("}");
     }
@@ -4138,8 +4240,26 @@ public static partial class JavaScriptBackend
         GeneratedNames names,
         bool flowEnabled)
     {
+        if (IsProduction(names)
+            && access.Receiver is MirArrayExpression { Counts: null } array
+            && access.Index is MirLiteralExpression { Value: int position }
+            && (uint)position < (uint)array.Elements.Count)
+        {
+            if (array.Elements.All(element => element is MirLiteralExpression))
+            {
+                return EmitExpression(array.Elements[position], function, catalog, results, names, flowEnabled);
+            }
+
+            EmittedExpression literal = EmitExpression(array, function, catalog, results, names, flowEnabled);
+            return new EmittedExpression(literal.Prelude, $"({literal.Value})[{position}]");
+        }
+
         EmittedExpression receiver = EmitExpression(access.Receiver, function, catalog, results, names, flowEnabled);
         EmittedExpression index = EmitExpression(access.Index, function, catalog, results, names, flowEnabled);
+        if (IsProduction(names))
+        {
+            return EmitOutlinedArrayRead(receiver, index, names);
+        }
         var prelude = new List<EmittedLine>(receiver.Prelude);
         prelude.AddRange(index.Prelude);
         string receiverTemporary = names.NextTemporary("array_receiver");
@@ -4856,13 +4976,31 @@ public static partial class JavaScriptBackend
         return "__cope_native_" + call.NativeOperation.Value;
     }
 
+    private static string EmitNativeOrDirectCall(MirCallExpression call, IReadOnlyList<string> arguments, GeneratedNames names)
+    {
+        if (call.NativeOperation == MirNativeOperation.MatchCase)
+        {
+            return $"({arguments[0]}.$tag === {arguments[1]})";
+        }
+        if (call.NativeOperation == MirNativeOperation.MatchPayload)
+        {
+            if (call.Arguments[0].Type is MirResultType || !IsProduction(names))
+            {
+                return $"{arguments[0]}.$payload[{arguments[3]}]";
+            }
+            int index = (int)((MirLiteralExpression)call.Arguments[3]).Value!;
+            return $"{arguments[0]}.{ProductionEnumPayloadName(index)}";
+        }
+        return $"{NativeCallName(call) ?? JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", arguments)})";
+    }
+
     private static EmittedExpression EmitCall(MirCallExpression call, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
         var emittedArguments = call.Arguments.Select(argument => EmitExpression(argument, function, catalog, results, names, flowEnabled)).ToList();
         return CombineOrdered(
             emittedArguments,
             names,
-            values => $"{NativeCallName(call) ?? JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", values)})");
+            values => EmitNativeOrDirectCall(call, values, names));
     }
 
     private static EmittedExpression EmitInvoke(MirInvokeExpression invoke, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
@@ -4870,6 +5008,11 @@ public static partial class JavaScriptBackend
         var expressions = new List<EmittedExpression> { EmitExpression(invoke.Callee, function, catalog, results, names, flowEnabled) };
         expressions.AddRange(invoke.Arguments.Select(argument => EmitExpression(argument, function, catalog, results, names, flowEnabled)));
         string signature = invoke.Callee.Type is MirCallableType callable ? CallableTypeIdentity(callable) : "invalid";
+        if (IsProduction(names) && invoke.Callee.Type is MirCallableType && invoke.Arguments.Count <= 4)
+        {
+            string helper = names.FixedCallableHelper(signature, invoke.Arguments.Count);
+            return CombineOrdered(expressions, names, values => $"{helper}({string.Join(", ", values)})");
+        }
         return CombineOrdered(expressions, names, values => $"__cope_callable_invoke({values[0]}, {JavaScriptLiteralWriter.WriteString(signature)}, [{string.Join(", ", values.Skip(1))}])");
     }
 
@@ -4934,6 +5077,12 @@ public static partial class JavaScriptBackend
     private static EmittedExpression EmitMutableArrayConstruction(MirMutableArrayConstructionExpression construction, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
         EmittedExpression length = EmitExpression(construction.Length, function, catalog, results, names, flowEnabled);
+        if (IsProduction(names))
+        {
+            return new EmittedExpression(length.Prelude,
+                $"{names.ArrayAllocationHelper()}({length.Value}, {DefaultJavaScriptValue(construction.MutableArrayType.ElementType)})");
+        }
+
         string lengthTemporary = names.NextTemporary("array_length");
         string expression = $"(() => {{ const {lengthTemporary} = {length.Value}; if ({lengthTemporary} < 0) throw new RangeError(\"Copeland mutable array length cannot be negative.\"); return Array({lengthTemporary}).fill({DefaultJavaScriptValue(construction.MutableArrayType.ElementType)}); }})()";
         return new EmittedExpression(length.Prelude, expression);
@@ -4956,6 +5105,23 @@ public static partial class JavaScriptBackend
         EmittedExpression receiver = EmitExpression(receiverExpression, function, catalog, results, names, flowEnabled);
         EmittedExpression index = EmitExpression(indexExpression, function, catalog, results, names, flowEnabled);
         EmittedExpression? value = valueExpression is null ? null : EmitExpression(valueExpression, function, catalog, results, names, flowEnabled);
+        if (IsProduction(names))
+        {
+            if (value is null)
+            {
+                return EmitOutlinedArrayRead(receiver, index, names);
+            }
+
+            // JavaScript resolves the member reference before evaluating the
+            // assignment value. Re-reading a local has no intervening effects.
+            if (receiverExpression is MirVariableExpression
+                && index.Prelude.Count == 0 && value.Prelude.Count == 0)
+            {
+                return EmittedExpression.ValueOnly(
+                    $"({receiver.Value}[{names.CheckedIndexHelper()}({receiver.Value}, {index.Value})] = {value.Value})");
+            }
+        }
+
         var prelude = new List<EmittedLine>(receiver.Prelude);
         prelude.AddRange(index.Prelude);
         if (value is not null) prelude.AddRange(value.Prelude);
@@ -4969,6 +5135,13 @@ public static partial class JavaScriptBackend
         }
         string expression = $"(() => {{ const {arrayTemporary} = {receiver.Value}; const {indexTemporary} = {index.Value}; if ({indexTemporary} < 0 || {indexTemporary} >= {arrayTemporary}.length) throw new RangeError(\"Copeland array index is out of bounds.\"); {operation}; }})()";
         return new EmittedExpression(prelude, expression);
+    }
+
+    private static EmittedExpression EmitOutlinedArrayRead(
+        EmittedExpression receiver, EmittedExpression index, GeneratedNames names)
+    {
+        string helper = names.ArrayReadHelper();
+        return CombineOrdered([receiver, index], names, values => $"{helper}({values[0]}, {values[1]})");
     }
 
     private static EmittedExpression EmitMutableArrayIterable(
@@ -5042,6 +5215,15 @@ public static partial class JavaScriptBackend
         bool flowEnabled)
     {
         MirRecordDefinition record = catalog.GetRecord(construction.RecordTypeId);
+        if (IsProduction(names) && construction.Initializers.Select(initializer => initializer.FieldId)
+            .SequenceEqual(record.Fields.Select(field => field.Id)))
+        {
+            EmittedExpression[] ordered = construction.Initializers
+                .Select(initializer => EmitExpression(initializer.Value, function, catalog, results, names, flowEnabled))
+                .ToArray();
+            return CombineOrdered(ordered, names,
+                values => $"{RecordConstructionName(record, names)}({string.Join(", ", values)})");
+        }
         var prelude = new List<EmittedLine>();
         var valuesByField = new Dictionary<MirRecordFieldId, string>();
         foreach (MirRecordFieldValue initializer in construction.Initializers)
@@ -5295,6 +5477,10 @@ public static partial class JavaScriptBackend
             {
                 lastPreludeIndex = index;
             }
+        }
+        if (lastPreludeIndex < 0)
+        {
+            return EmittedExpression.ValueOnly(buildValue(expressions.Select(expression => expression.Value).ToArray()));
         }
 
         var prelude = new List<EmittedLine>();
@@ -5556,6 +5742,12 @@ public static partial class JavaScriptBackend
 
     private static EmittedExpression EmitIfExpression(MirIfExpression conditional, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
+        if (IsProduction(names) && conditional.Condition is MirLiteralExpression { Value: bool selected })
+        {
+            MirExpression branch = selected ? conditional.ThenExpression : conditional.ElseExpression;
+            return EmitExpression(branch, function, catalog, results, names, flowEnabled);
+        }
+
         EmittedExpression condition = EmitExpression(conditional.Condition, function, catalog, results, names, flowEnabled);
         EmittedExpression thenExpression = EmitExpression(conditional.ThenExpression, function, catalog, results, names, flowEnabled);
         EmittedExpression elseExpression = EmitExpression(conditional.ElseExpression, function, catalog, results, names, flowEnabled);
@@ -6509,6 +6701,7 @@ public static partial class JavaScriptBackend
     {
         public Dictionary<string, string>? AsyncFrameVariables { get; set; }
         public MirPresentationAdapter? PresentationAdapter { get; private set; }
+        public bool UsesBoundaryPanic { get; set; }
 
         private readonly Dictionary<EnumInfo, JavaScriptBindingReference> typeTokens;
         private readonly Dictionary<EnumInfo, JavaScriptBindingReference> enumInstances;
@@ -6537,6 +6730,12 @@ public static partial class JavaScriptBackend
         private readonly Dictionary<MirFunction, JavaScriptScopeId> functionScopes;
         private readonly NameAllocator allocator;
         private readonly JavaScriptGeneratedDefinitionGraph generatedDefinitions;
+        private string? arrayReadHelper;
+        private string? checkedIndexHelper;
+        private string? arrayAllocationHelper;
+        private readonly Dictionary<(string Signature, int Arity), string> fixedCallableHelpers = [];
+        public string? NodeArraySnapshotHelper { get; private set; }
+        public HashSet<string> NodeArraySnapshotFunctions { get; } = new(StringComparer.Ordinal);
 
         private GeneratedNames(
             NameAllocator allocator,
@@ -6657,6 +6856,75 @@ public static partial class JavaScriptBackend
         public JavaScriptEmissionDocument Document => allocator.Document;
 
         public JavaScriptGeneratedDefinitionGraph GeneratedDefinitions => generatedDefinitions;
+
+        public string ArrayReadHelper() => arrayReadHelper ??= allocator.AllocateRuntimeHelper("get");
+
+        public string CheckedIndexHelper() => checkedIndexHelper ??= allocator.AllocateRuntimeHelper("idx");
+
+        public string ArrayAllocationHelper() => arrayAllocationHelper ??= allocator.AllocateRuntimeHelper("array");
+
+        public string RegisterNodeArraySnapshot(string functionName)
+        {
+            NodeArraySnapshotFunctions.Add(functionName);
+            return NodeArraySnapshotHelper ??= allocator.AllocateRuntimeHelper("node_snapshot");
+        }
+
+        public JavaScriptNodeProjectionBindings AllocateNodeProjections()
+            => new(allocator.AllocateRuntimeHelper("node_check"), allocator.AllocateRuntimeHelper("node_array"));
+
+        public string FixedCallableHelper(string signature, int arity)
+        {
+            if (!fixedCallableHelpers.TryGetValue((signature, arity), out string? name))
+            {
+                name = allocator.AllocateRuntimeHelper("call");
+                fixedCallableHelpers.Add((signature, arity), name);
+            }
+            return name;
+        }
+
+        public void EmitFixedCallableHelpers(JavaScriptTextWriter writer, bool usesEnvironments)
+        {
+            foreach (var (key, name) in fixedCallableHelpers)
+            {
+                writer.WriteLine();
+                EmitCallableDispatch(writer, name, key.Signature, key.Arity, usesEnvironments);
+            }
+        }
+
+        public void EmitArrayHelpers(JavaScriptTextWriter writer)
+        {
+            const string check = "if (index < 0 || index >= array.length) throw new RangeError(\"Copeland array index is out of bounds.\");";
+            if (arrayReadHelper is not null)
+            {
+                writer.WriteLine();
+                writer.WriteLine($"function {arrayReadHelper}(array, index) {{");
+                writer.Indent();
+                writer.WriteLine(check);
+                writer.WriteLine("return array[index];");
+                writer.Unindent();
+                writer.WriteLine("}");
+            }
+            if (checkedIndexHelper is not null)
+            {
+                writer.WriteLine();
+                writer.WriteLine($"function {checkedIndexHelper}(array, index) {{");
+                writer.Indent();
+                writer.WriteLine(check);
+                writer.WriteLine("return index;");
+                writer.Unindent();
+                writer.WriteLine("}");
+            }
+            if (arrayAllocationHelper is not null)
+            {
+                writer.WriteLine();
+                writer.WriteLine($"function {arrayAllocationHelper}(length, initial) {{");
+                writer.Indent();
+                writer.WriteLine("if (length < 0) throw new RangeError(\"Copeland mutable array length cannot be negative.\");");
+                writer.WriteLine("return Array(length).fill(initial);");
+                writer.Unindent();
+                writer.WriteLine("}");
+            }
+        }
 
         public JavaScriptBindingReference ColumnCarrierToken { get; }
 
@@ -6812,6 +7080,14 @@ public static partial class JavaScriptBackend
             foreach (MirNpmImport import in program.NpmImports)
             {
                 occupied.Add(JavaScriptIdentifierEncoder.Encode(import.LocalBinding));
+            }
+            foreach (MirJavaScriptHostImport import in program.JavaScriptHostImports)
+            {
+                occupied.Add(JavaScriptIdentifierEncoder.Encode(import.LocalBinding));
+            }
+            foreach (MirModuleValue value in program.ModuleValues)
+            {
+                occupied.Add(JavaScriptIdentifierEncoder.Encode(value.Name));
             }
 
             var allocator = new NameAllocator(occupied, profile);
@@ -7009,6 +7285,10 @@ public static partial class JavaScriptBackend
         {
             return allocator.Allocate(currentScope, role, diagnosticPurpose, symbolicRole: symbolicRole).Reference;
         }
+
+        public string AllocateRuntimeHelper(string purpose)
+            => allocator.Allocate(document.ProgramScope, JavaScriptBindingRole.RuntimeHelper, purpose,
+                JavaScriptDeclarationKind.Function).Name;
 
         public void Validate()
         {

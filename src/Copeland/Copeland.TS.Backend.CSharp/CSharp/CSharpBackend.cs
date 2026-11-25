@@ -1650,7 +1650,7 @@ public static partial class CSharpBackend
             MirAssignmentExpression assignment => AssignmentText(assignment, "frame." + CSharpNameMangler.Mangle(assignment.Name), EmitAsyncExpression(assignment.Expression, function)),
             MirBinaryExpression binary => BinaryText(binary, EmitAsyncExpression(binary.Left, function), EmitAsyncExpression(binary.Right, function)),
             MirUnaryExpression unary => UnaryText(unary, EmitAsyncExpression(unary.Operand, function)),
-            MirCallExpression call => $"{NativeCallName(call) ?? CSharpNameMangler.Mangle(call.FunctionName)}({string.Join(", ", call.Arguments.Select(argument => EmitAsyncExpression(argument, function)))})",
+            MirCallExpression call => EmitNativeOrDirectCall(call, call.Arguments.Select(argument => EmitAsyncExpression(argument, function)).ToArray()),
             MirRecordConstructionExpression construction => EmitAsyncRecordConstruction(construction, function),
             MirRecordFieldAccessExpression access => $"({EmitAsyncExpression(access.Receiver, function)}).{RecordFieldName(access.FieldId)}",
             MirTsonTransportExpression transport => EmitAsyncTsonTransport(transport, function),
@@ -1783,7 +1783,7 @@ public static partial class CSharpBackend
                 else
                 {
                     writer.WriteLine($"foreach ({MapValueStorageType(loop.Local.Type)} {CSharpNameMangler.Mangle(loop.Local.Name)} in {EmitExpression(writer, loop.Iterable, function, enumNames, ref tempIndex, diagnostics)})");
-                    EmitStatementBlock(writer, loop.BodyStatements, function, enumNames, ref tempIndex, diagnostics);
+                    EmitLoopBodyBlock(writer, loop.BodyStatements, null, function, enumNames, ref tempIndex, diagnostics);
                 }
                 break;
             case MirBreakStatement:
@@ -2080,6 +2080,10 @@ public static partial class CSharpBackend
         {
             return $"__cope_native_MutableListCreate<{MapType(list.ElementType)}>";
         }
+        if (call.NativeOperation == MirNativeOperation.MutableArrayFilled && call.Type is MirMutableArrayType array)
+        {
+            return $"__cope_native_MutableArrayFilled<{MapType(array.ElementType)}>";
+        }
         return "__cope_native_" + call.NativeOperation.Value;
     }
 
@@ -2092,15 +2096,41 @@ public static partial class CSharpBackend
         List<CSharpDiagnostic> diagnostics)
     {
         string owner = function.Name == "<flow>" ? ModuleClassName + "." : string.Empty;
-        string functionName = NativeCallName(call) ?? CSharpNameMangler.Mangle(call.FunctionName);
-        string arguments = string.Join(", ", EmitArguments(
+        string[] arguments = EmitArguments(
             call.Arguments,
             writer,
             function,
             enumNames,
             ref tempIndex,
-            diagnostics));
-        return owner + functionName + "(" + arguments + ")";
+            diagnostics).ToArray();
+        return EmitNativeOrDirectCall(call, arguments, owner);
+    }
+
+    private static string EmitNativeOrDirectCall(MirCallExpression call, IReadOnlyList<string> arguments, string owner = "")
+    {
+        if (call.NativeOperation is MirNativeOperation.MatchCase or MirNativeOperation.MatchPayload)
+        {
+            string subject = arguments[0];
+            string caseName = (string)((MirLiteralExpression)call.Arguments[1]).Value!;
+            bool isTest = call.NativeOperation == MirNativeOperation.MatchCase;
+            if (call.Arguments[0].Type is MirResultType)
+            {
+                if (isTest)
+                {
+                    return caseName == "ok" ? $"({subject}).IsOk" : $"(!({subject}).IsOk)";
+                }
+                return $"({subject}).{(caseName == "ok" ? "Value" : "Error")}";
+            }
+            string variant = $"{MapType(call.Arguments[0].Type)}.{CSharpNameMangler.Mangle(caseName)}";
+            if (isTest)
+            {
+                return $"({subject} is {variant})";
+            }
+            string field = (string)((MirLiteralExpression)call.Arguments[2]).Value!;
+            return $"(({variant})({subject})).{CSharpNameMangler.Mangle(field)}";
+        }
+        string name = NativeCallName(call) ?? CSharpNameMangler.Mangle(call.FunctionName);
+        return $"{owner}{name}({string.Join(", ", arguments)})";
     }
 
     private static string EmitInvokeExpression(
@@ -2185,10 +2215,7 @@ public static partial class CSharpBackend
             var invoke = new MirInvokeExpression(predicate, [new MirVariableExpression(rowName, loop.Local.Type)], new MirNamedType("boolean"));
             writer.WriteLine($"if (!{EmitExpression(writer, invoke, function, enumNames, ref tempIndex, diagnostics)}) continue;");
         }
-        foreach (MirStatement statement in loop.BodyStatements)
-        {
-            EmitStatement(writer, statement, function, enumNames, ref tempIndex, diagnostics);
-        }
+        EmitLoopBody(writer, loop.BodyStatements, null, function, enumNames, ref tempIndex, diagnostics);
         writer.Unindent();
         writer.WriteLine("}");
     }

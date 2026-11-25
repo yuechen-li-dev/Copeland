@@ -325,6 +325,25 @@ export function DescribeDecision(decision: Decision): string {
 Every enum case must be covered and each binding must match its payload. A
 missing arm is an error, and each arm must return a compatible result type.
 
+Use block arms when the match should run statements. The subject is evaluated
+once. An arm can return from the enclosing function or break or continue the
+enclosing loop.
+
+```ts
+function FirstPresent(items: Option<int>[]): Option<int> {
+    for (const item of items) {
+        match item {
+            Some(value) => { return Some(value); },
+            None => { continue; },
+        }
+    }
+    return None;
+}
+```
+
+Block arms support nominal enums, `Option`, and `Result`. Use `ok()`
+for the success pattern of a void Result.
+
 For example, this reducer uses `switch` because the enum represents commands:
 
 ```ts
