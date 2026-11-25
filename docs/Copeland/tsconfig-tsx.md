@@ -93,6 +93,9 @@ entries for future editor consumers.
 
 ## Migration and TSPack
 
+For an existing Node library, [incremental migration](authoring/incremental-migration.md)
+sets up a separate Copeland workspace around the original TypeScript project.
+
 Move one folder at a time by changing its include rule from `tsc` to `tscl`,
 then run `sync`. Do not enable Copeland syntax in a `tsc`-owned file.
 

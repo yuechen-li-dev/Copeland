@@ -20,7 +20,9 @@
     "onCommand:copeland.showProjectInfo",
     "onCommand:copeland.showLanguageServerOutput",
     "onCommand:copeland.openWorkspaceManifest",
-    "onCommand:copeland.reloadWorkspaceOwnership"
+    "onCommand:copeland.reloadWorkspaceOwnership",
+    "onCommand:copeland.showMigrationHints",
+    "onCommand:copeland.clearMigrationHints"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -42,7 +44,9 @@
       { "command": "copeland.showProjectInfo", "title": "Copeland: Show Project Information" },
       { "command": "copeland.showLanguageServerOutput", "title": "Copeland: Show Language Server Output" },
       { "command": "copeland.openWorkspaceManifest", "title": "Copeland: Open tsconfig.tsx" },
-      { "command": "copeland.reloadWorkspaceOwnership", "title": "Copeland: Reload Workspace Ownership" }
+      { "command": "copeland.reloadWorkspaceOwnership", "title": "Copeland: Reload Workspace Ownership" },
+      { "command": "copeland.showMigrationHints", "title": "Copeland: Show Migration Hints" },
+      { "command": "copeland.clearMigrationHints", "title": "Copeland: Clear Migration Hints" }
     ],
     "configuration": {
       "title": "Copeland TS",
