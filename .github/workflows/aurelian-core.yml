@@ -17,6 +17,7 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+      - uses: ./.github/actions/setup-aurelian-spirv
       - name: Enforce standalone engine boundary
         shell: pwsh
         run: ./scripts/Test-AurelianCoreBoundary.ps1
@@ -39,6 +40,7 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+      - uses: ./.github/actions/setup-aurelian-spirv
       - uses: dtolnay/rust-toolchain@stable
       - name: Install qualified SPIR-V to WGSL translator
         run: cargo install naga-cli --version 30.0.1 --locked
