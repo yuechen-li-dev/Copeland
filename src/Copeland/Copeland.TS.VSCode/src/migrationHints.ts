@@ -17,11 +17,20 @@ interface MigrationReport {
     }>;
 }
 
-export function registerMigrationHints(context: vscode.ExtensionContext, output: vscode.OutputChannel): void {
+export function registerMigrationHints(
+    context: vscode.ExtensionContext,
+    output: vscode.OutputChannel,
+    isCopelandOwned: (uri: vscode.Uri) => boolean
+): void {
     const diagnostics = vscode.languages.createDiagnosticCollection("copeland-migration");
     let latestRun = 0;
     context.subscriptions.push(
         diagnostics,
+        vscode.workspace.onDidOpenTextDocument(document => {
+            if (isCopelandOwned(document.uri)) {
+                diagnostics.delete(document.uri);
+            }
+        }),
         vscode.workspace.onDidChangeTextDocument(event => diagnostics.delete(event.document.uri)),
         vscode.commands.registerCommand("copeland.clearMigrationHints", () => {
             latestRun++;
@@ -47,7 +56,7 @@ export function registerMigrationHints(context: vscode.ExtensionContext, output:
                 const byFile = new Map<string, { uri: vscode.Uri; hints: vscode.Diagnostic[] }>();
                 for (const finding of report.findings) {
                     const uri = vscode.Uri.file(path.resolve(path.dirname(report.project), finding.file));
-                    if (!vscode.workspace.getWorkspaceFolder(uri)) {
+                    if (!vscode.workspace.getWorkspaceFolder(uri) || isCopelandOwned(uri)) {
                         continue;
                     }
                     const key = uri.toString();

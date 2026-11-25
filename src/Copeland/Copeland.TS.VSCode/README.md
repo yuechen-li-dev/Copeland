@@ -29,9 +29,12 @@ Use **Copeland: Show File Owner** for ownership details, **Copeland: Restart
 Language Server** after changing tools, and **Copeland: Show Language Server
 Output** for the selected executable, version, project, and failures.
 
-Copeland activates only in workspaces containing `tsconfig.tsx`. It assigns a
-separate VS Code language identity only to `tscl`-owned files, so built-in
-TypeScript remains active for `tsc`-owned files and unrelated projects.
+Copeland refreshes workspace ownership on open and after files are added or
+removed. It gives `tscl` sources and the project manifests a Copeland language
+ID. Built-in TypeScript and linters such as ESLint continue to serve the
+traditional TypeScript files. Linters that scan by file path can use the
+traditional TypeScript source paths as their input.
 
-This Preview supports specifically contracted npm packages; it does not promise
-general Node or `tsconfig.json` compatibility.
+Use **Copeland: Generate NuGet Bindings** when the editor offers a quick fix
+for a missing generated NuGet import. The command restores the declared
+packages and refreshes the open files.

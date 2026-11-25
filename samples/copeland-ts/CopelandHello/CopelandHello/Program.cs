@@ -1,11 +1,5 @@
-using Copeland.TS.Backend.CSharp;
-
 Console.WriteLine(CopelandHello.Copeland.CopelandProject.dotNetGreeting("Copeland"));
 
-await using CSharpSidecarHost npm = CSharpSidecarHost.AttachNode(
-    typeof(CopelandHello.Copeland.CopelandProject).Assembly,
-    AppContext.BaseDirectory,
-    "scripts/npm-sidecar.mjs");
 var npmGreeting = CopelandHello.Copeland.CopelandProject.npmGreeting("HELLO from npm");
 var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 if (!npmGreeting.SubscribeTransport(
@@ -23,3 +17,4 @@ if (!npmGreeting.Value.IsOk)
 }
 
 Console.WriteLine($"lodash-es says: {npmGreeting.Value.Value}");
+Console.WriteLine(CopelandHello.Copeland.CopelandProject.quoteTitle(npmGreeting.Value.Value));

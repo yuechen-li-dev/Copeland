@@ -20,6 +20,12 @@ public static class CSharpSidecarContracts
 {
     public const string ProtocolVersion = "copeland-sidecar-m1";
 
+    internal static CSharpSidecarContract CreateGeneratedNpm(MirProgram program, string guestPath)
+        => new("copeland-generated-npm", ProtocolVersion, ComputeDigest(program),
+            new ManifestRunTarget("copeland", "npm", "node", [guestPath], null,
+                new ManifestValue.Object(new Dictionary<string, ManifestValue>())),
+            string.Empty);
+
     public static bool TryCreate(
         MirProgram program,
         CopelandManifest manifest,

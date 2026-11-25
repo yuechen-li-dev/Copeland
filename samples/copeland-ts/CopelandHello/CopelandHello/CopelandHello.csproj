@@ -7,6 +7,7 @@
     <Nullable>enable</Nullable>
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
     <CopelandRequiredVersion>0.1.0-preview.1</CopelandRequiredVersion>
+    <CopelandNpmLockFile>package-lock.json</CopelandNpmLockFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,7 +15,6 @@
                       Version="0.1.0-preview.1"
                       PrivateAssets="all" />
     <CopelandNpmContract Include="contracts/lodash-es.json" />
-    <None Include="scripts/npm-sidecar.mjs"
-          CopyToOutputDirectory="PreserveNewest" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 </Project>

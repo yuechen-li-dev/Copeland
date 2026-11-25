@@ -155,6 +155,53 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  smoke-package-interop:
+    needs: build-and-verify
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          name: copeland-ts-${{ inputs.version }}
+          path: artifacts/local/interop-release
+      - uses: yuechen-li-dev/tspack/.github/actions/setup-tspack@v0.1.14-m80i.2
+        with:
+          version: v0.1.14-m80i.2
+      - name: Qualify the installed candidate with released TSPack
+        shell: pwsh
+        env:
+          COPELAND_PREVIEW_VERSION: ${{ inputs.version }}
+        run: |
+          node tools/Test-CopelandPackageInterop.mjs --feed artifacts/local/interop-release/nuget --out "$env:RUNNER_TEMP/copeland-interop" --version $env:COPELAND_PREVIEW_VERSION
+      - name: Verify diagnostics in the installed VSIX with ESLint
+        if: runner.os == 'Windows'
+        shell: pwsh
+        working-directory: src/Copeland/Copeland.TS.VSCode
+        env:
+          COPELAND_INTEROP_RECEIPT: ${{ runner.temp }}/copeland-interop/interop.json
+          COPELAND_INTEROP_VSIX: ${{ github.workspace }}/artifacts/local/interop-release/vscode/copeland-ts-${{ inputs.version }}.vsix
+        run: |
+          npm ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run compile
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node out/runPackageSmoke.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: copeland-interop-${{ matrix.os }}
+          path: ${{ runner.temp }}/copeland-interop/interop.json
+          if-no-files-found: error
+
   build-machina-typography-openfont:
     if: ${{ inputs.publish_machina_typography_openfont }}
     runs-on: windows-latest
@@ -219,7 +266,7 @@ jobs:
 
   publish-nuget:
     if: ${{ inputs.publish_nuget }}
-    needs: build-and-verify
+    needs: [build-and-verify, smoke-package-interop]
     runs-on: windows-latest
     environment: copeland-publication
     permissions:
@@ -257,7 +304,7 @@ jobs:
 
   publish-npm:
     if: ${{ inputs.publish_npm }}
-    needs: build-and-verify
+    needs: [build-and-verify, smoke-package-interop]
     runs-on: windows-latest
     environment: copeland-publication
     steps:
@@ -293,7 +340,7 @@ jobs:
 
   create-release:
     if: ${{ inputs.create_github_release }}
-    needs: build-and-verify
+    needs: [build-and-verify, smoke-package-interop]
     runs-on: windows-latest
     environment: copeland-publication
     permissions:

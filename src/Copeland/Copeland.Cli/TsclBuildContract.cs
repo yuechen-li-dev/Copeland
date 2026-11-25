@@ -7,6 +7,7 @@ using Copeland.TS.Backend.CSharp;
 using Copeland.TS.Compiler;
 using Copeland.TS.Diagnostics;
 using Copeland.TS.Manifest;
+using Copeland.TS.Mir;
 using Copeland.TS.Workspace;
 
 namespace Copeland.Cli;
@@ -16,7 +17,7 @@ namespace Copeland.Cli;
 /// not a package manager: all npm materialization and static contracts arrive
 /// as already-resolved compiler input.
 /// </summary>
-internal static class TsclBuildContract
+internal static partial class TsclBuildContract
 {
     private const int CompileFailureExitCode = 1;
     private const int UsageErrorExitCode = 2;
@@ -159,6 +160,7 @@ internal static class TsclBuildContract
         ownership.Targets?.TryGetValue(targets[0].Name, out configuredTarget);
         return new TsclBuildRequest
         {
+            TargetName = targets[0].Name,
             Context = context,
             ProjectRoot = fullProjectRoot,
             Sources = context.Sources.Select(source => new TsclSource
@@ -201,6 +203,7 @@ internal static class TsclBuildContract
             request = descriptor.CompilerPayload!.Data.Deserialize<TsclBuildRequest>(JsonOptions);
             if (request is not null)
             {
+                request.TargetName = descriptor.Target.Name;
                 request.DescriptorPath = fullProjectPath;
                 ApplyCompilerOwnedTarget(descriptor, request);
             }
@@ -285,6 +288,33 @@ internal static class TsclBuildContract
         {
             throw new TsclContractException("COPE-TSCL-0001", "--node-interop requires a JavaScript Node target.");
         }
+        NugetWorkerConfiguration? nuget = ReadNugetWorker(projectRoot);
+        string? browserDelivery = null;
+        if (nuget is { Signatures.Count: > 0 })
+        {
+            if (target.TargetFramework != "net10.0")
+            {
+                throw new TsclContractException("COPE-TSCL-NUGET-0005", "Generated NuGet bindings currently resolve the net10.0 package surface.");
+            }
+            if (target.Runtime == CopelandExecutionRuntime.Browser
+                && !nuget.BrowserTargets.TryGetValue(request.TargetName ?? string.Empty, out browserDelivery))
+            {
+                throw new TsclContractException("COPE-TSCL-NUGET-0006",
+                    $"Browser target '{request.TargetName}' requires an explicit wasm or service mode in nuget-worker.json.");
+            }
+            CopelandProjectSource generated = GenerateNugetBindings(projectRoot, nuget);
+            CopelandProjectSource? existing = sources.SingleOrDefault(source =>
+                string.Equals(source.LogicalPath, GeneratedNugetModule, StringComparison.OrdinalIgnoreCase));
+            if (existing is null)
+            {
+                sources = [..sources, generated];
+            }
+            else if (existing.SourceText.ReplaceLineEndings("\n") != generated.SourceText)
+            {
+                throw new TsclContractException("COPE-TSCL-NUGET-0005",
+                    $"'{GeneratedNugetModule}' differs from the generated NuGet bindings. Run 'tscl nuget generate <project-root>' to refresh it.");
+            }
+        }
         foreach (CopelandProjectSource source in sources)
         {
             SourceFileProfile profile = SourceFileProfiles.Read(source.SourceText);
@@ -302,25 +332,31 @@ internal static class TsclBuildContract
 
         if (target.Backend == CopelandBackend.JavaScript)
         {
-            return BuildJavaScript(request, context, compilation, sources, projectRoot, outputDirectory, target);
+            return BuildJavaScript(request, context, compilation, projectRoot, outputDirectory, target,
+                target.Runtime == CopelandExecutionRuntime.Node || browserDelivery is not null ? nuget : null, browserDelivery);
         }
-        return BuildDotNet(request, context, compilation, sources, outputDirectory, target);
+        return BuildDotNet(request, context, compilation, outputDirectory, target,
+            nuget is { Signatures.Count: > 0 } ? nuget : null);
     }
 
     private static TsclBuildResult BuildJavaScript(
         TsclBuildRequest request,
         CopelandProjectContext context,
         CopelandProjectCompilation compilation,
-        IReadOnlyList<CopelandProjectSource> sources,
         string projectRoot,
         string outputDirectory,
-        CopelandBackendTarget target)
+        CopelandBackendTarget target,
+        NugetWorkerConfiguration? nugetWorker,
+        string? browserDelivery)
     {
         JavaScriptRuntimeTarget runtimeTarget = target.Runtime == CopelandExecutionRuntime.Browser
             ? JavaScriptRuntimeTarget.Browser
             : JavaScriptRuntimeTarget.Node;
-
         string entryOutput = string.IsNullOrWhiteSpace(request.EntryOutputPath) ? "entry.js" : request.EntryOutputPath;
+        if (nugetWorker is not null && IsNugetWorkerOutput(entryOutput, outputDirectory))
+        {
+            throw new TsclContractException("COPE-TSCL-NUGET-0004", "The entry output cannot overlap the generated copeland-nuget directory.");
+        }
         string? normalizedEntryOutput = request.NodeInterop
             ? Path.GetRelativePath(outputDirectory, Path.GetFullPath(entryOutput, outputDirectory)).Replace('\\', '/')
             : null;
@@ -331,6 +367,7 @@ internal static class TsclBuildContract
                 Profile = JavaScriptEmissionProfile.Production,
                 RuntimeTarget = runtimeTarget,
                 EmitNodeInterop = request.NodeInterop,
+                UseNugetWorker = nugetWorker is not null,
                 ProjectEntryOutputPath = normalizedEntryOutput,
             });
         JavaScriptProjectCompilation emission = LayoutJavaScriptProjectEmitter.AddLayouts(baseEmission, compilation.Modules);
@@ -348,6 +385,11 @@ internal static class TsclBuildContract
         try
         {
             Directory.CreateDirectory(stagingDirectory);
+            if (nugetWorker is not null)
+            {
+                PublishNugetWorker(stagingDirectory, compilation.MirProjectGraph!,
+                    baseEmission.NugetCalls, nugetWorker, browserDelivery);
+            }
             foreach ((string relativePath, string contents) in emission.Files.OrderBy(file => file.Key, StringComparer.Ordinal))
             {
                 WriteStagedFile(stagingDirectory, relativePath, contents);
@@ -367,14 +409,17 @@ internal static class TsclBuildContract
                     ComponentFrameArtifactEmitter.Emit(compilation));
             }
 
-            string entryModuleOutput = JavaScriptProjectEmitter.GetOutputPath(new Copeland.TS.Mir.MirModuleId(request.Entry!.Module));
+            var entryModuleId = new MirModuleId(request.Entry!.Module);
+            string entryModuleOutput = JavaScriptProjectEmitter.GetOutputPath(entryModuleId);
+            MirFunction? entryFunction = FindEntryFunction(compilation.MirProjectGraph!, request.Entry);
             WriteStagedFile(
                 stagingDirectory,
                 entryOutput,
                 target.Runtime == CopelandExecutionRuntime.Browser
                     ? CreateBrowserEntryLauncher(entryModuleOutput, request.Entry.Export, emission.Files.ContainsKey("generated/layouts.css"),
-                        compilation.MirProjectGraph!.AggregateProgram.Functions.Any(function => function.ComponentState is not null))
-                    : CreateNodeEntryLauncher(entryModuleOutput, request.Entry.Export));
+                        compilation.MirProjectGraph!.AggregateProgram.Functions.Any(function => function.ComponentState is not null),
+                        AsyncEntryResult(entryFunction) is not null)
+                    : CreateNodeEntryLauncher(entryModuleOutput, request.Entry.Export, AsyncEntryResult(entryFunction) is not null));
             if (target.Runtime == CopelandExecutionRuntime.Node)
             {
                 WriteStagedFile(stagingDirectory, "package.json", "{\n  \"type\": \"module\"\n}\n");
@@ -385,7 +430,7 @@ internal static class TsclBuildContract
                 outputDirectory,
                 entryOutput,
                 request.BuildFingerprint,
-                context.Fingerprint,
+                nugetWorker is null ? context.Fingerprint : WorkerFingerprint(context.Fingerprint + nugetWorker.Fingerprint),
                 target,
                 entryOutput);
         }
@@ -402,11 +447,30 @@ internal static class TsclBuildContract
         TsclBuildRequest request,
         CopelandProjectContext context,
         CopelandProjectCompilation compilation,
-        IReadOnlyList<CopelandProjectSource> sources,
         string outputDirectory,
-        CopelandBackendTarget target)
+        CopelandBackendTarget target,
+        NugetWorkerConfiguration? nuget)
     {
-        CSharpCompilation emission = CSharpBackend.Emit(compilation.MirProjectGraph!.AggregateProgram);
+        const string guestDirectory = "copeland-npm";
+        const string guestPath = guestDirectory + "/guest.mjs";
+        MirProjectGraph graph = compilation.MirProjectGraph!;
+        MirProgram program = graph.AggregateProgram;
+        var options = new CSharpEmissionOptions
+        {
+            NugetBindings = nuget?.Operations.ToDictionary(binding => binding.Operation, StringComparer.Ordinal),
+            NugetDtoRecords = nuget is null ? null : GetNugetDtoRecords(graph, nuget),
+        };
+        CSharpCompilation emission;
+        try
+        {
+            emission = program.NpmImports.Count > 0
+                ? CSharpBackend.EmitWithGeneratedNpmGuest(program, options, guestPath)
+                : CSharpBackend.Emit(program, options);
+        }
+        catch (InvalidDataException error) when (nuget is not null)
+        {
+            throw new TsclContractException("COPE-TSCL-NUGET-0002", error.Message);
+        }
         if (emission.Diagnostics.Count > 0)
         {
             return TsclBuildResult.FromCSharpDiagnostics(emission.Diagnostics);
@@ -424,9 +488,57 @@ internal static class TsclBuildContract
                 assemblyName = "CopelandTarget_" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(request.BuildFingerprint ?? context.Fingerprint)))[..12];
             }
             WriteStagedFile(projectDirectory, "Generated.cs", emission.SourceText);
-            WriteStagedFile(projectDirectory, "Program.cs", DotNetHostSource);
-            WriteStagedFile(projectDirectory, assemblyName + ".csproj", CreateDotNetProject(assemblyName, target));
+            MirFunction? entry = FindEntryFunction(compilation.MirProjectGraph!, request.Entry!);
+            if (entry is null || entry.Parameters.Count != 0)
+            {
+                throw new TsclContractException("COPE-TARGET-0004", "A .NET entry point must be an exported function with zero parameters.");
+            }
+            MirType? asyncResult = AsyncEntryResult(entry);
+            string entryName = CSharpBackend.GeneratedFunctionName(entry.Name);
+            string hostSource = asyncResult is null
+                ? CreateSyncDotNetHostSource(entryName, entry.ReturnType)
+                : CreateAsyncDotNetHostSource(entryName, asyncResult);
+            WriteStagedFile(projectDirectory, "Program.cs", hostSource);
+            string? hostAssembly = null;
+            IReadOnlyList<NpmGuestFile> npmFiles = [];
+            if (emission.NpmGuestSource is not null)
+            {
+                if (target.Runtime == CopelandExecutionRuntime.DotNetWasm)
+                {
+                    throw new TsclContractException("COPE-TSCL-NPM-0001", "A generated npm guest needs a process-capable .NET target.");
+                }
+                hostAssembly = Path.Combine(AppContext.BaseDirectory, "Copeland.TS.Sidecar.dll");
+                if (!File.Exists(hostAssembly))
+                {
+                    throw new TsclContractException("COPE-TSCL-NPM-0002", "The CLR sidecar runtime assembly is missing from this compiler installation.");
+                }
+                string root = Path.GetFullPath(request.ProjectRoot);
+                var contracts = context.Options.NpmDependencies?.Packages ?? [];
+                try
+                {
+                    npmFiles = request.DescriptorPath is string descriptorPath
+                        ? NpmGuestPackages.FromTarget(root, CompilerTargetDescriptorProtocol.Load(descriptorPath).Packages, contracts)
+                        : NpmGuestPackages.FromLockFile(root, Path.Combine(root, "package-lock.json"), contracts);
+                }
+                catch (Exception error) when (error is IOException or InvalidDataException or JsonException)
+                {
+                    throw new TsclContractException("COPE-TSCL-NPM-0003", error.Message);
+                }
+            }
+            WriteStagedFile(projectDirectory, assemblyName + ".csproj",
+                CreateDotNetProject(assemblyName, target, hostAssembly, nuget?.Packages));
             RunDotNetPublish(projectDirectory, assemblyName + ".csproj", publishDirectory, target);
+
+            if (emission.NpmGuestSource is string guest)
+            {
+                WriteStagedFile(publishDirectory, guestPath, guest);
+                foreach (NpmGuestFile file in npmFiles)
+                {
+                    string destination = Path.Combine(publishDirectory, guestDirectory, file.Target);
+                    Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+                    File.Copy(file.Source, destination);
+                }
+            }
 
             string entryOutput = target.Runtime switch
             {
@@ -438,7 +550,8 @@ internal static class TsclBuildContract
             string publishedOutput = outputDirectory + ".tscl-publish-" + Guid.NewGuid().ToString("N");
             Directory.Move(publishDirectory, publishedOutput);
             PublishOutput(publishedOutput, outputDirectory);
-            return TsclBuildResult.Successful(outputDirectory, entryOutput, request.BuildFingerprint, context.Fingerprint, target, entryOutput);
+            return TsclBuildResult.Successful(outputDirectory, entryOutput, request.BuildFingerprint,
+                nuget is null ? context.Fingerprint : WorkerFingerprint(context.Fingerprint + nuget.Fingerprint), target, entryOutput);
         }
         catch (TsclContractException exception)
         {
@@ -453,7 +566,8 @@ internal static class TsclBuildContract
         }
     }
 
-    private static string CreateDotNetProject(string assemblyName, CopelandBackendTarget target)
+    private static string CreateDotNetProject(string assemblyName, CopelandBackendTarget target, string? hostAssembly,
+        IReadOnlyList<NugetWorkerPackage>? packages)
     {
         string runtimeIdentifier = target.RuntimeIdentifier is null
             ? string.Empty
@@ -461,22 +575,33 @@ internal static class TsclBuildContract
         string targetProperties = target.Runtime switch
         {
             CopelandExecutionRuntime.RyuJit => "<SelfContained>false</SelfContained>",
-            CopelandExecutionRuntime.NativeAot => "<PublishAot>true</PublishAot>\n    <SelfContained>true</SelfContained>\n    <InvariantGlobalization>true</InvariantGlobalization>",
+            CopelandExecutionRuntime.NativeAot => "<PublishAot>true</PublishAot>\n    <SelfContained>true</SelfContained>\n    <InvariantGlobalization>true</InvariantGlobalization>\n    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>\n    <TrimmerSingleWarn>false</TrimmerSingleWarn>",
             CopelandExecutionRuntime.DotNetWasm => "<RuntimeIdentifier>browser-wasm</RuntimeIdentifier>\n    <WasmBuildNative>true</WasmBuildNative>",
             _ => throw new InvalidOperationException("Unsupported .NET runtime."),
         };
+        string hostReference = hostAssembly is null ? string.Empty : $"""
+            <ItemGroup>
+              <Reference Include="Copeland.TS.Sidecar">
+                <HintPath>{System.Security.SecurityElement.Escape(hostAssembly)}</HintPath>
+              </Reference>
+            </ItemGroup>
+            """;
         return $"""
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
                 <OutputType>Exe</OutputType>
+                <StartupObject>Program</StartupObject>
                 <AssemblyName>{assemblyName}</AssemblyName>
                 <TargetFramework>{target.TargetFramework}</TargetFramework>
                 <Nullable>enable</Nullable>
                 <ImplicitUsings>enable</ImplicitUsings>
                 <Optimize>true</Optimize>
                 <DebugType>none</DebugType>
+                {(packages is null ? string.Empty : "<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>")}
                 {targetProperties}{runtimeIdentifier}
               </PropertyGroup>
+              {hostReference}
+              {(packages is null ? string.Empty : NugetPackageReferences(packages).ToString())}
             </Project>
             """;
     }
@@ -498,6 +623,15 @@ internal static class TsclBuildContract
         startInfo.ArgumentList.Add("--output");
         startInfo.ArgumentList.Add(publishDirectory);
         startInfo.ArgumentList.Add("--nologo");
+        if (target.Runtime == CopelandExecutionRuntime.DotNetWasm)
+        {
+            // Emscripten creates and renames temporary native outputs during publish.
+            // Keep them with this build's other intermediates.
+            string temporaryFiles = Directory.CreateDirectory(Path.Combine(projectDirectory, "obj", "wasm-temp")).FullName;
+            startInfo.Environment["TMPDIR"] = temporaryFiles;
+            startInfo.Environment["TEMP"] = temporaryFiles;
+            startInfo.Environment["TMP"] = temporaryFiles;
+        }
         System.Diagnostics.Process process;
         try
         {
@@ -511,16 +645,17 @@ internal static class TsclBuildContract
         }
         using (process)
         {
-        string standardOutput = process.StandardOutput.ReadToEnd();
-        string standardError = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-        if (process.ExitCode != 0)
-        {
-            string prerequisite = target.Runtime == CopelandExecutionRuntime.DotNetWasm
-                ? " Install the matching .NET WebAssembly workload with 'dotnet workload install wasm-tools'."
-                : string.Empty;
-            throw new TsclContractException("COPE-TARGET-0002", $"dotnet publish failed for runtime={target.RuntimeId}.{prerequisite}\n{standardOutput}\n{standardError}".Trim());
-        }
+            Task<string> standardOutput = process.StandardOutput.ReadToEndAsync();
+            Task<string> standardError = process.StandardError.ReadToEndAsync();
+            process.WaitForExit();
+            if (process.ExitCode != 0)
+            {
+                string log = standardOutput.Result + "\n" + standardError.Result;
+                string prerequisite = target.Runtime == CopelandExecutionRuntime.DotNetWasm && log.Contains("NETSDK1147", StringComparison.Ordinal)
+                    ? " Install the matching .NET WebAssembly workload with 'dotnet workload install wasm-tools'."
+                    : string.Empty;
+                throw new TsclContractException("COPE-TARGET-0002", $"dotnet publish failed for runtime={target.RuntimeId}.{prerequisite}\n{log}".Trim());
+            }
         }
     }
 
@@ -554,35 +689,79 @@ internal static class TsclBuildContract
         return requestedEntry.Replace('\\', '/');
     }
 
-    private const string DotNetHostSource = """
-        using System.Reflection;
-
-        internal static class Program
-        {
-            private static async Task<int> Main()
+    private static string CreateSyncDotNetHostSource(string entryName, MirType resultType)
+    {
+        string call = $"Copeland.Generated.CopelandModule.{entryName}()";
+        string invoke = resultType is MirNamedType { Identifier: "void" }
+            ? call + ";"
+            : $"if ((object?){call} is object result) Console.WriteLine(result);";
+        return $$"""
+            internal static class Program
             {
-                Type module = typeof(Copeland.Generated.CopelandModule);
-                MethodInfo? entry = module.GetMethod("Main", BindingFlags.Public | BindingFlags.Static);
-                if (entry is null)
+                private static int Main()
                 {
-                    Console.Error.WriteLine("COPE-TARGET-0004 error: Copeland entry export 'Main' was not emitted as a public function.");
-                    return 1;
+                    if (OperatingSystem.IsWindows() && Console.IsOutputRedirected)
+                    {
+                        Console.OutputEncoding = System.Text.Encoding.UTF8;
+                    }
+                    {{invoke}}
+                    return 0;
                 }
-                object? result = entry.Invoke(null, null);
-                if (result is Task task)
-                {
-                    await task.ConfigureAwait(false);
-                    PropertyInfo? resultProperty = task.GetType().GetProperty("Result");
-                    result = resultProperty?.GetValue(task);
-                }
-                if (result is not null)
-                {
-                    Console.WriteLine(result);
-                }
-                return 0;
             }
+            """;
+    }
+
+    private static MirFunction? FindEntryFunction(MirProjectGraph graph, TsclEntry entry)
+    {
+        var moduleId = new MirModuleId(entry.Module);
+        MirProjectModule? module = graph.Modules.FirstOrDefault(candidate => candidate.Id == moduleId);
+        MirModuleExport? export = module?.Exports.FirstOrDefault(candidate => candidate.Name == entry.Export);
+        if (export is null)
+        {
+            return null;
         }
-        """;
+        return module!.Functions.FirstOrDefault(function => function.Name == (export.RuntimeName ?? export.Name));
+    }
+
+    private static string CreateAsyncDotNetHostSource(string entryName, MirType resultType)
+    {
+        bool printsResult = resultType is not MirNamedType { Identifier: "void" };
+        return $$"""
+            using Copeland.Generated;
+
+            internal static class Program
+            {
+                private static async Task<int> Main()
+                {
+                    if (OperatingSystem.IsWindows() && Console.IsOutputRedirected)
+                    {
+                        Console.OutputEncoding = System.Text.Encoding.UTF8;
+                    }
+                    {{(printsResult ? "var result = " : string.Empty)}}await AwaitEntry(CopelandModule.{{entryName}}()).ConfigureAwait(false);
+                    {{(printsResult ? "Console.WriteLine(result);" : string.Empty)}}
+                    return 0;
+                }
+
+                private static Task<T> AwaitEntry<T>(CopeAsync<T> pending)
+                {
+                    var completion = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+                    void Resolve() => completion.TrySetResult(pending.Value);
+                    void Cancel() => completion.TrySetCanceled();
+                    void Fail() => completion.TrySetException(new InvalidOperationException("Copeland entry transport failed."));
+                    void Panic() => completion.TrySetException(new InvalidOperationException("Copeland entry computation panicked."));
+
+                    if (pending.SubscribeTransport(Resolve, Cancel, Fail, Panic))
+                    {
+                        if (pending.IsCancelled) Cancel();
+                        else if (pending.IsTransportFailed) Fail();
+                        else if (pending.IsPanicked) Panic();
+                        else Resolve();
+                    }
+                    return completion.Task;
+                }
+            }
+            """;
+    }
 
     private static CopelandProjectContextNpmContract ToContextContract(TsclNpmContract contract)
         => new()
@@ -604,15 +783,36 @@ internal static class TsclBuildContract
             }).ToList(),
         };
 
-    private static string CreateNodeEntryLauncher(string entryModuleOutput, string entryExport)
+    private static MirType? AsyncEntryResult(MirFunction? entry)
+        => entry is { IsAsync: true } ? entry.ReturnType : (entry?.ReturnType as MirAsyncType)?.EventualType;
+
+    private static string CreateNodeEntryLauncher(string entryModuleOutput, string entryExport, bool asyncEntry)
     {
         string specifier = "./" + entryModuleOutput.Replace('\\', '/');
-        return $"import {{ {entryExport} }} from {JsonSerializer.Serialize(specifier)};\n" +
-            $"const __cope_result = await {entryExport}();\n" +
-            "if (__cope_result !== undefined) {\n    console.log(__cope_result);\n}\n";
+        string import = $"import {{ {entryExport} }} from {JsonSerializer.Serialize(specifier)};\n";
+        string launch = asyncEntry ? AwaitJavaScriptEntry(entryExport) : $"const __cope_result = await {entryExport}();\n";
+        return import + launch + "if (__cope_result !== undefined) {\n    console.log(__cope_result);\n}\n";
     }
 
-    private static string CreateBrowserEntryLauncher(string entryModuleOutput, string entryExport, bool hasLayouts, bool hasReactState)
+    private static string AwaitJavaScriptEntry(string entryExport)
+        => $$"""
+            const pending = {{entryExport}}();
+            const __cope_result = await new Promise((resolve, reject) => {
+                const success = () => resolve(pending.value);
+                const cancel = () => reject(new Error("Copeland entry computation was cancelled."));
+                const fail = () => reject(new Error("Copeland entry transport failed."));
+                const panic = () => reject(new Error("Copeland entry computation panicked."));
+                if (pending.subscribe(success, cancel, fail, panic)) {
+                    if (pending.cancelled) cancel();
+                    else if (pending.transportFailed) fail();
+                    else if (pending.panicked) panic();
+                    else success();
+                }
+            });
+            """ + "\n";
+
+    private static string CreateBrowserEntryLauncher(string entryModuleOutput, string entryExport, bool hasLayouts,
+        bool hasReactState, bool asyncEntry)
     {
         string specifier = "./" + entryModuleOutput.Replace('\\', '/');
         string cssLoader = hasLayouts
@@ -634,8 +834,10 @@ internal static class TsclBuildContract
         // Complete the frame artifact loader before dynamic React instances register
         // executable typed transitions in the same canonical host registry.
         string frameLoader = hasReactState ? "await import(\"./component-frame-loader.js\");\n" : string.Empty;
-        return cssLoader + frameLoader + $"import {{ {entryExport} }} from {JsonSerializer.Serialize(specifier)};\n" +
-            $"await {entryExport}();\n";
+        string launch = asyncEntry
+            ? AwaitJavaScriptEntry(entryExport) + "export { __cope_result as result };\n"
+            : $"await {entryExport}();\n";
+        return cssLoader + frameLoader + $"import {{ {entryExport} }} from {JsonSerializer.Serialize(specifier)};\n" + launch;
     }
 
     private static void WriteStagedFile(string stagingDirectory, string relativePath, string contents)
@@ -697,6 +899,7 @@ internal static class TsclBuildContract
 
     private sealed class TsclBuildRequest
     {
+        public string? TargetName { get; set; }
         public CopelandProjectContext? Context { get; set; }
         public string DescriptorPath { get; set; } = string.Empty;
         public string ProjectRoot { get; init; } = string.Empty;

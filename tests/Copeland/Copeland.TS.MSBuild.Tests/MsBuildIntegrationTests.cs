@@ -6,6 +6,92 @@ namespace Copeland.TS.MSBuild.Tests;
 public sealed class MsBuildIntegrationTests
 {
     [Fact]
+    public void Publish_copies_generated_npm_guest_and_locked_dependencies()
+    {
+        using var fixture = new TemporaryProject();
+        string taskAssembly = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.MSBuild.dll"));
+        string targets = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.Sdk.targets"));
+        fixture.Write("Demo/Demo.csproj", $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net10.0</TargetFramework>
+                <CopelandTaskAssembly>{{taskAssembly}}</CopelandTaskAssembly>
+                <CopelandNpmLockFile>package-lock.json</CopelandNpmLockFile>
+              </PropertyGroup>
+              <ItemGroup>
+                <CopelandCompile Include="Title.ts" />
+                <CopelandNpmContract Include="contract.json" />
+              </ItemGroup>
+              <Import Project="{{targets}}" />
+            </Project>
+            """);
+        fixture.Write("Demo/contract.json", """
+            {
+              "schemaVersion": 1,
+              "package": "format-title",
+              "version": "1.0.0",
+              "materialized": true,
+              "exports": [{ "name": "format", "parameters": ["string"], "result": "string", "remoteError": "NpmError" }]
+            }
+            """);
+        fixture.Write("Demo/package-lock.json", """
+            { "lockfileVersion": 3, "packages": {
+              "": {},
+              "node_modules/format-title": { "version": "1.0.0" },
+              "node_modules/format-title/node_modules/title-prefix": { "version": "1.0.0" },
+              "node_modules/dev-only": { "version": "1.0.0", "dev": true }
+            } }
+            """);
+        fixture.Write("Demo/node_modules/format-title/package.json", """
+            { "name": "format-title", "version": "1.0.0", "type": "module", "exports": "./index.js" }
+            """);
+        fixture.Write("Demo/node_modules/format-title/index.js", """
+            import { prefix } from "title-prefix";
+            export function format(title) { return prefix + title; }
+            """);
+        fixture.Write("Demo/node_modules/format-title/node_modules/title-prefix/package.json", """
+            { "name": "title-prefix", "version": "1.0.0", "type": "module", "exports": "./index.js" }
+            """);
+        fixture.Write("Demo/node_modules/format-title/node_modules/title-prefix/index.js", """
+            export const prefix = "published: ";
+            """);
+        fixture.Write("Demo/Title.ts", """
+            import { format } from "format-title";
+            const $schema: string = "copeland://test/publish-npm";
+            record NpmError { message: string; }
+            export async function Format(title: string): string ! NpmError {
+                return await format(title);
+            }
+            """);
+        fixture.Write("Demo/Program.cs", """
+            using Demo.Copeland;
+            using System;
+            using System.Threading.Tasks;
+
+            var pending = CopelandProject.Format("Copeland");
+            var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            void Fail() => done.TrySetException(new InvalidOperationException("npm call failed"));
+            if (!pending.SubscribeTransport(() => done.TrySetResult(), Fail, Fail, Fail))
+            {
+                await done.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            }
+            Console.WriteLine(pending.Value.Value);
+            """);
+
+        string output = Path.Combine(fixture.Root, "deploy");
+        fixture.Run("Demo", "publish", "-c", "Release", "-o", output);
+        Assert.Single(Directory.GetFiles(output, "guest.mjs", SearchOption.AllDirectories));
+        Assert.Empty(Directory.GetFiles(output, "Microsoft.CodeAnalysis*.dll", SearchOption.AllDirectories));
+        Assert.Empty(Directory.GetDirectories(output, "dev-only", SearchOption.AllDirectories));
+        fixture.Delete("Demo/node_modules/format-title/index.js");
+        fixture.Run("deploy", "Demo.dll").AssertOutput("published: Copeland");
+        string republished = Path.Combine(fixture.Root, "republished");
+        fixture.Run("Demo", "publish", "--no-build", "-c", "Release", "-o", republished);
+        fixture.Run("republished", "Demo.dll").AssertOutput("published: Copeland");
+    }
+
+    [Fact]
     public void Tsconfig_owned_sources_compile_without_explicit_msbuild_items()
     {
         using var fixture = new TemporaryProject();

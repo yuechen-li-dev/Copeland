@@ -11101,23 +11101,10 @@ public static partial class Binder
             {
                 return new BoundErrorExpression();
             }
-            if (!IsFlatTsonRecord((RecordTypeSymbol)request.Type)
-                || !IsFlatTsonRecord((RecordTypeSymbol)responseType)
-                || !IsFlatTsonRecord((RecordTypeSymbol)remoteErrorType))
-            {
-                Report("COPE-TSON-TRANSPORT-0003", "CTS-SIDECAR-M1 transport records may contain only boolean, number, and string fields.", intrinsicName.IdentifierToken);
-                return new BoundErrorExpression();
-            }
-
             _usesTsonEncode = true;
             var resultType = new ResultTypeSymbol(responseType, remoteErrorType);
             return new BoundTsonTransportExpression(operation, request, requestPlan!, responsePlan!, remoteErrorPlan!, new AsyncTypeSymbol(resultType));
         }
-
-        private static bool IsFlatTsonRecord(RecordTypeSymbol record)
-            => record.Fields.All(field => field.Type == PrimitiveTypeSymbol.Boolean
-                || TypeFacts.IsNumeric(field.Type)
-                || field.Type == PrimitiveTypeSymbol.String);
 
         private BoundExpression BindGenericFunctionReference(GenericFunctionReferenceExpressionSyntax reference)
         {
@@ -12105,12 +12092,14 @@ public static partial class Binder
 
             TypeSymbol[] definitions = reachable
                 .Where(type => type is RecordTypeSymbol or EnumTypeSymbol)
-                .OrderBy(type => type.Name, StringComparer.Ordinal)
+                .OrderBy(type => type is OptionTypeSymbol option ? option.EmissionName : type.Name, StringComparer.Ordinal)
                 .ToArray();
             var identities = new HashSet<string>(StringComparer.Ordinal);
             foreach (TypeSymbol definition in definitions)
             {
-                string? identity = GetStableIdentity(definition);
+                string? identity = definition is OptionTypeSymbol option
+                    ? $"{schemaIdentity}#{option.EmissionName}"
+                    : GetStableIdentity(definition);
                 if (identity is null || !identity.StartsWith(schemaIdentity + "#", StringComparison.Ordinal))
                 {
                     Report("COPE-TSON-ENCODE-0005", $"Reachable type '{definition.Name}' does not belong to schema '{schemaIdentity}'.", anchor);

@@ -492,10 +492,14 @@ public static class ManifestBinder
 
         private ManifestPackage BindPackage(TsXmlElementExpressionSyntax element)
         {
-            Dictionary<string, ManifestValue> attributes = BindAttributes(element, ["name", "version", "kind", "license", "dependencies"]);
+            Dictionary<string, ManifestValue> attributes = BindAttributes(element,
+                ["name", "version", "kind", "license", "dependencies", "compiler", "compilerPath"]);
             string name = RequiredString(attributes, "name", element.NameToken) ?? string.Empty;
             string version = RequiredString(attributes, "version", element.NameToken) ?? string.Empty;
             string kind = RequiredString(attributes, "kind", element.NameToken) ?? string.Empty;
+            // TSPack selects the compiler. Standalone tscl accepts the same manifest.
+            OptionalString(attributes, "compiler", null, element.NameToken);
+            OptionalString(attributes, "compilerPath", null, element.NameToken);
             if (kind is not ("app" or "library" or "service"))
             {
                 Report("COPE-MANIFEST-0014", "Package kind must be 'app', 'library', or 'service'.", AttributeToken(element, "kind") ?? element.NameToken);

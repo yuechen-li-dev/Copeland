@@ -25,6 +25,8 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
     /// <summary>Exact resolved npm contract paths contributed by the project build target.</summary>
     public ITaskItem[] CopelandNpmContracts { get; set; } = [];
 
+    public string NpmLockFile { get; set; } = string.Empty;
+
     public ITaskItem[] CSharpSources { get; set; } = [];
 
     public string AssemblyName { get; set; } = string.Empty;
@@ -52,6 +54,9 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
 
     [Output]
     public ITaskItem[] GeneratedSources { get; private set; } = [];
+
+    [Output]
+    public ITaskItem[] NpmRuntimeFiles { get; private set; } = [];
 
     public override bool Execute()
     {
@@ -164,7 +169,8 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
                 path,
                 File.ReadAllText(path)))
             .ToArray();
-        if (CopelandProjectCompiler.ContainsRelativeImports(projectSources))
+        if (projectSources.Length > 0 && (CopelandProjectCompiler.ContainsRelativeImports(projectSources)
+            || (NpmLockFile.Length > 0 && npmContracts.Length > 0)))
         {
             return CompileProjectGraph(
                 projectSources,
@@ -222,9 +228,19 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         string outputPath = Path.Combine(generatedDirectory, graphArtifactName + ".g.cs");
         string mirPath = Path.Combine(generatedDirectory, graphArtifactName + ".cope");
         string stampPath = Path.Combine(generatedDirectory, graphArtifactName + ".stamp");
+        bool generateGuest = NpmLockFile.Length > 0 && npmContracts.Count > 0;
+        string guestDirectory = "copeland-npm/" + ShortHash(AssemblyName);
+        string guestFile = Path.Combine(generatedDirectory, "npm-guest.mjs");
+        string guestRelativePath = guestDirectory + "/guest.mjs";
         string fingerprint = CreateProjectFingerprint(sources, references, packageContracts, npmContracts, authoredCSharpSources, rootNamespace, graphArtifactName, projectTypes, LangVersion, DefineConstants, Nullable);
+        if (generateGuest)
+        {
+            fingerprint += ":" + guestRelativePath;
+        }
 
-        if (!IsCurrent(stampPath, outputPath, mirPath, fingerprint))
+        bool guestWasEmitted = generateGuest && File.Exists(stampPath) && File.ReadAllText(stampPath).EndsWith(":guest", StringComparison.Ordinal);
+        if (!IsCurrent(stampPath, outputPath, mirPath, guestWasEmitted ? fingerprint + ":guest" : fingerprint)
+            || (guestWasEmitted && !File.Exists(guestFile)))
         {
             CopelandProjectCompilation project = CopelandProjectCompiler.CreateSnapshot(
                 sources,
@@ -258,13 +274,17 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
             string publicModuleName = sources.Any(source => string.Equals(Path.GetFileNameWithoutExtension(source.LogicalPath), "Main", StringComparison.OrdinalIgnoreCase))
                 ? "Main"
                 : graphArtifactName;
-            CSharpCompilation emitted = CSharpBackend.Emit(project.Compilation!.MirCompilation!.Program!, new CSharpEmissionOptions
+            var emissionOptions = new CSharpEmissionOptions
             {
                 ModuleClassName = publicModuleName,
                 Namespace = NormalizeNamespace(rootNamespace) + ".Copeland",
                 RecordCarrierScope = graphArtifactName,
                 PublicFunctionNames = project.MirProjectGraph!.Modules.SelectMany(module => module.Exports.Select(export => export.RuntimeName ?? export.Name)).ToHashSet(StringComparer.Ordinal),
-            });
+            };
+            MirProgram program = project.Compilation!.MirCompilation!.Program!;
+            CSharpCompilation emitted = generateGuest
+                ? CSharpBackend.EmitWithGeneratedNpmGuest(program, emissionOptions, guestRelativePath)
+                : CSharpBackend.Emit(program, emissionOptions);
             if (emitted.Diagnostics.Count > 0)
             {
                 foreach (CSharpDiagnostic diagnostic in emitted.Diagnostics)
@@ -278,12 +298,46 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
             string generatedSource = emitted.SourceText;
             WriteIfChanged(outputPath, generatedSource);
             WriteIfChanged(mirPath, project.Compilation.MirText!);
-            File.WriteAllText(stampPath, fingerprint, new UTF8Encoding(false));
+            guestWasEmitted = emitted.NpmGuestSource is not null;
+            if (emitted.NpmGuestSource is string guestSource)
+            {
+                WriteIfChanged(guestFile, guestSource);
+            }
+            File.WriteAllText(stampPath, guestWasEmitted ? fingerprint + ":guest" : fingerprint, new UTF8Encoding(false));
         }
 
-        RemoveStaleOutputs(generatedDirectory, [outputPath, mirPath, stampPath]);
+        var activePaths = new List<string> { outputPath, mirPath, stampPath };
+        if (guestWasEmitted)
+        {
+            string lockPath = Path.GetFullPath(NpmLockFile, projectDirectory);
+            try
+            {
+                var items = new List<ITaskItem> { RuntimeFile(guestFile, guestRelativePath) };
+                foreach (NpmGuestFile file in NpmGuestPackages.FromLockFile(projectDirectory, lockPath, npmContracts))
+                {
+                    items.Add(RuntimeFile(file.Source, guestDirectory + "/" + file.Target));
+                }
+                NpmRuntimeFiles = items.ToArray();
+            }
+            catch (Exception error) when (error is IOException or InvalidDataException or System.Text.Json.JsonException)
+            {
+                Log.LogError("COPE-MSBUILD-NPM-0001", "", "", lockPath, 0, 0, 0, 0, error.Message);
+                return false;
+            }
+            activePaths.Add(guestFile);
+        }
+        RemoveStaleOutputs(generatedDirectory, activePaths);
         GeneratedSources = [new TaskItem(outputPath)];
         return true;
+    }
+
+    private static TaskItem RuntimeFile(string source, string target)
+    {
+        var item = new TaskItem(source);
+        item.SetMetadata("TargetPath", Path.Combine(target.Split('/')));
+        item.SetMetadata("CopyToOutputDirectory", "PreserveNewest");
+        item.SetMetadata("CopyToPublishDirectory", "PreserveNewest");
+        return item;
     }
 
     private bool Compile(
@@ -591,7 +645,8 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         {
             if ((path.EndsWith(".g.cs", StringComparison.OrdinalIgnoreCase)
                     || path.EndsWith(".cope", StringComparison.OrdinalIgnoreCase)
-                    || path.EndsWith(".stamp", StringComparison.OrdinalIgnoreCase))
+                    || path.EndsWith(".stamp", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(Path.GetFileName(path), "npm-guest.mjs", StringComparison.Ordinal))
                 && !active.Contains(path))
             {
                 File.Delete(path);

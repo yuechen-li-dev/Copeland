@@ -65,6 +65,7 @@ public sealed class LanguageServerHost
                 "textDocument/didOpen" => DidOpen(parameters),
                 "textDocument/didChange" => DidChange(parameters),
                 "textDocument/didClose" => DidClose(parameters),
+                "workspace/didChangeWatchedFiles" => DidChangeWatchedFiles(),
                 "textDocument/hover" => Hover(parameters),
                 "textDocument/completion" => Completion(parameters),
                 "textDocument/definition" => Definition(parameters),
@@ -155,7 +156,16 @@ public sealed class LanguageServerHost
     {
         string uri = parameters.GetProperty("textDocument").GetProperty("uri").GetString()!;
         _workspace.Close(uri);
-        PublishDiagnostics(uri);
+        PublishDiagnostics(uri, []);
+        return null;
+    }
+
+    private object? DidChangeWatchedFiles()
+    {
+        foreach (string uri in _workspace.ReloadFiles())
+        {
+            PublishDiagnostics(uri);
+        }
         return null;
     }
 
@@ -166,9 +176,9 @@ public sealed class LanguageServerHost
     private object? SemanticTokens(JsonElement parameters) => _workspace.SemanticTokens(Uri(parameters));
     private object? SignatureHelp(JsonElement parameters) => _workspace.SignatureHelp(Uri(parameters), Position(parameters));
 
-    private void PublishDiagnostics(string uri)
+    private void PublishDiagnostics(string uri, object[]? diagnostics = null)
     {
-        object[] diagnostics = _workspace.Diagnostics(uri);
+        diagnostics ??= _workspace.Diagnostics(uri);
         Write(new { jsonrpc = "2.0", method = "textDocument/publishDiagnostics", @params = new { uri, diagnostics } });
     }
 

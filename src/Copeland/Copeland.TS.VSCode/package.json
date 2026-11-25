@@ -21,6 +21,7 @@
     "onCommand:copeland.showLanguageServerOutput",
     "onCommand:copeland.openWorkspaceManifest",
     "onCommand:copeland.reloadWorkspaceOwnership",
+    "onCommand:copeland.generateNugetBindings",
     "onCommand:copeland.showMigrationHints",
     "onCommand:copeland.clearMigrationHints"
   ],
@@ -45,6 +46,7 @@
       { "command": "copeland.showLanguageServerOutput", "title": "Copeland: Show Language Server Output" },
       { "command": "copeland.openWorkspaceManifest", "title": "Copeland: Open tsconfig.tsx" },
       { "command": "copeland.reloadWorkspaceOwnership", "title": "Copeland: Reload Workspace Ownership" },
+      { "command": "copeland.generateNugetBindings", "title": "Copeland: Generate NuGet Bindings" },
       { "command": "copeland.showMigrationHints", "title": "Copeland: Show Migration Hints" },
       { "command": "copeland.clearMigrationHints", "title": "Copeland: Clear Migration Hints" }
     ],
@@ -53,7 +55,7 @@
       "properties": {
         "copeland.tsclPath": { "type": "string", "default": "", "description": "Optional explicit path to tscl. Otherwise Copeland uses a workspace .NET tool manifest, then global PATH." },
         "copeland.languageServer.trace": { "type": "string", "default": "off", "enum": ["off", "messages", "verbose"], "description": "Controls Copeland language-server protocol tracing." },
-        "copeland.workspace.autoSync": { "type": "boolean", "default": true, "description": "Refreshes canonical ownership when tsconfig.tsx changes." },
+        "copeland.workspace.autoSync": { "type": "boolean", "default": true, "description": "Refreshes canonical ownership on open and after Copeland workspace or source membership changes." },
         "copeland.projectPath": { "type": "string", "default": "", "description": "Optional explicit Copeland project path when generated ownership is ambiguous." }
       }
     }

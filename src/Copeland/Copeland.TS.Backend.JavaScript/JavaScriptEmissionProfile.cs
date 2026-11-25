@@ -30,6 +30,7 @@ public sealed record JavaScriptEmissionOptions
     public JavaScriptRuntimeTarget RuntimeTarget { get; init; } = JavaScriptRuntimeTarget.Node;
     public bool EmitModuleFactories { get; init; }
     public bool EmitNodeInterop { get; init; }
+    public bool UseNugetWorker { get; init; }
     public bool EmitModuleInitializers { get; init; } = true;
     internal bool CaptureProjectSections { get; init; }
     internal IReadOnlySet<string> NodeArraySnapshotCandidates { get; init; } = new HashSet<string>(StringComparer.Ordinal);

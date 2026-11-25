@@ -7,11 +7,17 @@ import { isCompatibleVersion, projectPath, queryServerVersion, querySourceProfil
 
 const ownershipRelativePath = "obj/copeland/workspace/editor-ownership.generated.json";
 const manifestFileName = "tsconfig.tsx";
+const tspackManifestFileName = "manifest.tsx";
+const generatedNugetSource = "src/generated/Nuget.ts";
+const ignoredSourceDirectories = new Set([".git", ".tspack", "bin", "dist", "node_modules", "obj"]);
 
 export type WorkspaceState = "ready" | "missing-metadata" | "language-server-unavailable" | "version-mismatch";
 
 export class WorkspaceController implements vscode.Disposable {
     private projectRootPath: string;
+    private hasWorkspace = false;
+    private hasTspackManifest = false;
+    private disposed = false;
     private ownership: OwnershipMap | undefined;
     private ownershipContents: string | undefined;
     private client: LanguageClient | undefined;
@@ -23,6 +29,8 @@ export class WorkspaceController implements vscode.Disposable {
     private missingMetadataShown = false;
     private versionIssueShown = false;
     private reloadTimer: NodeJS.Timeout | undefined;
+    private syncTimer: NodeJS.Timeout | undefined;
+    private pendingSync: Promise<boolean> | undefined;
     private ownershipReload: Promise<void> = Promise.resolve();
     private readonly profiles = new Map<string, { version: number; owner?: string; result: SourceProfileResult }>();
     private readonly profileDiagnostics = vscode.languages.createDiagnosticCollection("copeland-profile");
@@ -70,21 +78,53 @@ export class WorkspaceController implements vscode.Disposable {
     }
 
     public async initialize(): Promise<void> {
-        const manifests = await vscode.workspace.findFiles(
+        const rootManifest = this.manifestUri;
+        const manifests = await this.exists(rootManifest) ? [rootManifest] : await vscode.workspace.findFiles(
             new vscode.RelativePattern(this.folder, `**/${manifestFileName}`),
             "**/{node_modules,bin,obj}/**",
             2);
-        if (manifests.length === 1) {
-            this.projectRootPath = path.dirname(manifests[0].fsPath);
+        const chosenManifest = manifests.length === 1 ? manifests[0] : undefined;
+        if (chosenManifest) {
+            this.projectRootPath = path.dirname(chosenManifest.fsPath);
+            this.hasWorkspace = true;
             this.output.appendLine(`[project] ${this.rootPath}`);
         } else if (manifests.length > 1) {
             this.output.appendLine("[project] multiple tsconfig.tsx files found; open the intended project folder.");
         }
+        if (!this.hasWorkspace) {
+            return;
+        }
 
-        const manifestPattern = new vscode.RelativePattern(this.rootPath, manifestFileName);
-        this.disposables.push(vscode.workspace.createFileSystemWatcher(manifestPattern));
-        const manifestWatcher = this.disposables[this.disposables.length - 1] as vscode.FileSystemWatcher;
-        manifestWatcher.onDidChange(() => void this.handleManifestChange());
+        const manifestWatcher = vscode.workspace.createFileSystemWatcher(
+            new vscode.RelativePattern(this.rootPath, "{tsconfig,manifest}.tsx"));
+        manifestWatcher.onDidChange(() => this.scheduleSync());
+        manifestWatcher.onDidCreate(() => this.scheduleSync());
+        manifestWatcher.onDidDelete(() => this.scheduleSync());
+        this.disposables.push(manifestWatcher);
+
+        const sources = vscode.workspace.createFileSystemWatcher(
+            new vscode.RelativePattern(this.rootPath, "**/*.{ts,tsx}"), false, true, false);
+        const sourceChanged = (uri: vscode.Uri) => {
+            const parts = path.relative(this.rootPath, uri.fsPath).split(path.sep);
+            if (!parts.some((part) => ignoredSourceDirectories.has(part))) {
+                this.scheduleSync();
+            }
+        };
+        sources.onDidCreate(sourceChanged);
+        sources.onDidDelete(sourceChanged);
+        this.disposables.push(sources);
+
+        const bindingWatcher = vscode.workspace.createFileSystemWatcher(
+            new vscode.RelativePattern(this.rootPath, generatedNugetSource), true, false, true);
+        bindingWatcher.onDidChange(() => this.scheduleReload());
+        this.disposables.push(bindingWatcher);
+
+        const descriptorWatcher = vscode.workspace.createFileSystemWatcher(
+            new vscode.RelativePattern(this.rootPath, ".tspack/build-manifests/*.request.json"));
+        descriptorWatcher.onDidCreate(() => this.scheduleReload());
+        descriptorWatcher.onDidChange(() => this.scheduleReload());
+        descriptorWatcher.onDidDelete(() => this.scheduleReload());
+        this.disposables.push(descriptorWatcher);
 
         const ownershipWatcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(this.rootPath, ownershipRelativePath));
         ownershipWatcher.onDidChange(() => this.scheduleReload());
@@ -115,11 +155,35 @@ export class WorkspaceController implements vscode.Disposable {
         this.disposables.push(vscode.workspace.onDidSaveTextDocument((document) => {
             if (this.belongsToWorkspace(document.uri) && isTypeScriptDocument(document)
                 && (document.getText().includes("CopelandProfile") || this.ownerFor(document)?.profile)) {
-                void this.handleManifestChange();
+                this.scheduleSync();
             }
         }));
-        await this.ensureOwnership();
+        if (this.autoSync() || !await this.exists(this.ownershipUri)) {
+            await this.syncWorkspace();
+        } else {
+            await this.reloadOwnership();
+        }
+    }
+
+    public async syncWorkspace(): Promise<boolean> {
+        if (!this.hasWorkspace || this.disposed) {
+            return false;
+        }
+        if (this.pendingSync) {
+            return this.pendingSync;
+        }
+        this.pendingSync = this.syncWorkspaceCore();
+        try {
+            return await this.pendingSync;
+        } finally {
+            this.pendingSync = undefined;
+        }
+    }
+
+    private async syncWorkspaceCore(): Promise<boolean> {
+        const result = await runTool(await resolveTscl(this.rootPath), ["workspace", "sync"], this.rootPath, this.output);
         await this.reloadOwnership();
+        return result.exitCode === 0;
     }
 
     public reloadOwnership(): Promise<void> {
@@ -129,6 +193,10 @@ export class WorkspaceController implements vscode.Disposable {
     }
 
     private async reloadOwnershipCore(): Promise<void> {
+        if (!this.hasWorkspace || this.disposed) {
+            return;
+        }
+        this.hasTspackManifest = await this.exists(vscode.Uri.file(path.join(this.rootPath, tspackManifestFileName)));
         try {
             const content = await vscode.workspace.fs.readFile(this.ownershipUri);
             const ownershipContents = Buffer.from(content).toString("utf8");
@@ -138,7 +206,16 @@ export class WorkspaceController implements vscode.Disposable {
             this.missingMetadataShown = false;
             await Promise.all(vscode.workspace.textDocuments.map((document) => this.routeDocument(document)));
 
-            await this.startLanguageServer();
+            if (this.disposed) {
+                return;
+            }
+            if (this.client) {
+                await this.client.sendNotification("workspace/didChangeWatchedFiles", {
+                    changes: [{ uri: this.ownershipUri.toString(), type: 2 }]
+                });
+            } else {
+                await this.startLanguageServer();
+            }
             this.onDidChange();
         } catch (error) {
             this.ownership = undefined;
@@ -151,11 +228,15 @@ export class WorkspaceController implements vscode.Disposable {
     }
 
     public ownerFor(document: vscode.TextDocument): OwnershipFileEntry | undefined {
-        if (!this.belongsToWorkspace(document.uri) || !this.ownership) {
+        return this.ownerForUri(document.uri);
+    }
+
+    public ownerForUri(uri: vscode.Uri): OwnershipFileEntry | undefined {
+        if (!this.belongsToWorkspace(uri) || !this.ownership) {
             return undefined;
         }
 
-        return this.ownership.get(path.relative(this.rootPath, document.uri.fsPath));
+        return this.ownership.get(path.relative(this.rootPath, uri.fsPath));
     }
 
     public async restartLanguageServer(): Promise<void> {
@@ -165,13 +246,13 @@ export class WorkspaceController implements vscode.Disposable {
     }
 
     public async routeDocument(document: vscode.TextDocument): Promise<void> {
-        if (!this.belongsToWorkspace(document.uri) || !isTypeScriptDocument(document)) {
+        if (this.disposed || !this.belongsToWorkspace(document.uri) || !isTypeScriptDocument(document)) {
             return;
         }
 
-        const isManifest = path.basename(document.uri.fsPath).toLocaleLowerCase() === manifestFileName;
+        const isManifest = this.isManifest(document.uri);
         const owner = this.ownerFor(document);
-        const profile = isManifest ? undefined : await this.readProfile(document, owner?.owner);
+        const profile = isManifest || owner ? undefined : await this.readProfile(document);
         if (document.isClosed) {
             return;
         }
@@ -183,6 +264,8 @@ export class WorkspaceController implements vscode.Disposable {
             if (!isCopelandLanguage(document.languageId)) {
                 this.originalLanguageIds.set(document.uri.toString(), document.languageId);
                 await vscode.languages.setTextDocumentLanguage(document, targetLanguage);
+            } else if (!isManifest) {
+                await this.readProfile(document, owner?.owner);
             }
             this.onDidChange();
             return;
@@ -192,6 +275,8 @@ export class WorkspaceController implements vscode.Disposable {
             const original = this.originalLanguageIds.get(document.uri.toString()) ?? builtInTypeScriptLanguageId(document.uri);
             this.originalLanguageIds.delete(document.uri.toString());
             await vscode.languages.setTextDocumentLanguage(document, original);
+        } else if (owner) {
+            await this.readProfile(document, owner.owner);
         }
         this.onDidChange();
     }
@@ -236,7 +321,7 @@ export class WorkspaceController implements vscode.Disposable {
             return undefined;
         }
 
-        if (path.basename(document.uri.fsPath).toLocaleLowerCase() === manifestFileName) {
+        if (this.isManifest(document.uri)) {
             return "Copeland TS: tscl (workspace manifest)";
         }
 
@@ -255,11 +340,15 @@ export class WorkspaceController implements vscode.Disposable {
     }
 
     public async dispose(): Promise<void> {
+        this.disposed = true;
         for (const timer of this.profileTimers.values()) {
             clearTimeout(timer);
         }
         if (this.reloadTimer) {
             clearTimeout(this.reloadTimer);
+        }
+        if (this.syncTimer) {
+            clearTimeout(this.syncTimer);
         }
 
         await this.stopLanguageServer("workspace disposal");
@@ -396,21 +485,36 @@ export class WorkspaceController implements vscode.Disposable {
         this.reloadTimer = setTimeout(() => void this.reloadOwnership(), 150);
     }
 
-    private async handleManifestChange(): Promise<void> {
-        if (vscode.workspace.getConfiguration("copeland.workspace", this.folder.uri).get<boolean>("autoSync", true)) {
-            await vscode.commands.executeCommand("copeland.workspaceSync", this.folder.uri);
+    private autoSync(): boolean {
+        return vscode.workspace.getConfiguration("copeland.workspace", this.folder.uri).get<boolean>("autoSync", true);
+    }
+
+    private scheduleSync(): void {
+        if (!this.autoSync()) {
+            this.scheduleReload();
+            return;
+        }
+        if (this.syncTimer) {
+            clearTimeout(this.syncTimer);
+        }
+        this.syncTimer = setTimeout(async () => {
+            await this.pendingSync;
+            await this.syncWorkspace();
+        }, 200);
+    }
+
+    private async exists(uri: vscode.Uri): Promise<boolean> {
+        try {
+            await vscode.workspace.fs.stat(uri);
+            return true;
+        } catch {
+            return false;
         }
     }
 
-    private async ensureOwnership(): Promise<void> {
-        try {
-            await vscode.workspace.fs.stat(this.ownershipUri);
-            return;
-        } catch {
-            const tool = await resolveTscl(this.rootPath);
-            this.output.appendLine("[ownership] generating canonical ownership from tsconfig.tsx");
-            await runTool(tool, ["workspace", "sync"], this.rootPath, this.output);
-        }
+    private isManifest(uri: vscode.Uri): boolean {
+        const relative = path.relative(this.rootPath, uri.fsPath);
+        return relative === manifestFileName || (this.hasTspackManifest && relative === tspackManifestFileName);
     }
 
     private belongsToWorkspace(uri: vscode.Uri): boolean {

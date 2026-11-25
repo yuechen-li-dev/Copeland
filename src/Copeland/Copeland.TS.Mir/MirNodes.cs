@@ -830,7 +830,8 @@ public sealed record MirNpmImport(
     bool IsAvailableToJavaScript,
     bool IsAvailableToClrSidecar,
     bool IsComponent = false,
-    bool PresentationHost = false);
+    bool PresentationHost = false,
+    bool IsFallible = false);
 public sealed record MirNpmCallExpression(
     string LocalBinding,
     string PackageName,

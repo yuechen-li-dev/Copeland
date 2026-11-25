@@ -3,6 +3,17 @@
   <UsingTask TaskName="Copeland.TS.MSBuild.CopelandTestCompile" AssemblyFile="$(CopelandTaskAssembly)" />
   <UsingTask TaskName="Copeland.TS.MSBuild.CopelandResolveWorkspace" AssemblyFile="$(CopelandTaskAssembly)" />
 
+  <ItemGroup Condition="'$(CopelandNpmLockFile)' != ''">
+    <Reference Include="Copeland.TS.Sidecar"
+               HintPath="$([System.IO.Path]::GetDirectoryName('$(CopelandTaskAssembly)'))/Copeland.TS.Sidecar.dll"
+               Private="true" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(CopelandNpmLockFile)' == '' And Exists('$(MSBuildThisFileDirectory)..\tools\net10.0\Copeland.TS.Backend.CSharp.dll')">
+    <Reference Include="Copeland.TS.Backend.CSharp"
+               HintPath="$(MSBuildThisFileDirectory)..\tools\net10.0\Copeland.TS.Backend.CSharp.dll"
+               Private="true" />
+  </ItemGroup>
+
   <Target Name="CopelandValidateToolchainVersion" BeforeTargets="PrepareForBuild">
     <Error Condition="!$([System.String]::Copy('$(CopelandRequiredVersion)').StartsWith('$(CopelandSdkVersion)'))"
            Code="COPE-DIST-0001"
@@ -40,6 +51,7 @@
         ClrReferencePaths="@(ReferencePath);@(ReferencePathWithRefAssemblies)"
         CopelandPackageContracts="@(CopelandPackageContract)"
         CopelandNpmContracts="@(CopelandNpmContract)"
+        NpmLockFile="$(CopelandNpmLockFile)"
         IntermediateOutputPath="$(IntermediateOutputPath)"
         ProjectDirectory="$(MSBuildProjectDirectory)"
         ProjectTypes="$(CopelandResolvedProjectTypes)"
@@ -49,11 +61,33 @@
         Nullable="$(Nullable)"
         RootNamespace="$(RootNamespace)">
       <Output TaskParameter="GeneratedSources" ItemName="CopelandGeneratedCompile" />
+      <Output TaskParameter="NpmRuntimeFiles" ItemName="CopelandNpmRuntimeFile" />
     </Copeland.TS.MSBuild.CopelandCompile>
 
     <ItemGroup>
       <Compile Include="@(CopelandGeneratedCompile)" />
       <FileWrites Include="@(CopelandGeneratedCompile)" />
+      <ContentWithTargetPath Include="@(CopelandNpmRuntimeFile)" />
+      <FileWrites Include="$(IntermediateOutputPath)Copeland/npm-runtime-files.txt" Condition="'$(CopelandNpmLockFile)' != ''" />
+      <FileWrites Include="$(IntermediateOutputPath)Copeland/npm-guest.mjs" Condition="'@(CopelandNpmRuntimeFile)' != ''" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(IntermediateOutputPath)Copeland/npm-runtime-files.txt"
+                      Lines="@(CopelandNpmRuntimeFile->'%(TargetPath)')"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true"
+                      Condition="'$(CopelandNpmLockFile)' != '' Or Exists('$(IntermediateOutputPath)Copeland/npm-runtime-files.txt')" />
+  </Target>
+
+  <Target Name="CopelandRecoverBuiltNpmFiles"
+          BeforeTargets="GetCopyToPublishDirectoryItems"
+          Condition="'$(NoBuild)' == 'true' And Exists('$(IntermediateOutputPath)Copeland/npm-runtime-files.txt')">
+    <ReadLinesFromFile File="$(IntermediateOutputPath)Copeland/npm-runtime-files.txt">
+      <Output TaskParameter="Lines" ItemName="_CopelandBuiltNpmFile" />
+    </ReadLinesFromFile>
+    <ItemGroup>
+      <ContentWithTargetPath Include="@(_CopelandBuiltNpmFile->'$(TargetDir)%(Identity)')"
+                             TargetPath="%(_CopelandBuiltNpmFile.Identity)"
+                             CopyToPublishDirectory="PreserveNewest" />
     </ItemGroup>
   </Target>
 

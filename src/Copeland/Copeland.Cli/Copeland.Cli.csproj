@@ -34,6 +34,9 @@
 
   <ItemGroup>
     <EmbeddedResource Include="MigrationReport.cjs" LogicalName="Copeland.Cli.MigrationReport.cjs" />
+    <EmbeddedResource Include="NugetWorkerHost.mjs" LogicalName="Copeland.Cli.NugetWorkerHost.mjs" />
+    <EmbeddedResource Include="NugetBrowser*.mjs" LogicalName="Copeland.Cli.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="NugetWire.mjs" LogicalName="Copeland.Cli.NugetWire.mjs" />
     <None Include="README.md" Pack="true" PackagePath="" />
     <None Include="../../../LICENSE" Pack="true" PackagePath="" />
     <None Include="../THIRD_PARTY_NOTICES.md" Pack="true" PackagePath="" />

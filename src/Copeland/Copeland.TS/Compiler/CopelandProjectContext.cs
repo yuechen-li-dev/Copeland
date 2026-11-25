@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Copeland.Cli;
+using Copeland.TS.Diagnostics;
 using Copeland.TS.Manifest;
 using Copeland.TS.Mir;
 
@@ -56,6 +57,9 @@ public sealed class CopelandProjectContext
     /// ambient node_modules discovery is performed on this path.
     /// </summary>
     public static CopelandProjectContext LoadResolvedContext(string descriptorPath)
+        => LoadResolvedContext(descriptorPath, useCurrentWorkspaceSources: false);
+
+    internal static CopelandProjectContext LoadResolvedContext(string descriptorPath, bool useCurrentWorkspaceSources)
     {
         string fullDescriptorPath = Path.GetFullPath(descriptorPath);
         using (JsonDocument document = JsonDocument.Parse(File.ReadAllText(fullDescriptorPath)))
@@ -95,7 +99,7 @@ public sealed class CopelandProjectContext
             contract.Materialized = Directory.Exists(binding.MaterializationPath);
         }
 
-        IReadOnlyList<CompilerTargetSource> selectedSources = SelectCompilerOwnedSources(target, out var ownership);
+        IReadOnlyList<CompilerTargetSource> selectedSources = SelectCompilerOwnedSources(target, useCurrentWorkspaceSources, out var ownership);
         MirPresentationAdapter? adapter = CreateWorkspaceAdapter(ownership?.PresentationAdapter);
         string? profile = string.IsNullOrWhiteSpace(payload.TsXmlProfile) && adapter is not null
             ? ProjectTypesProfile(ownership?.ProjectTypes)
@@ -373,6 +377,7 @@ public sealed class CopelandProjectContext
 
     private static IReadOnlyList<CompilerTargetSource> SelectCompilerOwnedSources(
         CompilerTargetDescriptor target,
+        bool useCurrentWorkspaceSources,
         out CopelandWorkspaceOwnershipResult? ownership)
     {
         ownership = null;
@@ -406,6 +411,15 @@ public sealed class CopelandProjectContext
             string fullSourcePath = Path.GetFullPath(source.Path);
             if (!declaredSources.TryGetValue(fullSourcePath, out CompilerTargetSource? declared))
             {
+                if (useCurrentWorkspaceSources)
+                {
+                    selected.Add(new CompilerTargetSource
+                    {
+                        Path = fullSourcePath,
+                        LogicalPath = Path.GetRelativePath(projectRoot, fullSourcePath).Replace('\\', '/'),
+                    });
+                    continue;
+                }
                 throw new CopelandProjectContextException(
                     "COPE-PROJECT-0013",
                     $"tsconfig.tsx assigns '{fullSourcePath}' to tscl, but the TSPack descriptor did not provide it as a project input.");
@@ -572,7 +586,7 @@ public sealed class CopelandProjectContext
             contract.MaterializationPath,
             contract.Materialized,
             true,
-            false,
+            exports.Any(export => export.RemoteErrorType is not null),
             components);
     }
 
@@ -697,6 +711,63 @@ public sealed record CopelandProjectContextNpmProperty
 /// </summary>
 public static class CopelandProjectContextResolver
 {
+    // An editor uses the first declared build target that has a descriptor. The
+    // package contracts stay pinned to TSPack, and edits use current source ownership.
+    public static CopelandProjectContext LoadForEditor(string projectRoot)
+    {
+        string directory = Path.Combine(projectRoot, ".tspack", "build-manifests");
+        if (!Directory.Exists(directory))
+        {
+            return CopelandProjectContext.LoadStandalone(projectRoot);
+        }
+
+        string[] descriptors = Directory.GetFiles(directory, "*.request.json");
+        if (descriptors.Length == 0)
+        {
+            return CopelandProjectContext.LoadStandalone(projectRoot);
+        }
+
+        var versioned = new List<(string Path, string Package, string Target)>();
+        var legacy = new List<string>();
+        foreach (string descriptor in descriptors)
+        {
+            using JsonDocument document = JsonDocument.Parse(File.ReadAllText(descriptor));
+            if (!document.RootElement.TryGetProperty("schemaVersion", out _))
+            {
+                legacy.Add(descriptor);
+                continue;
+            }
+            JsonElement target = document.RootElement.GetProperty("target");
+            string? package = target.GetProperty("package").GetString();
+            string? name = target.GetProperty("name").GetString();
+            if (package is not null && name is not null)
+            {
+                versioned.Add((descriptor, package, name));
+            }
+        }
+        if (versioned.Count == 0 && legacy.Count == 1)
+        {
+            return CopelandProjectContext.LoadResolvedContext(legacy[0], useCurrentWorkspaceSources: true);
+        }
+
+        ManifestProjectLoadResult manifest = CopelandProject.LoadRootManifest(projectRoot);
+        if (!manifest.Success)
+        {
+            Diagnostic diagnostic = manifest.Diagnostics[0];
+            throw new CopelandProjectContextException(diagnostic.Id, diagnostic.Message);
+        }
+
+        var targetOrder = manifest.Manifest!.Packages
+            .SelectMany(package => package.Targets.Select(target => (Package: package.Name, Target: target.Name)))
+            .Select((key, order) => (key, order))
+            .ToDictionary(entry => entry.key, entry => entry.order);
+        string? path = versioned.Where(candidate => targetOrder.ContainsKey((candidate.Package, candidate.Target)))
+            .OrderBy(candidate => targetOrder[(candidate.Package, candidate.Target)])
+            .ThenBy(candidate => candidate.Path, StringComparer.Ordinal).FirstOrDefault().Path;
+        return path is null ? CopelandProjectContext.LoadStandalone(projectRoot)
+            : CopelandProjectContext.LoadResolvedContext(path, useCurrentWorkspaceSources: true);
+    }
+
     public static string? DiscoverManifest(string sourceOrWorkspacePath)
     {
         string fullPath = Path.GetFullPath(sourceOrWorkspacePath);

@@ -49,13 +49,18 @@ public sealed class SidecarProcessInteropTests
             object result = GeneratedModuleInvoker.Invoke(lost.Assembly, "call", "lose", 1d)!;
             await WaitForCompletion(result);
             Assert.True((bool)result.GetType().GetProperty("IsTransportFailed")!.GetValue(result)!);
+
+            object afterExit = GeneratedModuleInvoker.Invoke(lost.Assembly, "call", "double", 2d)!;
+            await WaitForCompletion(afterExit);
+            Assert.True((bool)afterExit.GetType().GetProperty("IsTransportFailed")!.GetValue(afterExit)!);
         }
     }
 
     [Theory]
     [InlineData("malformed")]
     [InlineData("mismatch")]
-    public async Task Malformed_frames_and_handshake_mismatch_fail_the_live_correlation(string mode)
+    [InlineData("missing")]
+    public async Task Malformed_frames_and_failed_startup_fail_the_live_correlation(string mode)
     {
         await using Fixture fixture = await Fixture.CreateAsync(mode);
         string operation = mode == "malformed" ? "malformed" : "double";
@@ -130,7 +135,10 @@ public sealed class SidecarProcessInteropTests
             string remote = Encode(compiled.Assembly!, response: false);
             Assert.NotNull(Decode(compiled.Assembly!, success, response: true));
             Assert.NotNull(Decode(compiled.Assembly!, remote, response: false));
-            File.WriteAllText(Path.Combine(root, "sidecar", "fixture.js"), Script(mode, success, remote));
+            if (mode != "missing")
+            {
+                File.WriteAllText(Path.Combine(root, "sidecar", "fixture.js"), Script(mode, success, remote));
+            }
             var host = CSharpSidecarHost.Attach(compiled.Assembly!, emitted.SidecarContract!);
             await Task.CompletedTask;
             return new Fixture(root, compiled.Assembly!, host);

@@ -24,7 +24,7 @@ internal static class Program
 
         if (args.Length == 0)
         {
-            return UsageError("COPE-CLI-0004", "Missing command. Supported commands: 'compile', 'check', 'profile', 'build', 'asset', 'workspace', 'migrate', 'database', 'markdown', 'template', 'flow', 'language-server'.");
+            return UsageError("COPE-CLI-0004", "Missing command. Supported commands: 'compile', 'check', 'profile', 'build', 'nuget', 'asset', 'workspace', 'migrate', 'database', 'markdown', 'template', 'flow', 'language-server'.");
         }
 
         return args[0] switch
@@ -33,6 +33,7 @@ internal static class Program
             "check" => CheckCommand.Run(args),
             "profile" => FileProfileCommand.Run(args),
             "build" => TsclBuildContract.Run(args),
+            "nuget" => TsclBuildContract.RunNuget(args),
             "asset" => AssetCommand.Run(args),
             "workspace" => WorkspaceCommand.Run(args),
             "migrate" => MigrationCommand.Run(args[1..]),
@@ -45,7 +46,7 @@ internal static class Program
             "language-server" or "lsp" => RunLanguageServer(args),
             "doctor" => DistributionCommand.RunDoctor(args[1..]),
             "install-info" => DistributionCommand.RunInstallInfo(args[1..]),
-            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'check', 'profile', 'build', 'asset', 'workspace', 'migrate', 'database', 'markdown', 'table', 'template', 'flow', 'language-server'."),
+            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'check', 'profile', 'build', 'nuget', 'asset', 'workspace', 'migrate', 'database', 'markdown', 'table', 'template', 'flow', 'language-server'."),
         };
     }
 
@@ -470,6 +471,7 @@ internal static class Program
         Console.Error.WriteLine("Usage:");
         Console.Error.WriteLine("  copeland compile <source-file> --emit mir|csharp|javascript [--javascript-profile diagnostic|symbolic|production] [--out <path>]");
         Console.Error.WriteLine("  tscl build (--project <descriptor.json> | --standalone <project-root> [--target <name>]) [--node-interop] --result <result.json>");
+        Console.Error.WriteLine("  tscl nuget generate <project-root>");
         Console.Error.WriteLine("  tscl migrate init [-p <tsconfig.json>] [--out <directory>]");
         Console.Error.WriteLine("  tscl migrate report [-p <tsconfig.json>] [--format text|json]");
         Console.Error.WriteLine("  tscl asset build <manifest.tsx> [--output <directory>]");

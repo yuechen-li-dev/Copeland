@@ -10,6 +10,8 @@ public sealed class CSharpCompilation(
     public IReadOnlyList<CSharpDiagnostic> Diagnostics { get; } = diagnostics;
 
     public CSharpSidecarContract? SidecarContract { get; } = sidecarContract;
+
+    public string? NpmGuestSource { get; internal init; }
 }
 
 public sealed record CSharpDiagnostic(string Id, string Message);
