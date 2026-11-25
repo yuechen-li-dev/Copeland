@@ -93,7 +93,10 @@ public static class CopelandProjectCompiler
         foreach (ProjectModule module in ordered)
         {
             BoundModuleImports imports = CreateImports(module, diagnostics);
-            SyntaxTree tree = SyntaxTree.Parse(RewriteModule(module), module.Source.SourcePath);
+            string rewritten = RewriteModule(module);
+            SyntaxTree tree = ReferenceEquals(rewritten, module.Source.SourceText)
+                ? module.SourceSyntax
+                : SyntaxTree.Parse(rewritten, module.Source.SourcePath);
             diagnostics.AddRange(tree.Diagnostics.Select(diagnostic => diagnostic with { SourcePath = module.Source.SourcePath }));
             if (tree.Diagnostics.Count > 0)
             {
@@ -223,8 +226,18 @@ public static class CopelandProjectCompiler
                 continue;
             }
 
-            IReadOnlyList<ProjectDeclaration> declarations = ReadDeclarations(source);
-            result.Add(new ProjectModule(source, logicalPath, ReadImports(source), ReadExports(source), declarations));
+            string visibleSource = EmbeddedSourceBlockScanner.MaskBodies(source.SourceText);
+            SyntaxToken[] tokens = SyntaxTree.ParseTokens(visibleSource).Tokens.ToArray();
+            SyntaxTree visibleSyntax = SyntaxTree.Parse(visibleSource, source.SourcePath);
+            SyntaxTree importSyntax = SourceFileKindExtensions.FromSourcePath(source.SourcePath)
+                == SourceFileKindExtensions.FromSourcePath(source.LogicalPath)
+                ? visibleSyntax
+                : SyntaxTree.Parse(visibleSource, source.LogicalPath);
+            SyntaxTree sourceSyntax = ReferenceEquals(visibleSource, source.SourceText)
+                ? visibleSyntax
+                : SyntaxTree.Parse(source.SourceText, source.SourcePath);
+            result.Add(new ProjectModule(source, logicalPath, ReadImports(importSyntax), ReadExports(tokens),
+                ReadDeclarations(tokens, sourceSyntax), tokens, visibleSyntax.Root, sourceSyntax));
         }
 
         return result.OrderBy(module => module.LogicalPath, StringComparer.OrdinalIgnoreCase).ToArray();
@@ -359,25 +372,26 @@ public static class CopelandProjectCompiler
             .GroupBy(item => item.Name, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
 
+        var types = modules
+            .SelectMany(owner => owner.Declarations
+                .Where(declaration => declaration.Kind is "record" or "enum" or "type" or "interface" or "class" or "table")
+                .Select(declaration => (declaration.Name, Owner: owner)))
+            .GroupBy(item => item.Name, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
+
         foreach (ProjectModule module in modules)
         {
             var allowedImports = module.Imports
                 .Where(import => import.Target is not null)
                 .SelectMany(import => import.Bindings.Select(binding => binding.LocalName))
                 .ToHashSet(StringComparer.Ordinal);
-            string visibleSource = EmbeddedSourceBlockScanner.MaskBodies(module.Source.SourceText);
-            SyntaxToken[] tokens = SyntaxTree.ParseTokens(visibleSource).Tokens.ToArray();
-            CompilationUnitSyntax syntax = SyntaxTree.Parse(visibleSource, module.Source.SourcePath).Root;
+            SyntaxToken[] tokens = module.MetadataTokens;
+            CompilationUnitSyntax syntax = module.VisibleSyntax;
             IReadOnlySet<int> nonCallIdentifiers = NonCallIdentifierPositions(syntax);
             IReadOnlySet<int> genericParameterIdentifiers = GenericParameterIdentifierPositions(syntax);
             foreach (var pair in functions)
             {
-                ProjectModule[] foreignOwners = pair.Value
-                    .Select(item => item.Module)
-                    .Where(owner => owner != module)
-                    .Distinct()
-                    .ToArray();
-                if (pair.Value.Length != 1 || foreignOwners.Length != 1 || allowedImports.Contains(pair.Key))
+                if (pair.Value.Length != 1 || pair.Value[0].Module == module || allowedImports.Contains(pair.Key))
                 {
                     continue;
                 }
@@ -396,27 +410,16 @@ public static class CopelandProjectCompiler
 
                     diagnostics.Add(new Diagnostic(
                         "COPE-MODULE-0007",
-                        $"Function '{pair.Key}' belongs to module '{foreignOwners[0].LogicalPath}' and is not imported into '{module.LogicalPath}'. Module-private declarations may not be referenced across Copeland modules.",
+                        $"Function '{pair.Key}' belongs to module '{pair.Value[0].Module.LogicalPath}' and is not imported into '{module.LogicalPath}'. Module-private declarations may not be referenced across Copeland modules.",
                         token.Position,
                         token.Text.Length,
                         module.Source.SourcePath));
                 }
             }
 
-            var types = modules
-                .SelectMany(owner => owner.Declarations
-                    .Where(declaration => declaration.Kind is "record" or "enum" or "type" or "interface" or "class" or "table")
-                    .Select(declaration => (declaration.Name, Owner: owner)))
-                .GroupBy(item => item.Name, StringComparer.Ordinal)
-                .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
             foreach (var pair in types)
             {
-                ProjectModule[] foreignOwners = pair.Value
-                    .Select(item => item.Owner)
-                    .Where(owner => owner != module)
-                    .Distinct()
-                    .ToArray();
-                if (pair.Value.Length != 1 || foreignOwners.Length != 1 || allowedImports.Contains(pair.Key))
+                if (pair.Value.Length != 1 || pair.Value[0].Owner == module || allowedImports.Contains(pair.Key))
                 {
                     continue;
                 }
@@ -436,7 +439,7 @@ public static class CopelandProjectCompiler
 
                     diagnostics.Add(new Diagnostic(
                         "COPE-MODULE-0007",
-                        $"Declaration '{pair.Key}' belongs to module '{foreignOwners[0].LogicalPath}' and is not imported into '{module.LogicalPath}'. Module-private declarations may not be referenced across Copeland modules.",
+                        $"Declaration '{pair.Key}' belongs to module '{pair.Value[0].Owner.LogicalPath}' and is not imported into '{module.LogicalPath}'. Module-private declarations may not be referenced across Copeland modules.",
                         token.Position,
                         token.Text.Length,
                         module.Source.SourcePath));
@@ -540,33 +543,25 @@ public static class CopelandProjectCompiler
 
     private static string RewriteModule(ProjectModule module)
     {
-        SyntaxTree tokenTree = SyntaxTree.ParseTokens(EmbeddedSourceBlockScanner.MaskBodies(module.Source.SourceText));
-        var replacements = new List<TextReplacement>();
+        char[]? text = null;
         foreach (ProjectImport import in module.Imports)
         {
-            if (!IsRelative(import.Specifier))
+            if (IsRelative(import.Specifier))
             {
-                continue;
+                text ??= module.Source.SourceText.ToCharArray();
+                text.AsSpan(import.Start, import.End - import.Start).Fill(' ');
             }
-
-            replacements.Add(new TextReplacement(import.Start, import.End - import.Start, new string(' ', import.End - import.Start)));
         }
 
-        foreach (SyntaxToken token in tokenTree.Tokens.Where(token => token.Kind == SyntaxKind.IdentifierToken && token.Text == "export"))
+        foreach (SyntaxToken token in module.MetadataTokens)
         {
-            replacements.Add(new TextReplacement(token.Position, token.Text.Length, new string(' ', token.Text.Length)));
+            if (token.Kind == SyntaxKind.IdentifierToken && token.Text == "export")
+            {
+                text ??= module.Source.SourceText.ToCharArray();
+                text.AsSpan(token.Position, token.Text.Length).Fill(' ');
+            }
         }
-
-        string text = module.Source.SourceText;
-        foreach (TextReplacement replacement in replacements
-            .OrderByDescending(item => item.Start)
-            .ThenByDescending(item => item.Length)
-            .GroupBy(item => item.Start)
-            .Select(group => group.First()))
-        {
-            text = text.Remove(replacement.Start, replacement.Length).Insert(replacement.Start, replacement.Replacement);
-        }
-        return text;
+        return text is null ? module.Source.SourceText : new string(text);
     }
 
     private static BoundModuleImports CreateImports(ProjectModule module, List<Diagnostic> diagnostics)
@@ -815,8 +810,10 @@ public static class CopelandProjectCompiler
     internal sealed record SourceImport(string Specifier, IReadOnlyList<ProjectImportBinding> Bindings, int Position, int Length);
 
     private static IReadOnlyList<ProjectImport> ReadImports(CopelandProjectSource source)
+        => ReadImports(SyntaxTree.Parse(EmbeddedSourceBlockScanner.MaskBodies(source.SourceText), source.LogicalPath));
+
+    private static IReadOnlyList<ProjectImport> ReadImports(SyntaxTree tree)
     {
-        SyntaxTree tree = SyntaxTree.Parse(EmbeddedSourceBlockScanner.MaskBodies(source.SourceText), source.LogicalPath);
         return tree.Root.Members.OfType<ImportDeclarationSyntax>().Select(import =>
         {
             SyntaxToken[] tokens = import.Tokens.ToArray();
@@ -847,10 +844,11 @@ public static class CopelandProjectCompiler
     }
 
     internal static IReadOnlySet<string> ReadExports(CopelandProjectSource source)
+        => ReadExports(SyntaxTree.ParseTokens(EmbeddedSourceBlockScanner.MaskBodies(source.SourceText)).Tokens.ToArray());
+
+    private static IReadOnlySet<string> ReadExports(SyntaxToken[] tokens)
     {
-        SyntaxTree tree = SyntaxTree.ParseTokens(EmbeddedSourceBlockScanner.MaskBodies(source.SourceText));
         var exports = new HashSet<string>(StringComparer.Ordinal);
-        SyntaxToken[] tokens = tree.Tokens.ToArray();
         for (int index = 0; index + 1 < tokens.Length; index++)
         {
             if (tokens[index].Kind != SyntaxKind.IdentifierToken || tokens[index].Text != "export") continue;
@@ -879,9 +877,8 @@ public static class CopelandProjectCompiler
         return exports;
     }
 
-    private static IReadOnlyList<ProjectDeclaration> ReadDeclarations(CopelandProjectSource source)
+    private static IReadOnlyList<ProjectDeclaration> ReadDeclarations(SyntaxToken[] tokens, SyntaxTree tree)
     {
-        SyntaxToken[] tokens = SyntaxTree.ParseTokens(EmbeddedSourceBlockScanner.MaskBodies(source.SourceText)).Tokens.ToArray();
         var declarations = new List<ProjectDeclaration>();
         for (int index = 0; index + 1 < tokens.Length; index++)
         {
@@ -927,7 +924,6 @@ public static class CopelandProjectCompiler
             }
             declarations.Add(new ProjectDeclaration(tokens[nameIndex].Text, kind));
         }
-        SyntaxTree tree = SyntaxTree.Parse(source.SourceText, source.SourcePath);
         foreach (ContributionStreamDeclarationSyntax stream in tree.Root.Members.OfType<ContributionStreamDeclarationSyntax>())
         {
             declarations.Add(new ProjectDeclaration(stream.Identifier.Text, "stream"));
@@ -997,13 +993,24 @@ public static class CopelandProjectCompiler
         return string.Join('/', parts);
     }
 
-    private sealed class ProjectModule(CopelandProjectSource source, string logicalPath, IReadOnlyList<ProjectImport> imports, IReadOnlySet<string> exports, IReadOnlyList<ProjectDeclaration> declarations)
+    private sealed class ProjectModule(
+        CopelandProjectSource source,
+        string logicalPath,
+        IReadOnlyList<ProjectImport> imports,
+        IReadOnlySet<string> exports,
+        IReadOnlyList<ProjectDeclaration> declarations,
+        SyntaxToken[] metadataTokens,
+        CompilationUnitSyntax visibleSyntax,
+        SyntaxTree sourceSyntax)
     {
         public CopelandProjectSource Source { get; } = source;
         public string LogicalPath { get; } = logicalPath;
         public IReadOnlyList<ProjectImport> Imports { get; } = imports;
         public IReadOnlySet<string> Exports { get; } = exports;
         public IReadOnlyList<ProjectDeclaration> Declarations { get; } = declarations;
+        public SyntaxToken[] MetadataTokens { get; } = metadataTokens;
+        public CompilationUnitSyntax VisibleSyntax { get; } = visibleSyntax;
+        public SyntaxTree SourceSyntax { get; } = sourceSyntax;
         public BoundCompilation? Bound { get; set; }
         public MirProgram? Mir { get; set; }
     }
@@ -1021,7 +1028,6 @@ public static class CopelandProjectCompiler
 
     internal sealed record ProjectImportBinding(string ExportedName, string LocalName, int Position, int Length);
     private sealed record ProjectDeclaration(string Name, string Kind);
-    private sealed record TextReplacement(int Start, int Length, string Replacement);
 }
 
 public sealed record CopelandProjectSource(string LogicalPath, string SourcePath, string SourceText);

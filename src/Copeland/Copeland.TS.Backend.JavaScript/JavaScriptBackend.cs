@@ -270,6 +270,9 @@ public static partial class JavaScriptBackend
                 effectiveOptions.EmitNodeInterop);
         }
 
+        List<(string Name, int Start, int End)>? projectFunctions = effectiveOptions.CaptureProjectSections ? [] : null;
+        int functionStart = projectFunctions is null ? 0 : writer.MarkSectionBoundary();
+        int runtimeEnd = functionStart;
         foreach (MirFunction function in program.Functions)
         {
             writer.WriteLine();
@@ -281,6 +284,12 @@ public static partial class JavaScriptBackend
             {
                 bool isTransition = program.Functions.Any(owner => owner.ComponentState?.Endpoints.Any(endpoint => endpoint.TransitionFunction == function.Name) == true);
                 EmitFunction(writer, function, catalog, results, names, effectiveOptions.BoundaryFunctionNames.Contains(function.Name) || isTransition, isTransition);
+            }
+            if (projectFunctions is not null)
+            {
+                int functionEnd = writer.MarkSectionBoundary();
+                projectFunctions.Add((function.Name, functionStart, functionEnd));
+                functionStart = functionEnd;
             }
         }
 
@@ -306,7 +315,16 @@ public static partial class JavaScriptBackend
             SymbolicJavaScriptVocabulary.ValidateIdentifierFile(sourceText);
         }
 
-        return new JavaScriptCompilation(sourceText, [], writer.ReachabilityReport);
+        var compilation = new JavaScriptCompilation(sourceText, [], writer.ReachabilityReport)
+        {
+            ProjectSections = projectFunctions is null ? null : new JavaScriptProjectSections(
+                sourceText[..writer.GetRenderedOffset(runtimeEnd)] + sourceText[writer.GetRenderedOffset(functionStart)..],
+                projectFunctions.ToDictionary(
+                    item => item.Name,
+                    item => sourceText[writer.GetRenderedOffset(item.Start)..writer.GetRenderedOffset(item.End)],
+                    StringComparer.Ordinal)),
+        };
+        return compilation;
         }
         finally
         {
@@ -5076,6 +5094,15 @@ public static partial class JavaScriptBackend
         bool flowEnabled)
     {
         MirRecordDefinition record = catalog.GetRecord(construction.RecordTypeId);
+        if (IsProduction(names) && construction.Initializers.Select(initializer => initializer.FieldId)
+            .SequenceEqual(record.Fields.Select(field => field.Id)))
+        {
+            EmittedExpression[] ordered = construction.Initializers
+                .Select(initializer => EmitExpression(initializer.Value, function, catalog, results, names, flowEnabled))
+                .ToArray();
+            return CombineOrdered(ordered, names,
+                values => $"{RecordConstructionName(record, names)}({string.Join(", ", values)})");
+        }
         var prelude = new List<EmittedLine>();
         var valuesByField = new Dictionary<MirRecordFieldId, string>();
         foreach (MirRecordFieldValue initializer in construction.Initializers)
@@ -5329,6 +5356,10 @@ public static partial class JavaScriptBackend
             {
                 lastPreludeIndex = index;
             }
+        }
+        if (lastPreludeIndex < 0)
+        {
+            return EmittedExpression.ValueOnly(buildValue(expressions.Select(expression => expression.Value).ToArray()));
         }
 
         var prelude = new List<EmittedLine>();

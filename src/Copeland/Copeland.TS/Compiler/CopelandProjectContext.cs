@@ -189,9 +189,16 @@ public sealed class CopelandProjectContext
     /// writes a lockfile, or materializes a dependency.
     /// </summary>
     public static CopelandProjectContext LoadStandalone(string projectRoot)
+        => LoadStandalone(projectRoot, out _, out _);
+
+    /// <summary>Returns the resolved manifest and workspace ownership used to build the context.</summary>
+    public static CopelandProjectContext LoadStandalone(
+        string projectRoot,
+        out ManifestProjectLoadResult manifestResult,
+        out CopelandWorkspaceOwnershipResult ownership)
     {
         string fullProjectRoot = Path.GetFullPath(projectRoot);
-        ManifestProjectLoadResult manifestResult = CopelandProject.LoadRootManifest(fullProjectRoot);
+        manifestResult = CopelandProject.LoadRootManifest(fullProjectRoot);
         if (!manifestResult.Success)
         {
             var diagnostic = manifestResult.Diagnostics[0];
@@ -199,7 +206,7 @@ public sealed class CopelandProjectContext
         }
 
         string configPath = Path.Combine(fullProjectRoot, "tsconfig.tsx");
-        CopelandWorkspaceOwnershipResult ownership = CopelandWorkspaceOwnership.Resolve(configPath);
+        ownership = CopelandWorkspaceOwnership.Resolve(configPath);
         if (!ownership.Success)
         {
             CopelandWorkspaceOwnershipDiagnostic diagnostic = ownership.Diagnostics[0];

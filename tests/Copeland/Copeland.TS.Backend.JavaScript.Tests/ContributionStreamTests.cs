@@ -350,6 +350,7 @@ public sealed class ContributionStreamTests
                 export record Item { id: int; labels: string[]; }
                 export function __cope_node_export_0(): int { return 31; }
                 export function arg0(value: int): int { return value; }
+                export function braces(): string { return "literal } function Main("; }
                 export function Update(item: Item, transform: (value: Item) => Item): Item {
                     if (item.id < 0) {
                         return item;
@@ -375,13 +376,24 @@ public sealed class ContributionStreamTests
         JavaScriptProjectCompilation emitted = JavaScriptProjectEmitter.Emit(
             compilation.MirProjectGraph!, options with { EmitNodeInterop = true });
         Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        Assert.Contains("function __cope_callable_invoke", emitted.Files["__copeland-runtime.js"], StringComparison.Ordinal);
+        Assert.DoesNotContain("function __cope_callable_invoke", emitted.Files["Main.js"], StringComparison.Ordinal);
+        Assert.Contains("from \"./__copeland-runtime.js\"", emitted.Files["Main.js"], StringComparison.Ordinal);
+        var reserved = JavaScriptProjectEmitter.Emit(compilation.MirProjectGraph!, options with
+        {
+            EmitNodeInterop = true,
+            ProjectEntryOutputPath = "__copeland-runtime.js",
+        });
+        Assert.DoesNotContain("__copeland-runtime.js", reserved.Files.Keys);
+        Assert.Contains("from \"./__copeland-runtime-1.js\"", reserved.Files["Main.js"], StringComparison.Ordinal);
         var files = new Dictionary<string, string>(emitted.Files) { ["package.json"] = "{\"type\":\"module\"}" };
         Assert.Equal("ok", await RunNode("""
             import assert from 'node:assert/strict';
             import { Main } from './Main.node.js';
-            import { __cope_node_export_0, arg0 } from './Data.node.js';
+            import { __cope_node_export_0, arg0, braces } from './Data.node.js';
             assert.equal(__cope_node_export_0(), 31);
             assert.equal(arg0(42), 42);
+            assert.equal(braces(), 'literal } function Main(');
             const packet = { items: [{ id: -1, labels: [] }, { id: 4, labels: ['original'] }] };
             const visited = [];
             const result = Main(packet, item => {

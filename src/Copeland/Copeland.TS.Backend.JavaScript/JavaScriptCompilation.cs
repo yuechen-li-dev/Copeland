@@ -12,8 +12,12 @@ public sealed class JavaScriptCompilation(
     /// <summary>Backend-owned generated-definition reachability evidence.</summary>
     public JavaScriptReachabilityReport? Reachability { get; } = reachability;
 
+    internal JavaScriptProjectSections? ProjectSections { get; init; }
+
     public bool Success => SourceText is not null && Diagnostics.Count == 0;
 }
+
+internal sealed record JavaScriptProjectSections(string RuntimeSource, IReadOnlyDictionary<string, string> Functions);
 
 public sealed record JavaScriptDiagnostic(string Id, string Message);
 
