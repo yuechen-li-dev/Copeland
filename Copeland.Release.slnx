@@ -19,6 +19,9 @@
   <Folder Name="/tools/">
     <Project Path="tools/Copeland.Benchmarks.Jit/Copeland.Benchmarks.Jit.csproj" />
   </Folder>
+  <Folder Name="/release-test-dependencies/">
+    <Project Path="libraries/Copeland.Editing/Copeland.Editing.csproj" />
+  </Folder>
   <Folder Name="/release-tests/">
     <Project Path="tests/Copeland/Copeland.Cli.Tests/Copeland.Cli.Tests.csproj" />
     <Project Path="tests/Copeland/Copeland.TS.Tests/Copeland.TS.Tests.csproj" />
