@@ -9,6 +9,7 @@ namespace Copeland.TS.Gpu;
 /// <summary>Fixed value storage, shape and layout authority shared by both GPU binders.</summary>
 internal sealed partial class GpuValues
 {
+    public const int MaximumInlineMutableElements = 64;
     private readonly GpuModuleGraph modules;
     private readonly Action<string, string, VdMirSourceSpan> error;
     private readonly Func<string, string> physicalType;
@@ -341,6 +342,18 @@ internal sealed partial class GpuValues
         return Construct(type, value.Operands!, addFunction, value.Source, value.MemberNames);
     }
 
+    public VdMirExpression? TryConstantArrayElement(VdMirExpression subject, VdMirExpression index, VdMirSourceSpan span)
+    {
+        if (index is { Kind: "literal", Type: "u32" }
+            && uint.TryParse(index.Value, out uint coordinate)
+            && Find(subject.Type) is { Kind: "array", Shape.Count: 1 } type
+            && coordinate < type.Fields.Count)
+        {
+            return Field(subject, type.Fields[(int)coordinate], span);
+        }
+        return null;
+    }
+
     public VdMirExpression? Read(VdMirExpression subject, IReadOnlyList<VdMirExpression> indices,
         Action<VdMirFunction> addFunction, VdMirSourceSpan span)
     {
@@ -387,7 +400,7 @@ internal sealed partial class GpuValues
         {
             return Fail("COPE-GPU-VALUE-0004", "Shaped writes require exact element type and valid coordinates.", span);
         }
-        if (type.Fields.Count > 64)
+        if (type.Fields.Count > MaximumInlineMutableElements)
         {
             return Fail("COPE-GPU-SHAPE-0002", "Inline indexed mutation is bounded to 64 elements; use resource buffers for larger mutable storage.", span);
         }

@@ -193,15 +193,28 @@ internal sealed class GpuStaticEvaluation
                     string? targetName = statement.Name;
                     VdMirExpression assignedValue = statement.Expression!;
                     if (targetName is null && assignedValue.Kind == "assignment"
-                        && assignedValue.Operands is { Count: 2 } operands
-                        && operands[0].Kind == "name")
+                        && assignedValue.Operands is { Count: 2 } operands)
                     {
-                        targetName = operands[0].Value;
-                        assignedValue = operands[1];
+                        if (operands[0].Kind == "name")
+                        {
+                            targetName = operands[0].Value;
+                            assignedValue = operands[1];
+                        }
+                        else if (operands[0] is { Kind: "field", Operands: [{ Kind: "name", Value: { } owner } array] } field
+                            && valueTypes.GetValueOrDefault(array.Type) is { Kind: "array" }
+                            && scope.TryGetValue(owner, out VariableSymbol? aggregate)
+                            && aggregate.Type is RecordTypeSymbol record
+                            && record.Fields.SingleOrDefault(item => item.Name == field.Value) is { } member)
+                        {
+                            var replacement = new BoundRecordFieldInitializer(member, Expression(operands[1], scope));
+                            var updated = new BoundRecordWithExpression(new BoundVariableExpression(aggregate), record, [replacement]);
+                            result.Add(new BoundExpressionStatement(new BoundAssignmentExpression(aggregate, updated)));
+                            break;
+                        }
                     }
                     if (targetName is null || !scope.TryGetValue(targetName, out VariableSymbol? target))
                     {
-                        throw StaticEvaluationException.Ineligible("Static shader assignment requires a local scalar var.");
+                        throw StaticEvaluationException.Ineligible("Static shader assignment requires a local var.");
                     }
                     result.Add(new BoundExpressionStatement(new BoundAssignmentExpression(target, Expression(assignedValue, scope))));
                     break;

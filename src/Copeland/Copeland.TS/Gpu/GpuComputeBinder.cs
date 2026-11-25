@@ -413,7 +413,8 @@ public static partial class GpuComputeBinder
                     case ExpressionStatementSyntax expressionStatement when expressionStatement.Expression is AssignmentExpressionSyntax assignment:
                     {
                         if (assignment.Left is IndexExpressionSyntax { Target: NameExpressionSyntax arrayName } indexed
-                            && scope.TryGetValue(arrayName.IdentifierToken.Text, out ValueBinding? arrayBinding) && _values.Find(arrayBinding.Type) is not null)
+                            && scope.TryGetValue(arrayName.IdentifierToken.Text, out ValueBinding? arrayBinding)
+                            && _values.Find(arrayBinding.Type) is { } shape)
                         {
                             if (!arrayBinding.Mutable)
                             {
@@ -421,9 +422,25 @@ public static partial class GpuComputeBinder
                             }
                             var subject = new VdMirExpression("name", arrayBinding.Type, Span(path, indexed), arrayName.IdentifierToken.Text);
                             var coordinate = BindExpression(path, indexed.Index, scope);
-                            var assigned = BindExpression(path, assignment.Right, scope, _values.Find(arrayBinding.Type)!.ElementType);
-                            VdMirExpression replacement = _values.Write(subject, [coordinate], assigned, AddEnumFunction, Span(path, assignment)) ?? ValueOperationError(path, assignment);
-                            result.Add(new("assign", Span(path, assignment), Expression: new("assignment", subject.Type, Span(path, assignment), Operands: [subject, replacement])));
+                            var assigned = BindExpression(path, assignment.Right, scope, shape.ElementType);
+                            VdMirSourceSpan span = Span(path, assignment);
+                            VdMirExpression? element = _values.TryConstantArrayElement(subject, coordinate, span);
+                            VdMirExpression assignmentTarget;
+                            VdMirExpression assignmentValue;
+                            if (element is not null && element.Type == assigned.Type
+                                && shape.Fields.Count <= GpuValues.MaximumInlineMutableElements)
+                            {
+                                assignmentTarget = element;
+                                assignmentValue = assigned;
+                            }
+                            else
+                            {
+                                assignmentTarget = subject;
+                                assignmentValue = _values.Write(subject, [coordinate], assigned, AddEnumFunction, span)
+                                    ?? ValueOperationError(path, assignment);
+                            }
+                            result.Add(new("assign", span, Expression: new("assignment", assignmentTarget.Type, span,
+                                Operands: [assignmentTarget, assignmentValue])));
                             break;
                         }
                         VdMirExpression target = BindExpression(path, assignment.Left, scope);
@@ -782,7 +799,9 @@ public static partial class GpuComputeBinder
                         }
                         return new("index", target.Type.Split(':')[1], Span(path, index), Operands: [target, subscript]);
                     }
-                    VdMirExpression? shaped = _values.Read(target, [subscript], AddEnumFunction, Span(path, index));
+                    VdMirSourceSpan span = Span(path, index);
+                    VdMirExpression? shaped = _values.TryConstantArrayElement(target, subscript, span)
+                        ?? _values.Read(target, [subscript], AddEnumFunction, span);
                     if (shaped is not null)
                     {
                         return shaped;
