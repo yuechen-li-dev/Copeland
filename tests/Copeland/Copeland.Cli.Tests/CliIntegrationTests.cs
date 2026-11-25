@@ -683,13 +683,28 @@ public sealed partial class CliIntegrationTests
         Assert.Contains("COPE-TARGET-0001", invalid.StdOut + invalid.StdErr, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task Tscl_standalone_target_selects_compiler_owned_CLR_backend()
+    [Theory]
+    [InlineData("app-clr", "sync", "Standalone CLR\n")]
+    [InlineData("app-js", "async", "Standalone async\n")]
+    [InlineData("app-clr", "async", "Standalone async\n")]
+    [InlineData("app-js", "async-void", "")]
+    [InlineData("app-clr", "async-void", "")]
+    public async Task Tscl_standalone_target_launches_the_selected_backend(string target, string entry, string expectedOutput)
     {
         using var temp = new TempDir();
         Directory.CreateDirectory(Path.Combine(temp.Path, "src"));
         temp.WriteFile("App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\" />");
-        temp.WriteFile("src/Main.ts", "export function Main(): string { return \"Standalone CLR\"; }");
+        string source = entry switch
+        {
+            "sync" => "export function Main(): string { return \"Standalone CLR\"; }",
+            "async" => """
+                async function Load(): string { return "Standalone async"; }
+                export async function Main(): string { return await Load(); }
+                """,
+            "async-void" => "export async function Main(): void { return; }",
+            _ => throw new ArgumentOutOfRangeException(nameof(entry)),
+        };
+        temp.WriteFile("src/Main.ts", source);
         temp.WriteFile("tsconfig.tsx", """
             import { defineTypeScriptWorkspace } from "copeland/workspace";
             export default defineTypeScriptWorkspace({
@@ -725,14 +740,17 @@ public sealed partial class CliIntegrationTests
             "--standalone",
             temp.Path,
             "--target",
-            "app-clr",
+            target,
             "--result",
             resultPath);
 
-        Assert.Equal(0, build.ExitCode);
-        CliResult execution = await RunExecutableAsync("dotnet", temp.Path, Path.Combine(temp.Path, "dist", "clr", "app.dll"));
-        Assert.Equal(0, execution.ExitCode);
-        Assert.Equal("Standalone CLR\n", execution.StdOut);
+        string diagnostics = File.Exists(resultPath) ? await File.ReadAllTextAsync(resultPath) : string.Empty;
+        Assert.True(build.ExitCode == 0, build.StdErr + build.StdOut + diagnostics);
+        bool node = target == "app-js";
+        string output = node ? Path.Combine("js", "app.js") : Path.Combine("clr", "app.dll");
+        CliResult execution = await RunExecutableAsync(node ? "node" : "dotnet", temp.Path, Path.Combine(temp.Path, "dist", output));
+        Assert.True(execution.ExitCode == 0, execution.StdErr + execution.StdOut);
+        Assert.Equal(expectedOutput, execution.StdOut);
     }
 
     [Theory]
