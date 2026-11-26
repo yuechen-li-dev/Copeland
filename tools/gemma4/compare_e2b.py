@@ -11,6 +11,54 @@ import numpy as np
 VOCABULARY = 262144
 
 
+def median_step(rows, measure):
+    return round(statistics.median(
+        statistics.mean(measure(step) for step in run) for run in rows
+    ), 3)
+
+
+def print_hotspots(rows):
+    sections = ("Body", "Head")
+    sample = rows[0][0]
+    if sample["Body"].get("FeedForwardMs"):
+        phases = {phase for run in rows for step in run for phase in step["Body"]["FeedForwardMs"]}
+        feed_forward = {
+            phase: median_step(rows, lambda step: step["Body"]["FeedForwardMs"].get(phase, 0))
+            for phase in sorted(phases)
+        }
+        print(f"    Feed-forward GPU intervals (ms) {feed_forward}")
+    if sample["Body"].get("BatchCpu"):
+        def batches(step):
+            return [batch for section in sections for batch in step[section]["BatchCpu"]]
+
+        phases = ("ValidationMs", "DescriptorsMs", "RecordingMs", "TimestampReadMs")
+        cpu = {
+            phase: median_step(rows, lambda step: sum(batch[phase] for batch in batches(step)))
+            for phase in phases
+        }
+        cpu["FenceWaitMs"] = median_step(rows, lambda step: sum(
+            batch["Submission"]["CompletionWaitMicroseconds"] for batch in batches(step)
+        ) / 1000)
+        cpu["OutsideBodyAndHeadGpuMs"] = median_step(
+            rows, lambda step: step["WallMs"] - sum(step[section]["GpuMs"] for section in sections)
+        )
+        cpu["ManagedKiB"] = median_step(rows, lambda step: step["ManagedBytes"] / 1024)
+        print(f"    Host intervals {cpu}")
+    if sample["Body"].get("ShaderMs"):
+        shaders = {
+            shader for run in rows for step in run for section in sections
+            for shader in step[section]["ShaderMs"]
+        }
+        intervals = {
+            shader: median_step(rows, lambda step: sum(
+                step[section]["ShaderMs"].get(shader, 0) for section in sections
+            ))
+            for shader in shaders
+        }
+        top = sorted(intervals.items(), key=lambda item: (-item[1], item[0]))[:6]
+        print(f"    GPU shader intervals (ms) {dict(top)}")
+
+
 def summary(prefix):
     runs = json.loads(prefix.with_suffix(".json").read_text())["Runs"]
     prefill = statistics.median(run[0]["WallMs"] for run in runs)
@@ -31,6 +79,7 @@ def summary(prefix):
                 for section in ("Body", "Head")
             }
             print(f"  {label} {stats}")
+            print_hotspots(rows)
 
 
 def compare(reference, candidate, tolerance):

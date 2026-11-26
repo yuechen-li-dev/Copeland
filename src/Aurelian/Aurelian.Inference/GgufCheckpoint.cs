@@ -208,13 +208,52 @@ public static class GgufBlocks
         {
             float scale = (float)BitConverter.UInt16BitsToHalf(BinaryPrimitives.ReadUInt16LittleEndian(source));
             destination[block] = BitConverter.SingleToUInt32Bits(scale);
-            for (int group = 0; group < 2; group++)
-            {
-                ulong pairs = BinaryPrimitives.ReadUInt64LittleEndian(source.Slice(2 + group * 8, 8));
-                destination[block + 1 + group] = CompactNibbles(pairs);
-                destination[block + 3 + group] = CompactNibbles(pairs >> 4);
-            }
+            RepackQ4Nibbles(source, destination[(block + 1)..], 1);
             source = source[18..];
+        }
+    }
+
+    /// <summary>Interleave word planes across eight output rows without changing the quantized values.</summary>
+    public static void RepackQ4_0Interleaved8(ReadOnlySpan<byte> source, Span<uint> destination, int inputWidth)
+    {
+        int blocksPerRow = inputWidth / 32;
+        const int wordsPerGroup = 36;
+        if (inputWidth <= 0 || inputWidth % 32 != 0 || source.Length % (blocksPerRow * 18L * 8) != 0
+            || destination.Length != source.Length / (18 * 8) * wordsPerGroup)
+        {
+            throw new ArgumentException("Interleaved Q4_0 requires complete blocks and eight aligned output rows per group.");
+        }
+        int rows = source.Length / 18 / blocksPerRow;
+        for (int row = 0; row < rows; row++)
+        {
+            int groupStart = row / 8 * blocksPerRow * wordsPerGroup;
+            int rowInGroup = row % 8;
+            for (int block = 0; block < blocksPerRow; block++)
+            {
+                int start = groupStart + block * wordsPerGroup;
+                uint scale = BinaryPrimitives.ReadUInt16LittleEndian(source);
+                int index = start + rowInGroup / 2;
+                if (rowInGroup % 2 == 0)
+                {
+                    destination[index] = scale;
+                }
+                else
+                {
+                    destination[index] |= scale << 16;
+                }
+                RepackQ4Nibbles(source, destination[(start + 4 + rowInGroup)..], 8);
+                source = source[18..];
+            }
+        }
+    }
+
+    private static void RepackQ4Nibbles(ReadOnlySpan<byte> source, Span<uint> destination, int stride)
+    {
+        for (int group = 0; group < 2; group++)
+        {
+            ulong pairs = BinaryPrimitives.ReadUInt64LittleEndian(source.Slice(2 + group * 8, 8));
+            destination[group * stride] = CompactNibbles(pairs);
+            destination[(2 + group) * stride] = CompactNibbles(pairs >> 4);
         }
     }
 
@@ -224,6 +263,48 @@ public static class GgufBlocks
         value = (value | value >> 4) & 0x00FF00FF00FF00FF;
         value = (value | value >> 8) & 0x0000FFFF0000FFFF;
         return (uint)(value | value >> 16);
+    }
+
+    /// <summary>Interleave Q6_K payload words and pair adjacent binary16 scales across eight rows.</summary>
+    public static void RepackQ6_KInterleaved8(ReadOnlySpan<byte> source, Span<uint> destination, int inputWidth)
+    {
+        const int rowsPerGroup = 8;
+        const int bytesPerBlock = 210;
+        const int payloadWords = 52;
+        const int wordsPerGroupBlock = bytesPerBlock * rowsPerGroup / sizeof(uint);
+        int blocksPerRow = inputWidth / 256;
+        if (inputWidth <= 0 || inputWidth % 256 != 0
+            || source.Length % (blocksPerRow * (long)bytesPerBlock * rowsPerGroup) != 0
+            || source.Length / sizeof(uint) != destination.Length)
+        {
+            throw new ArgumentException("Interleaved Q6_K requires eight complete rows per group.");
+        }
+        int rows = source.Length / bytesPerBlock / blocksPerRow;
+        for (int row = 0; row < rows; row++)
+        {
+            int groupStart = row / rowsPerGroup * blocksPerRow * wordsPerGroupBlock;
+            int rowInGroup = row % rowsPerGroup;
+            for (int block = 0; block < blocksPerRow; block++)
+            {
+                int start = groupStart + block * wordsPerGroupBlock;
+                for (int word = 0; word < payloadWords; word++)
+                {
+                    destination[start + word * rowsPerGroup + rowInGroup] =
+                        BinaryPrimitives.ReadUInt32LittleEndian(source[(word * sizeof(uint))..]);
+                }
+                int scaleIndex = start + payloadWords * rowsPerGroup + rowInGroup / 2;
+                uint scale = BinaryPrimitives.ReadUInt16LittleEndian(source[(payloadWords * sizeof(uint))..]);
+                if (rowInGroup % 2 == 0)
+                {
+                    destination[scaleIndex] = scale;
+                }
+                else
+                {
+                    destination[scaleIndex] |= scale << 16;
+                }
+                source = source[bytesPerBlock..];
+            }
+        }
     }
 
     public static void DecodeQ6_K(ReadOnlySpan<byte> source, Span<float> destination)

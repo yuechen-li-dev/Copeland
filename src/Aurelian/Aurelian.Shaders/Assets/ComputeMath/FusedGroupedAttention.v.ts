@@ -1,5 +1,5 @@
 import { KernelParameters } from "./KernelMath";
-import { ScoreLanes } from "./AttentionStripe32";
+import { ScoreLanes, SplitDecode } from "./AttentionStripe32";
 
 // One workgroup owns one query head. Each stripe computes one key score.
 @compute
@@ -13,11 +13,18 @@ function FusedGroupedAttentionMain(@builtin(groupId) group: uint3,
     @binding(2) readwrite Output: StorageBuffer<f32>,
     @binding(3) readonly Parameters: StorageBuffer<KernelParameters>): void {
     let p = Parameters[0];
-    let queryStart = (group.y * p.height + group.x) * p.width;
+    var queryStart = (group.y * p.height + group.x) * p.width;
     let available = p.offset + group.y + 1;
     var firstKey: u32 = 0;
     if (available > p.mode) { firstKey = available - p.mode; }
-    let count = available - firstKey;
+    var count = available - firstKey;
+    if (SplitDecode) {
+        queryStart = group.x * p.width;
+        let tileOffset = group.y * p.stride;
+        firstKey = p.offset + tileOffset;
+        count = p.columns - tileOffset;
+        if (count > p.stride) { count = p.stride; }
+    }
     let stripe = lane / ScoreLanes;
     let channel = lane % ScoreLanes;
     for (let block of BoundedIndices<256>(p.inner)) {
@@ -47,7 +54,7 @@ function FusedGroupedAttentionMain(@builtin(groupId) group: uint3,
     var maximum: f32 = -3.402823466e38;
     static for (let part of Indices<8>()) {
         let key = part * 128 + lane;
-        if (key < count) { maximum = Max(maximum, Scores[key]); }
+        if ((!SplitDecode || part == 0) && key < count) { maximum = Max(maximum, Scores[key]); }
     }
     Partial[lane] = maximum;
     WorkgroupBarrier();
@@ -61,7 +68,7 @@ function FusedGroupedAttentionMain(@builtin(groupId) group: uint3,
     var weightSum: f32 = 0.0;
     static for (let part of Indices<8>()) {
         let key = part * 128 + lane;
-        if (key < count) {
+        if ((!SplitDecode || part == 0) && key < count) {
             let weight = Exp(Scores[key] - rowMax);
             Scores[key] = weight;
             weightSum = weightSum + weight;
@@ -92,8 +99,19 @@ function FusedGroupedAttentionMain(@builtin(groupId) group: uint3,
         }
     }
     let denom = Partial[0];
+    let partialStart = (group.x * p.channels + group.y) * (p.width + 2);
+    if (SplitDecode && lane == 0) {
+        Output[partialStart] = rowMax;
+        Output[partialStart + 1] = denom;
+    }
     static for (let part of Indices<4>()) {
         let index = part * 128 + lane;
-        if (index < p.width) { Output[queryStart + index] = result[part] / denom; }
+        if (index < p.width) {
+            if (SplitDecode) {
+                Output[partialStart + 2 + index] = result[part];
+            } else {
+                Output[queryStart + index] = result[part] / denom;
+            }
+        }
     }
 }

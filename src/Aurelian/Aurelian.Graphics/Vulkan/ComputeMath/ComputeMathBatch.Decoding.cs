@@ -222,46 +222,135 @@ public sealed partial class ComputeMathBatch
     /// <summary>Reuse a packed projection tile across prompt rows, or select the
     /// number of lanes assigned to each output row for one token.</summary>
     public void ProjectPackedQ4(GpuTensor input, GpuTensor weights, GpuTensor output, int decodeLanes = 32)
+        => ProjectPackedQ4(input, weights, output, decodeLanes, PackedQ4Layout.RowMajor);
+
+    public void ProjectPackedQ4(GpuTensor input, GpuTensor weights, GpuTensor output, int decodeLanes, PackedQ4Layout layout)
+        => ProjectPackedQ4(input, weights, output, decodeLanes, layout, 0, output.Columns);
+
+    public void ProjectPackedQ4(GpuTensor input, GpuTensor weights, GpuTensor output, int decodeLanes, PackedQ4Layout layout,
+        int firstWeightRow, int weightRows)
     {
         Check(input, output);
         Owner.Validate(weights, GpuTensorFormat.UInt32);
         Require(input.Columns % 32 == 0 && input.Columns <= 32768 && output.Rows == input.Rows
-            && weights.Elements == (long)output.Columns * input.Columns / 32 * 5
+            && PackedQ4Contains(weights, input.Columns, layout, firstWeightRow, output.Columns, weightRows)
             && !ReferenceEquals(input, output), "Packed Q4 projection requires aligned complete matrices.");
+        Require(layout == PackedQ4Layout.RowMajor || (output.Columns % 8 == 0 && (input.Rows > 1 || decodeLanes == 16)),
+            "Interleaved Q4 requires eight aligned outputs and sixteen lanes per output in decode.");
         if (input.Rows == 1)
         {
-            string shader = decodeLanes switch
+            int inputTile = layout == PackedQ4Layout.Interleaved8 ? 256 : decodeLanes * 8;
+            Require(layout != PackedQ4Layout.Interleaved8 || input.Columns % inputTile == 0,
+                "The compact Q4 decode kernel requires complete 256-column input tiles.");
+            string shader = (decodeLanes, layout) switch
             {
-                32 => "QuantizedGemv4.v.ts",
-                16 => "QuantizedGemv.Lanes16",
-                8 => "QuantizedGemv.Lanes8",
+                (32, _) => "QuantizedGemv4.v.ts",
+                (16, PackedQ4Layout.Interleaved8) => "QuantizedGemv.InterleavedHalfScale",
+                (16, _) => "QuantizedGemv.Lanes16",
+                (8, _) => "QuantizedGemv.Lanes8",
                 _ => throw new ArgumentOutOfRangeException(nameof(decodeLanes)),
             };
             Add([new(shader, input, weights, output, new()
             {
-                Columns = (uint)output.Columns, Inner = (uint)input.Columns, Width = Groups(input.Columns, decodeLanes * 8),
+                Columns = (uint)output.Columns, Inner = (uint)input.Columns, Width = Groups(input.Columns, inputTile),
+                Height = (uint)firstWeightRow,
             }, Groups(output.Columns, 128 / decodeLanes))]);
             return;
         }
+        string matrixShader = layout == PackedQ4Layout.Interleaved8
+            ? "ResidentSgemm.InterleavedHalfScale" : "ResidentSgemm.v.ts";
         for (int first = 0; first < input.Columns; first += 8192)
         {
-            Add([new("ResidentSgemm.v.ts", input, weights, output, new()
+            Add([new(matrixShader, input, weights, output, new()
             {
                 Rows = (uint)input.Rows, Columns = (uint)output.Columns, Inner = (uint)input.Columns,
                 Offset = (uint)first, Mode = 2, Alpha = 1, KernelWidth = Groups(Math.Min(input.Columns - first, 8192), 16),
+                Height = (uint)firstWeightRow,
             }, Groups(input.Rows, 64), Groups(output.Columns, 64))]);
         }
     }
 
+    /// <summary>Project a single FP32 input to GELU(gate) times up using two consecutive interleaved Q4 matrices.</summary>
+    public void ProjectPackedQ4GateUp(GpuTensor input, GpuTensor weights, GpuTensor output)
+    {
+        Check(input, output);
+        Owner.Validate(weights, GpuTensorFormat.UInt32);
+        Require(input.Rows == 1 && output.Rows == 1 && input.Columns <= 32768 && input.Columns % 256 == 0
+            && output.Columns % 8 == 0 && !ReferenceEquals(input, output)
+            && weights.Elements == PackedQ4Words(2 * output.Columns, input.Columns, PackedQ4Layout.Interleaved8),
+            "Fused Q4 gate/up needs a single input and two complete interleaved matrices.");
+        Add([new("QuantizedQ4GateUp.v.ts", input, weights, output, new()
+        {
+            Columns = (uint)output.Columns, Inner = (uint)input.Columns, Width = (uint)input.Columns / 256,
+            Offset = (uint)weights.Elements / 2,
+        }, (uint)output.Columns / 8)]);
+    }
+
+    /// <summary>Project a single FP32 input with 512-column K tiles, optionally splitting the input width across workgroups.</summary>
+    public void ProjectPackedQ4Tiled(GpuTensor input, GpuTensor weights, GpuTensor output, GpuTensor? partials = null,
+        GpuTensor? normalizationWeights = null, float epsilon = 1e-6f)
+    {
+        Check(input, output);
+        Owner.Validate(weights, GpuTensorFormat.UInt32);
+        if (partials is not null)
+        {
+            Check(partials);
+            Require(partials.Rows is 2 or 4 && partials.Columns == output.Columns && !ReferenceEquals(partials, input),
+                "Tiled Q4 partials need two or four rows of independent scratch.");
+        }
+        if (normalizationWeights is not null)
+        {
+            Check(normalizationWeights);
+            Require(partials is not null && output.Columns == 1536 && normalizationWeights.Elements == output.Columns
+                && !ReferenceEquals(normalizationWeights, output) && float.IsFinite(epsilon) && epsilon > 0,
+                "Fused projection reduction and RMSNorm require split tiles and an independent 1536-wide gain.");
+        }
+        int tiles = partials?.Rows ?? 1;
+        Require(input.Rows == 1 && output.Rows == 1 && input.Columns <= 32768 && input.Columns % (512 * tiles) == 0
+            && output.Columns % 8 == 0 && !ReferenceEquals(input, output)
+            && weights.Elements == PackedQ4Words(output.Columns, input.Columns, PackedQ4Layout.Interleaved8),
+            "Tiled Q4 projection needs a single input and complete interleaved weight and K tiles.");
+        var project = new ComputeMathDispatch("QuantizedQ4Tiled.v.ts", input, weights, partials ?? output, new()
+        {
+            Columns = (uint)output.Columns, Inner = (uint)input.Columns, Width = (uint)(input.Columns / (512 * tiles)),
+        }, (uint)output.Columns / 8, (uint)tiles);
+        if (partials is null)
+        {
+            Add([project]);
+            return;
+        }
+        ComputeMathDispatch finish;
+        if (normalizationWeights is not null)
+        {
+            finish = new("DecoderNormalize1536.SplitProjection", partials, normalizationWeights, output,
+                new() { Inner = (uint)tiles, Epsilon = epsilon }, 1);
+        }
+        else
+        {
+            finish = new("MergeProjectionPartials.v.ts", partials, partials, output,
+                new() { Rows = (uint)tiles, Columns = (uint)output.Columns }, Groups(output.Columns, 128));
+        }
+        Add([project, finish]);
+    }
+
     public void NormalizeHeads(GpuTensor input, GpuTensor gamma, GpuTensor output, int headWidth,
         float epsilon = 1e-6f, bool roundBFloat16 = true, bool bounded = false)
+        => NormalizeHeads(input, gamma, output, headWidth, epsilon, roundBFloat16, bounded, specialize1536: false);
+
+    public void NormalizeHeads(GpuTensor input, GpuTensor gamma, GpuTensor output, int headWidth,
+        float epsilon, bool roundBFloat16, bool bounded, bool specialize1536)
     {
         Check(input, gamma, output);
         Require(SameShape(input, output) && headWidth is > 0 and <= 8192
             && input.Columns % headWidth == 0 && input.Elements / headWidth <= 65535 && gamma.Elements == headWidth
             && float.IsFinite(epsilon) && epsilon > 0 && !ReferenceEquals(output, gamma),
             "Head RMSNorm requires matching shapes, independent gamma and a bounded head width.");
-        Add([new(bounded ? "DecoderNormalizeBounded.v.ts" : "DecoderNormalize.v.ts", input, gamma, output, new()
+        string shader = bounded ? "DecoderNormalizeBounded.v.ts" : "DecoderNormalize.v.ts";
+        if (specialize1536 && headWidth == 1536 && !roundBFloat16)
+        {
+            shader = "DecoderNormalize1536.v.ts";
+        }
+        Add([new(shader, input, gamma, output, new()
         {
             Rows = (uint)(input.Elements / headWidth), Columns = (uint)headWidth, Epsilon = epsilon, Mode = roundBFloat16 ? 0u : 1u,
             Width = Groups(headWidth, 64),
@@ -296,6 +385,27 @@ public sealed partial class ComputeMathBatch
     {
         GroupedAttentionScores(query, keys, scores, heads, kvHeads, headWidth, positionOffset, keyCount, window,
             roundBFloat16: true);
+    }
+
+    /// <summary>Apply FP32 RMSNorm and half-split RoPE, then write directly to the cache's key half.
+    /// Optional frequency factors follow the gamma vector in the constants tensor.</summary>
+    public void NormalizeRotateCacheKey(GpuTensor keys, GpuTensor gammaAndFactors, GpuTensor cache,
+        int position, float theta, float epsilon = 1e-6f)
+    {
+        Check(keys, gammaAndFactors, cache);
+        int width = keys.Columns;
+        int capacity = cache.Rows / 2;
+        bool hasFactors = gammaAndFactors.Elements == width + width / 2;
+        Require(width is 256 or 512 && cache.Columns == width && cache.Rows == capacity * 2
+            && position >= 0 && keys.Rows <= capacity - position && (hasFactors || gammaAndFactors.Elements == width)
+            && float.IsFinite(theta) && theta > 1 && float.IsFinite(epsilon) && epsilon > 0
+            && !ReferenceEquals(cache, keys) && !ReferenceEquals(cache, gammaAndFactors),
+            "Fused key cache writes need 256 or 512 key channels, valid RoPE constants and an independent cache range.");
+        Add([new("NormalizeRotateCacheKey.v.ts", keys, gammaAndFactors, cache, new()
+        {
+            Width = (uint)width, Inner = (uint)width / 64, Offset = (uint)position,
+            Mode = hasFactors ? 1u : 0u, Theta = theta, Epsilon = epsilon,
+        }, (uint)keys.Rows)]);
     }
 
     public void GroupedAttentionScores(GpuTensor query, GpuTensor keys, GpuTensor scores,
@@ -344,6 +454,36 @@ public sealed partial class ComputeMathBatch
         }, (uint)heads, (uint)query.Rows)]);
     }
 
+    /// <summary>FP32 single-token attention with independent key tiles and a stable softmax merge.</summary>
+    public void SplitDecodeAttention(GpuTensor query, GpuTensor keyValue, GpuTensor partials, GpuTensor output,
+        int heads, int headWidth, int position, int window, int tileKeys)
+    {
+        Check(query, keyValue, partials, output);
+        int capacity = keyValue.Rows / 2;
+        Require(query.Rows == 1 && SameShape(query, output) && heads is > 0 and <= 64
+            && headWidth is 256 or 512 && query.Columns == heads * headWidth
+            && keyValue.Columns == headWidth && keyValue.Rows == capacity * 2 && capacity <= 1024
+            && position >= 0 && position < capacity && window is > 0 and <= 1024 && tileKeys is 32 or 64 or 128
+            && !ReferenceEquals(output, query) && !ReferenceEquals(output, keyValue)
+            && !ReferenceEquals(partials, query) && !ReferenceEquals(partials, keyValue) && !ReferenceEquals(partials, output),
+            "Split attention needs one query row, a bounded KV cache and independent partials and output.");
+        int keys = Math.Min(position + 1, window);
+        uint tiles = Groups(keys, tileKeys);
+        Require(partials.Rows >= heads * tiles && partials.Columns == headWidth + 2,
+            "Split attention needs one local maximum, denominator and value vector per tile and head.");
+        Add([
+            new("FusedGroupedAttention.SplitDecode", query, keyValue, partials, new()
+            {
+                Width = (uint)headWidth, Offset = (uint)(position + 1 - keys), Columns = (uint)keys,
+                Rows = (uint)capacity, Stride = (uint)tileKeys, Inner = (uint)tileKeys / 8, Channels = tiles,
+            }, (uint)heads, tiles),
+            new("MergeAttentionPartials.v.ts", partials, partials, output, new()
+            {
+                Width = (uint)headWidth, Inner = tiles,
+            }, (uint)heads),
+        ]);
+    }
+
     public void GroupedAttentionValues(GpuTensor probabilities, GpuTensor values, GpuTensor output,
         int heads, int kvHeads, int headWidth, bool roundBFloat16)
         => GroupedAttentionValues(probabilities, values, output, heads, kvHeads, headWidth, roundBFloat16, 0);
@@ -384,6 +524,10 @@ public sealed partial class ComputeMathBatch
     /// <summary>Project one row to a vocabulary slice using native GGUF Q6_K weights.</summary>
     public void ProjectQ6K(GpuTensor input, GpuTensor weights, GpuTensor output,
         int firstOutput = 0, int outputCount = 0, float softCap = 0)
+        => ProjectQ6K(input, weights, output, PackedQ6Layout.RowMajor, firstOutput, outputCount, softCap);
+
+    public void ProjectQ6K(GpuTensor input, GpuTensor weights, GpuTensor output,
+        PackedQ6Layout layout, int firstOutput = 0, int outputCount = 0, float softCap = 0)
     {
         Check(input, output);
         Owner.Validate(weights, GpuTensorFormat.UInt32);
@@ -392,11 +536,20 @@ public sealed partial class ComputeMathBatch
             && firstOutput >= 0 && count > 0 && (long)firstOutput + count <= output.Elements
             && float.IsFinite(softCap) && softCap >= 0
             && weights.Elements * 4L == count * (input.Columns / 256L) * 210
+            && (layout != PackedQ6Layout.Interleaved8 || count % 8 == 0)
             && !ReferenceEquals(input, output), "Q6_K projection needs one input and aligned packed weight rows.");
-        Add([new("QuantizedQ6K.v.ts", input, weights, output, new()
+        string shader = layout switch
+        {
+            PackedQ6Layout.RowMajor => "QuantizedQ6K.v.ts",
+            PackedQ6Layout.RowMajorWord => "QuantizedQ6KWord.v.ts",
+            PackedQ6Layout.Interleaved8 => "QuantizedQ6KWord.Interleaved8",
+            _ => throw new ArgumentOutOfRangeException(nameof(layout)),
+        };
+        int rowsPerGroup = layout == PackedQ6Layout.RowMajor ? 4 : 8;
+        Add([new(shader, input, weights, output, new()
         {
             Columns = (uint)count, Width = (uint)input.Columns / 256, Offset = (uint)firstOutput, Alpha = softCap,
-        }, Groups(count, 4))]);
+        }, Groups(count, rowsPerGroup))]);
     }
 
     /// <summary>Reduce a flat scores tensor to one FP32 score and exact FP32 index.</summary>

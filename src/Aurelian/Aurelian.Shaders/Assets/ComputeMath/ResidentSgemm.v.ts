@@ -1,4 +1,6 @@
 import { KernelParameters } from "./KernelMath";
+import { Q4Rows, Q4ScaleWords } from "./Q4Rows1";
+import { Q4BlockAddress, Q4Scale } from "./PackedQ4Address";
 
 // A full-K resident 64x64 tile with a 4x4 register tile per lane. Host admission
 // bounds K, so the uniform loop covers every 16-wide K tile.
@@ -40,10 +42,12 @@ function ResidentSgemmMain(@builtin(groupId) group: uint3,
                 if (p.mode == 1) {
                     b = Bitcast<f32>(B[bColumn * p.inner + bRow]);
                 } else if (p.mode == 2) {
-                    let address = (bColumn * p.inner + bRow) / 32 * 5;
-                    let word = B[address + 1 + bRow % 32 / 8];
+                    let weightRow = p.height + bColumn;
+                    let address = Q4BlockAddress(weightRow, bRow, p.inner, Q4Rows, Q4ScaleWords);
+                    let rowInBlock = weightRow % Q4Rows;
+                    let word = B[address + Q4ScaleWords + bRow % 32 / 8 * Q4Rows + rowInBlock];
                     let nibble = (word >> (bRow % 8 * 4)) & 15;
-                    b = Bitcast<f32>(B[address]) * (Convert<f32>(nibble) - 8.0);
+                    b = Q4Scale(B, address, rowInBlock, Q4Rows, Q4ScaleWords) * (Convert<f32>(nibble) - 8.0);
                 } else {
                     b = Bitcast<f32>(B[bRow * p.columns + bColumn]);
                 }

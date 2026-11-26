@@ -1,21 +1,57 @@
 namespace Aurelian.Graphics.Vulkan.ComputeMath;
 
+public enum PackedQ4Layout
+{
+    RowMajor,
+    /// <summary>Eight output rows with binary16 scale pairs followed by four nibble planes.</summary>
+    Interleaved8,
+}
+
+public enum PackedQ6Layout
+{
+    RowMajor,
+    RowMajorWord,
+    Interleaved8,
+}
+
 public sealed partial class ComputeMathBatch
 {
+    private static long PackedQ4Words(int outputColumns, int inputWidth, PackedQ4Layout layout)
+        => layout == PackedQ4Layout.Interleaved8
+            ? (long)outputColumns * inputWidth / 256 * 36
+            : (long)outputColumns * inputWidth / 32 * 5;
+
+    private static bool PackedQ4Contains(GpuTensor weights, int inputWidth, PackedQ4Layout layout,
+        int firstWeightRow, int outputColumns, int weightRows)
+    {
+        return Enum.IsDefined(layout) && firstWeightRow >= 0 && (long)firstWeightRow + outputColumns <= weightRows
+            && (layout == PackedQ4Layout.RowMajor || (firstWeightRow % 8 == 0 && weightRows % 8 == 0))
+            && weights.Elements == PackedQ4Words(weightRows, inputWidth, layout);
+    }
+
     /// <summary>Decode a K slice of packed [output,input] Q4B32 weights into
     /// transposed binary16 storage for cooperative projection.</summary>
     public void PackQ4WeightsHalf(GpuTensor weights, GpuTensor output, int inputWidth, int firstInput = 0)
+        => PackQ4WeightsHalf(weights, output, inputWidth, firstInput, PackedQ4Layout.RowMajor);
+
+    public void PackQ4WeightsHalf(GpuTensor weights, GpuTensor output, int inputWidth, int firstInput, PackedQ4Layout layout)
+        => PackQ4WeightsHalf(weights, output, inputWidth, firstInput, layout, 0, output.Columns);
+
+    public void PackQ4WeightsHalf(GpuTensor weights, GpuTensor output, int inputWidth, int firstInput, PackedQ4Layout layout,
+        int firstWeightRow, int weightRows)
     {
         Owner.Validate(weights, GpuTensorFormat.UInt32);
         Owner.Validate(output, GpuTensorFormat.PackedFloat16);
         Require(inputWidth > 0 && inputWidth % 32 == 0 && firstInput >= 0 && firstInput % 16 == 0
             && output.Rows % 16 == 0 && output.Columns % 16 == 0
             && firstInput + (long)output.Rows <= inputWidth
-            && weights.Elements == (long)output.Columns * inputWidth / 32 * 5,
+            && PackedQ4Contains(weights, inputWidth, layout, firstWeightRow, output.Columns, weightRows),
             "Q4 weight packing needs complete aligned weights and an in-range K tile.");
-        Add([new("PackQ4WeightsHalf.v.ts", weights, weights, output, new()
+        string shader = layout == PackedQ4Layout.Interleaved8
+            ? "PackQ4WeightsHalf.InterleavedHalfScale" : "PackQ4WeightsHalf.v.ts";
+        Add([new(shader, weights, weights, output, new()
         {
-            Columns = (uint)output.Columns, Inner = (uint)inputWidth, Offset = (uint)firstInput,
+            Columns = (uint)output.Columns, Inner = (uint)inputWidth, Offset = (uint)firstInput, Height = (uint)firstWeightRow,
         }, (uint)output.Rows / 16, (uint)output.Columns / 16)]);
     }
 

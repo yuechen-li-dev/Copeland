@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -493,8 +494,197 @@ static void KernelChecks(VulkanComputeMath compute)
     }
     File.WriteAllText("artifacts/local/gemma4/kernels.json", JsonSerializer.Serialize(checks, new JsonSerializerOptions { WriteIndented = true }));
     GroupedAttentionChecks(compute);
+    SplitDecodeAttentionChecks(compute);
+    PackedFeedForwardChecks(compute);
+    Q6ProjectionChecks(compute);
     ArgMaxChecks(compute);
     Console.WriteLine("AURELIAN_GEMMA_KERNELS_PASSED");
+}
+
+static void SplitDecodeAttentionChecks(VulkanComputeMath compute)
+{
+    const int heads = 3;
+    const int capacity = 1024;
+    const int tileKeys = 32;
+    foreach (int width in new[] { 256, 512 })
+    {
+        using var query = compute.CreateTensor(1, heads * width);
+        using var cache = compute.CreateTensor(capacity * 2, width);
+        using var partials = compute.CreateTensor(heads * capacity / tileKeys, width + 2);
+        using var reference = compute.CreateTensor(1, heads * width);
+        using var result = compute.CreateTensor(1, heads * width);
+        compute.Upload(query, Enumerable.Range(0, query.Elements).Select(i => MathF.Cos(i * .173f) * .5f).ToArray());
+        compute.Upload(cache, Enumerable.Range(0, cache.Elements).Select(i => MathF.Sin(i * .037f)).ToArray());
+        foreach (var (position, window) in new[] { (0, 512), (32, 512), (512, 512), (1023, 1024) })
+        {
+            var batch = compute.CreateBatch();
+            batch.FusedGroupedAttention(query, cache, reference, heads, width, position, window, wideKeyTile: true);
+            batch.SplitDecodeAttention(query, cache, partials, result, heads, width, position, window, tileKeys);
+            compute.Execute(batch);
+            float[] expected = compute.Read(reference);
+            float[] actual = compute.Read(result);
+            for (int index = 0; index < actual.Length; index++)
+            {
+                if (!float.IsFinite(actual[index]) || MathF.Abs(actual[index] - expected[index]) > 2e-5f)
+                {
+                    throw new InvalidDataException($"Tiled decode attention differs at width {width}, position {position}, window {window}.");
+                }
+            }
+        }
+    }
+}
+
+static void PackedFeedForwardChecks(VulkanComputeMath compute)
+{
+    const int width = 2048;
+    const int outputs = 1536;
+    const int wordsPerMatrix = outputs * width / 256 * 36;
+    using var input = compute.CreateTensor(1, width);
+    using var gateWeights = compute.CreateSparseTensor(outputs / 2 * 9, width / 32, GpuTensorFormat.UInt32);
+    using var upWeights = compute.CreateSparseTensor(outputs / 2 * 9, width / 32, GpuTensorFormat.UInt32);
+    using var pair = compute.CreateSparseTensor(outputs * 9, width / 32, GpuTensorFormat.UInt32);
+    using var gate = compute.CreateTensor(1, outputs);
+    using var up = compute.CreateTensor(1, outputs);
+    using var result = compute.CreateTensor(1, outputs);
+    using var gamma = compute.CreateTensor(1, outputs);
+    var values = Enumerable.Range(0, width).Select(index => .15f * MathF.Sin(index * .107f)).ToArray();
+    compute.Upload(input, values);
+    compute.Upload(gamma, Enumerable.Range(0, outputs).Select(index => .5f + (index % 11) * .08f).ToArray());
+
+    var random = new Random(351);
+    var raw = new byte[outputs * width / 32 * 18];
+    var packed = new byte[wordsPerMatrix * sizeof(uint)];
+    foreach (var (weights, pairOffset) in new[] { (gateWeights, 0), (upWeights, wordsPerMatrix) })
+    {
+        random.NextBytes(raw);
+        for (int offset = 0; offset < raw.Length; offset += 18)
+        {
+            Half scale = (Half)((random.Next(1, 33) - 16) / 16384f);
+            BinaryPrimitives.WriteUInt16LittleEndian(raw.AsSpan(offset), BitConverter.HalfToUInt16Bits(scale));
+        }
+        GgufBlocks.RepackQ4_0Interleaved8(raw, MemoryMarshal.Cast<byte, uint>(packed.AsSpan()), width);
+        compute.UploadUInt32Bytes(weights, packed);
+        compute.UploadUInt32Region(pair, packed, pairOffset);
+    }
+
+    var separate = compute.CreateBatch();
+    separate.ProjectPackedQ4(input, gateWeights, gate, 16, PackedQ4Layout.Interleaved8);
+    separate.ProjectPackedQ4(input, upWeights, up, 16, PackedQ4Layout.Interleaved8);
+    separate.GeluGate(gate, up, gate);
+    compute.Execute(separate);
+    var fused = compute.CreateBatch();
+    fused.ProjectPackedQ4GateUp(input, pair, result);
+    compute.Execute(fused);
+    RequireClose(gate, result, "fused gate/up");
+
+    using (var prompt = compute.CreateTensor(2, width))
+    using (var expected = compute.CreateTensor(2, outputs))
+    using (var actual = compute.CreateTensor(2, outputs))
+    {
+        compute.Upload(prompt, values.Concat(values).ToArray());
+        var slice = compute.CreateBatch();
+        slice.ProjectPackedQ4(prompt, upWeights, expected, 16, PackedQ4Layout.Interleaved8);
+        slice.ProjectPackedQ4(prompt, pair, actual, 16, PackedQ4Layout.Interleaved8, outputs, 2 * outputs);
+        compute.Execute(slice);
+        RequireClose(expected, actual, "Q4 weight row slice");
+    }
+
+    var referenceDown = compute.CreateBatch();
+    referenceDown.ProjectPackedQ4(input, gateWeights, gate, 16, PackedQ4Layout.Interleaved8);
+    compute.Execute(referenceDown);
+    foreach (int tiles in new[] { 1, 2, 4 })
+    {
+        using var partials = tiles == 1 ? null : compute.CreateTensor(tiles, outputs);
+        var tiled = compute.CreateBatch();
+        tiled.ProjectPackedQ4Tiled(input, gateWeights, result, partials);
+        compute.Execute(tiled);
+        RequireClose(gate, result, $"down projection with {tiles} tiles");
+    }
+
+    var referenceNorm = compute.CreateBatch();
+    referenceNorm.NormalizeHeads(gate, gamma, up, outputs, 1e-6f,
+        roundBFloat16: false, bounded: false, specialize1536: true);
+    compute.Execute(referenceNorm);
+    using var split = compute.CreateTensor(2, outputs);
+    var fusedNorm = compute.CreateBatch();
+    fusedNorm.ProjectPackedQ4Tiled(input, gateWeights, result, split, gamma);
+    compute.Execute(fusedNorm);
+    RequireClose(up, result, "down projection with fused merge and RMSNorm");
+
+    void RequireClose(GpuTensor expected, GpuTensor actual, string description)
+    {
+        float[] reference = compute.Read(expected);
+        float[] measured = compute.Read(actual);
+        for (int index = 0; index < reference.Length; index++)
+        {
+            if (!float.IsFinite(measured[index]) || MathF.Abs(reference[index] - measured[index]) > 2e-5f)
+            {
+                throw new InvalidDataException($"Packed Q4 {description} disagrees at output {index}.");
+            }
+        }
+    }
+}
+
+static void Q6ProjectionChecks(VulkanComputeMath compute)
+{
+    const int width = 512;
+    const int rows = 16;
+    const int outputOffset = 3;
+    const int blockBytes = 210;
+    const int rowBytes = blockBytes * (width / 256);
+    byte[] bytes = new byte[rows * rowBytes];
+    new Random(351).NextBytes(bytes);
+    for (int block = 0; block < bytes.Length / blockBytes; block++)
+    {
+        Half scale = (Half)((block - 11) / 32768f);
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(block * blockBytes + 208),
+            BitConverter.HalfToUInt16Bits(scale));
+    }
+    float[] input = Enumerable.Range(0, width).Select(i => MathF.Sin(i * .113f) * .25f).ToArray();
+    float[] decoded = new float[width];
+    float[] expected = Enumerable.Repeat(-10f, rows + outputOffset + 1).ToArray();
+    for (int row = 0; row < rows; row++)
+    {
+        GgufBlocks.DecodeQ6_K(bytes.AsSpan(row * rowBytes, rowBytes), decoded);
+        double dot = 0;
+        for (int column = 0; column < width; column++)
+        {
+            dot += (double)input[column] * decoded[column];
+        }
+        expected[outputOffset + row] = (float)(30 * Math.Tanh(dot / 30));
+    }
+
+    using var x = compute.CreateTensor(1, width);
+    using var weights = compute.CreateSparseTensor(rows, rowBytes / sizeof(uint), GpuTensorFormat.UInt32);
+    using var output = compute.CreateTensor(1, expected.Length);
+    compute.Upload(x, input);
+    byte[] interleaved = new byte[bytes.Length];
+    GgufBlocks.RepackQ6_KInterleaved8(bytes, MemoryMarshal.Cast<byte, uint>(interleaved.AsSpan()), width);
+    foreach (PackedQ6Layout layout in Enum.GetValues<PackedQ6Layout>())
+    {
+        if (layout == PackedQ6Layout.Interleaved8)
+        {
+            int groupBytes = rowBytes * 8;
+            compute.UploadUInt32Region(weights, interleaved.AsMemory(0, groupBytes), 0);
+            compute.UploadUInt32Region(weights, interleaved.AsMemory(groupBytes), groupBytes / sizeof(uint));
+        }
+        else
+        {
+            compute.UploadUInt32Bytes(weights, bytes);
+        }
+        compute.Upload(output, Enumerable.Repeat(-10f, expected.Length).ToArray());
+        var batch = compute.CreateBatch();
+        batch.ProjectQ6K(x, weights, output, layout, outputOffset, rows, softCap: 30);
+        compute.Execute(batch);
+        float[] actual = compute.Read(output);
+        for (int index = 0; index < actual.Length; index++)
+        {
+            if (!float.IsFinite(actual[index]) || MathF.Abs(actual[index] - expected[index]) > 1e-5f)
+            {
+                throw new InvalidDataException($"Q6_K {layout} disagrees with the CPU dot product at {index}.");
+            }
+        }
+    }
 }
 
 static void ArgMaxChecks(VulkanComputeMath compute)

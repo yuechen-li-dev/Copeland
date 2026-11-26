@@ -37,11 +37,14 @@ public sealed unsafe partial class VulkanComputeMath
     /// <summary>Times dispatch intervals in one synchronous submission. Intervals include
     /// synchronization and timestamp costs. Compare uninstrumented runs for latency.</summary>
     public ComputeDispatchProfile ExecuteWithDispatchTimings(ComputeMathBatch batch)
+        => ExecuteWithDispatchTimings(batch, upload: null);
+
+    public ComputeDispatchProfile ExecuteWithDispatchTimings(ComputeMathBatch batch, ComputeBatchUpload? upload)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         ComputeMathBatch.Require(queuedScope is null, "Dispatch profiling requires synchronous execution.");
         dispatchTimestamps ??= new(plant, MaximumDispatches + 1);
-        ComputeMathResult result = ExecuteCore(batch, null, default, dispatchTimestamps);
+        ComputeMathResult result = ExecuteCore(batch, null, upload?.Payload ?? default, dispatchTimestamps, upload);
         return new(result, dispatchTimestamps.Read(batch.DispatchCount))
         {
             ShaderNames = Array.AsReadOnly(batch.Dispatches.Select(dispatch => dispatch.Shader).ToArray()),

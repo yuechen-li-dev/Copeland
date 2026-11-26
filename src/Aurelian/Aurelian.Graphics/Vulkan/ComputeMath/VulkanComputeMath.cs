@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Aurelian.Graphics.Vulkan.Commanding;
 using Aurelian.Graphics.Vulkan.Commanding.Submit;
@@ -11,7 +12,14 @@ using Silk.NET.Vulkan;
 
 namespace Aurelian.Graphics.Vulkan.ComputeMath;
 
-public sealed record ComputeMathResult(int Dispatches, double? GpuMilliseconds);
+public sealed record ComputeMathResult(int Dispatches, double? GpuMilliseconds)
+{
+    public ComputeBatchCpuTimings? CpuTimings { get; init; }
+}
+
+/// <summary>Host elapsed intervals for one synchronous batch. Fence wait overlaps the GPU interval.</summary>
+public sealed record ComputeBatchCpuTimings(double ValidationMs, double DescriptorsMs, double RecordingMs,
+    double SubmitAndWaitMs, VulkanSubmitCpuTimings Submission, double TimestampReadMs);
 
 /// <summary>Device-local tensors and bounded dispatch batches on the existing plant queue.
 /// Upload and readback are explicit; an Execute call submits the whole GPU chain once.</summary>
@@ -58,6 +66,8 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
     public bool UseCooperativeLinear { get; set; }
     /// <summary>Reuse immutable descriptor contents and parameter bytes once their slot is safe to record.</summary>
     public bool ReuseDispatchBindings { get; set; } = true;
+    /// <summary>Collect phase timings for synchronous batch execution.</summary>
+    public bool MeasureBatchCpuTime { get; set; }
     public bool UseWidthSpecializedLayerNorm { get; set; } = true;
     /// <summary>Preferred model attention query tile. Larger tiles amortize queue
     /// and barrier overhead without changing per-query arithmetic. AttentionTiled
@@ -195,9 +205,25 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
         Validate(tensor, GpuTensorFormat.UInt32);
         ComputeMathBatch.Require(bytes.Length == (long)tensor.Elements * sizeof(uint),
             "Packed unsigned upload length must match the tensor shape.");
+        UploadUInt32RegionUnchecked(tensor, bytes, 0);
+    }
+
+    /// <summary>Upload complete words into a region of a packed tensor using reusable staging.</summary>
+    public void UploadUInt32Region(GpuTensor tensor, ReadOnlyMemory<byte> bytes, int firstWord)
+    {
+        Validate(tensor, GpuTensorFormat.UInt32);
+        Require(firstWord >= 0 && bytes.Length > 0 && bytes.Length % sizeof(uint) == 0
+            && (long)firstWord + bytes.Length / sizeof(uint) <= tensor.Elements,
+            "Packed unsigned upload region must fit the tensor and contain complete words.");
+        UploadUInt32RegionUnchecked(tensor, bytes, firstWord);
+    }
+
+    private void UploadUInt32RegionUnchecked(GpuTensor tensor, ReadOnlyMemory<byte> bytes, int firstWord)
+    {
         queuedScope?.Flush();
         var staging = ReusableUploadBuffer(bytes.Length);
-        var result = uploader.Upload(new(tensor.Buffer, bytes, DebugName: "compute-math.upload-u32"), staging);
+        var result = uploader.Upload(new(tensor.Buffer, bytes,
+            (ulong)firstWord * sizeof(uint), "compute-math.upload-u32"), staging);
         Require(result.Success, string.Join("; ", result.Diagnostics.Select(item => item.Message)));
     }
 
@@ -217,6 +243,13 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
         return ExecuteCore(batch, null, default);
     }
 
+    /// <summary>Copies one contiguous payload into its destination tensors, then runs the batch.</summary>
+    public ComputeMathResult ExecuteWithUpload(ComputeMathBatch batch, ComputeBatchUpload upload)
+    {
+        ArgumentNullException.ThrowIfNull(upload);
+        return ExecuteCore(batch, null, upload.Payload, plan: upload);
+    }
+
     /// <summary>Copies one packed tensor and executes its consumers in the same
     /// submission. The supplied host memory is consumed before this method returns.</summary>
     public ComputeMathResult ExecuteWithUInt32Upload(ComputeMathBatch batch,
@@ -229,15 +262,17 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
     }
 
     private ComputeMathResult ExecuteCore(ComputeMathBatch batch, GpuTensor? upload, ReadOnlyMemory<byte> bytes,
-        DispatchTimestamps? profile = null)
+        DispatchTimestamps? profile = null, ComputeBatchUpload? plan = null)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         ComputeMathBatch.Require(ReferenceEquals(batch.Owner, this) && batch.DispatchCount > 0,
             "Execute requires a nonempty batch from this compute owner.");
         if (queuedScope is not null)
         {
-            return queuedScope.Submit(batch, upload, bytes);
+            return queuedScope.Submit(batch, upload, bytes, plan: plan);
         }
+        bool measure = MeasureBatchCpuTime;
+        long started = measure ? Stopwatch.GetTimestamp() : 0;
         foreach (var dispatch in batch.Dispatches)
         {
             Validate(dispatch.Input, dispatch.Input.Format);
@@ -245,6 +280,14 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
             Validate(dispatch.Output, dispatch.Output.Format);
             EnsurePipeline(dispatch.Shader);
         }
+        if (plan is not null)
+        {
+            foreach (var destination in plan.Destinations)
+            {
+                Validate(destination, destination.Format);
+            }
+        }
+        long validated = measure ? Stopwatch.GetTimestamp() : 0;
         while (slots.Count < batch.DispatchCount)
         {
             slots.Add(CreateSlot());
@@ -253,22 +296,31 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
         {
             Configure(slots[index], batch.Dispatches[index]);
         }
-        if (upload is not null)
+        bool hasUpload = upload is not null || plan is not null;
+        if (hasUpload)
         {
-            Require(ReusableUploadBuffer(bytes.Length).Write(bytes.Span).Success, "Packed upload staging write failed.");
+            Require(ReusableUploadBuffer(bytes.Length).Write(bytes.Span).Success, "Batch upload staging write failed.");
         }
+        long configured = measure ? Stopwatch.GetTimestamp() : 0;
         var command = commands.Rent(fences.CommandListFence.LastKnownCompletedValue);
         Require(command.Begin().Success, "Compute batch begin failed.");
         timings.Reset(command);
         profile?.Begin(command, batch.DispatchCount);
-        if (upload is not null)
+        if (hasUpload)
         {
             Barrier(command, AccessFlags.HostWriteBit | AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
                 AccessFlags.TransferReadBit | AccessFlags.TransferWriteBit,
                 PipelineStageFlags.HostBit | PipelineStageFlags.ComputeShaderBit, PipelineStageFlags.TransferBit);
-            var copy = new BufferCopy(0, 0, (ulong)bytes.Length);
-            plant.Vk.CmdCopyBuffer(command.CommandBuffer, uploadStaging!.NativeBuffer,
-                upload.Buffer.NativeBuffer, 1, &copy);
+            if (plan is not null)
+            {
+                RecordCopies(command, uploadStaging!, plan);
+            }
+            else
+            {
+                var copy = new BufferCopy(0, 0, (ulong)bytes.Length);
+                plant.Vk.CmdCopyBuffer(command.CommandBuffer, uploadStaging!.NativeBuffer,
+                    upload!.Buffer.NativeBuffer, 1, &copy);
+            }
         }
         Barrier(command, AccessFlags.HostWriteBit | AccessFlags.ShaderWriteBit | AccessFlags.TransferWriteBit,
             AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
@@ -286,8 +338,18 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
             profile?.Mark(command, index + 1);
         }
         timings.Mark(command, 1);
-        Submit(command, "compute-math.batch");
-        return new(batch.DispatchCount, timings.Read().FirstOrDefault()?.Milliseconds);
+        long recorded = measure ? Stopwatch.GetTimestamp() : 0;
+        var submission = Submit(command, "compute-math.batch", measure);
+        long completed = measure ? Stopwatch.GetTimestamp() : 0;
+        double? gpuMs = timings.Read().FirstOrDefault()?.Milliseconds;
+        var cpu = submission is null ? null : new ComputeBatchCpuTimings(
+            Stopwatch.GetElapsedTime(started, validated).TotalMilliseconds,
+            Stopwatch.GetElapsedTime(validated, configured).TotalMilliseconds,
+            Stopwatch.GetElapsedTime(configured, recorded).TotalMilliseconds,
+            Stopwatch.GetElapsedTime(recorded, completed).TotalMilliseconds,
+            submission,
+            Stopwatch.GetElapsedTime(completed).TotalMilliseconds);
+        return new(batch.DispatchCount, gpuMs) { CpuTimings = cpu };
     }
 
     public float[] Read(GpuTensor tensor) => Read(tensor, reuseStaging: false);
@@ -393,11 +455,12 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
         plant.Vk.CmdPipelineBarrier(command.CommandBuffer, sourceStage, destinationStage, 0, 1, &barrier, 0, null, 0, null);
     }
 
-    private void Submit(VulkanCommandBufferLease command, string name)
+    private VulkanSubmitCpuTimings? Submit(VulkanCommandBufferLease command, string name, bool measure = false)
     {
         Require(command.End().Success, "Compute command end failed.");
-        var submitted = submitter.Submit(new(command, DebugName: name));
+        var submitted = submitter.Submit(new(command, DebugName: name) { MeasureCpuTime = measure });
         Require(submitted.Success, string.Join("; ", submitted.Diagnostics.Select(item => item.Message)));
+        return submitted.CpuTimings;
     }
 
     private static void Require(bool success, string message)

@@ -1,4 +1,6 @@
 import { KernelParameters } from "./KernelMath";
+import { Q4Rows, Q4ScaleWords } from "./Q4Rows1";
+import { Q4BlockAddress, Q4Scale } from "./PackedQ4Address";
 
 // Decode consecutive weight pairs, then transpose the 16x16 tile in shared memory.
 @compute
@@ -14,10 +16,12 @@ function PackQ4WeightsHalfMain(@builtin(groupId) group: uint3,
     static for (let part of Indices<2>()) {
         let index = lane + part * 64;
         let inner = group.x * 16 + index % 8 * 2 + p.offset;
-        let row = group.y * 16 + index / 8;
-        let address = (row * p.inner + inner) / 32 * 5;
-        let scale = Bitcast<f32>(Weights[address]);
-        let word = Weights[address + 1 + inner % 32 / 8] >> (inner % 8 * 4);
+        let row = p.height + group.y * 16 + index / 8;
+        let address = Q4BlockAddress(row, inner, p.inner, Q4Rows, Q4ScaleWords);
+        let rowInBlock = row % Q4Rows;
+        let scale = Q4Scale(Weights, address, rowInBlock, Q4Rows, Q4ScaleWords);
+        let wordAddress = address + Q4ScaleWords + inner % 32 / 8 * Q4Rows + rowInBlock;
+        let word = Weights[wordAddress] >> (inner % 8 * 4);
         let low = (Convert<f32>(word & 15) - 8.0) * scale;
         let high = (Convert<f32>((word >> 4) & 15) - 8.0) * scale;
         Tile[index] = PackFloat16Pair(low, high);
