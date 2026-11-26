@@ -1,7 +1,7 @@
 using Aurelian.Graphics.Vulkan.ComputeMath;
 using Aurelian.Inference;
 
-namespace Aurelian.WhisperBenchmark;
+namespace Aurelian.Inference.Whisper;
 
 internal sealed record CheckpointEncoderBlock(GpuTensor AttentionNorm, GpuTensor MlpNorm,
     CheckpointProjection Query, CheckpointProjection Key, CheckpointProjection Value,

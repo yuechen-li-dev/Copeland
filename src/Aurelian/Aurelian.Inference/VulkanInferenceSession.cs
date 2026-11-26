@@ -21,6 +21,7 @@ public sealed record VulkanInferenceOptions
 /// resources before an owned plant. This class starts no window or worker.</summary>
 public sealed class VulkanInferenceSession : IDisposable
 {
+    private static readonly BuiltinComputeShaderCache Shaders = new();
     private readonly bool ownsPlant;
     private bool disposed;
     public AurelianVulkanPlant Plant { get; }
@@ -35,8 +36,7 @@ public sealed class VulkanInferenceSession : IDisposable
         }
         Plant = plant;
         this.ownsPlant = ownsPlant;
-        var shaders = new BuiltinComputeShaderCache();
-        Compute = new(plant, shaders.Get, options.MaximumDispatches, options.MaximumTensorElements)
+        Compute = new(plant, Shaders.Get, options.MaximumDispatches, options.MaximumTensorElements)
         {
             AttentionQueryTileRows = options.AttentionQueryTileRows,
             UseCooperativeLinear = options.UseCooperativeLinear,

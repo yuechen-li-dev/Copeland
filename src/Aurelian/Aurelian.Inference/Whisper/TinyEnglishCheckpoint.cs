@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Aurelian.Assets.Tensors;
 
-namespace Aurelian.WhisperBenchmark;
+namespace Aurelian.Inference.Whisper;
 
 // The legacy ggml Tiny.en F16 profile is shared with the reference executable.
 // Shapes below are in ggml order (fastest axis first).
@@ -24,6 +24,7 @@ internal sealed class TinyEnglishCheckpoint : ICheckpointWeights, IDisposable
     private readonly Dictionary<string, Tensor> tensors = new(StringComparer.Ordinal);
     private readonly byte[][] vocabulary = new byte[EndOfText + 1][];
     private readonly BinaryReader reader;
+    public float[] MelFilters { get; private set; } = [];
     public IReadOnlyDictionary<string, CheckpointTensorInfo> Tensors { get; }
 
     public TinyEnglishCheckpoint(string path)
@@ -54,7 +55,8 @@ internal sealed class TinyEnglishCheckpoint : ICheckpointWeights, IDisposable
             }
         }
         Stream stream = reader.BaseStream;
-        stream.Position += MelBins * 201 * sizeof(float);
+        MelFilters = new float[MelBins * 201];
+        stream.ReadExactly(MemoryMarshal.AsBytes(MelFilters.AsSpan()));
         if (reader.ReadInt32() != vocabulary.Length)
         {
             throw new InvalidDataException("Unexpected Tiny.en vocabulary size.");
@@ -167,6 +169,8 @@ internal sealed class TinyEnglishCheckpoint : ICheckpointWeights, IDisposable
         }
         return values;
     }
+
+    public ReadOnlySpan<byte> TextBytes(int token) => vocabulary[token];
 
     public string Decode(IEnumerable<int> tokens)
     {

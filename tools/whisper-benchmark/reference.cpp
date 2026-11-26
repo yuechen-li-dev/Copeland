@@ -112,18 +112,81 @@ void write_samples(std::ostream & output, const std::vector<Sample> & samples) {
     }
     output << "\n]";
 }
+void benchmark_pcm(const char * checkpoint, const char * input_path, const char * output_path,
+                   int count, bool use_gpu) {
+    std::ifstream input(input_path, std::ios::binary | std::ios::ate);
+    const std::streamoff size = input.tellg();
+    if (size <= 0 || size > 480000 * sizeof(float) || size % sizeof(float) != 0) {
+        throw std::runtime_error("expected a nonempty mono 16 kHz FP32 PCM window");
+    }
+    std::vector<float> pcm(static_cast<size_t>(size) / sizeof(float));
+    input.seekg(0);
+    if (!input.read(reinterpret_cast<char *>(pcm.data()), size)) {
+        throw std::runtime_error("could not read the PCM fixture");
+    }
+    auto device = whisper_context_default_params();
+    device.use_gpu = use_gpu;
+    device.flash_attn = false;
+    device.dtw_token_timestamps = true;
+    device.dtw_aheads_preset = WHISPER_AHEADS_TINY_EN;
+    const auto init_start = Clock::now();
+    std::unique_ptr<whisper_context, decltype(&whisper_free)> context(
+        whisper_init_from_file_with_params(checkpoint, device), whisper_free);
+    const double initialization = elapsed_ms(init_start);
+    if (!context || whisper_n_vocab(context.get()) != 51864) {
+        throw std::runtime_error("could not load the Tiny.en checkpoint");
+    }
+    auto options = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
+    options.n_threads = threads;
+    options.greedy.best_of = 1;
+    options.language = "en";
+    options.no_context = true;
+    options.temperature = 0;
+    options.temperature_inc = 0;
+    options.token_timestamps = true;
+    options.split_on_word = true;
+    options.max_len = 1;
+    options.print_progress = false;
+    options.print_timestamps = false;
+    options.print_realtime = false;
+
+    std::ofstream output(output_path);
+    output << "{\"InitializationMs\":" << initialization << ",\"RequestMs\":[";
+    for (int i = 0; i < count; ++i) {
+        const auto begin = Clock::now();
+        if (whisper_full(context.get(), options, pcm.data(), static_cast<int>(pcm.size())) != 0) {
+            throw std::runtime_error("whisper_full failed");
+        }
+        if (i > 0) {
+            output << ',';
+        }
+        output << elapsed_ms(begin);
+    }
+    output << "]}\n";
+    for (int i = 0; i < whisper_full_n_segments(context.get()); ++i) {
+        std::cout << whisper_full_get_segment_text(context.get(), i);
+    }
+    std::cout << '\n';
+}
 }
 
 int main(int argc, char ** argv) {
     if (argc != 6) {
-        std::cerr << "Usage: whisper-benchmark-reference CHECKPOINT MEL_F32 OUTPUT_JSON SAMPLES flash|standard\n";
+        std::cerr << "Usage: whisper-benchmark-reference CHECKPOINT INPUT_F32 OUTPUT_JSON SAMPLES flash|standard|pcm-cpu|pcm-gpu\n";
         return 2;
     }
     try {
         const int count = std::stoi(argv[4]);
         const std::string attention = argv[5];
-        if (count < 1 || count > 100 || (attention != "flash" && attention != "standard")) {
-            throw std::runtime_error("expected 1–100 samples and flash/standard attention mode");
+        if (count < 1 || count > 100) {
+            throw std::runtime_error("expected 1–100 samples");
+        }
+        if (attention == "pcm-cpu" || attention == "pcm-gpu") {
+            benchmark_pcm(argv[1], argv[2], argv[3], count, attention == "pcm-gpu");
+            return 0;
+        }
+        if (attention != "flash" && attention != "standard") {
+            throw std::runtime_error("expected flash, standard, pcm-cpu or pcm-gpu");
         }
         const auto mel = read_mel(argv[2]);
         auto params = whisper_context_default_params();

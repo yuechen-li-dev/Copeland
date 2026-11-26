@@ -5,8 +5,14 @@ using System.Text.Json;
 using Aurelian.Inference;
 using Aurelian.Graphics.Vulkan.ComputeMath;
 using Aurelian.Inference.Benchmarks;
-using Aurelian.WhisperBenchmark;
-using static Aurelian.WhisperBenchmark.TinyEnglishCheckpoint;
+using Aurelian.Inference.Whisper;
+using static Aurelian.Inference.Whisper.TinyEnglishCheckpoint;
+
+if (args.Length > 0 && args[0] == "pcm")
+{
+    RunPcmBenchmark(args);
+    return;
+}
 
 string[] options = args.Skip(5).ToArray();
 string? queueOption = options.FirstOrDefault(option => option.StartsWith("queue=", StringComparison.Ordinal));
@@ -16,7 +22,7 @@ string? budgetOption = options.SingleOrDefault(option => option.StartsWith(budge
 int? encoderBudgetMiB = budgetOption is null ? null : int.Parse(budgetOption[budgetPrefix.Length..], CultureInfo.InvariantCulture);
 if (args.Length < 4)
 {
-    throw new ArgumentException("Usage: Aurelian.WhisperBenchmark CHECKPOINT MEL_F32 OUTPUT_JSON SAMPLES [per-head|batched|reuse|direct|gemv|gemv-scratch|fused] [persistent-read] [persistent-upload] [host-logits] [batch-cross] [join-logits] [half-projections] [half-attention] [cooperative-attention|attention-32|attention-64] [packed-vocab|packed-lookup] [encoder-budget-mib=N] [prefetch-encoder|copy-at-use|checkpoint-tiles] [cooperative-convolution] [direct-projections|reuse-projections] [profile-attention] [profile-gpu|profile-stream] [general-norm] [rewrite-bindings] [projection-epilogues] [capture] [queue=fixed-one|fixed-two|adaptive|dominatus|dominatus-per-request] [step] [validate]");
+    throw new ArgumentException("Usage: Aurelian.Inference.Whisper CHECKPOINT MEL_F32 OUTPUT_JSON SAMPLES [per-head|batched|reuse|direct|gemv|gemv-scratch|fused] [persistent-read] [persistent-upload] [host-logits] [batch-cross] [join-logits] [half-projections] [half-attention] [cooperative-attention|attention-32|attention-64] [packed-vocab|packed-lookup] [encoder-budget-mib=N] [prefetch-encoder|copy-at-use|checkpoint-tiles] [cooperative-convolution] [direct-projections|reuse-projections] [profile-attention] [profile-gpu|profile-stream] [general-norm] [rewrite-bindings] [projection-epilogues] [capture] [queue=fixed-one|fixed-two|adaptive|dominatus|dominatus-per-request] [step] [validate]");
 }
 int sampleCount = int.Parse(args[3], CultureInfo.InvariantCulture);
 string mode = args.Length >= 5 ? args[4] : "per-head";
@@ -154,122 +160,30 @@ File.WriteAllText(args[2], JsonSerializer.Serialize(new
     Memory = session.Compute.MemoryTelemetry,
 }, new JsonSerializerOptions { WriteIndented = true }));
 
-namespace Aurelian.WhisperBenchmark
+
+static void RunPcmBenchmark(string[] args)
 {
-    internal sealed record InferenceSample(double TotalMs, double EncodeMs, double PrefillMs,
-        double DecodeMs, List<int> Tokens, int Readbacks, ulong Allocations, long ManagedBytes,
-        IReadOnlyDictionary<string, OperationTiming> Operations, QueueSample? Queue,
-        IReadOnlyList<EncoderAttentionGpuTiming>? EncoderAttentionProfile,
-        Dictionary<string, Dictionary<string, KernelTime>>? KernelProfile,
-        EncoderUploadTiming[]? EncoderUploads, List<PrefetchTiming>? PrefetchCopies, EncoderBatchInterval[]? EncoderBatches,
-        CheckpointTileSample? CheckpointTiles);
-
-    internal sealed record EncoderBatchInterval(string Operation,
-        Aurelian.Graphics.Vulkan.Native3D.Native3DCompletedGpuFrame? Compute,
-        Aurelian.Graphics.Vulkan.Native3D.Native3DCompletedGpuFrame? Transfer);
-
-    internal sealed record EncoderUploadTiming(ulong Bytes, double StagingMs, double? CopyMs,
-        double? PreComputeGapMs, double? CopyInGapMs);
-
-    internal sealed record EncoderAttentionGpuTiming(double KeyScatterMs, double ValueScatterMs,
-        double QueryPackMs, double KeyValuePackMs, double AttentionMs)
+    if (args.Length != 5 || !int.TryParse(args[4], out int requests) || requests is < 1 or > 100)
     {
-        internal static EncoderAttentionGpuTiming From(IReadOnlyList<double> intervals, bool packed)
-        {
-            if (intervals.Count != (packed ? 5 : 3))
-            {
-                throw new InvalidDataException("Unexpected encoder attention dispatch sequence.");
-            }
-            return new(intervals[0], intervals[1], packed ? intervals[2] : 0,
-                packed ? intervals[3] : 0, intervals[^1]);
-        }
+        throw new ArgumentException("Usage: Aurelian.WhisperBenchmark pcm CHECKPOINT MONO16K_F32 OUTPUT_JSON REQUESTS");
     }
-
-    internal sealed class OperationTiming
+    byte[] bytes = File.ReadAllBytes(args[2]);
+    if (bytes.Length == 0 || bytes.Length % sizeof(float) != 0)
     {
-        public double WallMs { get; set; }
-        public double GpuMs { get; set; }
-        public int TimedSubmissions { get; set; }
-        public int ComputeSubmissions { get; set; }
-        public int TransferCalls { get; set; }
-        public int Dispatches { get; set; }
-        public int CompletionWaits { get; set; }
+        throw new InvalidDataException("Expected nonempty little-endian FP32 PCM.");
     }
-
-    internal sealed class KernelTime
+    float[] pcm = MemoryMarshal.Cast<byte, float>(bytes).ToArray();
+    var timer = Stopwatch.StartNew();
+    using var transcriber = new VulkanWhisperTranscriber(args[1]);
+    double initializationMs = timer.Elapsed.TotalMilliseconds;
+    var timings = new List<double>(requests);
+    IReadOnlyList<WhisperWordTiming> words = [];
+    for (int i = 0; i < requests; i++)
     {
-        public int Dispatches { get; set; }
-        public double GpuMs { get; set; }
+        timer.Restart();
+        words = transcriber.Transcribe(pcm, pcm.Length);
+        timings.Add(timer.Elapsed.TotalMilliseconds);
     }
-
-    internal sealed class InferenceMetrics(bool queued, bool profileGpu)
-    {
-        private readonly Dictionary<string, OperationTiming> operations = new(StringComparer.Ordinal);
-        public IReadOnlyDictionary<string, OperationTiming> Operations => operations;
-
-        public List<(string Operation, QueuedDispatchProfile Profile)>? Profiles { get; } = profileGpu ? [] : null;
-
-        public Dictionary<string, Dictionary<string, KernelTime>>? CollectProfiles()
-        {
-            if (Profiles is null)
-            {
-                return null;
-            }
-            var groups = new Dictionary<string, Dictionary<string, KernelTime>>();
-            foreach (var (operation, profile) in Profiles)
-            {
-                if (!groups.TryGetValue(operation, out var kernels))
-                {
-                    kernels = new();
-                    groups.Add(operation, kernels);
-                }
-                for (int i = 0; i < profile.ShaderNames.Count; i++)
-                {
-                    string shader = profile.ShaderNames[i];
-                    if (!kernels.TryGetValue(shader, out var timing))
-                    {
-                        timing = new();
-                        kernels.Add(shader, timing);
-                    }
-                    timing.Dispatches++;
-                    timing.GpuMs += profile.DispatchMilliseconds[i];
-                }
-            }
-            return groups;
-        }
-
-        public void Record(string name, double wallMs, double? gpuMs, int submissions, int dispatches, int waits)
-        {
-            OperationTiming timing = GetTiming(name);
-            timing.WallMs += wallMs;
-            if (gpuMs is { } gpu)
-            {
-                timing.GpuMs += gpu;
-                timing.TimedSubmissions += submissions;
-            }
-            timing.ComputeSubmissions += submissions;
-            timing.Dispatches += dispatches;
-            if (!queued)
-            {
-                timing.CompletionWaits += waits;
-            }
-        }
-
-        public void RecordTransfer(string name, double wallMs)
-        {
-            OperationTiming timing = GetTiming(name);
-            timing.WallMs += wallMs;
-            timing.TransferCalls++;
-        }
-
-        private OperationTiming GetTiming(string name)
-        {
-            if (!operations.TryGetValue(name, out OperationTiming? timing))
-            {
-                timing = new();
-                operations.Add(name, timing);
-            }
-            return timing;
-        }
-    }
+    File.WriteAllText(args[3], JsonSerializer.Serialize(new { InitializationMs = initializationMs, RequestMs = timings, Words = words },
+        new JsonSerializerOptions { WriteIndented = true }));
 }

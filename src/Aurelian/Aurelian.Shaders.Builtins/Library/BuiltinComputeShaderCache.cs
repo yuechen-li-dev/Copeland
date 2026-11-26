@@ -25,6 +25,14 @@ public sealed class BuiltinComputeShaderCache
 
     public byte[] Get(string name)
     {
+        lock (programs)
+        {
+            return GetOrCompile(name);
+        }
+    }
+
+    private byte[] GetOrCompile(string name)
+    {
         if (programs.TryGetValue(name, out var cached))
         {
             return cached;

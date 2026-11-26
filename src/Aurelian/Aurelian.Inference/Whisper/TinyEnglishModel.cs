@@ -1,10 +1,10 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Aurelian.Inference.Benchmarks;
 using Aurelian.Graphics.Vulkan.ComputeMath;
-using static Aurelian.WhisperBenchmark.TinyEnglishCheckpoint;
+using Aurelian.Inference.Benchmarks;
+using static Aurelian.Inference.Whisper.TinyEnglishCheckpoint;
 
-namespace Aurelian.WhisperBenchmark;
+namespace Aurelian.Inference.Whisper;
 
 // A single 30-second encoder window and bounded greedy no-timestamp decoding.
 // The graph uses existing kernels and owns its resident weights for the run.
@@ -270,7 +270,8 @@ internal sealed class TinyEnglishModel : IDisposable
         }
     }
 
-    public InferenceSample Transcribe(float[] mel, int maximumTokens, BenchmarkQueue? queue)
+    public InferenceSample Transcribe(float[] mel, int maximumTokens, IWhisperQueue? queue,
+        CancellationToken cancellation = default)
     {
         long managedStart = GC.GetAllocatedBytesForCurrentThread();
         var total = Stopwatch.StartNew();
@@ -284,7 +285,7 @@ internal sealed class TinyEnglishModel : IDisposable
         List<QueuedDispatchProfile>? profiles = ProfileAttention ? new(Layers) : null;
         List<PrefetchTiming>? copyTimings = (ProfileGpu || ProfileStream) && prefetchEncoder ? [] : null;
         tileController?.Begin(ProfileStream);
-        Encode(mel, metrics, profiles, scope, copyTimings);
+        Encode(mel, metrics, profiles, scope, copyTimings, cancellation);
         double encode = timer.Elapsed.TotalMilliseconds;
         timer.Restart();
         Evaluate(StartOfText, 0, metrics);
@@ -299,6 +300,7 @@ internal sealed class TinyEnglishModel : IDisposable
             {
                 break;
             }
+            cancellation.ThrowIfCancellationRequested();
             next = Evaluate(next, tokens.Count + 1, metrics);
         }
         double decode = timer.Elapsed.TotalMilliseconds;
@@ -315,8 +317,49 @@ internal sealed class TinyEnglishModel : IDisposable
                 .Select(item => new EncoderBatchInterval(item.Operation, item.Profile.ComputeInterval, item.Profile.TransferInterval)).ToArray(), tileController?.Sample);
     }
 
+    public (List<int> Tokens, float[] Attention) DecodeAligned(float[] mel, int samples, int maxTokens,
+        IWhisperQueue queue, CancellationToken cancellation)
+    {
+        queue.OpenRequestScope();
+        var metrics = new InferenceMetrics(queued: true, profileGpu: false);
+        Encode(mel, metrics, null, queue.Retained, null, cancellation);
+        var rules = new WhisperTimestampRules(samples);
+        int token = Evaluate(StartOfText, 0, metrics, rules: rules);
+        var text = new List<int>();
+        for (int position = 1; token != EndOfText; position++)
+        {
+            cancellation.ThrowIfCancellationRequested();
+            if (position >= maxTokens)
+            {
+                throw new InvalidDataException("Whisper reached its decoding limit before emitting end-of-text.");
+            }
+            rules.Push(token);
+            if (token < EndOfText)
+            {
+                text.Add(token);
+            }
+            token = Evaluate(token, position, metrics, rules: rules);
+        }
+        if (text.Count == 0)
+        {
+            return (text, []);
+        }
+
+        // The alignment pass uses text and the no-timestamps prompt. Timestamp
+        // tokens used to drive decoding do not occupy alignment rows.
+        using var attention = math.CreateTensor((text.Count + 1) * AlignmentHeadCount, AudioRows);
+        Evaluate(StartOfText, 0, metrics, alignmentOnly: true);
+        Evaluate(NoTimestamps, 1, metrics, attention, alignmentOnly: true);
+        for (int i = 0; i < text.Count; i++)
+        {
+            cancellation.ThrowIfCancellationRequested();
+            Evaluate(text[i], i + 2, metrics, attention, alignmentOnly: true);
+        }
+        return (text, math.Read(attention, reuseReadback));
+    }
+
     private void Encode(float[] mel, InferenceMetrics metrics, List<QueuedDispatchProfile>? profiles,
-        VulkanComputeMath.QueuedComputeScope? scope, List<PrefetchTiming>? copyTimings)
+        VulkanComputeMath.QueuedComputeScope? scope, List<PrefetchTiming>? copyTimings, CancellationToken cancellation)
     {
         using var scratch = new ScratchScope(math, scratchPool);
         var audio = scratch.Create(AudioRows * 2, MelBins);
@@ -341,6 +384,7 @@ internal sealed class TinyEnglishModel : IDisposable
 
         for (int layer = 0; layer < Layers; layer++)
         {
+            cancellation.ThrowIfCancellationRequested();
             Stage(CopyAtUse ? layer : layer + 1);
             if (prefetchEncoder && uploads[layer] is not null)
             {
@@ -464,11 +508,17 @@ internal sealed class TinyEnglishModel : IDisposable
         Execute(batch, metrics, "encoder-output-mlp");
     }
 
-    private int Evaluate(int token, int position, InferenceMetrics metrics)
+    // Layer/head pairs for the Tiny.en alignment preset.
+    private static readonly int[][] AlignmentHeads = [[], [0], [0, 5], [0, 1, 2, 3, 4]];
+    internal const int AlignmentHeadCount = 8;
+
+    private int Evaluate(int token, int position, InferenceMetrics metrics, GpuTensor? alignment = null,
+        WhisperTimestampRules? rules = null, bool alignmentOnly = false)
     {
         using var allocations = new ScratchScope(math, scratchPool);
         var hidden = allocations.Create(1, Width);
         var scratch = new DecoderScratch(allocations, position + 1);
+        int alignmentHead = (position - 1) * AlignmentHeadCount;
         var batch = math.CreateBatch();
         batch.Gather(embedding, hidden, firstRow: token);
         batch.Gather(textPositions, scratch.Normalized, firstRow: position);
@@ -497,6 +547,15 @@ internal sealed class TinyEnglishModel : IDisposable
             if (batchCross)
             {
                 RecordCrossAttention(batch, scratch.Query, crossCache[layer], scratch.Attended);
+                if (alignment is not null)
+                {
+                    var headRow = allocations.Create(1, alignment.Columns);
+                    foreach (int head in AlignmentHeads[layer])
+                    {
+                        batch.Gather(crossProbabilities!, headRow, firstRow: head);
+                        batch.Scatter(headRow, alignment, firstRow: alignmentHead++);
+                    }
+                }
             }
             else
             {
@@ -506,6 +565,11 @@ internal sealed class TinyEnglishModel : IDisposable
             }
             ProjectResidual(batch, hidden, scratch.Attended, cross.Output, scratch.Projected);
             FeedForward(batch, hidden, block.Mlp, scratch.Normalized, scratch.Expanded, scratch.Projected);
+        }
+        if (alignmentOnly)
+        {
+            Execute(batch, metrics, "decoder-alignment");
+            return EndOfText;
         }
         if (!joinLogits)
         {
@@ -538,6 +602,10 @@ internal sealed class TinyEnglishModel : IDisposable
         if (CaptureDirectory is not null)
         {
             Capture($"logits-{position:D3}.f32", values);
+        }
+        if (rules is not null)
+        {
+            return rules.Select(values);
         }
         int next = 0;
         for (int index = 0; index <= EndOfText; index++)

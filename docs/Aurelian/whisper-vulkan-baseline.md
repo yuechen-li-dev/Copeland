@@ -30,6 +30,21 @@ FP32 storage and uses its existing BF16-rounded grouped self-attention kernel
 in the decoder. The two runtimes can choose different arithmetic and kernel
 layouts even with the same checkpoint and token sequence.
 
+## PCM-to-word runtime
+
+The native inference library now provides `VulkanWhisperTranscriber`. It accepts one mono 16 kHz PCM window of up to 30 seconds and returns words with source-relative unrefined and trimmed sample bounds. It uses the packed-resident Tiny.en encoder and decoder, timestamp-constrained greedy decoding, and a selected-head alignment pass. The tokenizer and mel filters come from the checkpoint. The runtime reuses the compute queue across windows and caches compiled builtin SPIR-V across sessions in the same process.
+
+Use the existing benchmark with the `pcm CHECKPOINT MONO16K_F32 OUTPUT_JSON REQUESTS` arguments to measure PCM-to-word latency. The reference harness accepts `CHECKPOINT MONO16K_F32 OUTPUT_JSON REQUESTS pcm-gpu` or `pcm-cpu` to run whisper.cpp DTW on the same fixture. The original precomputed-mel invocation still isolates the no-timestamp inference graph.
+
+On the RTX 3070, Aurelian's window-wide alignment readback preserved every word and timestamp from the per-token readback build on two fixtures. The per-token build also performed an initial no-speech probability check. The comparison used three fresh processes per mode and 15 measured requests per process after five warmups. Timing starts with mono PCM in memory and includes log-mel extraction, model execution and alignment.
+
+| Fixture | Aurelian per-token readback | Aurelian window-wide readback | whisper.cpp Vulkan DTW | whisper.cpp CPU DTW |
+| --- | ---: | ---: | ---: | ---: |
+| Generated Valencia speech | 102.55 ms | 97.93 ms | 80.16 ms | 303.63 ms |
+| JFK | 106.68 ms | 99.99 ms | 82.57 ms | 305.51 ms |
+
+Aurelian remains 21–22% slower than Vulkan DTW and is 3.1× as fast as CPU DTW by median warm request on these fixtures. The first request took roughly 3.1 s in Aurelian plus 0.66–0.69 s to create the session. Shader compilation runs on first use in each process. The reference uses precompiled shaders. The local timings, PCM fixtures, comparison script and transcript captures are in `artifacts/local/whisper-baseline/valencia-provider/`.
+
 ## Double-buffered encoder and checkpoint streaming
 
 Whisper Tiny.en on JFK used the same packed vocabulary, two-slot compute queue and resident decoder as the encoder-budget experiment. One encoder block occupies 3.39 MiB. The fixed frontend plus two device slots occupy 10.01 MiB, so the double-buffered policy uses the 11 MiB cap. The single-slot 11 MiB policy spends the second slot on a pinned block. Both policies have the same logical device weight footprint.

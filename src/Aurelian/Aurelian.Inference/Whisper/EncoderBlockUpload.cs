@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using Aurelian.Graphics.Vulkan.ComputeMath;
 
-namespace Aurelian.WhisperBenchmark;
+namespace Aurelian.Inference.Whisper;
 
 // The first streamed layer defines the reusable device slot. Each layer owns only
 // its prepacked host image; queue order protects the slot until its last reader.
