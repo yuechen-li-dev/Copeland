@@ -69,4 +69,49 @@ public sealed class FlowM1RuntimeTests
         double attempts = Assert.IsType<double>(board.GetType().GetProperties().Single().GetValue(board));
         Assert.Equal(1d, attempts);
     }
+
+    [Fact]
+    public void Flow_guards_read_the_board_before_committing_the_transition()
+    {
+        var lowered = MirLowerer.Lower(SyntaxTree.Parse("""
+            flow ArticleLoad -> string {
+                board { requestId: int = 0; title: string = ""; }
+                event Start(id: int);
+                event Received(id: int, title: string);
+                state Idle initial {
+                    on Start(id) -> Loading { board.requestId = id; };
+                }
+                state Loading {
+                    on Start(id) -> Loading { board.requestId = id; };
+                    on Received(id, title) when id == board.requestId -> Ready { board.title = title; };
+                }
+                state Ready { finish board.title; }
+            }
+            """));
+
+        Assert.Empty(lowered.Diagnostics);
+        CSharpCompilation emitted = CSharpBackend.Emit(lowered.Program!);
+        Assert.Empty(emitted.Diagnostics);
+        var generated = RoslynCompileHelper.CompileGeneratedSource(emitted.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+
+        Type flow = generated.Assembly!.GetType("Copeland.Generated.ArticleLoad", throwOnError: true)!;
+        object session = flow.GetMethod("Start")!.Invoke(null, null)!;
+        Type sessionType = session.GetType();
+        var start = sessionType.GetMethod("SendStart")!;
+        var receive = sessionType.GetMethod("SendReceived")!;
+
+        start.Invoke(session, [1]);
+        start.Invoke(session, [2]);
+        var board = sessionType.GetProperty("Board")!;
+        object beforeStaleReply = board.GetValue(session)!;
+        object stale = receive.Invoke(session, [1, "Old title"])!;
+        Assert.Equal("Unhandled", stale.GetType().GetProperty("Kind")!.GetValue(stale));
+        Assert.Equal("Loading", sessionType.GetProperty("State")!.GetValue(session));
+        Assert.Same(beforeStaleReply, board.GetValue(session));
+
+        object received = receive.Invoke(session, [2, "Patterns in UI"])!;
+        Assert.Equal("Completed", received.GetType().GetProperty("Kind")!.GetValue(received));
+        Assert.Equal("Patterns in UI", received.GetType().GetProperty("Value")!.GetValue(received));
+    }
 }

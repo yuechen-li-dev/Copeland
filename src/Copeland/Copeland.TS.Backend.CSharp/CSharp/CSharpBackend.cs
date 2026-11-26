@@ -452,15 +452,17 @@ public static partial class CSharpBackend
             MirFlowTransition? transition = state.Transitions.SingleOrDefault(candidate => candidate.EventName == @event.Name);
             if (transition is null) continue;
             writer.WriteLine($"case {CSharpLiteralWriter.Write(state.Name)}:");
+            writer.WriteLine("{");
             writer.Indent();
+            string boardType = RecordTypeName(flow.BoardType.RecordTypeId);
+            writer.WriteLine($"{boardType} board = this.board;");
             int tempIndex = 0;
             if (transition.Guard is not null)
             {
                 string guard = EmitExpression(writer, transition.Guard, expressionContext, enumNames, ref tempIndex, diagnostics);
                 writer.WriteLine($"if (!({guard})) return new({CSharpLiteralWriter.Write("Unhandled")}, state, null, {CSharpLiteralWriter.Write(@event.Name)}, revision, false, null, null);");
             }
-            writer.WriteLine($"{RecordTypeName(flow.BoardType.RecordTypeId)} nextBoard = this.board;");
-            writer.WriteLine($"{RecordTypeName(flow.BoardType.RecordTypeId)} board = nextBoard;");
+            writer.WriteLine($"{boardType} nextBoard = board;");
             foreach (MirFlowBoardUpdate update in transition.Updates)
             {
                 string value = EmitExpression(writer, update.Value, expressionContext, enumNames, ref tempIndex, diagnostics);
@@ -485,6 +487,7 @@ public static partial class CSharpBackend
                 writer.WriteLine($"return new({CSharpLiteralWriter.Write("Transitioned")}, fromState, state, {CSharpLiteralWriter.Write(@event.Name)}, revision, false, null, null);");
             }
             writer.Unindent();
+            writer.WriteLine("}");
         }
         writer.WriteLine("default:");
         writer.Indent();
