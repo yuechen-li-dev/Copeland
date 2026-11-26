@@ -71,7 +71,7 @@ public sealed unsafe partial class VulkanComputeMath
                     || ReferenceEquals(dispatch.Output.Buffer, tensor.Buffer);
 
             DispatchCount = dispatches.Length;
-            HasDeviceLocalParameters = options.DeviceLocalParameters;
+            HasDeviceLocalParameters = options.DeviceLocalParameters && !owner.PushDispatchParameters;
             tensors = dispatches.SelectMany(dispatch => new[]
                 { dispatch.Input, dispatch.Auxiliary, dispatch.Output }).Distinct().ToArray();
             try
@@ -84,7 +84,7 @@ public sealed unsafe partial class VulkanComputeMath
                 {
                     owner.EnsurePipeline(dispatch.Shader);
                 }
-                var size = new DescriptorPoolSize(DescriptorType.StorageBuffer, (uint)DispatchCount * 4);
+                var size = new DescriptorPoolSize(DescriptorType.StorageBuffer, (uint)DispatchCount * owner.DescriptorBindingCount);
                 var poolInfo = new DescriptorPoolCreateInfo
                 {
                     SType = StructureType.DescriptorPoolCreateInfo,
@@ -112,11 +112,7 @@ public sealed unsafe partial class VulkanComputeMath
                 for (int index = 0; index < dispatches.Length; index++)
                 {
                     var dispatch = dispatches[index];
-                    var set = slots[index].Set;
-                    owner.plant.Vk.CmdBindPipeline(command.CommandBuffer, PipelineBindPoint.Compute, owner.pipelines[dispatch.Shader]);
-                    owner.plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Compute,
-                        owner.pipelineLayout, 0, 1, &set, 0, null);
-                    owner.plant.Vk.CmdDispatch(command.CommandBuffer, dispatch.GroupsX, dispatch.GroupsY, 1);
+                    owner.RecordDispatch(command.CommandBuffer, slots[index], dispatch);
                     if (!options.ElideIndependentBarriers || index == dispatches.Length - 1)
                     {
                         owner.Barrier(command, AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
@@ -197,7 +193,7 @@ public sealed unsafe partial class VulkanComputeMath
             timings?.Dispose();
             foreach (var slot in slots)
             {
-                slot.Parameters.Dispose();
+                slot.Parameters?.Dispose();
             }
             if (descriptorPool.Handle != 0)
             {

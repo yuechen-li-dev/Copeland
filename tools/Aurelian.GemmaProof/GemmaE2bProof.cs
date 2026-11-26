@@ -35,6 +35,7 @@ internal static class GemmaE2bProof
             MaximumTensorElements = 33554432,
             EnableValidation = false,
             UseCooperativeLinear = cooperative,
+            PushDispatchParameters = optimized && !args.Contains("--storage-parameters", StringComparer.Ordinal),
         });
         if (requireCooperative && !session.Compute.CooperativeMatrixEnabled)
         {
@@ -116,6 +117,7 @@ internal static class GemmaE2bProof
             model.PackedDecode,
             model.PackedDecodeLanes,
             model.CooperativePrefill,
+            session.Compute.PushDispatchParameters,
             model.ReusePrefillInputPacking,
             model.ProfileDispatches,
             model.FusedDecodeMaxKeys,

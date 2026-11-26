@@ -8,6 +8,8 @@ namespace Aurelian.Graphics.Vulkan.ComputeMath;
 
 public sealed unsafe partial class VulkanComputeMath
 {
+    private uint DescriptorBindingCount => PushDispatchParameters ? 3u : 4u;
+
     private static readonly IReadOnlyDictionary<string, string> Entries = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["QuantizedLinear.v.ts"] = "QuantizedLinearMain",
@@ -69,19 +71,19 @@ public sealed unsafe partial class VulkanComputeMath
     private void CreateLayouts()
     {
         DescriptorSetLayoutBinding* bindings = stackalloc DescriptorSetLayoutBinding[4];
-        for (uint index = 0; index < 4; index++)
+        for (uint index = 0; index < DescriptorBindingCount; index++)
         {
             bindings[index] = new(index, DescriptorType.StorageBuffer, 1, ShaderStageFlags.ComputeBit);
         }
         var layout = new DescriptorSetLayoutCreateInfo
         {
-            SType = StructureType.DescriptorSetLayoutCreateInfo, BindingCount = 4, PBindings = bindings,
+            SType = StructureType.DescriptorSetLayoutCreateInfo, BindingCount = DescriptorBindingCount, PBindings = bindings,
         };
         fixed (DescriptorSetLayout* value = &setLayout)
         {
             Check(plant.Vk.CreateDescriptorSetLayout(plant.Device, &layout, null, value));
         }
-        var size = new DescriptorPoolSize(DescriptorType.StorageBuffer, (uint)MaximumDispatches * 4);
+        var size = new DescriptorPoolSize(DescriptorType.StorageBuffer, (uint)MaximumDispatches * DescriptorBindingCount);
         var pool = new DescriptorPoolCreateInfo
         {
             SType = StructureType.DescriptorPoolCreateInfo, MaxSets = (uint)MaximumDispatches,
@@ -92,9 +94,12 @@ public sealed unsafe partial class VulkanComputeMath
             Check(plant.Vk.CreateDescriptorPool(plant.Device, &pool, null, value));
         }
         var descriptorLayout = setLayout;
+        var pushRange = new PushConstantRange(ShaderStageFlags.ComputeBit, 0, (uint)sizeof(KernelParameters));
         var pipelineInfo = new PipelineLayoutCreateInfo
         {
             SType = StructureType.PipelineLayoutCreateInfo, SetLayoutCount = 1, PSetLayouts = &descriptorLayout,
+            PushConstantRangeCount = PushDispatchParameters ? 1u : 0u,
+            PPushConstantRanges = PushDispatchParameters ? &pushRange : null,
         };
         fixed (PipelineLayout* value = &pipelineLayout)
         {
@@ -112,30 +117,34 @@ public sealed unsafe partial class VulkanComputeMath
         };
         DescriptorSet set;
         Check(plant.Vk.AllocateDescriptorSets(plant.Device, &allocation, &set));
-        return new(set, Buffer(64,
+        return new(set, PushDispatchParameters ? null : Buffer((ulong)sizeof(KernelParameters),
             deviceLocalParameters ? VulkanBufferUsage.Storage | VulkanBufferUsage.TransferDestination : VulkanBufferUsage.Storage,
             deviceLocalParameters ? VulkanMemoryUsage.GpuOnly : VulkanMemoryUsage.CpuToGpu));
     }
 
     private void Configure(DispatchSlot slot, ComputeMathDispatch dispatch)
     {
-        KernelParameters parameters = dispatch.Parameters;
-        var parameterBytes = MemoryMarshal.AsBytes(new ReadOnlySpan<KernelParameters>(in parameters));
-        var previousBytes = MemoryMarshal.AsBytes(new ReadOnlySpan<KernelParameters>(in slot.LastParameters));
-        if (!ReuseDispatchBindings || !slot.HasParameters || !parameterBytes.SequenceEqual(previousBytes))
+        if (slot.Parameters is { } parameterBuffer)
         {
-            if (slot.Parameters.MemoryUsage == VulkanMemoryUsage.GpuOnly)
+            KernelParameters parameters = dispatch.Parameters;
+            var parameterBytes = MemoryMarshal.AsBytes(new ReadOnlySpan<KernelParameters>(in parameters));
+            var previousBytes = MemoryMarshal.AsBytes(new ReadOnlySpan<KernelParameters>(in slot.LastParameters));
+            if (!ReuseDispatchBindings || !slot.HasParameters || !parameterBytes.SequenceEqual(previousBytes))
             {
-                var upload = uploader.Upload(new(slot.Parameters, parameterBytes.ToArray(), DebugName: "compute-math.prepared-parameters"));
-                Require(upload.Success, "Device-local kernel parameter upload failed: "
-                    + string.Join("; ", upload.Diagnostics.Select(item => item.Message)));
+                if (parameterBuffer.MemoryUsage == VulkanMemoryUsage.GpuOnly)
+                {
+                    var upload = uploader.Upload(new(parameterBuffer, parameterBytes.ToArray(),
+                        DebugName: "compute-math.prepared-parameters"));
+                    Require(upload.Success, "Device-local kernel parameter upload failed: "
+                        + string.Join("; ", upload.Diagnostics.Select(item => item.Message)));
+                }
+                else
+                {
+                    Require(parameterBuffer.Write(parameterBytes).Success, "Kernel parameter upload failed.");
+                }
+                slot.LastParameters = parameters;
+                slot.HasParameters = true;
             }
-            else
-            {
-                Require(slot.Parameters.Write(parameterBytes).Success, "Kernel parameter upload failed.");
-            }
-            slot.LastParameters = parameters;
-            slot.HasParameters = true;
         }
         var input = dispatch.Input.Buffer;
         var auxiliary = dispatch.Auxiliary.Buffer;
@@ -150,9 +159,12 @@ public sealed unsafe partial class VulkanComputeMath
         infos[0] = new(input.NativeBuffer, 0, input.SizeBytes);
         infos[1] = new(auxiliary.NativeBuffer, 0, auxiliary.SizeBytes);
         infos[2] = new(output.NativeBuffer, 0, output.SizeBytes);
-        infos[3] = new(slot.Parameters.NativeBuffer, 0, slot.Parameters.SizeBytes);
+        if (slot.Parameters is { } buffer)
+        {
+            infos[3] = new(buffer.NativeBuffer, 0, buffer.SizeBytes);
+        }
         WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[4];
-        for (int index = 0; index < 4; index++)
+        for (int index = 0; index < DescriptorBindingCount; index++)
         {
             writes[index] = new()
             {
@@ -160,10 +172,24 @@ public sealed unsafe partial class VulkanComputeMath
                 DescriptorCount = 1, DescriptorType = DescriptorType.StorageBuffer, PBufferInfo = &infos[index],
             };
         }
-        plant.Vk.UpdateDescriptorSets(plant.Device, 4, writes, 0, null);
+        plant.Vk.UpdateDescriptorSets(plant.Device, DescriptorBindingCount, writes, 0, null);
         slot.Input = input;
         slot.Auxiliary = auxiliary;
         slot.Output = output;
+    }
+
+    private void RecordDispatch(CommandBuffer command, DispatchSlot slot, ComputeMathDispatch dispatch)
+    {
+        var set = slot.Set;
+        plant.Vk.CmdBindPipeline(command, PipelineBindPoint.Compute, pipelines[dispatch.Shader]);
+        plant.Vk.CmdBindDescriptorSets(command, PipelineBindPoint.Compute, pipelineLayout, 0, 1, &set, 0, null);
+        if (PushDispatchParameters)
+        {
+            var parameters = dispatch.Parameters;
+            plant.Vk.CmdPushConstants(command, pipelineLayout, ShaderStageFlags.ComputeBit,
+                0, (uint)sizeof(KernelParameters), &parameters);
+        }
+        plant.Vk.CmdDispatch(command, dispatch.GroupsX, dispatch.GroupsY, 1);
     }
 
     /// <summary>Optional profiling callback when a previously unseen kernel pipeline is created.</summary>

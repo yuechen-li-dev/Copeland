@@ -8,7 +8,7 @@ namespace Aurelian.Shaders.Library;
 /// by the existing Visual TypeScript backend.</summary>
 public sealed class BuiltinComputeShaderCache
 {
-    private readonly Dictionary<string, byte[]> programs = new(StringComparer.Ordinal);
+    private readonly Dictionary<(string Name, bool PushParameters), byte[]> programs = [];
 
     // Variants bind a typed implementation of an imported module before compilation.
     // The cache key identifies the closed program. The shared entry retains its own name.
@@ -26,17 +26,20 @@ public sealed class BuiltinComputeShaderCache
         ["FusedAttention64.Packed"] = new("FusedAttention64.v.ts", "AttentionOperand.v.ts", "PackedAttentionOperand.v.ts"),
     };
 
-    public byte[] Get(string name)
+    public byte[] Get(string name) => Get(name, pushParameters: false);
+
+    public byte[] Get(string name, bool pushParameters)
     {
         lock (programs)
         {
-            return GetOrCompile(name);
+            return GetOrCompile(name, pushParameters);
         }
     }
 
-    private byte[] GetOrCompile(string name)
+    private byte[] GetOrCompile(string name, bool pushParameters)
     {
-        if (programs.TryGetValue(name, out var cached))
+        var key = (name, pushParameters);
+        if (programs.TryGetValue(key, out var cached))
         {
             return cached;
         }
@@ -50,12 +53,12 @@ public sealed class BuiltinComputeShaderCache
         {
             throw new InvalidDataException(string.Join("; ", module.Diagnostics.Select(item => item.Message)));
         }
-        var compiled = VdMirComputeBackend.Compile(module);
+        var compiled = VdMirComputeBackend.Compile(module, pushParameters ? (0, 3) : null);
         if (!compiled.SpirvValidated || compiled.Spirv.Length == 0)
         {
             throw new InvalidDataException(compiled.DxcOutput + compiled.SpirvValidationOutput);
         }
-        programs.Add(name, compiled.Spirv);
+        programs.Add(key, compiled.Spirv);
         return compiled.Spirv;
     }
 }

@@ -5,6 +5,33 @@ namespace Aurelian.Shaders.Compute;
 
 public static partial class VdMirComputeHlslEmitter
 {
+    private static void EmitPushConstantRecord(StringBuilder builder, VdMirComputeModule module, VdMirResource resource)
+    {
+        var layout = module.StorageLayouts?.SingleOrDefault(item => item.Type == resource.ElementType);
+        if (resource.Access != VdMirResourceAccess.Readonly || resource.DescriptorCount is not null
+            || layout is null || layout.Stride is <= 0 or > 128 || layout.Fields.Count * 4 != layout.Stride
+            || layout.Fields.Where((field, index) => field.Offset != index * 4
+                || field.Path.Contains('.') || field.Type is not ("u32" or "f32")).Any())
+        {
+            throw new InvalidOperationException("A push constant record must be one readonly packed record of up to 128 bytes of scalar words.");
+        }
+        string type = MapType(layout.Type, module);
+        builder.AppendLine($"struct __vts_push_block {{ {type} value; }};");
+        builder.AppendLine("[[vk::push_constant]] ConstantBuffer<__vts_push_block> __vts_push;");
+        builder.AppendLine($"#define {resource.Name} (__vts_push.value)");
+        builder.AppendLine($$"""
+            {{type}} __vts_load_{{layout.Type}}({{type}} value, uint index)
+            {
+                if (index != 0u) return ({{type}})0;
+                return value;
+            }
+            {{type}} __vts_load_word_{{layout.Type}}({{type}} value, uint start)
+            {
+                return __vts_load_{{layout.Type}}(value, start);
+            }
+            """);
+    }
+
     private static string ResourceType(string element, VdMirResourceAccess access)
     {
         string scalar = element == "f32" ? "float" : "uint";

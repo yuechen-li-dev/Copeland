@@ -14,6 +14,8 @@ public sealed record VulkanInferenceOptions
     public bool EnableValidation { get; init; } = true;
     public bool EnableCalibratedTimestamps { get; init; }
     public bool UseCooperativeLinear { get; init; }
+    /// <summary>Use the built-in compute shaders' 64-byte Vulkan push constant ABI.</summary>
+    public bool PushDispatchParameters { get; init; }
 }
 
 /// <summary>Headless model host over the existing Vulkan plant and compute owner.
@@ -36,7 +38,13 @@ public sealed class VulkanInferenceSession : IDisposable
         }
         Plant = plant;
         this.ownsPlant = ownsPlant;
-        Compute = new(plant, shader ?? Shaders.Get, options.MaximumDispatches, options.MaximumTensorElements)
+        if (shader is not null && options.PushDispatchParameters)
+        {
+            throw new ArgumentException("The supplied shader pack uses the storage-buffer parameter ABI.", nameof(options));
+        }
+        byte[] CompileBuiltin(string name) => Shaders.Get(name, options.PushDispatchParameters);
+        Compute = new(plant, shader ?? CompileBuiltin, options.MaximumDispatches, options.MaximumTensorElements,
+            options.PushDispatchParameters)
         {
             AttentionQueryTileRows = options.AttentionQueryTileRows,
             UseCooperativeLinear = options.UseCooperativeLinear,

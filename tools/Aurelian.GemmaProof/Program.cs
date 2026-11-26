@@ -54,6 +54,7 @@ using var session = VulkanInferenceSession.Create(new()
     ApplicationName = "Aurelian Gemma 4 text proof",
     MaximumTensorElements = 33554432,
     EnableValidation = command != "--residency",
+    PushDispatchParameters = args.Contains("--push-parameters", StringComparer.Ordinal),
 });
 var compute = session.Compute;
 if (command == "--scheduling")
@@ -475,7 +476,20 @@ static void KernelChecks(VulkanComputeMath compute)
         batch.RotateHeads(normalized, normalized, 256, 3, 10000);
         batch.Scale(normalized, normalized, .5f);
         compute.Execute(batch);
-        if (!compute.Read(normalized).All(float.IsFinite)) { throw new InvalidDataException("Norm/RoPE produced nonfinite output."); }
+        float[] expected = compute.Read(normalized);
+        if (!expected.All(float.IsFinite))
+        {
+            throw new InvalidDataException("Norm/RoPE produced nonfinite output.");
+        }
+        if (compute.PushDispatchParameters)
+        {
+            using var prepared = compute.Prepare(batch, enableGpuTimings: false);
+            prepared.Execute();
+            if (!compute.Read(normalized).SequenceEqual(expected))
+            {
+                throw new InvalidDataException("Prepared push constants did not replay the recorded parameters.");
+            }
+        }
     }
     File.WriteAllText("artifacts/local/gemma4/kernels.json", JsonSerializer.Serialize(checks, new JsonSerializerOptions { WriteIndented = true }));
     GroupedAttentionChecks(compute);

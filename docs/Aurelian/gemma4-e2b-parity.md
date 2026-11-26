@@ -119,6 +119,65 @@ Starting from that configuration, select individual experiments with
 The eight-lane variant remains available with `--decode-lanes 8`.
 Raw results are under `artifacts/local/gemma4/utility-tuning`.
 
+## Resident decode after removing parameter buffers
+
+The optimized E2B proof now records the 64-byte kernel parameter record as
+Vulkan push constants. All three Vulkan compute submission paths share the same
+dispatch recorder. The Visual TypeScript source and the parameter layout are
+shared between the two ABIs. The built-in shader cache keys on both shader name
+and parameter ABI. Use `--optimized --storage-parameters` for the matched control.
+Other inference sessions opt in through `VulkanInferenceOptions.PushDispatchParameters`.
+
+| Fixture | Control prefill | Push prefill | Control decode | Push decode |
+|---|---:|---:|---:|---:|
+| 64 prompt, 32 decode | 31.85 ms | 29.62 ms | 66.69 tok/s | 74.86 tok/s |
+| 512 prompt, 16 decode | 110.89 ms | 111.50 ms | 69.99 tok/s | 73.41 tok/s |
+
+Each pair uses the median of three warm repetitions. The 64-token decode body
+GPU interval fell from 10.73 ms to 9.56 ms, and the 512-token interval went from
+10.12 ms to 9.12 ms. The optimized configuration eliminated 475 buffer
+allocations and 30,400 bytes from peak owned GPU buffer allocation on each
+fixture. It gave bit-identical full logits across all 50 positions.
+
+Absolute throughput varied substantially during the desktop session. A later
+matched pass ran at 34.70 → 37.20 tok/s and 34.48 → 35.58 tok/s, respectively. The device-local
+llama.cpp reference in that same pass measured 84.73 and 83.13 tok/s, with
+prefill at 25.23 and 74.68 ms. Aurelian matched all top-one tokens and top-five
+sets, with maximum relative RMS error of 2.78% and 1.46% respectively.
+The final build recheck ran at 31.45 → 35.94 tok/s and 30.07 → 29.30 tok/s,
+with identical logits again. The 64-token decode gain held across all three
+pairs. The 512-token speed result varied across pairs.
+
+The round also tested these changes on the same GGUF.
+
+| Experiment | Outcome |
+|---|---|
+| Native signed INT8 dot with Q8 activation packing | 67.44 tok/s versus 70.11 on the short control. Reuse raised it to 68.07 tok/s. Both had 31/33 matching top tokens and 9.08% maximum relative logit RMS. Restricting it to wide outputs restored 33/33 and was slower than the control. |
+| RMSNorm fused with residual addition and layer scaling | Bit-identical, with 140 fewer decode body dispatches. Short decode was 66.85 tok/s versus 70.11. |
+| Cooperative projection that dequantizes Q4 directly into the workgroup tile | Bit-identical and saved 57 MiB of peak owned GPU buffers at 512 tokens. Prefill took 141.54 ms versus 114.59 ms. |
+| One body submission and dependency-based barrier elision | Exact logits. The fastest short-context run reached 77.09 tok/s with both changes. The remaining runs did not establish a repeatable gain over push constants alone. |
+| One subgroup per RMSNorm head | Kept top-one and top-five agreement with under 0.09% relative logit RMS against the Aurelian control. Warm decode was slower than the neighboring push-constant control. |
+| 64×32 cooperative projection tiles and per-query causal loop bounds | The larger tile helped 512-token prefill in two loaded pairs and regressed short prefill. The per-query loop bound did not improve 512-token prefill. Neither qualified as a general default. |
+| Separate score, softmax and value passes for multi-row prefill | The 512-token path was several times slower than the fused control. |
+
+Raw data and experiment patches are under `artifacts/local/gemma4/native-dot-tuning`.
+The final instrumented runs repeated the same ranking during the slower
+desktop period. At 64 tokens, packed Q4 projection took 11.65 ms of body GPU
+time per decode token, followed by RMSNorm at 4.79 ms and fused attention at
+3.92 ms. At 512 tokens, cooperative projection and fused attention accounted
+for 135.73 and 77.84 ms of the prefill GPU intervals. These numbers come from
+the profiled runs, which execute with extra timestamp queries.
+
+The 100 tok/s target remains open. Moving from roughly 75 to 100 tok/s requires
+removing about 3.4 ms from the warm token path. The baseline profiles point to
+resident Q4 weight reads and dequantization in decode, plus cooperative projection
+and FP32 grouped attention in prefill. A useful next milestone is 85 tok/s
+on both fixtures with the same logit gate, and a Q4 body projection GPU interval
+under 4 ms per token. Test a decode-specific Q4 layout that coalesces reads
+across output rows while preserving FP32 activations, the existing Q4
+quantization and one resident weight copy. For prefill, tile more than one
+query per workgroup so the queries can reuse K/V loads.
+
 ## Reproduce
 
 Build the C++ reference with the headers and Vulkan binaries from llama.cpp

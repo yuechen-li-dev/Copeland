@@ -31,7 +31,7 @@ public sealed unsafe partial class VulkanComputeMath
             {
                 foreach (var descriptor in Descriptors)
                 {
-                    descriptor.Parameters.Dispose();
+                    descriptor.Parameters?.Dispose();
                 }
                 DispatchQueries?.Dispose();
                 Timings.Dispose();
@@ -75,7 +75,8 @@ public sealed unsafe partial class VulkanComputeMath
             int selected = controller.Plan(forecast);
             ComputeMathBatch.Require(selected is >= 1 and <= 4, "Stream controller depth must be 1–4.");
             Depth = Math.Min(selected, forecast.BatchCount);
-            var size = new DescriptorPoolSize(DescriptorType.StorageBuffer, (uint)(Depth * owner.MaximumDispatches * 4));
+            var size = new DescriptorPoolSize(DescriptorType.StorageBuffer,
+                (uint)(Depth * owner.MaximumDispatches) * owner.DescriptorBindingCount);
             var info = new DescriptorPoolCreateInfo
             {
                 SType = StructureType.DescriptorPoolCreateInfo,
@@ -224,10 +225,7 @@ public sealed unsafe partial class VulkanComputeMath
             for (int index = 0; index < batch.DispatchCount; index++)
             {
                 var dispatch = batch.Dispatches[index];
-                var set = slot.Descriptors[index].Set;
-                owner.plant.Vk.CmdBindPipeline(command.CommandBuffer, PipelineBindPoint.Compute, owner.pipelines[dispatch.Shader]);
-                owner.plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Compute, owner.pipelineLayout, 0, 1, &set, 0, null);
-                owner.plant.Vk.CmdDispatch(command.CommandBuffer, dispatch.GroupsX, dispatch.GroupsY, 1);
+                owner.RecordDispatch(command.CommandBuffer, slot.Descriptors[index], dispatch);
                 owner.Barrier(command, AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
                     AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
                     PipelineStageFlags.ComputeShaderBit, PipelineStageFlags.ComputeShaderBit);

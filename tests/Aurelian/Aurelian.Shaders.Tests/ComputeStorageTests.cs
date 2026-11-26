@@ -6,6 +6,30 @@ namespace Aurelian.Shaders.Tests;
 
 public sealed class ComputeStorageTests
 {
+    [Fact]
+    public void Scalar_parameter_records_can_lower_to_push_constants()
+    {
+        const string source = """
+            record Params { count: u32; scale: f32; }
+            @compute @numthreads(1, 1, 1)
+            function Main(@builtin(dispatchThreadId) thread: uint3,
+                @binding(0) readwrite Output: StorageBuffer<f32>,
+                @binding(3) readonly Parameters: StorageBuffer<Params>): void {
+                let p = Parameters[0];
+                Output[thread.x] = Convert<f32>(p.count) * p.scale;
+            }
+            """;
+        var module = GpuComputeBinder.Compile(new([new("params.v.ts", source)]));
+        Assert.True(module.Success, string.Join("; ", module.Diagnostics.Select(item => item.Message)));
+        var pushed = VdMirComputeBackend.Compile(module, (0, 3));
+        Assert.True(pushed.SpirvValidated, pushed.DxcOutput + pushed.SpirvValidationOutput);
+        Assert.Contains("OpTypePointer PushConstant", pushed.SpirvDisassembly);
+        Assert.DoesNotContain("Binding 3", pushed.SpirvDisassembly);
+        var buffered = VdMirComputeBackend.Compile(module);
+        Assert.True(buffered.SpirvValidated, buffered.DxcOutput + buffered.SpirvValidationOutput);
+        Assert.Contains("Binding 3", buffered.SpirvDisassembly);
+    }
+
     [Theory]
     [InlineData("HumanoidSkinning.v.ts")]
     [InlineData("Cloth3D.v.ts")]

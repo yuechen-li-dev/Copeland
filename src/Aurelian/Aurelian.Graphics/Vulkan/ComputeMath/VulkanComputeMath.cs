@@ -36,15 +36,16 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
     private AurelianVulkanBuffer? readbackStaging;
     private DispatchTimestamps? dispatchTimestamps;
 
-    private sealed class DispatchSlot(DescriptorSet set, AurelianVulkanBuffer parameters)
+    private sealed class DispatchSlot(DescriptorSet set, AurelianVulkanBuffer? parameters)
     {
         public DescriptorSet Set { get; } = set;
-        public AurelianVulkanBuffer Parameters { get; } = parameters;
+        public AurelianVulkanBuffer? Parameters { get; } = parameters;
         public AurelianVulkanBuffer? Input, Auxiliary, Output;
         public KernelParameters LastParameters;
         public bool HasParameters;
     }
     public int MaximumDispatches { get; }
+    public bool PushDispatchParameters { get; }
     public int MaximumTensorElements { get; }
     public int ReadbackCount { get; private set; }
     /// <summary>Owned buffer allocations including transfer staging and dispatch parameters.
@@ -65,6 +66,13 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
 
     public VulkanComputeMath(AurelianVulkanPlant plant, Func<string, byte[]> compile, int maximumDispatches = 512,
         int maximumTensorElements = 1048576)
+        : this(plant, compile, maximumDispatches, maximumTensorElements, pushDispatchParameters: false)
+    {
+    }
+
+    /// <param name="compile">Compiles shaders for the selected dispatch parameter ABI.</param>
+    public VulkanComputeMath(AurelianVulkanPlant plant, Func<string, byte[]> compile, int maximumDispatches,
+        int maximumTensorElements, bool pushDispatchParameters)
     {
         ArgumentNullException.ThrowIfNull(plant);
         ArgumentNullException.ThrowIfNull(compile);
@@ -72,6 +80,7 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
         ComputeMathBatch.Require(maximumTensorElements is > 0 and <= 134217728, "Explicit tensor budget must be 1–134217728 elements.");
         this.plant = plant;
         this.compile = compile;
+        PushDispatchParameters = pushDispatchParameters;
         MaximumDispatches = maximumDispatches;
         MaximumTensorElements = maximumTensorElements;
         allocator = new(plant);
@@ -270,10 +279,7 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
         for (int index = 0; index < batch.DispatchCount; index++)
         {
             var dispatch = batch.Dispatches[index];
-            var set = slots[index].Set;
-            plant.Vk.CmdBindPipeline(command.CommandBuffer, PipelineBindPoint.Compute, pipelines[dispatch.Shader]);
-            plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Compute, pipelineLayout, 0, 1, &set, 0, null);
-            plant.Vk.CmdDispatch(command.CommandBuffer, dispatch.GroupsX, dispatch.GroupsY, 1);
+            RecordDispatch(command.CommandBuffer, slots[index], dispatch);
             Barrier(command, AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
                 AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
                 PipelineStageFlags.ComputeShaderBit, PipelineStageFlags.ComputeShaderBit);
@@ -437,7 +443,7 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
         }
         foreach (var slot in slots)
         {
-            slot.Parameters.Dispose();
+            slot.Parameters?.Dispose();
         }
         foreach (var tensor in tensors)
         {

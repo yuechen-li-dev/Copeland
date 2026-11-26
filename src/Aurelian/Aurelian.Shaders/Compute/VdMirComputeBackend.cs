@@ -24,8 +24,11 @@ public sealed record VdMirComputeBackendResult(
 public static class VdMirComputeBackend
 {
     public static VdMirComputeBackendResult Compile(VdMirComputeModule module)
+        => Compile(module, pushConstantRecord: null);
+
+    public static VdMirComputeBackendResult Compile(VdMirComputeModule module, (int Set, int Binding)? pushConstantRecord)
     {
-        string hlsl = VdMirComputeHlslEmitter.Emit(module);
+        string hlsl = VdMirComputeHlslEmitter.Emit(module, pushConstantRecord);
         DxcExecutableResolution resolution = DxcExecutableResolver.Resolve();
         DxcSpirvCompileResult compilation = DxcSpirvCompiler.Compile(
             new DxcSpirvCompileRequest(

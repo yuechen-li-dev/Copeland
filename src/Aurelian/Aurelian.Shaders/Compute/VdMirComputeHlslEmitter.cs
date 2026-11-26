@@ -6,7 +6,9 @@ namespace Aurelian.Shaders.Compute;
 
 public static partial class VdMirComputeHlslEmitter
 {
-    public static string Emit(VdMirComputeModule module)
+    public static string Emit(VdMirComputeModule module) => Emit(module, pushConstantRecord: null);
+
+    internal static string Emit(VdMirComputeModule module, (int Set, int Binding)? pushConstantRecord)
     {
         ArgumentNullException.ThrowIfNull(module);
         if (!module.Success || module.EntryPoint is null)
@@ -22,8 +24,15 @@ public static partial class VdMirComputeHlslEmitter
         {
             builder.AppendLine($"groupshared {MapType(shared.ElementType, module)} {LocalName(shared.Name)}[{shared.Count}];");
         }
+        bool emittedPushConstant = false;
         foreach (VdMirResource resource in module.Resources)
         {
+            if (pushConstantRecord == (resource.Set, resource.Binding))
+            {
+                EmitPushConstantRecord(builder, module, resource);
+                emittedPushConstant = true;
+                continue;
+            }
             string resourceType;
             if (resource.ElementType == "acceleration_structure")
             {
@@ -43,6 +52,10 @@ public static partial class VdMirComputeHlslEmitter
             }
             string suffix = resource.DescriptorCount is { } count ? $"[{count}]" : "";
             builder.AppendLine($"[[vk::binding({resource.Binding}, {resource.Set})]] {resourceType} {resource.Name}{suffix};");
+        }
+        if (pushConstantRecord is not null && !emittedPushConstant)
+        {
+            throw new InvalidOperationException("The requested push constant record binding was not declared.");
         }
         if (module.Resources.Count > 0)
         {
