@@ -23,6 +23,39 @@ public sealed partial class ComputeMathBatch
         }, packed ? "GatherPackedHalf.v.ts" : "TensorMap.v.ts");
     }
 
+    /// <summary>Gather complete packed FP16 rows by UInt32 index into FP32 storage.
+    /// An out-of-range index produces a zero row.</summary>
+    public void GatherPackedRows(GpuTensor input, GpuTensor indices, GpuTensor output)
+    {
+        Owner.Validate(input, GpuTensorFormat.PackedFloat16);
+        Owner.Validate(indices, GpuTensorFormat.UInt32);
+        Owner.Validate(output, GpuTensorFormat.Float32);
+        Require(indices.Elements == output.Rows && output.Columns == input.Columns,
+            "Indexed gather requires one index per output row and matching row widths.");
+        Map(input, indices, output, 0, new()
+        {
+            Rows = (uint)output.Rows, Columns = (uint)output.Columns,
+            Inner = (uint)input.Columns, Width = (uint)input.Rows,
+        }, "GatherPackedHalf.v.ts");
+    }
+
+    /// <summary>Copy one lane of rows from one interleaved layout to another.</summary>
+    public void CopyStridedRows(GpuTensor input, GpuTensor output, int count, int firstInputRow,
+        int inputStride, int firstOutputRow, int outputStride)
+    {
+        Check(input, output);
+        Require(!ReferenceEquals(input, output) && input.Columns == output.Columns
+            && count > 0 && firstInputRow >= 0 && firstOutputRow >= 0 && inputStride > 0 && outputStride > 0
+            && firstInputRow + (long)(count - 1) * inputStride < input.Rows
+            && firstOutputRow + (long)(count - 1) * outputStride < output.Rows,
+            "Strided row copy must stay within separate buffers of the same row width.");
+        Map(input, input, output, 11, new()
+        {
+            Rows = (uint)count, Columns = (uint)input.Columns, Offset = (uint)firstInputRow,
+            Inner = (uint)inputStride, Height = (uint)firstOutputRow, Width = (uint)outputStride,
+        });
+    }
+
     public void ScatterRounded(GpuTensor input, GpuTensor output, int firstRow = 0, int firstColumn = 0)
     {
         ScatterRegion(input, output, firstRow, firstColumn, rounded: true);

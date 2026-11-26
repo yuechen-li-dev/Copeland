@@ -13,7 +13,8 @@ function CrossAttentionScoresMain(@builtin(groupId) group: uint3,
     let p = Parameters[0];
     let key = group.x * 4 + lane / 32;
     let channel = lane % 32;
-    let head = group.y * p.width;
+    let head = (group.y % p.height) * p.width;
+    let token = group.y / p.height;
     let rowWidth = p.height * p.width;
     var dot: f32 = 0.0;
     if (key < p.columns) {
@@ -21,7 +22,7 @@ function CrossAttentionScoresMain(@builtin(groupId) group: uint3,
             let component = tile * 32 + channel;
             if (component < p.width) {
                 let offset = head + component;
-                dot = dot + Query[offset] * Keys[key * rowWidth + offset];
+                dot = dot + Query[token * rowWidth + offset] * Keys[key * rowWidth + offset];
             }
         }
     }

@@ -27,7 +27,7 @@ public sealed class VulkanInferenceSession : IDisposable
     public AurelianVulkanPlant Plant { get; }
     public VulkanComputeMath Compute { get; }
 
-    private VulkanInferenceSession(AurelianVulkanPlant plant, VulkanInferenceOptions options, bool ownsPlant)
+    private VulkanInferenceSession(AurelianVulkanPlant plant, VulkanInferenceOptions options, bool ownsPlant, Func<string, byte[]>? shader = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         if (options.AttentionQueryTileRows is < 1 or > 256)
@@ -36,16 +36,18 @@ public sealed class VulkanInferenceSession : IDisposable
         }
         Plant = plant;
         this.ownsPlant = ownsPlant;
-        Compute = new(plant, Shaders.Get, options.MaximumDispatches, options.MaximumTensorElements)
+        Compute = new(plant, shader ?? Shaders.Get, options.MaximumDispatches, options.MaximumTensorElements)
         {
             AttentionQueryTileRows = options.AttentionQueryTileRows,
             UseCooperativeLinear = options.UseCooperativeLinear,
         };
     }
 
-    public static VulkanInferenceSession Create(VulkanInferenceOptions? options = null)
+    public static VulkanInferenceSession Create(VulkanInferenceOptions? options = null) =>
+        Create(options ?? new(), shader: null);
+
+    internal static VulkanInferenceSession Create(VulkanInferenceOptions options, Func<string, byte[]>? shader)
     {
-        options ??= new();
         var initialization = VulkanPlantInitializer.CreatePlant(PlantId.Zero,
             new(EnableValidation: options.EnableValidation, ApplicationName: options.ApplicationName,
                 EnableCooperativeMatrices: options.UseCooperativeLinear, EnableCalibratedTimestamps: options.EnableCalibratedTimestamps));
@@ -57,7 +59,7 @@ public sealed class VulkanInferenceSession : IDisposable
         var plant = initialization.Plant!;
         try
         {
-            return new(plant, options, ownsPlant: true);
+            return new(plant, options, ownsPlant: true, shader);
         }
         catch
         {

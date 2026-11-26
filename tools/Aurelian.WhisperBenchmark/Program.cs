@@ -8,6 +8,33 @@ using Aurelian.Inference.Benchmarks;
 using Aurelian.Inference.Whisper;
 using static Aurelian.Inference.Whisper.TinyEnglishCheckpoint;
 
+if (args is ["compile-shaders", _] or ["verify-shaders"])
+{
+    bool verify = args[0] == "verify-shaders";
+    string? shaderDirectory = verify ? null : args[1];
+    var compiler = new Aurelian.Shaders.Library.BuiltinComputeShaderCache();
+    if (!verify)
+    {
+        Directory.CreateDirectory(shaderDirectory!);
+    }
+    foreach (string name in WhisperShaderPack.Names)
+    {
+        byte[] compiled = compiler.Get(name);
+        if (verify)
+        {
+            if (!compiled.AsSpan().SequenceEqual(WhisperShaderPack.Load(name)))
+            {
+                throw new InvalidDataException($"Embedded shader differs from compiled Visual TypeScript: {name}");
+            }
+        }
+        else
+        {
+            File.WriteAllBytes(Path.Combine(shaderDirectory!, name + ".spv"), compiled);
+        }
+    }
+    return;
+}
+
 if (args.Length > 0 && args[0] == "pcm")
 {
     RunPcmBenchmark(args);
@@ -163,9 +190,11 @@ File.WriteAllText(args[2], JsonSerializer.Serialize(new
 
 static void RunPcmBenchmark(string[] args)
 {
-    if (args.Length != 5 || !int.TryParse(args[4], out int requests) || requests is < 1 or > 100)
+    if (args.Length is < 5 or > 7
+        || args.Skip(5).Any(option => option is not ("jit" or "serial-alignment"))
+        || !int.TryParse(args[4], out int requests) || requests is < 1 or > 100)
     {
-        throw new ArgumentException("Usage: Aurelian.WhisperBenchmark pcm CHECKPOINT MONO16K_F32 OUTPUT_JSON REQUESTS");
+        throw new ArgumentException("Usage: Aurelian.WhisperBenchmark pcm CHECKPOINT MONO16K_F32 OUTPUT_JSON REQUESTS [jit] [serial-alignment]");
     }
     byte[] bytes = File.ReadAllBytes(args[2]);
     if (bytes.Length == 0 || bytes.Length % sizeof(float) != 0)
@@ -174,7 +203,8 @@ static void RunPcmBenchmark(string[] args)
     }
     float[] pcm = MemoryMarshal.Cast<byte, float>(bytes).ToArray();
     var timer = Stopwatch.StartNew();
-    using var transcriber = new VulkanWhisperTranscriber(args[1]);
+    using var transcriber = new VulkanWhisperTranscriber(args[1], precompiled: !args.Contains("jit"),
+        batchAlignment: !args.Contains("serial-alignment"));
     double initializationMs = timer.Elapsed.TotalMilliseconds;
     var timings = new List<double>(requests);
     IReadOnlyList<WhisperWordTiming> words = [];

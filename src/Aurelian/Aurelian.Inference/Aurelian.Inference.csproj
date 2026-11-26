@@ -3,6 +3,8 @@
     <Description>Explicit checkpoint bindings, Vulkan model layers and bounded inference sessions.</Description>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Shader names such as Activation.v.ts.spv are invariant resource IDs. -->
+    <EmbeddedResource Include="Whisper/Shaders/*.spv" WithCulture="false" LogicalName="Aurelian.Inference.Whisper.Shaders.%(Filename)%(Extension)" />
     <InternalsVisibleTo Include="Aurelian.WhisperBenchmark" />
     <InternalsVisibleTo Include="Aurelian.Gpt2Benchmark" />
   </ItemGroup>

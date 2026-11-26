@@ -48,20 +48,27 @@ public sealed partial class ComputeMathBatch
     /// <summary>Single-row projection with contiguous input weights for each output.</summary>
     public void MultiplyVector(GpuTensor input, GpuTensor weights, GpuTensor output)
     {
+        Require(input.Rows == 1, "Single-vector multiply requires one input row.");
+        MultiplyVectorRows(input, weights, output);
+    }
+
+    /// <summary>Apply independent GEMV reductions to the rows of an input matrix.</summary>
+    public void MultiplyVectorRows(GpuTensor input, GpuTensor weights, GpuTensor output)
+    {
         Owner.Validate(input, GpuTensorFormat.Float32);
         bool packed = weights.Format == GpuTensorFormat.PackedFloat16;
         Owner.Validate(weights, packed ? GpuTensorFormat.PackedFloat16 : GpuTensorFormat.Float32);
         Owner.Validate(output, GpuTensorFormat.Float32);
-        Require(input.Rows == 1 && output.Rows == 1 && input.Columns <= 8192
+        Require(output.Rows == input.Rows && input.Columns <= 8192
             && weights.Columns == input.Columns && output.Columns == weights.Rows
             && !ReferenceEquals(output, input) && !ReferenceEquals(output, weights),
-            "GEMV requires independent output, a single input row and weights shaped [output, input].");
+            "GEMV requires independent output, matched input rows and weights shaped [output, input].");
         Add([new(packed ? "DenseGemv.Packed" : "DenseGemv.v.ts", input, weights, output, new()
         {
             Columns = (uint)output.Columns,
             Inner = (uint)input.Columns,
             Width = Groups(input.Columns, 32),
-        }, Groups(output.Columns, 4))]);
+        }, Groups(output.Columns, 4), (uint)output.Rows)]);
     }
 
     /// <summary>Noncausal FP32 attention with 64-channel heads. The first half
@@ -142,19 +149,20 @@ public sealed partial class ComputeMathBatch
         }, Groups(output.Rows, 16), (uint)output.Columns / 64)]);
     }
 
-    /// <summary>Single-query cross-attention over a resident token-major FP32 cache.</summary>
+    /// <summary>Cross-attention over a resident token-major FP32 cache.</summary>
     public void AttendToCache(GpuTensor query, GpuTensor keys, GpuTensor values,
         GpuTensor scores, GpuTensor probabilities, GpuTensor output, int headWidth)
     {
         Check(query, keys, values, scores, probabilities, output);
         int heads = query.Columns / Math.Max(1, headWidth);
-        Require(query.Rows == 1 && SameShape(query, output) && SameShape(keys, values)
+        int headRows = query.Rows * heads;
+        Require(SameShape(query, output) && SameShape(keys, values)
             && query.Columns == keys.Columns && headWidth is 64 or 128 && query.Columns % headWidth == 0
-            && keys.Rows <= 2048 && scores.Rows == heads && scores.Columns == keys.Rows
+            && keys.Rows <= 2048 && scores.Rows == headRows && scores.Columns == keys.Rows
             && SameShape(scores, probabilities) && !ReferenceEquals(scores, probabilities)
             && Independent(scores) && Independent(probabilities) && Independent(output)
             && !ReferenceEquals(output, scores) && !ReferenceEquals(output, probabilities),
-            "Cross-attention needs one query, independent output and scratch, 64/128-wide heads and at most 2048 keys.");
+            "Cross-attention needs matching query rows, independent output and scratch, 64/128-wide heads and at most 2048 keys.");
         KernelParameters parameters = new()
         {
             Columns = (uint)keys.Rows,
@@ -164,12 +172,12 @@ public sealed partial class ComputeMathBatch
             Alpha = 1f / MathF.Sqrt(headWidth),
         };
         Add([
-            new("CrossAttentionScores.v.ts", query, keys, scores, parameters, Groups(keys.Rows, 4), (uint)heads),
+            new("CrossAttentionScores.v.ts", query, keys, scores, parameters, Groups(keys.Rows, 4), (uint)headRows),
             new("RowReduction.v.ts", scores, scores, probabilities, new()
             {
-                Rows = (uint)heads, Columns = (uint)keys.Rows, Mode = (uint)RowReduction.Softmax,
-            }, (uint)heads),
-            new("CrossAttentionValues.v.ts", probabilities, values, output, parameters, (uint)headWidth / 16, (uint)heads),
+                Rows = (uint)headRows, Columns = (uint)keys.Rows, Mode = (uint)RowReduction.Softmax,
+            }, (uint)headRows),
+            new("CrossAttentionValues.v.ts", probabilities, values, output, parameters, (uint)headWidth / 16, (uint)headRows),
         ]);
 
         bool Independent(GpuTensor tensor) => !ReferenceEquals(tensor, query)

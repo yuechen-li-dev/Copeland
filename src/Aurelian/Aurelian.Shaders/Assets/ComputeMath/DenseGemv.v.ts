@@ -18,7 +18,7 @@ function DenseGemvMain(@builtin(groupId) group: uint3,
     for (let tile of BoundedIndices<256>(p.width)) {
         let k = tile * 32 + inputLane;
         if (row < p.columns && k < p.inner) {
-            sum = sum + Input[k] * Operand(Weights, row * p.inner + k);
+            sum = sum + Input[group.y * p.inner + k] * Operand(Weights, row * p.inner + k);
         }
     }
     Sums[lane] = sum;
@@ -31,6 +31,6 @@ function DenseGemvMain(@builtin(groupId) group: uint3,
         WorkgroupBarrier();
     }
     if (row < p.columns && inputLane == 0) {
-        Output[row] = Sums[lane];
+        Output[group.y * p.columns + row] = Sums[lane];
     }
 }

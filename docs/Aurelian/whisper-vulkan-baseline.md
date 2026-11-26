@@ -32,9 +32,37 @@ layouts even with the same checkpoint and token sequence.
 
 ## PCM-to-word runtime
 
-The native inference library now provides `VulkanWhisperTranscriber`. It accepts one mono 16 kHz PCM window of up to 30 seconds and returns words with source-relative unrefined and trimmed sample bounds. It uses the packed-resident Tiny.en encoder and decoder, timestamp-constrained greedy decoding, and a selected-head alignment pass. The tokenizer and mel filters come from the checkpoint. The runtime reuses the compute queue across windows and caches compiled builtin SPIR-V across sessions in the same process.
+The native inference library now provides `VulkanWhisperTranscriber`. It accepts one mono 16 kHz PCM window of up to 30 seconds and returns words with source-relative unrefined and trimmed sample bounds. It uses the packed-resident Tiny.en encoder and decoder, timestamp-constrained greedy decoding, and a selected-head alignment pass. The tokenizer and mel filters come from the checkpoint. The runtime reuses the compute queue across windows and loads an embedded pack of 16 SPIR-V modules. The production provider loads these resources directly. Other inference sessions can still compile Visual TypeScript in-process for development and benchmarks.
 
 Use the existing benchmark with the `pcm CHECKPOINT MONO16K_F32 OUTPUT_JSON REQUESTS` arguments to measure PCM-to-word latency. The reference harness accepts `CHECKPOINT MONO16K_F32 OUTPUT_JSON REQUESTS pcm-gpu` or `pcm-cpu` to run whisper.cpp DTW on the same fixture. The original precomputed-mel invocation still isolates the no-timestamp inference graph.
+
+### Embedded shaders and batched replay
+
+The Whisper shader pack is built from the existing Visual TypeScript builtin library. Regenerate it after changing a participating shader, import, compiler, or specialization. The generator runs the normal SPIR-V validation step. Rebuild before verifying that every freshly generated module matches the embedded bytes.
+
+```powershell
+dotnet build tools/Aurelian.WhisperBenchmark -c Release
+$bench = "tools/Aurelian.WhisperBenchmark/bin/Release/net10.0/Aurelian.WhisperBenchmark.dll"
+dotnet $bench compile-shaders src/Aurelian/Aurelian.Inference/Whisper/Shaders
+dotnet build tools/Aurelian.WhisperBenchmark -c Release
+dotnet $bench verify-shaders
+```
+
+Whisper's alignment pass now decodes the entire known sequence in one causal GPU batch. It gathers packed embeddings by token ID, projects independent rows with the same GEMV reductions as the single-token path, and copies selected cross-attention heads into the existing token-major alignment layout. The replay owns a reusable workspace for its most recent sequence length. The PCM benchmark accepts `jit` and `serial-alignment` to isolate the two changes. Neither flag changes the production provider.
+
+The final RTX 3070 comparison used the same PCM windows and Tiny.en checkpoint for all modes. Each row summarizes 45 warmed requests per mode across three fresh processes. Cold time includes session creation and the first PCM-to-word request.
+
+| Fixture | Aurelian JIT + serial | Aurelian embedded + serial | Aurelian embedded + batched | whisper.cpp Vulkan DTW |
+| --- | ---: | ---: | ---: | ---: |
+| Generated Valencia speech, warm median | 98.96 ms | 100.26 ms | 75.51 ms | 79.20 ms |
+| JFK, warm median | 100.80 ms | 100.72 ms | 78.06 ms | 81.74 ms |
+| 30-second repeated speech, warm median | 272.02 ms | 267.72 ms | 200.42 ms | 246.41 ms |
+| Generated Valencia speech, cold median | 3,855.79 ms | 864.15 ms | 862.88 ms | 515.30 ms |
+| JFK, cold median | 3,791.98 ms | 880.02 ms | 879.21 ms | 508.56 ms |
+
+Each Aurelian mode returned identical words and sample ranges on all three fixtures. The long-window reference decoded three additional words at the tail. The original precomputed-mel benchmark also reproduced all 27 archived encoder and full-logits tensors byte for byte. The published Valencia desktop passed its transcript-to-edit smoke with DXC disabled and the Vulkan SDK tools removed from PATH. Per-request timings and validation evidence are under `artifacts/local/whisper-baseline/batched-alignment/`.
+
+### Earlier alignment readback experiment
 
 On the RTX 3070, Aurelian's window-wide alignment readback preserved every word and timestamp from the per-token readback build on two fixtures. The per-token build also performed an initial no-speech probability check. The comparison used three fresh processes per mode and 15 measured requests per process after five warmups. Timing starts with mono PCM in memory and includes log-mel extraction, model execution and alignment.
 

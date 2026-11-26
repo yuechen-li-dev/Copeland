@@ -13,6 +13,7 @@ enum MapOperation {
     ScatterFloat,
     ScaledResidual,
     Rope2D,
+    CopyStridedRows,
     Invalid
 }
 
@@ -49,6 +50,9 @@ function DecodeMap(value: u32): MapOperation {
     }
     if (value == 10) {
         return MapOperation.Rope2D;
+    }
+    if (value == 11) {
+        return MapOperation.CopyStridedRows;
     }
     return MapOperation.Invalid;
 }
@@ -152,6 +156,11 @@ function TensorMapMain(@builtin(dispatchThreadId) thread: uint3,
             } else {
                 Output[index] = BFloat16(a * Sin(phase) + b * Cos(phase));
             }
+        }
+        case MapOperation.CopyStridedRows => {
+            let source = (p.offset + row * p.inner) * p.columns + columnIndex;
+            let destination = (p.height + row * p.width) * p.columns + columnIndex;
+            Output[destination] = Input[source];
         }
         case MapOperation.Invalid => {
             Output[index] = Input[index];

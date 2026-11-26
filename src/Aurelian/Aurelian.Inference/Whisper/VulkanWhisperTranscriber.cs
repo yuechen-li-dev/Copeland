@@ -17,6 +17,7 @@ public sealed class VulkanWhisperTranscriber : IDisposable, IWhisperQueue
     private const int TokenLimit = TextRows - 2;
     private const int WindowsPerQueue = 32;
     private readonly VulkanInferenceSession session;
+    private readonly bool batchAlignment;
     private readonly TinyEnglishCheckpoint checkpoint;
     private readonly TinyEnglishModel model;
     private readonly WhisperLogMel frontend;
@@ -27,8 +28,13 @@ public sealed class VulkanWhisperTranscriber : IDisposable, IWhisperQueue
 
     VulkanComputeMath.QueuedComputeScope? IWhisperQueue.Retained => retained;
 
-    public VulkanWhisperTranscriber(string checkpointPath)
+    public VulkanWhisperTranscriber(string checkpointPath) : this(checkpointPath, precompiled: true, batchAlignment: true)
     {
+    }
+
+    internal VulkanWhisperTranscriber(string checkpointPath, bool precompiled, bool batchAlignment)
+    {
+        this.batchAlignment = batchAlignment;
         checkpoint = new TinyEnglishCheckpoint(checkpointPath);
         try
         {
@@ -39,7 +45,7 @@ public sealed class VulkanWhisperTranscriber : IDisposable, IWhisperQueue
                 EnableValidation = false,
                 MaximumTensorElements = 32 * 1024 * 1024,
                 UseCooperativeLinear = true,
-            });
+            }, precompiled ? WhisperShaderPack.Load : null);
             try
             {
                 model = new(session.Compute, checkpoint, batchAcrossHeads: true, reuseAttention: false,
@@ -85,7 +91,7 @@ public sealed class VulkanWhisperTranscriber : IDisposable, IWhisperQueue
         frontend.Fill(pcm, sampleCount, mel, frontendThreads, cancellation);
         try
         {
-            var (tokens, alignment) = model.DecodeAligned(mel, sampleCount, TokenLimit, this, cancellation);
+            var (tokens, alignment) = model.DecodeAligned(mel, sampleCount, TokenLimit, this, cancellation, batchAlignment);
             return WhisperWordAlignment.Align(checkpoint, tokens, alignment, pcm, sampleCount, cancellation);
         }
         catch

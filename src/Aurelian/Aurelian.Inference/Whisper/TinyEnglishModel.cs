@@ -59,6 +59,8 @@ internal sealed class TinyEnglishModel : IDisposable
     private readonly bool prefetchEncoder;
     public bool CopyAtUse { get; init; }
     public int PinnedBlocks { get; }
+    private readonly Dictionary<(int Rows, int Columns), Stack<GpuTensor>> replayScratch = [];
+    private GpuTensor? replayTokenIds;
     private readonly Block?[] encoder = new Block?[Layers];
     private readonly Block[] decoder = new Block[Layers];
     private readonly Cache[] selfCache = new Cache[Layers];
@@ -318,7 +320,7 @@ internal sealed class TinyEnglishModel : IDisposable
     }
 
     public (List<int> Tokens, float[] Attention) DecodeAligned(float[] mel, int samples, int maxTokens,
-        IWhisperQueue queue, CancellationToken cancellation)
+        IWhisperQueue queue, CancellationToken cancellation, bool batchAlignment)
     {
         queue.OpenRequestScope();
         var metrics = new InferenceMetrics(queued: true, profileGpu: false);
@@ -347,6 +349,10 @@ internal sealed class TinyEnglishModel : IDisposable
 
         // The alignment pass uses text and the no-timestamps prompt. Timestamp
         // tokens used to drive decoding do not occupy alignment rows.
+        if (batchAlignment)
+        {
+            return (text, ReplayAlignment(text, metrics, cancellation));
+        }
         using var attention = math.CreateTensor((text.Count + 1) * AlignmentHeadCount, AudioRows);
         Evaluate(StartOfText, 0, metrics, alignmentOnly: true);
         Evaluate(NoTimestamps, 1, metrics, attention, alignmentOnly: true);
@@ -356,6 +362,74 @@ internal sealed class TinyEnglishModel : IDisposable
             Evaluate(text[i], i + 2, metrics, attention, alignmentOnly: true);
         }
         return (text, math.Read(attention, reuseReadback));
+    }
+
+    private float[] ReplayAlignment(List<int> text, InferenceMetrics metrics, CancellationToken cancellation)
+    {
+        int rows = 2 + text.Count;
+        if (replayTokenIds?.Rows != rows)
+        {
+            ClearReplayScratch();
+            replayTokenIds = math.CreateTensor(rows, 1, GpuTensorFormat.UInt32);
+        }
+        using var scratch = new ScratchScope(math, replayScratch);
+        var tokenBytes = new byte[rows * sizeof(uint)];
+        var tokens = MemoryMarshal.Cast<byte, uint>(tokenBytes.AsSpan());
+        tokens[0] = StartOfText;
+        tokens[1] = NoTimestamps;
+        for (int i = 0; i < text.Count; i++)
+        {
+            tokens[i + 2] = (uint)text[i];
+        }
+        math.UploadUInt32Bytes(replayTokenIds, tokenBytes);
+        var hidden = scratch.Create(rows, Width);
+        var layerScratch = new DecoderScratch(scratch, rows, rows);
+        var crossScoreRows = scratch.Create(rows * Heads, AudioRows);
+        var crossProbabilityRows = scratch.Create(rows * Heads, AudioRows);
+        var alignment = scratch.Create((rows - 1) * AlignmentHeadCount, AudioRows);
+        var batch = math.CreateBatch();
+        batch.GatherPackedRows(embedding, replayTokenIds, hidden);
+        batch.Gather(textPositions, layerScratch.Normalized);
+        batch.Activate(hidden, hidden, TensorActivation.Residual, layerScratch.Normalized);
+
+        int alignmentHead = 0;
+        for (int layer = 0; layer < Layers; layer++)
+        {
+            cancellation.ThrowIfCancellationRequested();
+            Block block = decoder[layer];
+            RecordDecoderSelf(batch, hidden, block.Self, selfCache[layer], layerScratch, position: 0, batched: true);
+            Attention cross = block.Cross!;
+            batch.Normalize(hidden, cross.Norm, layerScratch.Normalized, Normalization.LayerNorm);
+            Project(batch, layerScratch.Normalized, cross.Query, layerScratch.Query, batched: true);
+            Cache cache = crossCache[layer];
+            batch.AttendToCache(layerScratch.Query, cache.Key, cache.Value, crossScoreRows, crossProbabilityRows,
+                layerScratch.Attended, HeadWidth);
+            foreach (int head in AlignmentHeads[layer])
+            {
+                batch.CopyStridedRows(crossProbabilityRows, alignment, rows - 1,
+                    /* Skip the start-of-transcript token. */ Heads + head, Heads, alignmentHead++, AlignmentHeadCount);
+            }
+            ProjectResidual(batch, hidden, layerScratch.Attended, cross.Output, layerScratch.Projected, batched: true);
+            FeedForward(batch, hidden, block.Mlp, layerScratch.Normalized, layerScratch.Expanded,
+                layerScratch.Projected, batched: true);
+        }
+
+        Execute(batch, metrics, "decoder-alignment");
+        return math.Read(alignment, reuseReadback);
+    }
+
+    private void ClearReplayScratch()
+    {
+        replayTokenIds?.Dispose();
+        replayTokenIds = null;
+        foreach (var tensors in replayScratch.Values)
+        {
+            foreach (var tensor in tensors)
+            {
+                tensor.Dispose();
+            }
+        }
+        replayScratch.Clear();
     }
 
     private void Encode(float[] mel, InferenceMetrics metrics, List<QueuedDispatchProfile>? profiles,
@@ -527,19 +601,7 @@ internal sealed class TinyEnglishModel : IDisposable
         {
             Block block = decoder[layer];
             Cache cache = selfCache[layer];
-            batch.Normalize(hidden, block.Self.Norm, scratch.Normalized, Normalization.LayerNorm);
-            Project(batch, scratch.Normalized, block.Self.Query, scratch.Query);
-            Project(batch, scratch.Normalized, block.Self.Key, scratch.Key);
-            Project(batch, scratch.Normalized, block.Self.Value, scratch.Value);
-            batch.Scatter(scratch.Key, cache.Key, firstRow: position);
-            batch.Scatter(scratch.Value, cache.Value, firstRow: position);
-            batch.Scale(scratch.Query, scratch.Query, 1f / MathF.Sqrt(HeadWidth));
-            batch.GroupedAttentionScores(scratch.Query, cache.Key, scratch.Scores,
-                Heads, Heads, HeadWidth, position, position + 1);
-            batch.ReduceRows(scratch.Scores, scratch.Probabilities);
-            batch.GroupedAttentionValues(scratch.Probabilities, cache.Value, scratch.Attended,
-                Heads, Heads, HeadWidth);
-            ProjectResidual(batch, hidden, scratch.Attended, block.Self.Output, scratch.Projected);
+            RecordDecoderSelf(batch, hidden, block.Self, cache, scratch, position, batched: false);
 
             Attention cross = block.Cross!;
             batch.Normalize(hidden, cross.Norm, scratch.Normalized, Normalization.LayerNorm);
@@ -622,6 +684,23 @@ internal sealed class TinyEnglishModel : IDisposable
         return next;
     }
 
+    private void RecordDecoderSelf(ComputeMathBatch batch, GpuTensor hidden, Attention self, Cache cache,
+        DecoderScratch scratch, int position, bool batched)
+    {
+        batch.Normalize(hidden, self.Norm, scratch.Normalized, Normalization.LayerNorm);
+        Project(batch, scratch.Normalized, self.Query, scratch.Query, batched);
+        Project(batch, scratch.Normalized, self.Key, scratch.Key, batched);
+        Project(batch, scratch.Normalized, self.Value, scratch.Value, batched);
+        batch.Scatter(scratch.Key, cache.Key, firstRow: position);
+        batch.Scatter(scratch.Value, cache.Value, firstRow: position);
+        batch.Scale(scratch.Query, scratch.Query, 1f / MathF.Sqrt(HeadWidth));
+        batch.GroupedAttentionScores(scratch.Query, cache.Key, scratch.Scores,
+            Heads, Heads, HeadWidth, position, position + hidden.Rows);
+        batch.ReduceRows(scratch.Scores, scratch.Probabilities);
+        batch.GroupedAttentionValues(scratch.Probabilities, cache.Value, scratch.Attended, Heads, Heads, HeadWidth);
+        ProjectResidual(batch, hidden, scratch.Attended, self.Output, scratch.Projected, batched);
+    }
+
     private void Capture(string name, float[] values)
     {
         using var stream = File.Create(Path.Combine(CaptureDirectory!, name));
@@ -661,7 +740,8 @@ internal sealed class TinyEnglishModel : IDisposable
         batch.Activate(output, output, TensorActivation.Gelu);
     }
 
-    private void MultiplyProjection(ComputeMathBatch batch, GpuTensor input, GpuTensor weight, GpuTensor output)
+    private void MultiplyProjection(ComputeMathBatch batch, GpuTensor input, GpuTensor weight, GpuTensor output,
+        bool batched = false)
     {
         if (weight.Format == GpuTensorFormat.PackedFloat16)
         {
@@ -678,15 +758,20 @@ internal sealed class TinyEnglishModel : IDisposable
             }
             batch.Gather(product, output);
         }
+        else if (batched)
+        {
+            batch.MultiplyVectorRows(input, weight, output);
+        }
         else
         {
             batch.ProjectDense(input, weight, output, useVectorKernel: vectorProjection);
         }
     }
 
-    private void Project(ComputeMathBatch batch, GpuTensor input, Linear layer, GpuTensor output)
+    private void Project(ComputeMathBatch batch, GpuTensor input, Linear layer, GpuTensor output,
+        bool batched = false)
     {
-        MultiplyProjection(batch, input, layer.Weight, output);
+        MultiplyProjection(batch, input, layer.Weight, output, batched);
         if (layer.Bias is { } bias)
         {
             batch.Activate(output, output, TensorActivation.Bias, bias);
@@ -694,33 +779,33 @@ internal sealed class TinyEnglishModel : IDisposable
     }
 
     private void ProjectResidual(ComputeMathBatch batch, GpuTensor hidden, GpuTensor input,
-        Linear layer, GpuTensor projected)
+        Linear layer, GpuTensor projected, bool batched = false)
     {
         if (FuseProjectionEpilogues && layer.Bias is { } bias)
         {
-            MultiplyProjection(batch, input, layer.Weight, projected);
+            MultiplyProjection(batch, input, layer.Weight, projected, batched);
             batch.Activate(projected, hidden, TensorActivation.BiasResidual, bias);
             return;
         }
-        Project(batch, input, layer, projected);
+        Project(batch, input, layer, projected, batched);
         batch.Activate(hidden, hidden, TensorActivation.Residual, projected);
     }
 
     private void FeedForward(ComputeMathBatch batch, GpuTensor hidden, Mlp mlp,
-        GpuTensor normalized, GpuTensor expanded, GpuTensor projected)
+        GpuTensor normalized, GpuTensor expanded, GpuTensor projected, bool batched = false)
     {
         batch.Normalize(hidden, mlp.Norm, normalized, Normalization.LayerNorm);
         if (FuseProjectionEpilogues && mlp.Up.Bias is { } bias)
         {
-            MultiplyProjection(batch, normalized, mlp.Up.Weight, expanded);
+            MultiplyProjection(batch, normalized, mlp.Up.Weight, expanded, batched);
             batch.Activate(expanded, expanded, TensorActivation.BiasGelu, bias);
         }
         else
         {
-            Project(batch, normalized, mlp.Up, expanded);
+            Project(batch, normalized, mlp.Up, expanded, batched);
             batch.Activate(expanded, expanded, TensorActivation.Gelu);
         }
-        ProjectResidual(batch, hidden, expanded, mlp.Down, projected);
+        ProjectResidual(batch, hidden, expanded, mlp.Down, projected, batched);
     }
 
     private void Execute(ComputeMathBatch batch, InferenceMetrics metrics, string operation, ComputeBatchUpload? upload = null)
@@ -769,6 +854,7 @@ internal sealed class TinyEnglishModel : IDisposable
 
     public void Dispose()
     {
+        ClearReplayScratch();
         if (tileController is not null && ReferenceEquals(math.StreamController, tileController))
         {
             math.StreamController = previousController;
@@ -793,17 +879,17 @@ internal sealed class TinyEnglishModel : IDisposable
         resident.Clear();
     }
 
-    private sealed class DecoderScratch(ScratchScope scope, int cacheRows)
+    private sealed class DecoderScratch(ScratchScope scope, int cacheRows, int rows = 1)
     {
-        public GpuTensor Normalized { get; } = scope.Create(1, Width);
-        public GpuTensor Query { get; } = scope.Create(1, Width);
-        public GpuTensor Key { get; } = scope.Create(1, Width);
-        public GpuTensor Value { get; } = scope.Create(1, Width);
-        public GpuTensor Attended { get; } = scope.Create(1, Width);
-        public GpuTensor Projected { get; } = scope.Create(1, Width);
-        public GpuTensor Expanded { get; } = scope.Create(1, Width * 4);
-        public GpuTensor Scores { get; } = scope.Create(Heads, cacheRows);
-        public GpuTensor Probabilities { get; } = scope.Create(Heads, cacheRows);
+        public GpuTensor Normalized { get; } = scope.Create(rows, Width);
+        public GpuTensor Query { get; } = scope.Create(rows, Width);
+        public GpuTensor Key { get; } = scope.Create(rows, Width);
+        public GpuTensor Value { get; } = scope.Create(rows, Width);
+        public GpuTensor Attended { get; } = scope.Create(rows, Width);
+        public GpuTensor Projected { get; } = scope.Create(rows, Width);
+        public GpuTensor Expanded { get; } = scope.Create(rows, Width * 4);
+        public GpuTensor Scores { get; } = scope.Create(rows * Heads, cacheRows);
+        public GpuTensor Probabilities { get; } = scope.Create(rows * Heads, cacheRows);
     }
 
     // This benchmark executes synchronously. Each scope exclusively holds its

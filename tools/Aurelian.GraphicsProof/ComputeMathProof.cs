@@ -149,6 +149,12 @@ internal static class ComputeMathProof
             batch = math.CreateBatch();
             batch.MultiplyVector(input, packedWeights, result);
             Check("gemv-packed-weight-odd-row-stride", batch, result, expectedVector);
+            using var vectors = Tensor(2, vectorWidth, [.. vectorInput, .. vectorInput.Select(value => -value)]);
+            using var results = Tensor(2, vectorOutputs);
+            batch = math.CreateBatch();
+            batch.MultiplyVectorRows(vectors, packedWeights, results);
+            Check("gemv-batched-packed-weight-odd-row-stride", batch, results,
+                [.. expectedVector, .. expectedVector.Select(value => -value)]);
         }
 
         var replayInput = Tensor(1, 3, [-2f, 0f, 2f]);
@@ -460,6 +466,26 @@ internal static class ComputeMathProof
         gatherBatch.Gather(gatherPacked, gathered, firstRow: 1, firstColumn: 1);
         Check("packed-half-gather", gatherBatch, gathered,
             new[] { 6, 7, 8, 11, 12, 13 }.Select(i => (float)(Half)gatherSource[i]).ToArray(), 0);
+
+        using var indices = math.CreateTensor(3, 1, GpuTensorFormat.UInt32);
+        math.UploadUInt32(indices, [2, uint.MaxValue, 0]);
+        using var indexed = Tensor(3, 5);
+        gatherBatch = math.CreateBatch();
+        gatherBatch.GatherPackedRows(gatherPacked, indices, indexed);
+        Check("indexed-packed-half-gather", gatherBatch, indexed,
+            [.. gatherSource.Skip(10).Select(value => (float)(Half)value), 0, 0, 0, 0, 0,
+             .. gatherSource.Take(5).Select(value => (float)(Half)value)], 0);
+        using var strided = Tensor(5, 5, new float[25]);
+        gatherBatch = math.CreateBatch();
+        gatherBatch.CopyStridedRows(indexed, strided, 2, firstInputRow: 0, inputStride: 2,
+            firstOutputRow: 1, outputStride: 3);
+        var expectedStrided = new float[25];
+        for (int i = 0; i < 5; i++)
+        {
+            expectedStrided[5 + i] = (float)(Half)gatherSource[10 + i];
+            expectedStrided[20 + i] = (float)(Half)gatherSource[i];
+        }
+        Check("strided-row-copy", gatherBatch, strided, expectedStrided, 0);
 
         if (plant.ComputeQueue.HasValue)
         {

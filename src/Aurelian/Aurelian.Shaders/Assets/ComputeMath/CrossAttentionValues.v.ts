@@ -11,7 +11,8 @@ function CrossAttentionValuesMain(@builtin(groupId) group: uint3,
     @binding(2) readwrite Output: StorageBuffer<f32>,
     @binding(3) readonly Parameters: StorageBuffer<KernelParameters>): void {
     let p = Parameters[0];
-    let channel = group.y * p.width + group.x * 16 + lane % 16;
+    let token = group.y / p.height;
+    let channel = (group.y % p.height) * p.width + group.x * 16 + lane % 16;
     let rowWidth = p.height * p.width;
     let partition = lane / 16;
     var sum: f32 = 0.0;
@@ -31,6 +32,6 @@ function CrossAttentionValuesMain(@builtin(groupId) group: uint3,
         WorkgroupBarrier();
     }
     if (partition == 0) {
-        Output[channel] = Sums[lane];
+        Output[token * rowWidth + channel] = Sums[lane];
     }
 }
