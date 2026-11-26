@@ -136,6 +136,19 @@ internal static class ComputeMathProof
             batch = math.CreateBatch();
             batch.MultiplyVector(input, weights, result);
             Check("gemv-input-and-output-tails", batch, result, expectedVector);
+            using var packedWeights = Tensor(vectorOutputs, vectorWidth, vectorWeights, GpuTensorFormat.PackedFloat16);
+            for (int row = 0; row < vectorOutputs; row++)
+            {
+                double sum = 0;
+                for (int col = 0; col < vectorWidth; col++)
+                {
+                    sum += vectorInput[col] * (float)(Half)vectorWeights[row * vectorWidth + col];
+                }
+                expectedVector[row] = (float)sum;
+            }
+            batch = math.CreateBatch();
+            batch.MultiplyVector(input, packedWeights, result);
+            Check("gemv-packed-weight-odd-row-stride", batch, result, expectedVector);
         }
 
         var replayInput = Tensor(1, 3, [-2f, 0f, 2f]);
@@ -244,7 +257,7 @@ internal static class ComputeMathProof
             }
         }
 
-        foreach (int width in new[] { 7, 65, 768, 1024 })
+        foreach (int width in new[] { 7, 65, 384, 768, 1024 })
         {
             float[] values = Values(3 * width, width).Select(value => value * 10 + 1000).ToArray();
             foreach (var operation in Enum.GetValues<Normalization>())
@@ -258,15 +271,15 @@ internal static class ComputeMathProof
                 var gammaBeta = Tensor(1, weights.Length, weights);
                 var result = Tensor(3, width);
                 batch = math.CreateBatch();
-                batch.Normalize(input, gammaBeta, result, operation);
+                batch.Normalize(input, gammaBeta, result, operation, 1e-5f, specializeWidth: false);
                 Check(operation + "-width-" + width, batch, result,
                     Normalize(values, 3, width, operation, .1f), .001);
-                if (width == 768 && operation == Normalization.LayerNorm)
+                if (width is 384 or 768 && operation == Normalization.LayerNorm)
                 {
                     var specialized = math.CreateBatch();
-                    specialized.LayerNorm768(input, gammaBeta, input);
-                    Check("layernorm768-in-place", specialized, input, Normalize(values, 3, width, operation, .1f), .001);
-                    Require(math.Read(input).SequenceEqual(math.Read(result)), "LayerNorm768 changed the generic FP32 result.");
+                    specialized.Normalize(input, gammaBeta, input, operation);
+                    Check($"layernorm{width}-in-place", specialized, input, Normalize(values, 3, width, operation, .1f), .001);
+                    Require(math.Read(input).SequenceEqual(math.Read(result)), "Width-specialized LayerNorm changed the generic FP32 result.");
                 }
             }
         }
@@ -280,15 +293,22 @@ internal static class ComputeMathProof
         {
             var result = Tensor(3, 5);
             batch = math.CreateBatch();
-            batch.Activate(activationInput, result, operation,
-                operation is TensorActivation.Bias or TensorActivation.BiasSilu ? bias : auxiliary);
+            if (operation == TensorActivation.BiasResidual)
+            {
+                math.Upload(result, auxiliaryValues);
+            }
+            bool channelBias = operation is TensorActivation.Bias or TensorActivation.BiasSilu
+                or TensorActivation.BiasGelu or TensorActivation.BiasResidual;
+            batch.Activate(activationInput, result, operation, channelBias ? bias : auxiliary);
             expected = activationValues.Select((value, index) => operation switch
             {
                 TensorActivation.Silu => Silu(value),
-                TensorActivation.Gelu => (float)(.5 * value * (1 + Math.Tanh(.7978845608 * (value + .044715 * value * value * value)))),
+                TensorActivation.Gelu => ReferenceGelu(value),
                 TensorActivation.SiluGate => Silu(value) * auxiliaryValues[index],
                 TensorActivation.Residual => value + auxiliaryValues[index],
                 TensorActivation.Bias => value + auxiliaryValues[index % 5],
+                TensorActivation.BiasResidual => auxiliaryValues[index] + (value + auxiliaryValues[index % 5]),
+                TensorActivation.BiasGelu => ReferenceGelu(value + auxiliaryValues[index % 5]),
                 TensorActivation.BiasSilu => Silu(value + auxiliaryValues[index % 5]),
                 TensorActivation.GeluErf => Trellis2KernelProof.GeluErfReference(value),
                 TensorActivation.GeluGate => Trellis2BlockReference.Round(Trellis2BlockReference.Round(
@@ -414,6 +434,18 @@ internal static class ComputeMathProof
         batch.PackMatrixHalf(fusedCache, halfCache);
         batch.FusedAttention64Packed(halfQuery, halfCache, fusedOutput, fusedKeys);
         Check("packed-attention64-interleaved-tails", batch, fusedOutput, fusedExpected, 0.001);
+        if (math.CooperativeMatrixEnabled)
+        {
+            batch = math.CreateBatch();
+            batch.FusedAttention64Packed(halfQuery, halfCache, fusedOutput, fusedKeys, cooperative: true);
+            Check("cooperative-attention64-interleaved-tails", batch, fusedOutput, fusedExpected, 0.001);
+            foreach (int tileWidth in new[] { 32, 64 })
+            {
+                batch = math.CreateBatch();
+                batch.CooperativeAttention64(halfQuery, halfCache, fusedOutput, fusedKeys, tileWidth);
+                Check($"cooperative-attention-{tileWidth}-key-tails", batch, fusedOutput, fusedExpected, 0.001);
+            }
+        }
 
         // The fused decoder writes two bindings, including only the selected cache row in each half.
         const int qkvWidth = 65;
@@ -490,8 +522,21 @@ internal static class ComputeMathProof
                 var result = Tensor(shape.M, shape.N);
                 batch = math.CreateBatch();
                 batch.MultiplyCooperative(leftTensor, rightTensor, result);
-                Check($"cooperative-f16-f32-{shape.M}x{shape.N}x{shape.K}", batch, result,
-                    Multiply(left, right, shape.M, shape.N, shape.K), .005);
+                float[] reference = Multiply(left, right, shape.M, shape.N, shape.K);
+                Check($"cooperative-f16-f32-{shape.M}x{shape.N}x{shape.K}", batch, result, reference, .005);
+                batch = math.CreateBatch();
+                batch.ProjectCooperativeTiles(leftTensor, rightTensor, result, reuseTiles: false);
+                Check($"direct-packed-projection-{shape.M}x{shape.N}x{shape.K}", batch, result, reference, .005);
+                batch = math.CreateBatch();
+                if (shape.M % 32 == 0 && shape.N % 32 == 0)
+                {
+                    batch.ProjectCooperativeTiles(leftTensor, rightTensor, result, reuseTiles: true);
+                    Check($"reused-packed-projection-{shape.M}x{shape.N}x{shape.K}", batch, result, reference, .005);
+                }
+                else
+                {
+                    ExpectRejected(() => batch.ProjectCooperativeTiles(leftTensor, rightTensor, result, reuseTiles: true));
+                }
             }
         }
         else
@@ -673,6 +718,9 @@ internal static class ComputeMathProof
         }
         return result;
     }
+
+    private static float ReferenceGelu(float value)
+        => (float)(.5 * value * (1 + Math.Tanh(.7978845608 * (value + .044715 * value * value * value))));
 
     private static float[] Attention(float[] query, float[] key, float[] value, int queries, int keys, int width,
         int outputWidth, bool causal, int offset)

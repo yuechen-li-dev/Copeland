@@ -1,4 +1,5 @@
 import { KernelParameters } from "./KernelMath";
+import { Operand } from "./AttentionOperand";
 
 // Four independent output rows per workgroup, each read by 32 adjacent lanes.
 @compute
@@ -7,7 +8,7 @@ function DenseGemvMain(@builtin(groupId) group: uint3,
     @builtin(groupIndex) lane: u32,
     @workgroup readwrite Sums: WorkgroupArray<f32, 128>,
     @binding(0) readonly Input: StorageBuffer<f32>,
-    @binding(1) readonly Weights: StorageBuffer<f32>,
+    @binding(1) readonly Weights: StorageBuffer<u32>,
     @binding(2) readwrite Output: StorageBuffer<f32>,
     @binding(3) readonly Parameters: StorageBuffer<KernelParameters>): void {
     let p = Parameters[0];
@@ -17,7 +18,7 @@ function DenseGemvMain(@builtin(groupId) group: uint3,
     for (let tile of BoundedIndices<256>(p.width)) {
         let k = tile * 32 + inputLane;
         if (row < p.columns && k < p.inner) {
-            sum = sum + Input[k] * Weights[row * p.inner + k];
+            sum = sum + Input[k] * Operand(Weights, row * p.inner + k);
         }
     }
     Sums[lane] = sum;

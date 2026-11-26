@@ -9,10 +9,12 @@ public sealed record ComputeDispatchProfile(ComputeMathResult Execution, IReadOn
 /// <summary>Per-dispatch intervals become available when the queue harvests this batch.</summary>
 public sealed class QueuedDispatchProfile
 {
-    internal int Count { get; }
+    public IReadOnlyList<string> ShaderNames { get; }
+    internal int Count => ShaderNames.Count;
     internal double[]? CompletedIntervals { get; set; }
 
-    internal QueuedDispatchProfile(int count) => Count = count;
+    internal QueuedDispatchProfile(ComputeMathBatch batch)
+        => ShaderNames = Array.AsReadOnly(batch.Dispatches.Select(dispatch => dispatch.Shader).ToArray());
 
     public IReadOnlyList<double> DispatchMilliseconds => CompletedIntervals
         ?? throw new InvalidOperationException("Collect the queued dispatch timings after a readback or queue flush.");
@@ -36,7 +38,7 @@ public sealed unsafe partial class VulkanComputeMath
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         var scope = queuedScope ?? throw new InvalidOperationException("Queued dispatch timing requires an active scope.");
-        var profile = new QueuedDispatchProfile(batch.DispatchCount);
+        var profile = new QueuedDispatchProfile(batch);
         scope.Submit(batch, null, default, profile);
         return profile;
     }

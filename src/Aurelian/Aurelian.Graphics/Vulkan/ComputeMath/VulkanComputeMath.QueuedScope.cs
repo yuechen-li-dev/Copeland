@@ -5,7 +5,12 @@ namespace Aurelian.Graphics.Vulkan.ComputeMath;
 public sealed record ComputeQueueMetrics(int Submissions, int Dispatches, int Depth,
     int CompletionWaits, int MaximumOutstanding, int MaximumInFlight,
     long UploadedBytes, double? GpuMilliseconds, int MaximumRetiredBuffers,
-    double? TransferGpuMilliseconds);
+    double? TransferGpuMilliseconds)
+{
+    public double CpuRecordingMilliseconds { get; init; }
+    public double CpuSubmissionMilliseconds { get; init; }
+    public double CpuCompletionWaitMilliseconds { get; init; }
+}
 
 public sealed unsafe partial class VulkanComputeMath
 {
@@ -47,7 +52,12 @@ public sealed unsafe partial class VulkanComputeMath
 
         public ComputeQueueMetrics Metrics => new(ring.Submissions, ring.Dispatches, ring.Depth,
             ring.CompletionWaits, ring.MaximumOutstanding, ring.MaximumInFlight,
-            ring.UploadedBytes, ring.GpuMilliseconds, maximumRetiredBuffers, ring.TransferGpuMilliseconds);
+            ring.UploadedBytes, ring.GpuMilliseconds, maximumRetiredBuffers, ring.TransferGpuMilliseconds)
+        {
+            CpuRecordingMilliseconds = ring.CpuRecordingMilliseconds,
+            CpuSubmissionMilliseconds = ring.CpuSubmissionMilliseconds,
+            CpuCompletionWaitMilliseconds = ring.CpuCompletionWaitMilliseconds,
+        };
 
         internal ComputeMathResult Submit(ComputeMathBatch batch, GpuTensor? upload, ReadOnlyMemory<byte> bytes,
             QueuedDispatchProfile? profile = null)

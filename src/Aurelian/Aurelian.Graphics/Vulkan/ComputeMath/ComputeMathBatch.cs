@@ -5,7 +5,7 @@ namespace Aurelian.Graphics.Vulkan.ComputeMath;
 public enum RowReduction { Sum, Maximum, Softmax }
 public enum MatrixKernel { Portable16, Resident64 }
 public enum Normalization { RmsNorm, LayerNorm }
-public enum TensorActivation { Silu, Gelu, SiluGate, Residual, Bias, GeluErf, GeluGate, BiasSilu }
+public enum TensorActivation { Silu, Gelu, SiluGate, Residual, Bias, GeluErf, GeluGate, BiasSilu, BiasGelu, BiasResidual }
 public enum RopeLayout { HalfSplit, Interleaved }
 
 [StructLayout(LayoutKind.Sequential)]
@@ -48,6 +48,18 @@ public sealed partial class ComputeMathBatch
 
     public void MultiplyCooperative(GpuTensor packedA, GpuTensor packedB, GpuTensor output)
     {
+        MultiplyCooperativeCore(packedA, packedB, output, 0);
+    }
+
+    /// <summary>Loads packed matrix fragments directly and reuses each fragment across
+    /// adjacent output tiles when requested. The reuse path requires 32-aligned M/N.</summary>
+    public void ProjectCooperativeTiles(GpuTensor packedA, GpuTensor packedB, GpuTensor output, bool reuseTiles)
+    {
+        MultiplyCooperativeCore(packedA, packedB, output, reuseTiles ? 2 : 1);
+    }
+
+    private void MultiplyCooperativeCore(GpuTensor packedA, GpuTensor packedB, GpuTensor output, int tiles)
+    {
         Owner.Validate(packedA, GpuTensorFormat.PackedFloat16);
         Owner.Validate(packedB, GpuTensorFormat.PackedFloat16);
         Owner.Validate(output, GpuTensorFormat.Float32);
@@ -56,10 +68,14 @@ public sealed partial class ComputeMathBatch
             && packedA.Rows % 16 == 0 && packedA.Columns % 16 == 0 && packedB.Columns % 16 == 0
             && packedA.Columns <= 4096,
             "Cooperative matmul requires 16-aligned M/N/K, K <= 4096, packed FP16 A/B and FP32 C. Tails are rejected.");
-        Add([new("CooperativeSgemm.v.ts", packedA, packedB, output, new()
+        uint tileWidth = tiles == 2 ? 32u : 16u;
+        Require(packedA.Rows % tileWidth == 0 && packedB.Columns % tileWidth == 0,
+            "Cooperative projection dimensions must cover whole output tiles.");
+        string shader = tiles == 0 ? "CooperativeSgemm.v.ts" : "CooperativeProjection.v.ts";
+        Add([new(shader, packedA, packedB, output, new()
         {
-            Rows = (uint)packedA.Rows, Columns = (uint)packedB.Columns, Inner = (uint)packedA.Columns,
-        }, (uint)packedA.Rows / 16, (uint)packedB.Columns / 16)]);
+            Rows = (uint)packedA.Rows, Columns = (uint)packedB.Columns, Inner = (uint)packedA.Columns, Mode = (uint)tiles,
+        }, (uint)packedA.Rows / tileWidth, (uint)packedB.Columns / tileWidth)]);
     }
 
     private ComputeMathDispatch[] MatrixDispatches(GpuTensor a, GpuTensor b, GpuTensor output,
@@ -108,13 +124,29 @@ public sealed partial class ComputeMathBatch
     public void Normalize(GpuTensor input, GpuTensor gammaBeta, GpuTensor output,
         Normalization operation = Normalization.RmsNorm, float epsilon = 1e-5f)
     {
-        NormalizeCore(input, gammaBeta, output, operation, epsilon, "Normalization.v.ts");
+        Normalize(input, gammaBeta, output, operation, epsilon, specializeWidth: Owner.UseWidthSpecializedLayerNorm);
+    }
+
+    public void Normalize(GpuTensor input, GpuTensor gammaBeta, GpuTensor output,
+        Normalization operation, float epsilon, bool specializeWidth)
+    {
+        string shader = "Normalization.v.ts";
+        if (specializeWidth && operation == Normalization.LayerNorm)
+        {
+            shader = input.Columns switch
+            {
+                384 => "LayerNorm384",
+                768 => "LayerNorm768.v.ts",
+                _ => shader,
+            };
+        }
+        NormalizeCore(input, gammaBeta, output, operation, epsilon, shader);
     }
 
     public void LayerNorm768(GpuTensor input, GpuTensor gammaBeta, GpuTensor output, float epsilon = 1e-5f)
     {
         Require(input.Columns == 768, "LayerNorm768 requires exactly 768 columns.");
-        NormalizeCore(input, gammaBeta, output, Normalization.LayerNorm, epsilon, "LayerNorm768.v.ts");
+        Normalize(input, gammaBeta, output, Normalization.LayerNorm, epsilon, specializeWidth: true);
     }
 
     private void NormalizeCore(GpuTensor input, GpuTensor gammaBeta, GpuTensor output,
@@ -136,6 +168,10 @@ public sealed partial class ComputeMathBatch
 
     public void Activate(GpuTensor input, GpuTensor output, TensorActivation operation, GpuTensor? auxiliary = null)
     {
+        if (operation is TensorActivation.BiasGelu or TensorActivation.BiasResidual)
+        {
+            Require(auxiliary is not null, "A fused projection epilogue requires explicit bias weights.");
+        }
         auxiliary ??= input;
         Check(input, auxiliary, output);
         Require(Enum.IsDefined(operation) && SameShape(input, output), "Activation requires matching FP32 shapes and a defined operation.");
@@ -143,7 +179,7 @@ public sealed partial class ComputeMathBatch
         {
             Require(SameShape(input, auxiliary), "Gated/residual activation requires a same-shaped auxiliary tensor.");
         }
-        if (operation is TensorActivation.Bias or TensorActivation.BiasSilu)
+        if (operation is TensorActivation.Bias or TensorActivation.BiasSilu or TensorActivation.BiasGelu or TensorActivation.BiasResidual)
         {
             Require(auxiliary.Elements == input.Columns && !ReferenceEquals(auxiliary, output), "Bias requires one independent row of channel weights.");
         }
@@ -157,7 +193,9 @@ public sealed partial class ComputeMathBatch
             }, groupsX, (groups + groupsX - 1) / groupsX)]);
             return;
         }
-        Add([new("Activation.v.ts", input, auxiliary, output, new()
+        string shader = operation is TensorActivation.BiasGelu or TensorActivation.BiasResidual
+            ? "ProjectionEpilogue.v.ts" : "Activation.v.ts";
+        Add([new(shader, input, auxiliary, output, new()
         {
             Rows = (uint)input.Rows, Columns = (uint)input.Columns, Mode = (uint)operation,
             Stride = Math.Min(Groups(input.Elements, 64), 65535) * 64,
@@ -229,6 +267,21 @@ public sealed partial class ComputeMathBatch
         int width, int height, int channels, int kernelWidth, int kernelHeight, int paddingX, int paddingY, int stride)
     {
         Check(image, weights, columns, output);
+        Require(!ReferenceEquals(columns, weights), "Im2col scratch cannot overwrite weights.");
+        var expansion = Im2ColDispatch(image, columns, width, height, channels, kernelWidth, kernelHeight, paddingX, paddingY, stride);
+        var matrix = MatrixDispatches(columns, weights, output, 1, 0, false);
+        Add([expansion, .. matrix]);
+    }
+
+    public void Im2Col1D(GpuTensor image, GpuTensor columns, int kernelWidth, int padding, int stride)
+    {
+        Check(image, columns);
+        Add([Im2ColDispatch(image, columns, image.Rows, 1, image.Columns, kernelWidth, 1, padding, 0, stride)]);
+    }
+
+    private static ComputeMathDispatch Im2ColDispatch(GpuTensor image, GpuTensor columns, int width, int height,
+        int channels, int kernelWidth, int kernelHeight, int paddingX, int paddingY, int stride)
+    {
         Require(width is > 0 and <= 4096 && height is > 0 and <= 4096 && channels is > 0 and <= 1024
             && kernelWidth is > 0 and <= 15 && kernelHeight is > 0 and <= 15
             && paddingX is >= 0 and <= 32 && paddingY is >= 0 and <= 32 && stride is > 0 and <= 16,
@@ -240,15 +293,14 @@ public sealed partial class ComputeMathBatch
             && image.Elements == width * height * channels
             && columns.Rows == outputWidth * outputHeight && columns.Columns == inner,
             "Convolution needs NHWC input and correctly sized [outputPixels,kernelElements] im2col scratch.");
-        Require(!ReferenceEquals(columns, image) && !ReferenceEquals(columns, weights), "Im2col scratch cannot overwrite inputs.");
-        var matrix = MatrixDispatches(columns, weights, output, 1, 0, false);
-        Add([new("Im2Col.v.ts", image, image, columns, new()
+        Require(!ReferenceEquals(columns, image), "Im2col scratch cannot overwrite its input.");
+        return new("Im2Col.v.ts", image, image, columns, new()
         {
             Rows = (uint)columns.Rows, Columns = (uint)outputWidth, Inner = (uint)inner,
             Width = (uint)width, Height = (uint)height, Channels = (uint)channels,
             KernelWidth = (uint)kernelWidth, KernelHeight = (uint)kernelHeight,
             Padding = (uint)paddingX, Offset = (uint)paddingY, Stride = (uint)stride,
-        }, Groups(columns.Elements, 64)), .. matrix]);
+        }, Groups(columns.Elements, 64));
     }
 
     public void Attention(GpuTensor query, GpuTensor key, GpuTensor value, GpuTensor scores,

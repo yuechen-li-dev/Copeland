@@ -32,10 +32,12 @@ public static partial class GpuComputeBinder
             };
             _localConstants.Inherit(scope, nestedScope);
             var body = BindNestedStatement(path, loop.Body, nestedScope, returnType);
-            if (Descendants(body).Any(statement => statement.Kind is "return" or "cooperative-matmul"))
+            if (Descendants(body).Any(statement => statement.Kind == "return"
+                || statement.Kind == "cooperative-matmul" && statement.Expression?.Operands is not { Count: 4 }
+                    && statement.Expression?.Operands is not [{ Type: "workgroup:u32:512" }, _, _, _, _]))
             {
                 AddDiagnostic("COPE-GPU-LOOP-0003", "SDSL-V4502", "bounded-loop",
-                    "Bounded loops cannot return from the invocation or issue cooperative-matrix commands; all iterations must complete.", Span(path, loop));
+                    "Bounded loops cannot return from the invocation or issue storage-buffer cooperative-matrix commands; all iterations must complete.", Span(path, loop));
             }
             return new("bounded-loop", Span(path, loop), Name: loop.Identifier.Text,
                 Type: "u32", Expression: count, Body: body) { MaximumIterations = maximum };

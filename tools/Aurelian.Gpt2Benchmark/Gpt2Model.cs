@@ -308,14 +308,7 @@ internal sealed class Gpt2Model : IDisposable
 
     private void Normalize(ComputeMathBatch batch, GpuTensor input, GpuTensor weights, GpuTensor output)
     {
-        if (widthNorm)
-        {
-            batch.LayerNorm768(input, weights, output);
-        }
-        else
-        {
-            batch.Normalize(input, weights, output, Normalization.LayerNorm);
-        }
+        batch.Normalize(input, weights, output, Normalization.LayerNorm, 1e-5f, specializeWidth: widthNorm);
     }
 
     private void Project(ComputeMathBatch batch, GpuTensor input, Linear linear, GpuTensor output)
@@ -326,18 +319,8 @@ internal sealed class Gpt2Model : IDisposable
 
     private void Multiply(ComputeMathBatch batch, GpuTensor input, GpuTensor weight, GpuTensor output, bool allowVector)
     {
-        if (prefillDown && input.Rows == PromptLength && input.Columns == Expansion && output.Columns == Width)
-        {
-            batch.PrefillDown32(input, weight, output);
-        }
-        else if (allowVector && vectorProjection)
-        {
-            batch.MultiplyVector(input, weight, output);
-        }
-        else
-        {
-            batch.Multiply(input, weight, output, MatrixKernel.Resident64, transposeB: true);
-        }
+        batch.ProjectDense(input, weight, output, useVectorKernel: allowVector && vectorProjection,
+            usePromptTile: prefillDown);
     }
 
     private GpuTensor Create(int rows, int columns)

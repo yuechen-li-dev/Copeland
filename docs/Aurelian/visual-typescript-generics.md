@@ -137,7 +137,10 @@ The Whisper attention kernel imports `Operand` from `AttentionOperand.v.ts`.
 The FP32 implementation calls `ReadOperand<false>(data, index)`. The packed
 implementation calls `ReadOperand<true>(data, index)`, which extracts one IEEE
 binary16 value from a pair and converts it to FP32. Both implementations use
-the same storage-buffer signature.
+the same storage-buffer signature. In Vulkan compute shaders,
+`UnpackFloat16(bits: u32)` converts the low 16 bits to FP32. The HLSL emitter
+uses `f16tof32`, which compiles to SPIR-V `UnpackHalf2x16`. The other lane
+can be selected by shifting the packed word right by 16 first.
 
 `BuiltinComputeShaderCache` registers the packed program under
 `FusedAttention64.Packed`. Its variant entry names the shared compute source,
@@ -145,6 +148,11 @@ the imported module, and its replacement. The source loader binds that module
 before Visual TypeScript specializes the generic. Each resulting SPIR-V
 program has its own pipeline. Query and key tiling, barriers, online softmax,
 and output accumulation are authored once in `FusedAttention64.v.ts`.
+
+The LayerNorm shader uses the same module-replacement mechanism for its
+compile-time row width. The default module returns 768. The `LayerNorm384`
+variant substitutes a module returning 384. The fixed block loop, centered
+variance reduction and in-place writes are shared by both programs.
 
 GPT-2 selects `FusedAttention64.Causal` for prefill. It keeps the FP32 operand
 reader and binds `CausalAttentionLayout.v.ts` in place of `AttentionLayout.v.ts`.

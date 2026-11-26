@@ -109,7 +109,7 @@ public static partial class GpuComputeBinder
             {
                 foreach (FunctionDeclarationSyntax function in tree.Root.Members.OfType<FunctionDeclarationSyntax>())
                 {
-                    if (function.Identifier.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log" or "Atan2" or "Floor" or "Exp" or "Sin" or "Cos" or "Pow" or "Bitcast" or "WorkgroupBarrier" or "CooperativeMatMul" or "BoundedIndices")
+                    if (function.Identifier.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log" or "Atan2" or "Floor" or "Exp" or "Sin" or "Cos" or "Pow" or "Bitcast" or "UnpackFloat16" or "PackFloat16Pair" or "WorkgroupBarrier" or "CooperativeMatMul" or "BoundedIndices")
                     {
                         AddDiagnostic("COPE-GPU-SYMBOL-0001", "SDSL-V1509", "symbol",
                             $"{function.Identifier.Text} is a compiler-owned intrinsic and cannot be redefined.",
@@ -282,16 +282,16 @@ public static partial class GpuComputeBinder
             }
 
             IReadOnlyList<VdMirStatement> statements = BindFunctionBody(entry, scope, "void");
-            if (statements.Any(statement => statement.Kind == "cooperative-matmul")
+            if (Descendants(statements).Any(statement => statement.Kind == "cooperative-matmul")
                 && !dimensions.SequenceEqual([32, 1, 1]))
             {
                 AddWorkgroupDiagnostic(entry.Path, entry.Syntax, "CooperativeMatMul requires exactly one 32-lane subgroup: @numthreads(32, 1, 1).");
             }
-            if (statements.Any(statement => statement.Kind == "cooperative-matmul") && _workgroupArrays.Sum(array => array.Count) > 3840)
+            if (Descendants(statements).Any(statement => statement.Kind == "cooperative-matmul") && _workgroupArrays.Sum(array => array.Count) > 3840)
             {
                 AddWorkgroupDiagnostic(entry.Path, entry.Syntax, "Cooperative commands reserve 1 KiB of the 16 KiB shared storage budget.");
             }
-            if (statements.Any(statement => statement.Kind == "cooperative-matmul" && statement.Expression?.Operands?.Count == 8)
+            if (Descendants(statements).Any(statement => statement.Kind == "cooperative-matmul" && statement.Expression?.Operands?.Count is 8 or 9)
                 && _resources.Any(resource => IsSampledResource(resource.ElementType)))
             {
                 AddDiagnostic("COPE-GPU-SAMPLE-0002", "SDSL-V4119", "texture-sampling",
@@ -918,6 +918,31 @@ public static partial class GpuComputeBinder
                 }
             }
 
+            if (call.Target is NameExpressionSyntax pack && pack.IdentifierToken.Text == "PackFloat16Pair")
+            {
+                var halves = call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray();
+                if (halves.Length == 2 && halves.All(half => half.Type == "f32"))
+                {
+                    return new("intrinsic", "u32", Span(path, call), "PackFloat16Pair", halves);
+                }
+                AddDiagnostic("COPE-GPU-CALL-0001", "SDSL-V1503", "call",
+                    "PackFloat16Pair requires two f32 values.", Span(path, call));
+                return ErrorExpression(path, call);
+            }
+            if (call.Target is NameExpressionSyntax unpack && unpack.IdentifierToken.Text == "UnpackFloat16")
+            {
+                if (call.Arguments.Count == 1)
+                {
+                    var bits = BindExpression(path, call.Arguments[0], scope);
+                    if (bits.Type == "u32")
+                    {
+                        return new("intrinsic", "f32", Span(path, call), "UnpackFloat16", [bits]);
+                    }
+                }
+                AddDiagnostic("COPE-GPU-CALL-0001", "SDSL-V1503", "call",
+                    "UnpackFloat16 requires one u32 containing a binary16 value in its low bits.", Span(path, call));
+                return ErrorExpression(path, call);
+            }
             if (call.Target is NameExpressionSyntax intrinsic &&
                 intrinsic.IdentifierToken.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log" or "Atan2" or "Floor" or "Exp" or "Sin" or "Cos" or "Pow")
             {
@@ -1236,7 +1261,7 @@ public static partial class GpuComputeBinder
                 featureLevel = _resources.Any(resource => resource.ElementType == "acceleration_structure")
                     ? "compute.rayquery.m5" : "compute.sampled.m1";
             }
-            if (_boundFunctions.Any(function => function.Statements.Any(statement => statement.Kind == "cooperative-matmul")))
+            if (_boundFunctions.Any(function => Descendants(function.Statements).Any(statement => statement.Kind == "cooperative-matmul")))
             {
                 featureLevel = "compute.cooperative.m1";
             }

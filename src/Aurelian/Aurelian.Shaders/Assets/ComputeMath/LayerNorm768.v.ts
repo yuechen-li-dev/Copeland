@@ -1,6 +1,7 @@
 import { KernelParameters } from "./KernelMath";
+import { NormWidth } from "./NormWidth768";
 
-// Twelve FP32 values per lane, with the same centered variance and reduction tree as the general kernel.
+// Up to twelve values per lane. The closed width removes unused blocks at compilation.
 @compute
 @numthreads(64, 1, 1)
 function LayerNorm768Main(@builtin(groupId) group: uint3,
@@ -13,11 +14,11 @@ function LayerNorm768Main(@builtin(groupId) group: uint3,
     @binding(3) readonly Parameters: StorageBuffer<KernelParameters>): void {
     let p = Parameters[0];
     let row = group.x + group.y * p.height;
-    let base = row * 768;
+    let base = row * NormWidth();
     var sum: f32 = 0.0;
     static for (let block of Indices<12>()) {
         let columnIndex = lane + block * 64;
-        if (row < p.rows) {
+        if (block * 64 < NormWidth() && row < p.rows) {
             sum = sum + Input[base + columnIndex];
         }
     }
@@ -34,7 +35,7 @@ function LayerNorm768Main(@builtin(groupId) group: uint3,
     var squares: f32 = 0.0;
     static for (let block of Indices<12>()) {
         let columnIndex = lane + block * 64;
-        if (row < p.rows) {
+        if (block * 64 < NormWidth() && row < p.rows) {
             let centered = Input[base + columnIndex] - mean;
             squares = squares + centered * centered;
         }
@@ -51,8 +52,8 @@ function LayerNorm768Main(@builtin(groupId) group: uint3,
     let inverse = 1.0 / Sqrt(Squares[0] / Convert<f32>(p.columns) + p.epsilon);
     static for (let block of Indices<12>()) {
         let columnIndex = lane + block * 64;
-        if (row < p.rows) {
-            let bias = Auxiliary[768 + columnIndex];
+        if (block * 64 < NormWidth() && row < p.rows) {
+            let bias = Auxiliary[NormWidth() + columnIndex];
             Output[base + columnIndex] = (Input[base + columnIndex] - mean) * inverse * Auxiliary[columnIndex] + bias;
         }
     }

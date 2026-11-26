@@ -154,6 +154,37 @@ the same DXC/SPIR-V validation path, with Vulkan memory model and 16-bit types.
 The default game host does not request this optional feature; an application
 that wants this path must configure its plant explicitly.
 
+`ProjectCooperativeTiles` reads packed binary16 matrix operands directly and
+accumulates into FP32. With `reuseTiles: false` it produces a 16 × 16 output
+tile per subgroup. With `reuseTiles: true` it produces 32 × 32, loading each
+left and right fragment once for two products per reduction step. Both paths
+require complete output tiles. The existing staged `MultiplyCooperative` path
+remains available.
+
+The shared-memory overload `CooperativeMatMul(a, b, output, transposeB)`
+supports two closed tile shapes. Both store packed binary16 operands in
+workgroup arrays of u32 words, and write FP32 outputs. With literal `true`,
+A and B each hold 16 × 64 values and the product A × Bᵀ is 16 × 16. With
+literal `false`, A holds 16 × 16, B holds 16 × 64 and the output is 16 × 64.
+Issue the command on the uniform entry spine or inside a uniform bounded loop,
+with a workgroup barrier after writing the input tiles and before consuming the
+output. The compiler requires one 32-lane subgroup. The 64-channel encoder
+attention implementation exercises both products on partial query and key
+tiles. [Whisper encoder measurements](whisper-vulkan-baseline.md#tiled-cooperative-encoder-attention-and-projections)
+
+For a 32- or 64-key tile the five-argument packed shared overload also takes
+the subgroup-uniform key width. Left, right and result use 512 u32, 2,048 u32
+and 1,024 f32 entries. The transpose product uses 16 × 64 queries and
+`keyWidth` × 64 keys. The row-major product uses 16 × `keyWidth` weights and
+`keyWidth` × 64 values. The host admits widths 32 and 64 and selects the
+matching Visual TypeScript tile specialization.
+
+`MultiplyVector` also accepts row-major `PackedFloat16` weights with FP32
+input and output. Packed words span logical row boundaries when the input
+width is odd. `Im2Col1D` exposes the same im2col dispatch used by
+`Convolve1D` for callers that supply their own matrix multiply, including
+packed cooperative projections. [Whisper A/Bs](whisper-vulkan-baseline.md#wider-attention-packed-vocabulary-and-cooperative-convolution)
+
 ## Visual TypeScript workgroups
 
 ```typescript

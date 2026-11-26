@@ -16,7 +16,10 @@ public sealed class BuiltinComputeShaderCache
 
     private static readonly Dictionary<string, Variant> Variants = new(StringComparer.Ordinal)
     {
+        ["WideCooperativeAttention64.Keys64"] = new("WideCooperativeAttention64.v.ts", "KeyTile32.v.ts", "KeyTile64.v.ts"),
+        ["LayerNorm384"] = new("LayerNorm768.v.ts", "NormWidth768.v.ts", "NormWidth384.v.ts"),
         ["FusedAttention64.Causal"] = new("FusedAttention64.v.ts", "AttentionLayout.v.ts", "CausalAttentionLayout.v.ts"),
+        ["DenseGemv.Packed"] = new("DenseGemv.v.ts", "AttentionOperand.v.ts", "PackedAttentionOperand.v.ts"),
         ["FusedAttention64.Packed"] = new("FusedAttention64.v.ts", "AttentionOperand.v.ts", "PackedAttentionOperand.v.ts"),
     };
 

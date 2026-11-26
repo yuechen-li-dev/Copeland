@@ -50,6 +50,9 @@ public sealed unsafe partial class VulkanComputeMath
         private double transferMilliseconds;
         private bool timed = true;
         private bool disposed;
+        public double CpuRecordingMilliseconds { get; private set; }
+        public double CpuSubmissionMilliseconds { get; private set; }
+        public double CpuCompletionWaitMilliseconds { get; private set; }
         public int Depth { get; }
         public int MaximumOutstanding { get; private set; }
         public int MaximumInFlight { get; private set; }
@@ -281,6 +284,9 @@ public sealed unsafe partial class VulkanComputeMath
             {
                 timed = false;
             }
+            CpuRecordingMilliseconds += slot.CpuRecordingMilliseconds;
+            CpuSubmissionMilliseconds += slot.CpuSubmissionMilliseconds;
+            CpuCompletionWaitMilliseconds += waitMilliseconds;
             slot.FenceValue = 0;
             outstanding--;
             controller.Observe(new(slot.Sequence, index, true, outstanding, slot.PreparationMilliseconds, cost)

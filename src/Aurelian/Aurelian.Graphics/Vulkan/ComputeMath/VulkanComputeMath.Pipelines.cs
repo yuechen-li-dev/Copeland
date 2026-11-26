@@ -31,15 +31,22 @@ public sealed unsafe partial class VulkanComputeMath
         ["SparseChannelToSpatial.v.ts"] = "SparseChannelToSpatialMain",
         ["HeadNormalize.v.ts"] = "HeadNormalizeMain",
         ["StreamingLinear.v.ts"] = "StreamingLinearMain",
+        ["WideCooperativeAttention64.Keys64"] = "WideCooperativeAttention64Main",
+        ["WideCooperativeAttention64.v.ts"] = "WideCooperativeAttention64Main",
+        ["DenseGemv.Packed"] = "DenseGemvMain",
+        ["CooperativeAttention64.v.ts"] = "CooperativeAttention64Main",
+        ["CooperativeProjection.v.ts"] = "CooperativeProjectionMain",
         ["CooperativeSgemm.v.ts"] = "CooperativeSgemmMain",
         ["PackMatrixHalf.v.ts"] = "PackMatrixHalfMain",
         ["LinearEpilogue.v.ts"] = "LinearEpilogueMain",
         ["RowReduction.v.ts"] = "ReductionMain",
+        ["LayerNorm384"] = "LayerNorm768Main",
         ["LayerNorm768.v.ts"] = "LayerNorm768Main",
         ["FusedAttention64.Causal"] = "FusedAttention64Main",
         ["FusedAttention64.Packed"] = "FusedAttention64Main",
         ["FusedAttention64.v.ts"] = "FusedAttention64Main",
         ["Normalization.v.ts"] = "NormalizationMain",
+        ["ProjectionEpilogue.v.ts"] = "ProjectionEpilogueMain",
         ["Activation.v.ts"] = "ActivationMain",
         ["Rope.v.ts"] = "RopeMain",
         ["FftBitReverse.v.ts"] = "BitReverseMain",
@@ -103,22 +110,39 @@ public sealed unsafe partial class VulkanComputeMath
     {
         KernelParameters parameters = dispatch.Parameters;
         var parameterBytes = MemoryMarshal.AsBytes(new ReadOnlySpan<KernelParameters>(in parameters));
-        if (slot.Parameters.MemoryUsage == VulkanMemoryUsage.GpuOnly)
+        var previousBytes = MemoryMarshal.AsBytes(new ReadOnlySpan<KernelParameters>(in slot.LastParameters));
+        if (!ReuseDispatchBindings || !slot.HasParameters || !parameterBytes.SequenceEqual(previousBytes))
         {
-            var upload = uploader.Upload(new(slot.Parameters, parameterBytes.ToArray(), DebugName: "compute-math.prepared-parameters"));
-            Require(upload.Success, "Device-local kernel parameter upload failed: "
-                + string.Join("; ", upload.Diagnostics.Select(item => item.Message)));
+            if (slot.Parameters.MemoryUsage == VulkanMemoryUsage.GpuOnly)
+            {
+                var upload = uploader.Upload(new(slot.Parameters, parameterBytes.ToArray(), DebugName: "compute-math.prepared-parameters"));
+                Require(upload.Success, "Device-local kernel parameter upload failed: "
+                    + string.Join("; ", upload.Diagnostics.Select(item => item.Message)));
+            }
+            else
+            {
+                Require(slot.Parameters.Write(parameterBytes).Success, "Kernel parameter upload failed.");
+            }
+            slot.LastParameters = parameters;
+            slot.HasParameters = true;
         }
-        else
+        var input = dispatch.Input.Buffer;
+        var auxiliary = dispatch.Auxiliary.Buffer;
+        var output = dispatch.Output.Buffer;
+        // Buffer wrappers have distinct lifetimes even when Vulkan recycles a raw handle.
+        if (ReuseDispatchBindings && ReferenceEquals(input, slot.Input)
+            && ReferenceEquals(auxiliary, slot.Auxiliary) && ReferenceEquals(output, slot.Output))
         {
-            Require(slot.Parameters.Write(parameterBytes).Success, "Kernel parameter upload failed.");
+            return;
         }
-        AurelianVulkanBuffer[] resources = [dispatch.Input.Buffer, dispatch.Auxiliary.Buffer, dispatch.Output.Buffer, slot.Parameters];
         DescriptorBufferInfo* infos = stackalloc DescriptorBufferInfo[4];
+        infos[0] = new(input.NativeBuffer, 0, input.SizeBytes);
+        infos[1] = new(auxiliary.NativeBuffer, 0, auxiliary.SizeBytes);
+        infos[2] = new(output.NativeBuffer, 0, output.SizeBytes);
+        infos[3] = new(slot.Parameters.NativeBuffer, 0, slot.Parameters.SizeBytes);
         WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[4];
         for (int index = 0; index < 4; index++)
         {
-            infos[index] = new(resources[index].NativeBuffer, 0, resources[index].SizeBytes);
             writes[index] = new()
             {
                 SType = StructureType.WriteDescriptorSet, DstSet = slot.Set, DstBinding = (uint)index,
@@ -126,6 +150,9 @@ public sealed unsafe partial class VulkanComputeMath
             };
         }
         plant.Vk.UpdateDescriptorSets(plant.Device, 4, writes, 0, null);
+        slot.Input = input;
+        slot.Auxiliary = auxiliary;
+        slot.Output = output;
     }
 
     private void EnsurePipeline(string shader)
@@ -156,7 +183,7 @@ public sealed unsafe partial class VulkanComputeMath
                 {
                     SType = StructureType.PipelineShaderStageCreateInfo, Stage = ShaderStageFlags.ComputeBit,
                     Module = module, PName = (byte*)entry,
-                    Flags = shader == "CooperativeSgemm.v.ts" ? PipelineShaderStageCreateFlags.RequireFullSubgroupsBit : 0,
+                    Flags = shader is "CooperativeSgemm.v.ts" or "CooperativeAttention64.v.ts" or "WideCooperativeAttention64.v.ts" or "WideCooperativeAttention64.Keys64" or "CooperativeProjection.v.ts" ? PipelineShaderStageCreateFlags.RequireFullSubgroupsBit : 0,
                 },
             };
             Pipeline pipeline;

@@ -1,6 +1,6 @@
 # Whisper Tiny.en on Vulkan
 
-The FP32 two-slot control took **50.58 ms** on JFK. Packing Q/K/V cost **0.121 ms GPU** across the encoder. [FP16 packing and attention timings](#separating-fp16-packing-from-encoder-attention)
+On JFK, the 32-key attention, cooperative convolution and packed vocabulary path took **33.23 ms** versus **36.99 ms** for the previous combined Aurelian path and **29.31 ms** for whisper.cpp flash. [Final comparison and numerical agreement](#wider-attention-packed-vocabulary-and-cooperative-convolution)
 
 Copeland commit `64cba528` plus the benchmark changes was measured against
 [whisper.cpp v1.9.6](https://github.com/ggml-org/whisper.cpp/releases/tag/v1.9.6)
@@ -29,6 +29,137 @@ independently. Aurelian expands the shared F16 checkpoint weights to resident
 FP32 storage and uses its existing BF16-rounded grouped self-attention kernel
 in the decoder. The two runtimes can choose different arithmetic and kernel
 layouts even with the same checkpoint and token sequence.
+
+## Wider attention, packed vocabulary and cooperative convolution
+
+These A/Bs start from the previous combined path: FP32 softmax, cooperative 16-key encoder attention, 2 × 2 projection tile reuse and fused projection epilogues. The separate FP32 two-slot control remains the numerical reference. Each request uses the same model, mel, greedy selector and full FP32 host readbacks as the earlier JFK campaigns.
+
+| Change in isolation | Paired request delta | Faster pairs | GPU time for changed operation, before → after |
+| --- | ---: | ---: | ---: |
+| Runtime-selected 32-key tile | +0.21 ms | 24/60 | attention 3.58 → 3.81 ms |
+| Runtime-selected 64-key tile | +0.31 ms | 19/60 | attention 3.58 → 3.65 ms |
+| Packed vocabulary weights | −2.36 ms | 57/60 | vocabulary 4.78 → 2.46 ms |
+| Cooperative convolution | −0.91 ms | 48/60 | front end 1.52 → 0.34 ms |
+
+Paired changes are medians of individual request differences, across three resident process groups with rotating execution order. Only one client executed at a time. The GPU column uses separate timestamped runs (15 measured requests per variant). Convolution's cooperative multiply cost 0.138 ms across the two layers, activation packing 0.038 ms, and output cropping 0.037 ms. The front-end total includes im2col and pointwise operations.
+
+A second attention A/B closed the key width at shader compilation, unrolled the per-tile loops and removed one barrier per tile. Against the original 16-key kernel, 32 keys saved a median 0.29 ms (25/36 faster, all three process-group medians favorable) and 64 keys saved 0.05 ms (20/36). GPU attention intervals were 3.57, 3.15 and 3.32 ms for 16, 32 and 64 keys. The 32-key variant therefore went into the combined trial.
+
+The first combined rerun pooled 27 unprofiled requests per mode. It measured 35.02 ms for the 32-key combination, 35.34 ms for the previous combined path, 39.48 ms for the FP32 two-slot control and 29.58 ms for flash. In a separate rotating-order paired run, the combination saved 3.97 ms against the previous path (21/24 faster). This difference between paired and standalone measurements is why the final comparison also repeats the 16-key and 32-key combinations together.
+
+The final build shares one typed GEMV shader between FP32 and packed weights. A fresh five-way comparison included both tile widths with the two larger wins enabled. Each row pools nine timed requests in each of three fresh processes after two warmups. Phase medians are computed independently. The encode timer includes scheduling cross-cache preparation; a pending encoder batch can complete in the prompt phase.
+
+| Final build | Full request | Encode + cross-cache | Prompt | Subsequent decode |
+| --- | ---: | ---: | ---: | ---: |
+| Aurelian FP32 two-slot control | 42.23 ms | 13.45 ms | 4.25 ms | 24.43 ms |
+| Previous combined path | 36.99 ms | 8.33 ms | 3.10 ms | 25.43 ms |
+| Packed vocabulary + cooperative convolution, 16 keys | 33.79 ms | 7.09 ms | 2.88 ms | 23.71 ms |
+| Packed vocabulary + cooperative convolution, 32 keys | **33.23 ms** | **7.12 ms** | **2.89 ms** | **23.25 ms** |
+| whisper.cpp v1.9.6 flash | **29.31 ms** | **3.85 ms** | **1.96 ms** | **23.39 ms** |
+
+The fastest standalone median was 3.76 ms below the previous combined path and 3.92 ms above flash. That closes 49% of this cohort's previous gap. It remains 0.99 ms above the 10%-of-flash target. The two campaigns' standalone deltas differed substantially, so the rotating-order paired comparison is also reported. The FP32 control and all variants used the same 25-token JFK continuation.
+
+On the final build the 32-key combination beat the previous path in **36/36 paired requests**, by a median **3.42 ms**. Switching just the combined path from 16 to 32 keys saved 0.29 ms (25/36, three favorable process-group medians). This small wall-time gain was more consistent than the instrumented attention interval: the final profile recorded 3.44 ms at 32 keys and 3.28 ms at 16, reversing the isolated profile's ordering. The vocabulary multiply measured 2.46 ms GPU and the convolution front end 0.38 ms. The final wall-time gap is concentrated in encode and prompt; subsequent decode was within 0.14 ms of flash on this clip.
+
+The 32-key combination produced the same 25 tokens and matched the FP32 control's full-vocabulary top prediction at all 26 evaluations. Relative to the 576,000 FP32 encoder outputs its RMS / maximum absolute error was 0.000515 / 0.007075. Across all 1,348,464 logits it was 0.007117 / 0.028679. Packing vocabulary weights alone reproduced every encoder and logit value from the previous combined path. These comparisons cover one clip and one GPU.
+
+The packed GEMV keeps the same FP32 input, accumulation order and output. The benchmark retains the FP32 token embedding for gathers and uploads a second, packed copy for the vocabulary projection. That isolates the multiplication A/B at a cost of 39,831,552 additional resident bytes. Convolution uses the previous im2col layout, half-precision weights packed at load, and 2 × 2 cooperative multiplication. The wider attention kernels assign two lanes to each softmax row. They share storage for Q and probabilities, and for scores and the output product.
+
+To reproduce the operation toggles on the `fused persistent-read persistent-upload host-logits batch-cross queue=fixed-two projection-epilogues reuse-projections` benchmark, choose one of `cooperative-attention` (16), `attention-32` or `attention-64`. Append `packed-vocab` or `cooperative-convolution` independently. Use `profile-gpu` for per-kernel intervals or `validate capture` for numerical comparisons. Reference and Aurelian timing runs use neither diagnostic. [Runner commands](#reproducing-a-profile)
+
+All Aurelian final runs used 66 compute submissions and 26 full logits readbacks per request with zero warm Vulkan allocations. The native compute proof passed the odd-width packed GEMV and both attention tile tails. The shared shader reproduced the previous GPT-2 capture across 1,658,481 FP32 logits. Release tests passed for Aurelian Core (1,458), Copeland TS (2,362) and inference (19). Raw evidence is in `artifacts/local/whisper-baseline/acceleration/whisper-gap-ab/`, including `summary.json`, `manifest.json` and `validation.json`.
+
+## Tiled cooperative encoder attention and projections
+
+The control is the FP32 two-slot path with fused projection epilogues. Every Aurelian variant retains full host logits, the same decoder, persistent upload/readback and batched decoder cross-attention. Runs use the same RTX 3070, Tiny.en checkpoint, JFK mel window and two-token prompt as the flash reference.
+
+A fresh final comparison used nine timed requests after two warmups in each of three processes per runtime. The combined kernels saved **5.81 ms (13.9%)** and closed **46%** of the FP32 control's gap to flash. The remaining gap is **6.73 ms**. Each Aurelian request used 66 compute submissions, 26 full logits readbacks and zero warm Vulkan allocations. The combined path increased the dispatch count from 3,033 to 3,105 through activation packing and cropping. Median managed allocation on the request thread rose from 752,320 to 870,520 bytes.
+
+| Final median, 27 requests per row | Total | Encode + cross-cache | Prompt | Subsequent decode |
+| --- | ---: | ---: | ---: | ---: |
+| FP32 two-slot control | 41.89 ms | 12.63 ms | 4.26 ms | 24.34 ms |
+| Both encoder changes | **36.09 ms** | **8.02 ms** | **2.96 ms** | **24.92 ms** |
+| whisper.cpp flash | **29.36 ms** | **3.85 ms** | **1.97 ms** | **23.33 ms** |
+
+| Isolated A/B | Request | Encode + cross-cache | Four attention kernels, GPU | 32 projection multiplies, GPU |
+| --- | ---: | ---: | ---: | ---: |
+| FP32 control | 42.82 ms | 13.21 ms | 5.71 ms | 7.60 ms |
+| Tiled cooperative attention | 41.34 ms | 11.35 ms | 3.22 ms | 7.25 ms |
+| Direct packed projections, one output tile | 40.68 ms | 11.12 ms | 4.99 ms | 4.14 ms |
+| Direct packed projections, 2 × 2 output tiles | 38.43 ms | 10.33 ms | 5.71 ms | 2.24 ms |
+| Cooperative attention and 2 × 2 projections | 35.84 ms | 8.15 ms | 3.34 ms | 2.51 ms |
+
+Request and encode timings pool 21 requests per variant across three fresh, reordered processes. GPU timings come from 15 separately instrumented requests per variant. Each GPU cell is the median of the per-request sum of its dispatch intervals. The 32 projections include eight cross-cache products. The encode wall timer ends after scheduling cross-cache preparation, so the first decoder call can absorb some outstanding encoder work.
+
+The attention workgroup holds 16 queries and streams 16 keys at a time for one 64-channel head. Both QK and probability × V use cooperative matrix multiply with FP32 accumulators. Running maxima, exponentiation, the denominator, output rescaling and final division use FP32. Q, K and V use binary16 inputs. The denominator sums the unrounded FP32 weights. The probability × V product reads those weights rounded to binary16 after exponentiation. The kernel masks the final partial key tile. Packing attention inputs added 0.13 ms GPU in the combined run.
+
+The single-tile projection control loads fragments directly from packed buffers. The 2 × 2 variant reuses two left and two right fragments to update four output tiles per reduction step. Weight layout, activation packing, cropping and arithmetic are identical between those variants. In isolation, reuse saved 1.91 ms GPU over direct single-tile multiplication. Packing plus cropping cost another 1.01 ms with reuse. Cooperative matrix strides for packed buffers are measured in 32-bit words. [KHR cooperative matrix specification](https://github.khronos.org/SPIRV-Registry/extensions/KHR/SPV_KHR_cooperative_matrix.html)
+
+In 60 interleaved request pairs with all five variants resident, attention alone saved a median 1.77 ms and projections with reuse saved 3.56 ms against FP32 (58/60 faster for each). Reuse alone saved 1.86 ms against the direct single-tile projection (59/60). The combined path saved 5.52 ms against FP32 (57/60).
+
+| Validation capture versus FP32 | Encoder RMS | Encoder max abs | Logits RMS | Logits max abs | Vocabulary top-1 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Cooperative attention | 0.000248 | 0.004273 | 0.004278 | 0.021042 | 26/26 |
+| Projections with reuse | 0.000398 | 0.017993 | 0.003117 | 0.015831 | 26/26 |
+| Combined | 0.000457 | 0.017156 | 0.006320 | 0.025929 | 26/26 |
+
+The captures include 576,000 encoder values and 1,348,464 logits. Every variant returned the same 25 tokens including end-of-text. Single-tile and reused projections produced identical encoder and logit values. These checks cover one English clip. The native Vulkan proof also passed a 19-query, 71-key, two-head attention case against a CPU reference (maximum absolute error 0.0000774), and tested direct and reused projection tiles. Release validation passed 1,453 Aurelian Core tests, 2,362 Copeland TS tests and 19 inference tests.
+
+To reproduce, use the runner and control arguments below, including `projection-epilogues`. Append `cooperative-attention` for the attention A/B, `direct-projections` for direct single-tile loads or `reuse-projections` for tiled projection reuse. Append both `cooperative-attention reuse-projections` for the combined path. Use separate runs with `profile-gpu` and with `validate capture`, then compare captures using `tools/whisper-benchmark/compare_precision.py`. The raw samples, paired run order, capture comparisons, asset and binary hashes are in `artifacts/local/whisper-baseline/acceleration/encoder-tiles/` (`summary.json` and `manifest.json`). The fast paths require the enabled Vulkan subgroup FP16-input/FP32-accumulator cooperative tuple. [Runner commands](#reproducing-a-profile)
+
+## CPU and GPU profiling on the two-slot path
+
+The JFK benchmark runs two prompt evaluations and continues through end-of-text. For this experiment all Aurelian variants used fixed queue depth two, batched decoder cross-attention, persistent staging and full host logits. The timed requests exclude profiling, capture and Vulkan validation. The FP32 control refers to the existing two-slot path, including its usual decoder rounding. whisper.cpp v1.9.6 flash reads the same checkpoint and can compute with different precision.
+
+| Warm JFK path | Total | Encode + cross KV | Prompt | Subsequent decode |
+| --- | ---: | ---: | ---: | ---: |
+| Archived Aurelian FP32 | 47.96 ms | 12.53 ms | 4.86 ms | 28.88 ms |
+| Shared LayerNorm and dispatch bindings | 44.07 ms | 13.48 ms | 4.44 ms | 25.98 ms |
+| Shared runtime plus fused projection epilogues | **42.58 ms** | **13.48 ms** | **4.26 ms** | **24.77 ms** |
+| Fused epilogues plus native packed-half encoder attention | 45.64 ms | 16.48 ms | 4.25 ms | 23.78 ms |
+| whisper.cpp flash | **29.40 ms** | **3.87 ms** | **1.99 ms** | **23.41 ms** |
+
+Each figure is an independently pooled median over 21 timed requests from three fresh processes with two warmups each. The FP32 changes saved 5.37 ms (11.2%) and closed 29% of the original 18.56 ms gap. The combined path's three process medians were 41.24, 42.95 and 42.58 ms.
+
+Separate interleaved tests kept the models resident, rotated request order, and ran one client at a time. For LayerNorm and binding reuse, the control forced generic normalization and rewrote every binding on the same build. Specializing LayerNorm alone saved 4.98 ms (58/60 pairs faster). Binding reuse alone saved 0.96 ms (52/60). The combined shared runtime saved 5.12 ms against the archived binary (59/60). Adding bias + GELU and bias + residual fusion then saved another 1.34 ms (34/36). The full path saved 6.64 ms in paired requests against the archived binary (34/36).
+
+Fusion removed 428 dispatches per request, reducing 3,461 to 3,033 while preserving the 66 compute submissions and 26 full-vocabulary readbacks. Warm Vulkan allocations were zero. Median managed allocation on the inference thread fell from 876,048 to 737,152 bytes per request. Both FP32 changes together reproduced all 576,000 encoder outputs, 1,348,464 logits and 25 token IDs exactly. With packed encoder attention, all 26 top-1 logits still agreed on JFK. The maximum absolute change was 0.004064 in encoder outputs and 0.025326 in logits. The native and software half conversions produced identical captures.
+
+### Where the remaining time goes
+
+| Matched work | Aurelian GPU | whisper.cpp flash GPU |
+| --- | ---: | ---: |
+| Four encoder attention operations | 5.41 ms | 0.57 ms |
+| Encoder block Q/K/V, attention output and MLP matrix products | 6.19 ms | 1.01 ms |
+
+The Aurelian figures are medians of per-request operation sums over 15 timestamped requests. The reference figures use seven warmed requests from its Vulkan graph logger. The projection row covers 24 products on each side, excluding convolution and cross-cache construction. Aurelian uses FP32 resident matrices and the reference selected F16 matrix kernels. Profiling adds overhead, and independently measured GPU intervals do not sum to a wall-time prediction.
+
+Specializing the 312 decoder-block LayerNorm dispatches cut their GPU time from 4.74 to 1.26 ms. In the separate fusion A/B the decoder-block activation and epilogue kernels went from 3.26 to 2.46 ms. The optimized run still spends 4.78 ms GPU in vocabulary projection across 26 evaluations. On the CPU, timeline waits occupied 87.2% of the original and 86.0% of the optimized inference thread's sampled in-request time (about three seconds each, including blocked time). The optimized uninstrumented wall run measured 2.84 ms recording commands, 0.72 ms submitting, and 34.99 ms waiting for completion per request.
+
+A separate attention-only profile measured 12.45 ms GPU for the old software-unpack attention, 8.36 ms for native unpack and 4.76 ms for FP32. Q/K/V packing took 0.121 ms in both packed variants. A further matched A/B split the existing cooperative projection path into its component dispatches. Across all 32 encoder and cross-cache projections, FP32 resident multiplication cost 7.58 ms GPU. With prepacked half weights, the cooperative multiplies alone cost 13.84 ms, activation packing cost 0.45 ms and output cropping cost 0.58 ms. Eliminating both extra passes would still leave the multiply slower on this GPU. The matched unprofiled requests took 42.02 ms for FP32 and 49.58 ms for cooperative projections. The half-projection path matched the transcript and all 26 top-1 logits.
+
+The next projection experiment is to reuse each loaded operand tile across multiple output tiles. The current shader produces one 16 × 16 output tile per workgroup and stages both operands through shared memory on each 16-element reduction step. For attention, the next experiment is a tiled cooperative QK and probability × V kernel, keeping FP32 softmax and the existing output comparison. The two candidates can be tested independently.
+
+The Release Aurelian Core suite passed 1,447 tests, the inference solution passed 19 and the Copeland TS suite passed 2,362 under .NET SDK 10.0.404. The native Vulkan compute proof passed the width-384 and width-768 LayerNorm paths, the fused epilogues and the packed attention tail cases.
+
+The raw requests, paired order, sampled stacks, shader timings, capture comparisons and binary/asset hashes are in `artifacts/local/whisper-baseline/acceleration/whisper-runtime-profile/` (`summary.json` and `manifest.json`).
+
+### Reproducing a profile
+
+From the repository root with the baseline assets and Release build from [Reproduce on Windows](#reproduce-on-windows), use the same control arguments for timing and diagnostics.
+
+```powershell
+$assets = 'artifacts/local/whisper-baseline'
+$runner = 'tools/Aurelian.WhisperBenchmark/bin/Release/net10.0/Aurelian.WhisperBenchmark.dll'
+$inputs = @("$assets/ggml-tiny.en.bin", "$assets/qualified/input.mel.f32")
+$control = @('fused', 'persistent-read', 'persistent-upload', 'host-logits', 'batch-cross', 'queue=fixed-two')
+dotnet $runner @inputs "$assets/fp32-wall.json" 7 @control projection-epilogues
+dotnet $runner @inputs "$assets/fp32-gpu.json" 5 @control projection-epilogues profile-gpu
+dotnet $runner @inputs "$assets/half-encoder.json" 7 @control projection-epilogues half-attention profile-attention
+& "$assets/w/bin/whisper-benchmark-reference.exe" @inputs "$assets/flash-wall.json" 7 flash
+```
+
+Omit `projection-epilogues` to measure separate bias, GELU and residual dispatches. Add `general-norm` to force the generic LayerNorm kernel or `rewrite-bindings` to force descriptor and parameter writes. Each switch can be varied independently. `profile-gpu` returns GPU intervals grouped by model operation and shader after the existing queue completions. The queue also reports host command recording, submission and completion-wait milliseconds. The host wait overlaps GPU execution. For a CPU-side call-stack trace, attach the .NET sample profiler to a warmed 100-request run. For the native GPU graph breakdown, set `GGML_VK_PERF_LOGGER=1` on a separate flash run.
 
 ## Scheduling evidence
 

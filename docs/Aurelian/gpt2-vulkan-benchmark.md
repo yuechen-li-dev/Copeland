@@ -229,6 +229,12 @@ All 33 winning token IDs agreed across controls and both variants. A separate fu
 
 Add `prefill-attention` and `last-row-mlp` independently or together. The optional `capture` writes little-endian FP32 logits for all 33 evaluations in the last request to `OUTPUT_JSON.logits.f32`. Raw samples, interleave orders, profiles, input hashes and the runner are under `artifacts/local/whisper-baseline/acceleration/prefill-attention-qualified/`.
 
+## Shared projection and LayerNorm routing
+
+GPT-2 and Whisper now call `ComputeMathBatch.ProjectDense` for FP32 projections with weights laid out as [output, input]. The runtime uses GEMV for a single row, the existing down-projection kernel for 32 × 3072 to 768, and resident tiled multiplication for the other shapes. The existing GPT-2 benchmark flags still select the corresponding A/B controls. The default LayerNorm route specializes widths 384 and 768 from one shader source.
+
+Against the archived GPT-2 binary, the same FP32 prompt plus 32-step workload took 75.70 ms versus 76.48 ms (27 requests per build). Interleaved requests favored the shared runtime in 20 of 24 pairs, by a median 1.30 ms. All 1,658,481 captured FP32 logits were identical. Both made zero warm Vulkan allocations. Managed allocation on the request thread increased from 1,429,168 to 1,487,776 bytes per request. The comparison uses the two Aurelian binaries on the same GPU. [Whisper profiling and runtime controls](whisper-vulkan-baseline.md#cpu-and-gpu-profiling-on-the-two-slot-path)
+
 ## Run the comparison
 
 Use an x64 Visual Studio developer PowerShell with CMake, Ninja,

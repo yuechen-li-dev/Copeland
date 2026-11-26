@@ -20,6 +20,18 @@ public sealed class ComputeWorkgroupTests
             """)]));
 
     [Fact]
+    public void PackedHalfConversionUsesCoreSpirvAndRequiresUnsignedBits()
+    {
+        var module = Compile("Output[lane] = UnpackFloat16(lane);", shared: "");
+        Assert.True(module.Success);
+        var backend = VdMirComputeBackend.Compile(module);
+        Assert.True(backend.SpirvValidated, backend.DxcOutput + backend.SpirvValidationOutput);
+        Assert.Contains("UnpackHalf2x16", backend.SpirvDisassembly);
+        var invalid = Compile("Output[lane] = UnpackFloat16(1.0);", shared: "");
+        Assert.Contains(invalid.Diagnostics, diagnostic => diagnostic.Code == "COPE-GPU-CALL-0001");
+    }
+
+    [Fact]
     public void SharedStorageAndRealGroupBuiltinsProduceValidatedControlBarriers()
     {
         var module = Compile("""
@@ -143,6 +155,50 @@ public sealed class ComputeWorkgroupTests
         Assert.True(backend.SpirvValidated, backend.DxcOutput + backend.SpirvValidationOutput);
         Assert.Equal(2, backend.SpirvDisassembly!.Split("OpCooperativeMatrixMulAddKHR").Length - 1);
         Assert.Contains("OpImageSampleExplicitLod", backend.SpirvDisassembly);
+    }
+
+    [Theory]
+    [InlineData("CooperativeMatMul(A, B, C, true);", 32, true)]
+    [InlineData("CooperativeMatMul(A, B, C, true);", 64, false)]
+    [InlineData("CooperativeMatMul(A, B, C, false);", 32, false)]
+    [InlineData("if (lane < 8) { CooperativeMatMul(A, B, C, true); }", 32, false)]
+    public void PackedSharedProductsRequireUniformSubgroupsAndMatchingTiles(string body, int lanes, bool valid)
+    {
+        string source = $$"""
+            @compute @numthreads({{lanes}},1,1)
+            function Main(@builtin(groupIndex) lane: u32,
+                @workgroup readwrite A: WorkgroupArray<u32,512>,
+                @workgroup readwrite B: WorkgroupArray<u32,512>,
+                @workgroup readwrite C: WorkgroupArray<f32,256>): void {
+                for (let tile of BoundedIndices<2>(2)) { {{body}} }
+            }
+            """;
+        var module = GpuComputeBinder.Compile(new([new GpuSourceFile("packed-shared-tile.v.ts", source)]));
+        Assert.Equal(valid, module.Success);
+        if (valid)
+        {
+            Assert.Equal("compute.cooperative.m1", module.FeatureLevel);
+        }
+    }
+
+    [Theory]
+    [InlineData("32", true)]
+    [InlineData("64", true)]
+    [InlineData("48", false)]
+    [InlineData("lane", false)]
+    public void WideCooperativeTilesRequireSupportedUniformWidth(string width, bool valid)
+    {
+        string source = $$"""
+            @compute @numthreads(32,1,1)
+            function Main(@builtin(groupIndex) lane: u32,
+                @workgroup readwrite A: WorkgroupArray<u32,512>,
+                @workgroup readwrite B: WorkgroupArray<u32,2048>,
+                @workgroup readwrite C: WorkgroupArray<f32,1024>): void {
+                for (let i of BoundedIndices<2>(2)) { CooperativeMatMul(A, B, C, true, {{width}}); }
+            }
+            """;
+        var module = GpuComputeBinder.Compile(new([new GpuSourceFile("wide-cooperative.v.ts", source)]));
+        Assert.Equal(valid, module.Success);
     }
 
     [Theory]

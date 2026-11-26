@@ -41,6 +41,10 @@ template <typename ResultType, typename PointerType>
     WorkgroupPointer<PointerType> pointer, Layout layout, uint stride,
     [[vk::ext_literal]] uint memoryOperands, Scope scope);
 
+template <typename ResultType>
+[[vk::ext_instruction(4457)]] ResultType LoadPacked(
+    [[vk::ext_reference]] uint pointer, Layout layout, uint stride);
+
 template <typename ResultType, typename MatrixTypeA, typename MatrixTypeB,
           typename MatrixTypeC>
 [[vk::ext_instruction(4459)]] ResultType MultiplyAdd(

@@ -2,6 +2,26 @@ namespace Aurelian.Graphics.Vulkan.ComputeMath;
 
 public sealed partial class ComputeMathBatch
 {
+    /// <summary>FP32 projection from row-major input and [outputs, inputs] weights.
+    /// Uses the qualified kernels for single rows and the 32-row down projection,
+    /// with resident tiled multiplication for the remaining shapes.</summary>
+    public void ProjectDense(GpuTensor input, GpuTensor weights, GpuTensor output,
+        bool useVectorKernel = true, bool usePromptTile = true)
+    {
+        if (useVectorKernel && input.Rows == 1)
+        {
+            MultiplyVector(input, weights, output);
+        }
+        else if (usePromptTile && input.Rows == 32 && input.Columns == 3072 && output.Columns == 768)
+        {
+            PrefillDown32(input, weights, output);
+        }
+        else
+        {
+            Multiply(input, weights, output, MatrixKernel.Resident64, transposeB: true);
+        }
+    }
+
     public void PrefillDown32(GpuTensor input, GpuTensor weights, GpuTensor output)
     {
         Check(input, weights, output);
@@ -28,12 +48,15 @@ public sealed partial class ComputeMathBatch
     /// <summary>Single-row projection with contiguous input weights for each output.</summary>
     public void MultiplyVector(GpuTensor input, GpuTensor weights, GpuTensor output)
     {
-        Check(input, weights, output);
+        Owner.Validate(input, GpuTensorFormat.Float32);
+        bool packed = weights.Format == GpuTensorFormat.PackedFloat16;
+        Owner.Validate(weights, packed ? GpuTensorFormat.PackedFloat16 : GpuTensorFormat.Float32);
+        Owner.Validate(output, GpuTensorFormat.Float32);
         Require(input.Rows == 1 && output.Rows == 1 && input.Columns <= 8192
             && weights.Columns == input.Columns && output.Columns == weights.Rows
             && !ReferenceEquals(output, input) && !ReferenceEquals(output, weights),
             "GEMV requires independent output, a single input row and weights shaped [output, input].");
-        Add([new("DenseGemv.v.ts", input, weights, output, new()
+        Add([new(packed ? "DenseGemv.Packed" : "DenseGemv.v.ts", input, weights, output, new()
         {
             Columns = (uint)output.Columns,
             Inner = (uint)input.Columns,
@@ -81,6 +104,24 @@ public sealed partial class ComputeMathBatch
     /// <summary>Uses packed binary16 Q/K/V with FP32 reduction and accumulation.</summary>
     public void FusedAttention64Packed(GpuTensor query, GpuTensor keyValue, GpuTensor output, int keys)
     {
+        FusedAttention64Packed(query, keyValue, output, keys, cooperative: false);
+    }
+
+    public void FusedAttention64Packed(GpuTensor query, GpuTensor keyValue, GpuTensor output, int keys, bool cooperative)
+    {
+        FusedAttention64PackedCore(query, keyValue, output, keys, cooperative, 16);
+    }
+
+    public void CooperativeAttention64(GpuTensor query, GpuTensor keyValue, GpuTensor output, int keys, int keyTile)
+    {
+        Require(keyTile is 16 or 32 or 64, "Cooperative attention supports 16, 32 or 64 keys per tile.");
+        FusedAttention64PackedCore(query, keyValue, output, keys, true, keyTile);
+    }
+
+    private void FusedAttention64PackedCore(GpuTensor query, GpuTensor keyValue, GpuTensor output, int keys,
+        bool cooperative, int keyTile)
+    {
+        Require(!cooperative || Owner.CooperativeMatrixEnabled, "Cooperative attention requires subgroup FP16 matrix support.");
         Owner.Validate(query, GpuTensorFormat.PackedFloat16);
         Owner.Validate(keyValue, GpuTensorFormat.PackedFloat16);
         Owner.Validate(output, GpuTensorFormat.Float32);
@@ -89,10 +130,15 @@ public sealed partial class ComputeMathBatch
             && keyValue.Columns == output.Columns && output.Columns % 64 == 0
             && Groups(output.Rows, 16) <= 65535 && output.Columns / 64 <= 65535,
             "Packed fused attention requires aligned Q/K/V, paired key/value rows, and 64-wide heads.");
-        Add([new("FusedAttention64.Packed", query, keyValue, output, new()
+        string shader = cooperative ? "CooperativeAttention64.v.ts" : "FusedAttention64.Packed";
+        if (cooperative && keyTile > 16)
+        {
+            shader = keyTile == 64 ? "WideCooperativeAttention64.Keys64" : "WideCooperativeAttention64.v.ts";
+        }
+        Add([new(shader, query, keyValue, output, new()
         {
             Rows = (uint)output.Rows, Columns = (uint)keys, Width = (uint)output.Columns,
-            Inner = Groups(keys, 32),
+            Inner = Groups(keys, cooperative ? keyTile : 32), Mode = (uint)keyTile,
         }, Groups(output.Rows, 16), (uint)output.Columns / 64)]);
     }
 

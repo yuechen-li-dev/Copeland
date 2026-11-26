@@ -235,6 +235,8 @@ public static partial class VdMirComputeHlslEmitter
             "binary" => $"({EmitExpression(expression.Operands![0])} {expression.Value} {EmitExpression(expression.Operands[1])})",
             "unary" => $"({expression.Value}{EmitExpression(expression.Operands![0])})",
             "intrinsic" when expression.Value == "ConvertU32ToF32" => $"float({EmitExpression(expression.Operands![0])})",
+            "intrinsic" when expression.Value == "PackFloat16Pair" => $"(f32tof16({EmitExpression(expression.Operands![0])}) | (f32tof16({EmitExpression(expression.Operands[1])}) << 16))",
+            "intrinsic" when expression.Value == "UnpackFloat16" => $"f16tof32({EmitExpression(expression.Operands![0])})",
             "intrinsic" when expression.Value == "Bitcast" => $"{(expression.Type == "u32" ? "asuint" : "asfloat")}({EmitExpression(expression.Operands![0])})",
             "call" => $"{CallName(expression.Value!)}({string.Join(", ", expression.Operands!.Select(EmitExpression))})",
             _ => throw new InvalidOperationException($"Unsupported compute expression '{expression.Kind}'."),

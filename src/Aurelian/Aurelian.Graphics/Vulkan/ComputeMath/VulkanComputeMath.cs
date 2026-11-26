@@ -36,7 +36,14 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
     private AurelianVulkanBuffer? readbackStaging;
     private DispatchTimestamps? dispatchTimestamps;
 
-    private sealed record DispatchSlot(DescriptorSet Set, AurelianVulkanBuffer Parameters);
+    private sealed class DispatchSlot(DescriptorSet set, AurelianVulkanBuffer parameters)
+    {
+        public DescriptorSet Set { get; } = set;
+        public AurelianVulkanBuffer Parameters { get; } = parameters;
+        public AurelianVulkanBuffer? Input, Auxiliary, Output;
+        public KernelParameters LastParameters;
+        public bool HasParameters;
+    }
     public int MaximumDispatches { get; }
     public int MaximumTensorElements { get; }
     public int ReadbackCount { get; private set; }
@@ -48,6 +55,9 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
     /// <summary>Opt-in FP16 inputs with FP32 cooperative accumulation. Requires
     /// numerical qualification for the model; small/unaligned affines retain FP32.</summary>
     public bool UseCooperativeLinear { get; set; }
+    /// <summary>Reuse immutable descriptor contents and parameter bytes once their slot is safe to record.</summary>
+    public bool ReuseDispatchBindings { get; set; } = true;
+    public bool UseWidthSpecializedLayerNorm { get; set; } = true;
     /// <summary>Preferred model attention query tile. Larger tiles amortize queue
     /// and barrier overhead without changing per-query arithmetic. AttentionTiled
     /// validates the value and keeps its explicit scratch allocation budget.</summary>
@@ -96,8 +106,8 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
     {
         ComputeMathBatch.Require(rows is > 0 and <= 4194304 && columns is > 0 and <= 4096
             && (long)rows * columns <= MaximumTensorElements
-            && format is GpuTensorFormat.Float32 or GpuTensorFormat.UInt32,
-            "Sparse tensors require 1..4194304 rows, 1..4096 columns, FP32/UInt32 and the explicit element budget.");
+            && format is GpuTensorFormat.Float32 or GpuTensorFormat.UInt32 or GpuTensorFormat.PackedFloat16,
+            "Sparse tensors require 1..4194304 rows, 1..4096 columns, FP32, UInt32 or packed FP16 and the explicit element budget.");
         return AllocateTensor(rows, columns, format);
     }
 
