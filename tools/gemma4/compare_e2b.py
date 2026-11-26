@@ -82,7 +82,24 @@ def summary(prefix):
             print_hotspots(rows)
 
 
-def compare(reference, candidate, tolerance):
+def max_kl_divergence(expected, actual):
+    """Maximum KL(reference || candidate) in nats across teacher-forced positions."""
+    maximum = 0.0
+    for reference_row, candidate_row in zip(expected, actual):
+        reference_log = reference_row.astype(np.float64)
+        candidate_log = candidate_row.astype(np.float64)
+        reference_log -= reference_log.max()
+        candidate_log -= candidate_log.max()
+        reference_weights = np.exp(reference_log)
+        reference_mass = reference_weights.sum()
+        reference_log -= np.log(reference_mass)
+        candidate_log -= np.log(np.exp(candidate_log).sum())
+        divergence = np.sum(reference_weights * (reference_log - candidate_log)) / reference_mass
+        maximum = max(maximum, float(divergence))
+    return maximum
+
+
+def compare(reference, candidate, tolerance, kl_tolerance=None):
     expected = np.memmap(reference.with_suffix(".f32"), dtype="<f4", mode="r").reshape(-1, VOCABULARY)
     actual = np.memmap(candidate.with_suffix(".f32"), dtype="<f4", mode="r").reshape(-1, VOCABULARY)
     if actual.shape != expected.shape or not np.isfinite(actual).all() or not np.isfinite(expected).all():
@@ -97,6 +114,11 @@ def compare(reference, candidate, tolerance):
     print(f"  max relative RMS {relative.max():.5%}, max absolute {difference.max():.6f}, "
           f"top-1 {matches.sum()}/{len(matches)}, mean top-5 overlap {intersection.mean():.2f}/5")
     print(f"  per-step relative RMS %: {np.round(relative * 100, 4).tolist()}")
+    if kl_tolerance is not None:
+        divergence = max_kl_divergence(expected, actual)
+        print(f"  max KL(reference || candidate) {divergence:.9g} nats")
+        if divergence > kl_tolerance:
+            raise SystemExit(f"{candidate.name}: KL tolerance exceeded")
     if tolerance is not None and (relative.max() > tolerance or not matches.all()):
         raise SystemExit(f"{candidate.name}: logit parity tolerance exceeded")
 
@@ -106,8 +128,11 @@ if __name__ == "__main__":
     parser.add_argument("reference", type=Path)
     parser.add_argument("candidates", nargs="+", type=Path)
     parser.add_argument("--tolerance", type=float, help="Maximum relative RMS (also require exact argmax)")
+    parser.add_argument("--kl-tolerance", type=float, help="Maximum reference-to-candidate KL divergence in nats")
     args = parser.parse_args()
+    if args.kl_tolerance is not None and (not np.isfinite(args.kl_tolerance) or args.kl_tolerance < 0):
+        parser.error("--kl-tolerance must be finite and nonnegative")
     summary(args.reference)
     for candidate in args.candidates:
         summary(candidate)
-        compare(args.reference, candidate, args.tolerance)
+        compare(args.reference, candidate, args.tolerance, args.kl_tolerance)

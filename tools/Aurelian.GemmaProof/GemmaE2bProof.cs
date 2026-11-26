@@ -30,12 +30,12 @@ internal static class GemmaE2bProof
         }
         int decodeLanesOption = Array.IndexOf(args, "--decode-lanes");
         int splitAttentionOption = Array.IndexOf(args, "--split-decode-attention");
-        int splitDecodeTileKeys = tunedDecode ? 32 : 0;
+        int splitDecodeTileKeys = tunedDecode ? 16 : 0;
         if (splitAttentionOption >= 0 && (splitAttentionOption + 1 >= args.Length
             || !int.TryParse(args[splitAttentionOption + 1], out splitDecodeTileKeys)
-            || splitDecodeTileKeys is not (32 or 64 or 128)))
+            || splitDecodeTileKeys is not (16 or 32 or 64 or 128)))
         {
-            throw new ArgumentException("--split-decode-attention requires a 32, 64 or 128-key tile.");
+            throw new ArgumentException("--split-decode-attention requires a 16, 32, 64 or 128-key tile.");
         }
         int decodeLanes = tuned ? 16 : 32;
         if (decodeLanesOption >= 0 && (decodeLanesOption + 1 >= args.Length

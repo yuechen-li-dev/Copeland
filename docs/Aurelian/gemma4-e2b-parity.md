@@ -461,6 +461,65 @@ gate/up or `--separate-gate-up` to isolate tiled down. `--down-tiles 4`
 selects four partials, and `--separate-down-norm` runs an independent
 merge. Raw runs and logits are under `artifacts/local/gemma4/q4-feedforward`.
 
+### RDNA patch study and finer attention tiles
+
+The study used commit `cda6af57f083aee529b5d55f05d1d5aeb709e102` of
+`llama-cpp-rdna-boosts`. Block 05 pipelines loads in the RDNA4 Q8_0
+attention band and conditions its wider attention kernels on the shape.
+Blocks 07 and 08 tune matvec workgroup geometry by format and shape.
+Block 08 also fuses gate, up and GLU, matching the operation Aurelian
+already fuses for dense E2B. The local experiments use Vulkan and FP32
+activations on the RTX 3070.
+[Pinned patch documentation](https://github.com/stew675/llama-cpp-rdna-boosts/blob/cda6af57f083aee529b5d55f05d1d5aeb709e102/patches/README.md)
+
+| Experiment | GPU result at 64 / 512 prompt tokens |
+|---|---|
+| Gate/up with 64 threads | 1.755 / 1.766 ms, up from 1.521 / 1.536 ms at 128 threads |
+| Gate/up with 256 threads | 1.498 / 1.509 ms, with lower queued throughput on both fixtures |
+| Paired attention key stripes with shared query loads | 1.046 / 1.096 ms for the score/value kernel, up from 0.867 / 0.915 ms |
+| Attention with 64-key tiles | 1.752 / 1.838 ms including merge, up from 1.001 / 1.122 ms |
+| Attention with a 128-key split threshold | 1.972 / 3.320 ms including merge where applicable. The short fixture takes unsplit attention. |
+| Parallel merge with 32-key tiles | 0.985 / 1.104 ms for attention and merge |
+| Parallel merge with 16-key tiles | 0.619 / 0.848 ms for attention and merge |
+
+The selected path uses 16-key tiles once decode has more than 32
+attended keys. The merge distributes loads and exponentials across lanes
+and accumulates the sums in tile order. It handles up to 64 partials,
+covering 1024 keys even at the smaller tile size. Compared with the
+prior default, peak Aurelian-owned GPU buffers increased by 0.08 / 0.39
+MiB. For the tile-size A/B, use `--split-decode-attention 32` with
+`--optimized` to select 32-key tiles and the same parallel merge.
+
+| Warm fixture | 32-key tiles | 16-key tiles | llama.cpp | Share of llama.cpp |
+|---|---:|---:|---:|---:|
+| 64 prompt, 32 decode | 146.68 tok/s | 151.70 tok/s | 167.41 tok/s | 90.6% |
+| 512 prompt, 16 decode | 142.14 tok/s | 143.62 tok/s | 164.22 tok/s | 87.5% |
+
+The wall-time rates pool six warm repetitions per cell and nine for
+the 512-token Aurelian cells. Each fixture includes both Aurelian arm
+orders. The short result reaches 90% against this round's native
+reference and 88.2% against the previous 171.97 tok/s reference. The
+long result needs another 0.20 ms/token to reach 90% against this
+round's reference.
+
+The comparison script accepts `--kl-tolerance 1e-8` alongside the RMS
+gate. It computes the maximum reference-to-candidate KL divergence in
+nats over full softmax distributions at the teacher-forced positions.
+The 16-key path kept all 50 top-one tokens and top-five sets against the
+prior default, with maximum relative RMS below 0.00020% and maximum KL
+of 1.47e-11 nats. Changing only the merge at 32 keys and the paired
+stripe experiment both yielded bit-identical logits.
+[Upstream numerical qualification notes](https://github.com/stew675/llama-cpp-rdna-boosts/blob/cda6af57f083aee529b5d55f05d1d5aeb709e102/GREEDY-PURITY.md)
+
+Block 05's KV reuse across query heads is a separate hypothesis for
+long contexts. Block 06's prefill shape policies belong in the prefill
+benchmark lane. The host-expert tier in block 09 offers a methodology
+for instrumenting misses and copy overlap when studying larger models.
+The E2B measurements here cover resident dense weights.
+
+Raw timings, logits, and prototype patches are under
+`artifacts/local/gemma4/rdna-research`.
+
 ## Reproduce
 
 Build the C++ reference with the headers and Vulkan binaries from llama.cpp

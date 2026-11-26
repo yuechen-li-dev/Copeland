@@ -463,7 +463,7 @@ public sealed partial class ComputeMathBatch
         Require(query.Rows == 1 && SameShape(query, output) && heads is > 0 and <= 64
             && headWidth is 256 or 512 && query.Columns == heads * headWidth
             && keyValue.Columns == headWidth && keyValue.Rows == capacity * 2 && capacity <= 1024
-            && position >= 0 && position < capacity && window is > 0 and <= 1024 && tileKeys is 32 or 64 or 128
+            && position >= 0 && position < capacity && window is > 0 and <= 1024 && tileKeys is 16 or 32 or 64 or 128
             && !ReferenceEquals(output, query) && !ReferenceEquals(output, keyValue)
             && !ReferenceEquals(partials, query) && !ReferenceEquals(partials, keyValue) && !ReferenceEquals(partials, output),
             "Split attention needs one query row, a bounded KV cache and independent partials and output.");

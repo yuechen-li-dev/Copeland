@@ -505,29 +505,33 @@ static void SplitDecodeAttentionChecks(VulkanComputeMath compute)
 {
     const int heads = 3;
     const int capacity = 1024;
-    const int tileKeys = 32;
     foreach (int width in new[] { 256, 512 })
     {
         using var query = compute.CreateTensor(1, heads * width);
         using var cache = compute.CreateTensor(capacity * 2, width);
-        using var partials = compute.CreateTensor(heads * capacity / tileKeys, width + 2);
+        using var partials = compute.CreateTensor(heads * capacity / 16, width + 2);
         using var reference = compute.CreateTensor(1, heads * width);
         using var result = compute.CreateTensor(1, heads * width);
         compute.Upload(query, Enumerable.Range(0, query.Elements).Select(i => MathF.Cos(i * .173f) * .5f).ToArray());
         compute.Upload(cache, Enumerable.Range(0, cache.Elements).Select(i => MathF.Sin(i * .037f)).ToArray());
-        foreach (var (position, window) in new[] { (0, 512), (32, 512), (512, 512), (1023, 1024) })
+        foreach (var (position, window) in new[] { (0, 512), (15, 512), (16, 512), (32, 512), (512, 512), (1023, 1024) })
         {
-            var batch = compute.CreateBatch();
-            batch.FusedGroupedAttention(query, cache, reference, heads, width, position, window, wideKeyTile: true);
-            batch.SplitDecodeAttention(query, cache, partials, result, heads, width, position, window, tileKeys);
-            compute.Execute(batch);
+            var control = compute.CreateBatch();
+            control.FusedGroupedAttention(query, cache, reference, heads, width, position, window, wideKeyTile: true);
+            compute.Execute(control);
             float[] expected = compute.Read(reference);
-            float[] actual = compute.Read(result);
-            for (int index = 0; index < actual.Length; index++)
+            foreach (int tileKeys in new[] { 16, 32, 64, 128 })
             {
-                if (!float.IsFinite(actual[index]) || MathF.Abs(actual[index] - expected[index]) > 2e-5f)
+                var batch = compute.CreateBatch();
+                batch.SplitDecodeAttention(query, cache, partials, result, heads, width, position, window, tileKeys);
+                compute.Execute(batch);
+                float[] actual = compute.Read(result);
+                for (int index = 0; index < actual.Length; index++)
                 {
-                    throw new InvalidDataException($"Tiled decode attention differs at width {width}, position {position}, window {window}.");
+                    if (!float.IsFinite(actual[index]) || MathF.Abs(actual[index] - expected[index]) > 2e-5f)
+                    {
+                        throw new InvalidDataException($"Decode attention with {tileKeys} keys per tile differs at width {width}, position {position}, window {window}.");
+                    }
                 }
             }
         }

@@ -452,7 +452,7 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
     private bool UseFusedAttention(int rows, int keys) => rows == 1 ? keys <= FusedDecodeMaxKeys : FusedPrefillAttention;
 
     private bool UseSplitAttention(int rows, int keys, bool prune)
-        => rows == 1 && !prune && SplitDecodeTileKeys > 0 && keys > SplitDecodeTileKeys;
+        => rows == 1 && !prune && SplitDecodeTileKeys > 0 && keys > Math.Max(32, SplitDecodeTileKeys);
 
     private void Project(ComputeMathBatch batch, GpuTensor input, GpuTensor weights, GpuTensor output,
         bool reusePacking = false, int firstWeightRow = 0, int weightRows = 0)
