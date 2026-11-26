@@ -17,6 +17,7 @@ internal sealed class TinyEnglishModel : IDisposable
     private sealed record Cache(GpuTensor Key, GpuTensor Value);
 
     private readonly VulkanComputeMath math;
+    private readonly TinyEnglishCheckpoint checkpoint;
     private readonly bool batchAcrossHeads;
     private readonly bool vectorProjection;
     private readonly float[]? hostLogits;
@@ -71,7 +72,7 @@ internal sealed class TinyEnglishModel : IDisposable
         bool fusedAttention, bool reuseReadback, bool reuseUpload, bool hostLogits, bool batchCross,
         bool halfProjections, bool halfAttention, bool joinLogits, bool packVocabulary = false, bool cooperativeConvolution = false,
         bool packedLookup = false, int? encoderBudgetMiB = null, bool prefetchEncoder = false,
-        bool checkpointTiles = false)
+        bool checkpointTiles = false, WhisperProfile? startup = null)
     {
         EncoderBlockUpload? stream = null;
         this.prefetchEncoder = prefetchEncoder;
@@ -82,6 +83,7 @@ internal sealed class TinyEnglishModel : IDisposable
             previousController = math.StreamController;
         }
         this.math = math;
+        checkpoint = weights;
         this.batchAcrossHeads = batchAcrossHeads;
         this.vectorProjection = vectorProjection;
         this.hostLogits = hostLogits ? new float[Vocabulary] : null;
@@ -116,16 +118,20 @@ internal sealed class TinyEnglishModel : IDisposable
             }
             conv1 = Convolution("encoder.conv1", MelBins);
             conv2 = Convolution("encoder.conv2", Width);
-            audioPositions = Upload(AudioRows, Width, weights.Read("encoder.positional_embedding", Width, AudioRows));
-            textPositions = Upload(TextRows, Width, weights.Read("decoder.positional_embedding", Width, TextRows));
-            float[] tokenWeights = weights.Read("decoder.token_embedding.weight", Width, Vocabulary);
+            audioPositions = Upload(AudioRows, Width, ReadWeight("encoder.positional_embedding", Width, AudioRows));
+            textPositions = Upload(TextRows, Width, ReadWeight("decoder.positional_embedding", Width, TextRows));
+            long vocabularyStart = Stopwatch.GetTimestamp();
+            float[] tokenWeights = ReadWeight("decoder.token_embedding.weight", Width, Vocabulary);
+            WhisperProfile.Record(startup, "vocabulary-read-and-convert", vocabularyStart);
+            vocabularyStart = Stopwatch.GetTimestamp();
             if (packVocabulary || packedLookup)
             {
                 packedVocabulary = math.CreateSparseTensor(Vocabulary, Width, GpuTensorFormat.PackedFloat16);
                 resident.Add(packedVocabulary);
-                math.Upload(packedVocabulary, tokenWeights);
+                UploadWeight(packedVocabulary, tokenWeights);
             }
             embedding = packedLookup ? packedVocabulary! : Upload(Vocabulary, Width, tokenWeights);
+            WhisperProfile.Record(startup, "vocabulary-allocate-pack-upload", vocabularyStart);
             encodedNorm = Norm("encoder.ln_post");
             decodedNorm = Norm("decoder.ln");
             ulong fixedBytes = conv1.Weight.Buffer.SizeBytes + conv2.Weight.Buffer.SizeBytes
@@ -187,6 +193,21 @@ internal sealed class TinyEnglishModel : IDisposable
             throw;
         }
 
+        float[] ReadWeight(string name, params int[] shape)
+        {
+            long start = Stopwatch.GetTimestamp();
+            float[] data = weights.Read(name, shape);
+            WhisperProfile.Record(startup, "checkpoint-weight-reads", start);
+            return data;
+        }
+
+        void UploadWeight(GpuTensor tensor, float[] values)
+        {
+            long start = Stopwatch.GetTimestamp();
+            math.Upload(tensor, values);
+            WhisperProfile.Record(startup, "weight-pack-and-upload", start);
+        }
+
         GpuTensor Upload(int rows, int columns, float[] values, GpuTensorFormat format = GpuTensorFormat.Float32)
         {
             if (stream is not null)
@@ -194,7 +215,7 @@ internal sealed class TinyEnglishModel : IDisposable
                 return stream.Add(rows, columns, format, values, Allocate);
             }
             GpuTensor tensor = Allocate(rows, columns, format);
-            math.Upload(tensor, values);
+            UploadWeight(tensor, values);
             return tensor;
         }
 
@@ -210,11 +231,11 @@ internal sealed class TinyEnglishModel : IDisposable
         Cache AllocateCache(int rows) => new(Allocate(rows, Width), Allocate(rows, Width));
 
         GpuTensor Norm(string name) => Upload(1, 2 * Width,
-            [.. weights.Read(name + ".weight", Width), .. weights.Read(name + ".bias", Width)]);
+            [.. ReadWeight(name + ".weight", Width), .. ReadWeight(name + ".bias", Width)]);
 
         Linear Affine(string name, int inputWidth, int outputWidth, bool bias = true)
         {
-            float[] source = weights.Read(name + ".weight", inputWidth, outputWidth);
+            float[] source = ReadWeight(name + ".weight", inputWidth, outputWidth);
             bool encoderProjection = name.StartsWith("encoder.", StringComparison.Ordinal)
                 || name.EndsWith(".cross_attn.key", StringComparison.Ordinal)
                 || name.EndsWith(".cross_attn.value", StringComparison.Ordinal);
@@ -235,7 +256,7 @@ internal sealed class TinyEnglishModel : IDisposable
             {
                 weight = Upload(outputWidth, inputWidth, source);
             }
-            return new(weight, bias ? Upload(1, outputWidth, weights.Read(name + ".bias", outputWidth)) : null);
+            return new(weight, bias ? Upload(1, outputWidth, ReadWeight(name + ".bias", outputWidth)) : null);
         }
 
         Attention LoadAttention(string name) => new(Norm(name + "_ln"),
@@ -251,7 +272,7 @@ internal sealed class TinyEnglishModel : IDisposable
 
         Linear Convolution(string name, int channels)
         {
-            float[] source = weights.Read(name + ".weight", 3, channels, Width);
+            float[] source = ReadWeight(name + ".weight", 3, channels, Width);
             var kernel = new float[source.Length];
             for (int output = 0; output < Width; output++)
             {
@@ -267,8 +288,8 @@ internal sealed class TinyEnglishModel : IDisposable
             GpuTensor weight = math.CreateTensor(3 * channels, Width,
                 cooperativeConvolution ? GpuTensorFormat.PackedFloat16 : GpuTensorFormat.Float32);
             resident.Add(weight);
-            math.Upload(weight, kernel);
-            return new(weight, Upload(1, Width, weights.Read(name + ".bias", 1, Width)));
+            UploadWeight(weight, kernel);
+            return new(weight, Upload(1, Width, ReadWeight(name + ".bias", 1, Width)));
         }
     }
 
@@ -319,13 +340,18 @@ internal sealed class TinyEnglishModel : IDisposable
                 .Select(item => new EncoderBatchInterval(item.Operation, item.Profile.ComputeInterval, item.Profile.TransferInterval)).ToArray(), tileController?.Sample);
     }
 
-    public (List<int> Tokens, float[] Attention) DecodeAligned(float[] mel, int samples, int maxTokens,
-        IWhisperQueue queue, CancellationToken cancellation, bool batchAlignment)
+    public (List<int> Tokens, float[] Attention, int CoveredSamples, int NextSample) DecodeAligned(float[] mel, int samples,
+        int maxTokens, IWhisperQueue queue, CancellationToken cancellation, bool batchAlignment,
+        Func<int, bool>? shouldResume, WhisperProfile? profile = null, int firstSample = 0)
     {
+        long phaseStart = Stopwatch.GetTimestamp();
         queue.OpenRequestScope();
         var metrics = new InferenceMetrics(queued: true, profileGpu: false);
         Encode(mel, metrics, null, queue.Retained, null, cancellation);
+        WhisperProfile.Record(profile, "encode", phaseStart);
+        phaseStart = Stopwatch.GetTimestamp();
         var rules = new WhisperTimestampRules(samples);
+        List<int>? tokenTrace = profile is not null ? [] : null;
         int token = Evaluate(StartOfText, 0, metrics, rules: rules);
         var text = new List<int>();
         for (int position = 1; token != EndOfText; position++)
@@ -335,23 +361,52 @@ internal sealed class TinyEnglishModel : IDisposable
             {
                 throw new InvalidDataException("Whisper reached its decoding limit before emitting end-of-text.");
             }
-            rules.Push(token);
+            tokenTrace?.Add(token);
+            rules.Push(token, text.Count);
             if (token < EndOfText)
             {
                 text.Add(token);
             }
             token = Evaluate(token, position, metrics, rules: rules);
         }
+        WhisperProfile.Record(profile, "timestamp-decode", phaseStart);
+        if (tokenTrace is not null)
+        {
+            tokenTrace.Add(token);
+            profile!.Windows.Add(new(firstSample, samples, rules.LastClosedSample, rules.CompletedTextTokens,
+                tokenTrace, checkpoint.Decode(text)));
+        }
+        int covered = samples;
+        int next = samples;
+        if (rules.CompletedTextTokens > 0 && shouldResume is not null)
+        {
+            if (rules.PendingOpenSample > rules.LastClosedSample && shouldResume(rules.PendingOpenSample))
+            {
+                next = rules.PendingOpenSample;
+            }
+            else if (shouldResume(rules.LastClosedSample))
+            {
+                next = rules.LastClosedSample;
+            }
+            if (next < samples)
+            {
+                covered = rules.LastClosedSample;
+                text.RemoveRange(rules.CompletedTextTokens, text.Count - rules.CompletedTextTokens);
+            }
+        }
+        phaseStart = Stopwatch.GetTimestamp();
         if (text.Count == 0)
         {
-            return (text, []);
+            return (text, [], covered, next);
         }
 
         // The alignment pass uses text and the no-timestamps prompt. Timestamp
         // tokens used to drive decoding do not occupy alignment rows.
         if (batchAlignment)
         {
-            return (text, ReplayAlignment(text, metrics, cancellation));
+            var replay = ReplayAlignment(text, metrics, cancellation);
+            WhisperProfile.Record(profile, "alignment-replay", phaseStart);
+            return (text, replay, covered, next);
         }
         using var attention = math.CreateTensor((text.Count + 1) * AlignmentHeadCount, AudioRows);
         Evaluate(StartOfText, 0, metrics, alignmentOnly: true);
@@ -361,7 +416,9 @@ internal sealed class TinyEnglishModel : IDisposable
             cancellation.ThrowIfCancellationRequested();
             Evaluate(text[i], i + 2, metrics, attention, alignmentOnly: true);
         }
-        return (text, math.Read(attention, reuseReadback));
+        var captured = math.Read(attention, reuseReadback);
+        WhisperProfile.Record(profile, "alignment-replay", phaseStart);
+        return (text, captured, covered, next);
     }
 
     private float[] ReplayAlignment(List<int> text, InferenceMetrics metrics, CancellationToken cancellation)

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Aurelian.Graphics.Vulkan.ComputeMath;
 using static Aurelian.Inference.Whisper.TinyEnglishCheckpoint;
 
@@ -16,6 +17,9 @@ public sealed class VulkanWhisperTranscriber : IDisposable, IWhisperQueue
     public const int WindowSamples = 30 * SampleRate;
     private const int TokenLimit = TextRows - 2;
     private const int WindowsPerQueue = 32;
+    private const int MaximumWindowsPerRequest = 4;
+    private const int MinimumTailSamples = SampleRate / 10;
+    private readonly bool resumeTail;
     private readonly VulkanInferenceSession session;
     private readonly bool batchAlignment;
     private readonly TinyEnglishCheckpoint checkpoint;
@@ -32,31 +36,42 @@ public sealed class VulkanWhisperTranscriber : IDisposable, IWhisperQueue
     {
     }
 
-    internal VulkanWhisperTranscriber(string checkpointPath, bool precompiled, bool batchAlignment)
+    internal VulkanWhisperTranscriber(string checkpointPath, bool precompiled, bool batchAlignment,
+        WhisperProfile? startup = null, bool resumeTail = true)
     {
         this.batchAlignment = batchAlignment;
+        this.resumeTail = resumeTail;
+        long phaseStart = Stopwatch.GetTimestamp();
         checkpoint = new TinyEnglishCheckpoint(checkpointPath);
+        WhisperProfile.Record(startup, "checkpoint-index", phaseStart);
         try
         {
+            phaseStart = Stopwatch.GetTimestamp();
             frontend = new(checkpoint.MelFilters);
+            WhisperProfile.Record(startup, "frontend-setup", phaseStart);
+            phaseStart = Stopwatch.GetTimestamp();
             session = VulkanInferenceSession.Create(new()
             {
                 ApplicationName = "Aurelian Whisper",
                 EnableValidation = false,
                 MaximumTensorElements = 32 * 1024 * 1024,
                 UseCooperativeLinear = true,
-            }, precompiled ? WhisperShaderPack.Load : null);
+            }, precompiled ? WhisperShaderPack.Load : null,
+                startup is null ? null : (name, elapsed) => startup.PhasesMs.Add(name, elapsed));
+            WhisperProfile.Record(startup, "vulkan-session", phaseStart);
             try
             {
+                phaseStart = Stopwatch.GetTimestamp();
                 model = new(session.Compute, checkpoint, batchAcrossHeads: true, reuseAttention: false,
                     directAttention: true, vectorProjection: true, reuseScratch: true, fusedAttention: true,
                     reuseReadback: true, reuseUpload: true, hostLogits: true, batchCross: true,
                     halfProjections: true, halfAttention: true, joinLogits: false,
-                    cooperativeConvolution: true, packedLookup: true)
+                    cooperativeConvolution: true, packedLookup: true, startup: startup)
                 {
                     FuseProjectionEpilogues = true, CooperativeAttention = true, AttentionKeyTile = 32,
                     DirectProjectionTiles = true, ReuseProjectionTiles = true,
                 };
+                WhisperProfile.Record(startup, "model-construct", phaseStart);
             }
             catch
             {
@@ -72,7 +87,11 @@ public sealed class VulkanWhisperTranscriber : IDisposable, IWhisperQueue
     }
 
     public IReadOnlyList<WhisperWordTiming> Transcribe(float[] pcm, int sampleCount, int frontendThreads = 4,
-        CancellationToken cancellation = default)
+        CancellationToken cancellation = default) =>
+        TranscribeProfiled(pcm, sampleCount, frontendThreads, cancellation, profile: null);
+
+    internal IReadOnlyList<WhisperWordTiming> TranscribeProfiled(float[] pcm, int sampleCount, int frontendThreads,
+        CancellationToken cancellation, WhisperProfile? profile)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         ArgumentNullException.ThrowIfNull(pcm);
@@ -88,17 +107,65 @@ public sealed class VulkanWhisperTranscriber : IDisposable, IWhisperQueue
                 throw new ArgumentException("Whisper PCM must be finite.", nameof(pcm));
             }
         }
-        frontend.Fill(pcm, sampleCount, mel, frontendThreads, cancellation);
         try
         {
-            var (tokens, alignment) = model.DecodeAligned(mel, sampleCount, TokenLimit, this, cancellation, batchAlignment);
-            return WhisperWordAlignment.Align(checkpoint, tokens, alignment, pcm, sampleCount, cancellation);
+            if (profile is not null)
+            {
+                session.Compute.PipelineCreated = (name, elapsed) => profile.PipelinesMs.Add(name, elapsed);
+            }
+            var words = new List<WhisperWordTiming>();
+            int offset = 0;
+            for (int pass = 0; offset < sampleCount; pass++)
+            {
+                cancellation.ThrowIfCancellationRequested();
+                int remaining = sampleCount - offset;
+                Func<int, bool>? canResume = null;
+                if (resumeTail && pass + 1 < MaximumWindowsPerRequest)
+                {
+                    canResume = boundary => boundary >= MinimumTailSamples && remaining - boundary >= MinimumTailSamples
+                        && HasActiveAudio(pcm.AsSpan(offset + boundary, remaining - boundary));
+                }
+                long phaseStart = Stopwatch.GetTimestamp();
+                frontend.Fill(pcm, offset, remaining, mel, frontendThreads, cancellation);
+                WhisperProfile.Record(profile, "pcm-to-mel", phaseStart);
+                var (tokens, alignment, covered, next) = model.DecodeAligned(mel, remaining, TokenLimit,
+                    this, cancellation, batchAlignment, canResume, profile, offset);
+                phaseStart = Stopwatch.GetTimestamp();
+                words.AddRange(WhisperWordAlignment.Align(checkpoint, tokens, alignment, pcm, offset, covered, cancellation));
+                WhisperProfile.Record(profile, "word-alignment-cpu", phaseStart);
+                offset += next;
+            }
+            return words;
         }
         catch
         {
             ResetQueue();
             throw;
         }
+        finally
+        {
+            session.Compute.PipelineCreated = null;
+        }
+    }
+
+    private static bool HasActiveAudio(ReadOnlySpan<float> tail)
+    {
+        const int frame = SampleRate / 50;
+        // A single transient near a closed boundary should not start another decode.
+        int activeFrames = 0;
+        for (int index = 0; index + frame <= tail.Length; index += frame)
+        {
+            double power = 0;
+            foreach (float sample in tail.Slice(index, frame))
+            {
+                power += (double)sample * sample;
+            }
+            if (power > frame * 1e-5 && ++activeFrames >= 3)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     VulkanComputeMath.QueuedComputeScope? IWhisperQueue.OpenRequestScope()

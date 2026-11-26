@@ -31,11 +31,11 @@ internal sealed class WhisperLogMel
         }
     }
 
-    public void Fill(float[] pcm, int count, float[] mel, int threads, CancellationToken cancellation)
+    public void Fill(float[] pcm, int offset, int count, float[] mel, int threads, CancellationToken cancellation)
     {
         int activeFrames = Math.Min(Frames, (count + FftSize / 2) / Hop + 1);
         Parallel.For(0, activeFrames, new ParallelOptions { MaxDegreeOfParallelism = threads, CancellationToken = cancellation },
-            frame => ComputeFrame(pcm, count, mel, frame));
+            frame => ComputeFrame(pcm, offset, count, mel, frame));
         // A full window can have one additional nonzero frame in the reference normalization.
         float peak = -10;
         for (int i = 0; i < activeFrames * bands.Length; i++)
@@ -47,7 +47,7 @@ internal sealed class WhisperLogMel
             var tail = new float[bands.Length];
             for (int frame = Frames; frame <= (count + FftSize / 2) / Hop; frame++)
             {
-                ComputeFrame(pcm, count, tail, frame, 0);
+                ComputeFrame(pcm, offset, count, tail, frame, 0);
                 peak = Math.Max(peak, tail.Max());
             }
         }
@@ -59,14 +59,14 @@ internal sealed class WhisperLogMel
         }
     }
 
-    private void ComputeFrame(float[] pcm, int count, float[] output, int frame, int? target = null)
+    private void ComputeFrame(float[] pcm, int pcmOffset, int count, float[] output, int frame, int? target = null)
     {
         Span<float> window = stackalloc float[FftSize];
         int first = frame * Hop - FftSize / 2;
         for (int i = 0; i < window.Length; i++)
         {
             int index = Math.Abs(first + i);
-            window[i] = index < count ? pcm[index] * Window[i] : 0;
+            window[i] = index < count ? pcm[pcmOffset + index] * Window[i] : 0;
         }
         Span<ComplexSample> spectrum = stackalloc ComplexSample[FftSize];
         Transform(window, 1, spectrum);

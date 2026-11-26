@@ -9,4 +9,7 @@ public sealed record VulkanPlantOptions(
     IReadOnlyList<string>? RequiredPresentationInstanceExtensions = null,
     bool EnableRayQueries = false,
     bool EnableCooperativeMatrices = false,
-    bool EnableCalibratedTimestamps = false);
+    bool EnableCalibratedTimestamps = false)
+{
+    public Action<string, double>? StartupPhaseCompleted { get; init; }
+}

@@ -12,8 +12,23 @@ internal sealed class WhisperTimestampRules(int samples)
     private int previous;
     private int minimumTimestamp = FirstTimestamp;
 
-    public void Push(int token)
+    public int LastClosedSample { get; private set; }
+    public int CompletedTextTokens { get; private set; }
+
+    // After a close/open timestamp pair, the second timestamp can anchor a
+    // continuation if decoding stops before emitting any text for that segment.
+    public int PendingOpenSample => count > 1 && last >= FirstTimestamp && previous >= FirstTimestamp
+        ? TimestampSample(last) : 0;
+
+    private int TimestampSample(int token) => Math.Min(samples, (token - FirstTimestamp) * 320);
+
+    public void Push(int token, int textTokens)
     {
+        if (token >= FirstTimestamp && count > 0 && last < EndOfText)
+        {
+            LastClosedSample = TimestampSample(token);
+            CompletedTextTokens = textTokens;
+        }
         previous = last;
         last = token;
         count++;

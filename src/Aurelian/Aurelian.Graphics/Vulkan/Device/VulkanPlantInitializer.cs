@@ -26,6 +26,18 @@ public static unsafe partial class VulkanPlantInitializer
         Instance instance = default;
         Silk.NET.Vulkan.Device device = default;
 
+        var observe = options.StartupPhaseCompleted;
+        long phaseStart = observe is null ? 0 : System.Diagnostics.Stopwatch.GetTimestamp();
+        void RecordPhase(string name)
+        {
+            if (observe is null)
+            {
+                return;
+            }
+            observe(name, System.Diagnostics.Stopwatch.GetElapsedTime(phaseStart).TotalMilliseconds);
+            phaseStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        }
+
         try
         {
             vk = Vk.GetApi();
@@ -103,6 +115,7 @@ public static unsafe partial class VulkanPlantInitializer
                 }
             }
 
+            RecordPhase("vulkan-loader-and-instance-discovery");
             Result instanceResult = CreateInstance(vk, options, enabledLayers, enabledInstanceExtensions, out instance);
             if (instanceResult != Result.Success)
             {
@@ -116,6 +129,7 @@ public static unsafe partial class VulkanPlantInitializer
                     plantId);
             }
 
+            RecordPhase("vulkan-instance");
             var physicalDevices = EnumeratePhysicalDevices(vk, instance);
             if (physicalDevices.Count == 0)
             {
@@ -203,6 +217,7 @@ public static unsafe partial class VulkanPlantInitializer
 
             uint createdQueueCount = Math.Min(2u, QueueCount(vk, selected));
             bool synchronization2 = QuerySynchronization2(vk, selected);
+            RecordPhase("vulkan-device-selection-and-features");
             Result deviceResult = CreateLogicalDevice(vk, selected, options, enabledDeviceExtensions, cooperativeEnabled,
                 createdQueueCount, synchronization2, out device);
             if (deviceResult != Result.Success)
@@ -218,6 +233,7 @@ public static unsafe partial class VulkanPlantInitializer
                     plantId);
             }
 
+            RecordPhase("vulkan-logical-device");
             Queue queue = vk.GetDeviceQueue(device, selected.QueueFamilyIndex, queueIndex: 0);
             PlantContext context = new(
                 plantId,
@@ -259,6 +275,7 @@ public static unsafe partial class VulkanPlantInitializer
             {
                 ComputeQueue = createdQueueCount > 1 ? vk.GetDeviceQueue(device, selected.QueueFamilyIndex, 1) : null,
             };
+            RecordPhase("vulkan-queue-and-capabilities");
             return new VulkanInitResult(VulkanInitStatus.Created, plant, facts, diagnostics);
         }
         catch (Exception ex) when (IsLoaderUnavailableException(ex))

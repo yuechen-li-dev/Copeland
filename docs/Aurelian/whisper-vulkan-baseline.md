@@ -62,6 +62,21 @@ The final RTX 3070 comparison used the same PCM windows and Tiny.en checkpoint f
 
 Each Aurelian mode returned identical words and sample ranges on all three fixtures. The long-window reference decoded three additional words at the tail. The original precomputed-mel benchmark also reproduced all 27 archived encoder and full-logits tensors byte for byte. The published Valencia desktop passed its transcript-to-edit smoke with DXC disabled and the Vulkan SDK tools removed from PATH. Per-request timings and validation evidence are under `artifacts/local/whisper-baseline/batched-alignment/`.
 
+### Tail recovery and cold startup profile
+
+Timestamp-constrained decoding can emit end-of-text with unconsumed audio. In the 30-second repeated-speech fixture, the decoder closed the final complete segment at sample 440,320 (27.52 s), opened the next at sample 454,400 (28.40 s), then stopped. With continuation enabled, the first alignment is bounded by the close timestamp and the next decode begins at the opening timestamp. It recovers the three missing words with usable ranges from 28.53 to 29.68 s. A continuation requires at least 100 ms of remaining audio, timestamp progress of at least 100 ms, and at least three 20 ms frames above the activity floor. The request can run up to four passes.
+
+The PCM benchmark accepts `profile` for phase timings and token traces. `no-tail-resume` selects the original single-window stop policy for comparisons. In nine fresh RTX 3070 processes with precompiled shaders and the generated Valencia speech fixture, median session-plus-first-request time was 882 ms. The checkpoint files were already on disk and the timed boundary begins inside the benchmark process after reading the PCM fixture.
+
+| Phase | Median |
+| --- | ---: |
+| Vulkan session creation | 327.3 ms |
+| Model construction | 344.6 ms |
+| Checkpoint index and mel setup | 14.3 ms |
+| First request | 202.4 ms |
+
+Within the Vulkan phase, loading and instance discovery took 133.7 ms, instance creation 127.9 ms, and logical device creation 43.9 ms. Model construction includes 84.0 ms for checkpoint reads and FP16-to-FP32 conversion and 217.9 ms for weight validation, packing, and upload. Exactly 16 embedded compute pipelines were created during the first request, with 3.5 ms summed host time including resource reads. These measurements are nested where stated and medians are computed independently. The raw phase timings and token traces are under `artifacts/local/whisper-baseline/tail-profile/`.
+
 ### Earlier alignment readback experiment
 
 On the RTX 3070, Aurelian's window-wide alignment readback preserved every word and timestamp from the per-token readback build on two fixtures. The per-token build also performed an initial no-speech probability check. The comparison used three fresh processes per mode and 15 measured requests per process after five warmups. Timing starts with mono PCM in memory and includes log-mel extraction, model execution and alignment.

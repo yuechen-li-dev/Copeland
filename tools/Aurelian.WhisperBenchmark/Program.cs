@@ -190,11 +190,11 @@ File.WriteAllText(args[2], JsonSerializer.Serialize(new
 
 static void RunPcmBenchmark(string[] args)
 {
-    if (args.Length is < 5 or > 7
-        || args.Skip(5).Any(option => option is not ("jit" or "serial-alignment"))
+    if (args.Length is < 5 or > 9
+        || args.Skip(5).Any(option => option is not ("jit" or "serial-alignment" or "profile" or "no-tail-resume"))
         || !int.TryParse(args[4], out int requests) || requests is < 1 or > 100)
     {
-        throw new ArgumentException("Usage: Aurelian.WhisperBenchmark pcm CHECKPOINT MONO16K_F32 OUTPUT_JSON REQUESTS [jit] [serial-alignment]");
+        throw new ArgumentException("Usage: Aurelian.WhisperBenchmark pcm CHECKPOINT MONO16K_F32 OUTPUT_JSON REQUESTS [jit] [serial-alignment] [profile] [no-tail-resume]");
     }
     byte[] bytes = File.ReadAllBytes(args[2]);
     if (bytes.Length == 0 || bytes.Length % sizeof(float) != 0)
@@ -202,18 +202,26 @@ static void RunPcmBenchmark(string[] args)
         throw new InvalidDataException("Expected nonempty little-endian FP32 PCM.");
     }
     float[] pcm = MemoryMarshal.Cast<byte, float>(bytes).ToArray();
+    bool profile = args.Contains("profile");
+    WhisperProfile? startup = profile ? new() : null;
+    var details = new List<WhisperProfile>();
     var timer = Stopwatch.StartNew();
     using var transcriber = new VulkanWhisperTranscriber(args[1], precompiled: !args.Contains("jit"),
-        batchAlignment: !args.Contains("serial-alignment"));
+        batchAlignment: !args.Contains("serial-alignment"), startup: startup, resumeTail: !args.Contains("no-tail-resume"));
     double initializationMs = timer.Elapsed.TotalMilliseconds;
     var timings = new List<double>(requests);
     IReadOnlyList<WhisperWordTiming> words = [];
     for (int i = 0; i < requests; i++)
     {
+        var request = profile ? new WhisperProfile() : null;
         timer.Restart();
-        words = transcriber.Transcribe(pcm, pcm.Length);
+        words = transcriber.TranscribeProfiled(pcm, pcm.Length, 4, default, request);
         timings.Add(timer.Elapsed.TotalMilliseconds);
+        if (request is not null)
+        {
+            details.Add(request);
+        }
     }
-    File.WriteAllText(args[3], JsonSerializer.Serialize(new { InitializationMs = initializationMs, RequestMs = timings, Words = words },
+    File.WriteAllText(args[3], JsonSerializer.Serialize(new { InitializationMs = initializationMs, RequestMs = timings, Words = words, Startup = startup, Profile = details },
         new JsonSerializerOptions { WriteIndented = true }));
 }

@@ -46,11 +46,13 @@ public sealed class VulkanInferenceSession : IDisposable
     public static VulkanInferenceSession Create(VulkanInferenceOptions? options = null) =>
         Create(options ?? new(), shader: null);
 
-    internal static VulkanInferenceSession Create(VulkanInferenceOptions options, Func<string, byte[]>? shader)
+    internal static VulkanInferenceSession Create(VulkanInferenceOptions options, Func<string, byte[]>? shader,
+        Action<string, double>? startupPhase = null)
     {
         var initialization = VulkanPlantInitializer.CreatePlant(PlantId.Zero,
             new(EnableValidation: options.EnableValidation, ApplicationName: options.ApplicationName,
-                EnableCooperativeMatrices: options.UseCooperativeLinear, EnableCalibratedTimestamps: options.EnableCalibratedTimestamps));
+                EnableCooperativeMatrices: options.UseCooperativeLinear, EnableCalibratedTimestamps: options.EnableCalibratedTimestamps)
+            { StartupPhaseCompleted = startupPhase });
         if (!initialization.Success)
         {
             throw new InvalidOperationException("AUR-INFERENCE-DEVICE-001: "

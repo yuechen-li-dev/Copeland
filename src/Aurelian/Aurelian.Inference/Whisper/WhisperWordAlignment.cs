@@ -8,7 +8,7 @@ internal static class WhisperWordAlignment
     private const int FilterRadius = 3;
 
     internal static IReadOnlyList<WhisperWordTiming> Align(TinyEnglishCheckpoint checkpoint,
-        IReadOnlyList<int> tokens, float[] attention, float[] pcm, int sampleCount, CancellationToken cancellation)
+        IReadOnlyList<int> tokens, float[] attention, float[] pcm, int pcmOffset, int sampleCount, CancellationToken cancellation)
     {
         if (tokens.Count == 0)
         {
@@ -53,7 +53,14 @@ internal static class WhisperWordAlignment
         {
             var (text, start) = words[word];
             int end = word + 1 < words.Count ? words[word + 1].Start : sampleCount;
-            output.Add(TrimSilence(pcm, text, start, end));
+            var timing = TrimSilence(pcm, pcmOffset, text, start, end);
+            output.Add(timing with
+            {
+                FirstSample = timing.FirstSample + pcmOffset,
+                EndSample = timing.EndSample + pcmOffset,
+                UnrefinedFirstSample = timing.UnrefinedFirstSample + pcmOffset,
+                UnrefinedEndSample = timing.UnrefinedEndSample + pcmOffset,
+            });
         }
         return output;
 
@@ -166,7 +173,7 @@ internal static class WhisperWordAlignment
         return Math.Min(wrapped, period - wrapped);
     }
 
-    private static WhisperWordTiming TrimSilence(float[] pcm, string text, int start, int end)
+    private static WhisperWordTiming TrimSilence(float[] pcm, int pcmOffset, string text, int start, int end)
     {
         int unrefinedStart = start, unrefinedEnd = end;
         int firstActive = end;
@@ -178,7 +185,7 @@ internal static class WhisperWordAlignment
             double energy = 0;
             for (int i = sample; i < limit; i++)
             {
-                energy += (double)pcm[i] * pcm[i];
+                energy += (double)pcm[pcmOffset + i] * pcm[pcmOffset + i];
             }
             if (energy / (limit - sample) > 1e-5)
             {

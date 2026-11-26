@@ -156,12 +156,17 @@ public sealed unsafe partial class VulkanComputeMath
         slot.Output = output;
     }
 
+    /// <summary>Optional profiling callback when a previously unseen kernel pipeline is created.</summary>
+    public Action<string, double>? PipelineCreated { get; set; }
+
     private void EnsurePipeline(string shader)
     {
         if (pipelines.ContainsKey(shader))
         {
             return;
         }
+        var observe = PipelineCreated;
+        long start = observe is null ? 0 : System.Diagnostics.Stopwatch.GetTimestamp();
         byte[] spirv = compile(shader);
         ComputeMathBatch.Require(spirv.Length >= 20 && spirv.Length % 4 == 0 && Entries.ContainsKey(shader),
             "A math kernel requires a registered entry and aligned SPIR-V.");
@@ -196,5 +201,6 @@ public sealed unsafe partial class VulkanComputeMath
             SilkMarshal.Free(entry);
             plant.Vk.DestroyShaderModule(plant.Device, module, null);
         }
+        observe?.Invoke(shader, System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds);
     }
 }
