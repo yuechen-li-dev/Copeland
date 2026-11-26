@@ -283,6 +283,117 @@ Use `--compile-shaders-at-runtime` for the source-only startup control.
 Visual TypeScript sources. Raw generation, queue and WDDM memory samples
 are under `artifacts/local/gemma4/streaming-rebase`.
 
+### Where the streamed weights wait
+
+On the RTX 3070, the 2,816 MiB resident policy makes 213 weight deliveries per
+decode token, totaling 4,282 MiB. The previous host cache holds validated
+packed bytes in managed arrays. Each delivery copies its array into mapped
+Vulkan staging before submitting the device copy. The opt-in
+`--prepared-host-uploads` policy keeps those validated slices in reusable,
+host-visible Vulkan buffers under the same 6 GiB host budget. Every consumer
+still reads device-local weights. Completed Vulkan fences govern buffer reuse.
+
+| Fixture | Previous host cache | Prepared host cache | Throughput gain |
+| --- | ---: | ---: | ---: |
+| Arithmetic, 23 prompt tokens, 6 emitted | 1.92 tok/s | 2.74 tok/s | 42% |
+| Documentary, 68 prompt tokens, 8 emitted | 1.95 tok/s | 2.82 tok/s | 45% |
+
+Each cell is the median of two untraced warm generations. Run one populated
+the caches and run two captured deliveries. The long control repeated after
+both prepared arms. An earlier independent control reached 2.01 tok/s.
+All runs matched the reference token IDs, BF16 winning scores, and stop
+condition. On the long fixture initial generation time to first token was
+5.79 s with ordinary staging and 7.27 s with prepared sources in these fresh
+processes. Peak sampled WDDM dedicated/shared memory was 3,158/88 MiB and
+3,167/4,300 MiB respectively. Both host caches held 4.18 GiB of weights.
+
+| Documentary fixture, median over seven traced decode steps | Previous | Prepared |
+| --- | ---: | ---: |
+| Wall time per token | 511 ms | 363 ms |
+| Previous compute end to weight copy start, summed over positive gaps | 195 ms | 55 ms |
+| Portion of that interval spent filling mapped staging | 143 ms | 0 ms |
+| Actual weight copy intervals including the vocabulary head | 169 ms | 168 ms |
+| Copy end to first consuming batch in the measured gaps | 0.47 ms | 0.44 ms |
+
+`--trace-deliveries` records the matrix and slice, host request, staging
+and submit times, and GPU copy and consumer intervals. The proof brackets each
+decode step with Vulkan device/QPC calibration. Maximum reported deviation
+was 1.38 microseconds. The previous compute end is the earliest possible need
+on this queue. Gaps can include other host work. The first vocabulary slice
+starts a new scope, so 212 of 213 deliveries have a same-scope predecessor.
+This measures Aurelian's queue, independently of other users of the GPU.
+
+After preparation, about 40 ms per token fell before the host even requested
+the weight, concentrated at layer-entry query projections. Issuing those
+deliveries earlier is one test. A separate placement test would keep the
+600 MiB vocabulary head on the CPU and send it the 15 KiB hidden row. The
+current whole prediction stage takes about 29 ms, giving a direct break-even
+target for an exact CPU implementation. The warmed 68-row prefill and the
+single-row decode each uploaded exactly 3,860,889,600 transformer-body bytes.
+This demonstrates the traffic amortization available when several input rows
+are known together. Single-sequence generation would need candidate verification
+to exploit it across output tokens.
+
+Reproduce with the streaming-rebase command above, using four generation runs.
+Add `--trace-deliveries` to both arms and `--prepared-host-uploads` to the
+prepared arm. Analyze each evidence file with
+`python tools/gemma4/weight_delivery.py <evidence.json>`. Local evidence is
+under `artifacts/local/gemma4/weight-delivery`.
+
+### CPU vocabulary projection
+
+`--cpu-head-workers 16` keeps the 600 MiB Q4B32 vocabulary matrix in host
+RAM within the configured host weight budget. The GPU performs the final
+normalization and returns one 3,840-element FP32 row (15 KiB). The CPU uses
+AVX-512F to unpack the original nibbles, accumulates in FP32, then uses the
+same BF16 rounding and softcap score table as the GPU. Parallel workers scan
+contiguous vocabulary ranges. An equal score selects the lowest token ID.
+
+The transformer retained its 2,816 MiB GPU-residency budget and prepared host
+uploads in both placements. Warm weight traffic per token fell from
+4,490,035,200 to 3,860,889,600 bytes. A CPU-only head replaces the GPU head's
+host upload cache. The crossover benchmark retains both forms within its
+6 GiB host budget to switch placements between generations.
+
+On a Ryzen 7 7700X and an RTX 3070, two crossover passes per fixture supplied
+six warm generations per placement. Head times below are median complete
+prediction-stage times over warm decode tokens, including readback and token
+selection. Throughput is the median generation rate after the first token.
+
+| Fixture | Prepared GPU head | 16-worker CPU head | GPU decode | CPU decode | Decode gain |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Arithmetic, 23 prompt tokens | 29.71 ms | 14.25 ms | 2.77 tok/s | 2.90 tok/s | 4.7% |
+| Documentary, 68 prompt tokens | 30.29 ms | 14.02 ms | 2.74 tok/s | 2.80 tok/s | 2.1% |
+
+The CPU won all six adjacent arithmetic pairs and four of six documentary
+pairs. In the second documentary pass the CPU-head runs spent a median
+354 ms in the transformer body versus 339 ms in the GPU-head runs. This
+absorbed the head saving. The fresh-process documentary controls also tied
+at 2.78 tok/s CPU and 2.79 tok/s GPU. The normalized-row readback took
+0.05–0.06 ms. An initial arithmetic screening run measured 14.52 ms with
+eight workers and 13.47 ms with sixteen. A preliminary control that selected
+the legacy head was excluded. The reported GPU controls all executed the
+device argmax and uploaded 600 MiB per head evaluation.
+
+The arithmetic fixture emitted six tokens and stopped at the end-of-turn
+token. The documentary fixture emitted eight and reached its cap. Both
+placements produced bit-identical winning scores and token IDs at all 14
+positions. Comparing complete BF16-softcapped score vectors on identical
+hidden states found 38 differing entries out of 1,572,864 for arithmetic and
+46 out of 2,097,152 for documentary. The largest absolute difference was
+0.125. The CPU groups products by quantization block and uses fused FP32
+operations. Its reduction order differs from the Vulkan kernel's 64-lane tree.
+
+To repeat the crossover, use the generation command above with
+`--prepared-host-uploads --cpu-head-workers 16 --alternate-heads --generation-runs 8`
+and omit `--gpu-argmax`. The first two generations warm one placement each.
+The remaining three pairs use GPU/CPU, CPU/GPU, and GPU/CPU order. For the
+standalone placements choose either `--gpu-argmax` or `--cpu-head-workers 16`.
+The separate `--check-head-scores` command accepts the same model, prompt,
+token cap and CPU configuration. It compares all 262,144 final scores at
+each position using the same transformer output. Local evidence is under
+`artifacts/local/gemma4/cpu-vocab`.
+
 ## Resident-weight diagnostic
 
 The end-to-end streaming rebase above exercises all 48 transformer layers

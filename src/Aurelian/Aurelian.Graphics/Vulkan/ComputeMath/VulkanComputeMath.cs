@@ -122,15 +122,36 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
     /// own token bounds; sparse callers tile matrix work and expanded features.
     /// Every allocation still observes the owner budget and device buffer range.</summary>
     public GpuTensor CreateSparseTensor(int rows, int columns, GpuTensorFormat format = GpuTensorFormat.Float32)
+        => CreateSparseTensor(rows, columns, format, VulkanMemoryUsage.GpuOnly);
+
+    /// <summary>Prepare a coherent transfer source once. Keep its contents immutable through all queued readers.</summary>
+    public GpuTensor CreatePackedUploadSource(int rows, int columns, ReadOnlySpan<byte> bytes)
+    {
+        Require((long)rows * columns == bytes.Length / sizeof(uint) && bytes.Length % sizeof(uint) == 0,
+            "Packed upload source must contain the complete tensor.");
+        var source = CreateSparseTensor(rows, columns, GpuTensorFormat.UInt32, VulkanMemoryUsage.CpuToGpu);
+        try
+        {
+            Require(source.Buffer.Write(bytes).Success, "Could not initialize packed upload source.");
+            return source;
+        }
+        catch
+        {
+            source.Dispose();
+            throw;
+        }
+    }
+
+    private GpuTensor CreateSparseTensor(int rows, int columns, GpuTensorFormat format, VulkanMemoryUsage memory)
     {
         ComputeMathBatch.Require(rows is > 0 and <= 4194304 && columns is > 0 and <= 4096
             && (long)rows * columns <= MaximumTensorElements
             && format is GpuTensorFormat.Float32 or GpuTensorFormat.UInt32 or GpuTensorFormat.PackedFloat16,
             "Sparse tensors require 1..4194304 rows, 1..4096 columns, FP32, UInt32 or packed FP16 and the explicit element budget.");
-        return AllocateTensor(rows, columns, format);
+        return AllocateTensor(rows, columns, format, memory);
     }
 
-    private GpuTensor AllocateTensor(int rows, int columns, GpuTensorFormat format)
+    private GpuTensor AllocateTensor(int rows, int columns, GpuTensorFormat format, VulkanMemoryUsage memory = VulkanMemoryUsage.GpuOnly)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         ulong elements = (ulong)rows * (ulong)columns;
@@ -143,7 +164,7 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
         plant.Vk.GetPhysicalDeviceProperties(plant.PhysicalDevice, out var properties);
         ComputeMathBatch.Require(bytes <= properties.Limits.MaxStorageBufferRange, "Tensor exceeds this device's storage-buffer range.");
         var buffer = Buffer(bytes, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferSource
-            | VulkanBufferUsage.TransferDestination, VulkanMemoryUsage.GpuOnly);
+            | VulkanBufferUsage.TransferDestination, memory);
         var tensor = new GpuTensor(this, buffer, rows, columns, format);
         tensors.Add(tensor);
         return tensor;

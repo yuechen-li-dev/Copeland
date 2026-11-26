@@ -21,6 +21,7 @@ public sealed class VulkanQuantizedLayers : IDisposable
     private readonly Dictionary<string, GpuTensor> resident = new(StringComparer.Ordinal);
     private readonly Dictionary<(int Rows, int Columns), GpuTensor> streamedBuffers = [];
     private readonly Dictionary<(string Name, int First, int Count), byte[]> hostCache = [];
+    private readonly Dictionary<(string Name, int First, int Count), GpuTensor> preparedSources = [];
     private bool disposed;
     private byte[] uploadScratch = [];
     private long calls;
@@ -42,6 +43,10 @@ public sealed class VulkanQuantizedLayers : IDisposable
         gpuTimingAvailable ? gpuMilliseconds : null);
     public bool UseChunkedReference { get; init; }
     public bool UseSeparateUploads { get; init; }
+    /// <summary>Spend the host cache budget on immutable Vulkan transfer sources for queued inline uploads.</summary>
+    public bool UsePreparedHostUploads { get; init; }
+    /// <summary>Observe queued weight deliveries. GPU stamps become available after queue completion.</summary>
+    public Action<string, int, long, QueuedDispatchProfile>? TraceWeightDelivery { get; set; }
     private long streamedBufferBudget;
     public long StreamedWeightBufferBudget
     {
@@ -78,6 +83,7 @@ public sealed class VulkanQuantizedLayers : IDisposable
         (GpuTensor Tensor, int Row)? scatter)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
+        long requested = TraceWeightDelivery is null ? 0 : Stopwatch.GetTimestamp();
         var matrix = weights.Matrices[name];
         int rows = rowCount ?? matrix.Rows;
         if (input.Columns != matrix.Columns || rows is < 1 or > 32768 || firstRow < 0 || (long)firstRow + rows > matrix.Rows)
@@ -87,6 +93,7 @@ public sealed class VulkanQuantizedLayers : IDisposable
         bool whole = firstRow == 0 && rows == matrix.Rows;
         GpuTensor? temporary = null;
         GpuTensor packed;
+        GpuTensor? prepared = null;
         ReadOnlyMemory<byte> pendingUpload = default;
         bool cacheOnGpu = false;
         if (!whole || !resident.TryGetValue(name, out packed!))
@@ -98,11 +105,18 @@ public sealed class VulkanQuantizedLayers : IDisposable
                 throw new InvalidDataException("AUR-Q4-005: Packed matrix slice exceeds the checkpoint/compute element budget.");
             }
             cacheOnGpu = whole && byteCount <= residentBudget - ResidentBytes;
-            pendingUpload = ReadPacked(name, firstRow, rows, byteCount, cacheOnGpu);
-            readMilliseconds += Stopwatch.GetElapsedTime(start).TotalMilliseconds;
-            start = Stopwatch.GetTimestamp();
             int packedRows = rows * BlockQ4.WordsPerBlock;
             int packedColumns = matrix.Columns / BlockQ4.ValuesPerBlock;
+            if (!cacheOnGpu && UsePreparedHostUploads && !UseSeparateUploads && compute.HasActiveQueue)
+            {
+                prepared = GetPreparedSource(name, firstRow, rows, packedRows, packedColumns, byteCount);
+            }
+            if (prepared is null)
+            {
+                pendingUpload = ReadPacked(name, firstRow, rows, byteCount, allowHostCache: !cacheOnGpu && !UsePreparedHostUploads);
+            }
+            readMilliseconds += Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+            start = Stopwatch.GetTimestamp();
             var shape = (packedRows, packedColumns);
             bool reuseStreamed = !cacheOnGpu && streamedBufferBudget > 0;
             if (!reuseStreamed || !streamedBuffers.TryGetValue(shape, out packed!))
@@ -128,7 +142,7 @@ public sealed class VulkanQuantizedLayers : IDisposable
         }
         try
         {
-            bool uploading = !pendingUpload.IsEmpty;
+            bool uploading = prepared is not null || !pendingUpload.IsEmpty;
             if (uploading && UseSeparateUploads)
             {
                 long start = Stopwatch.GetTimestamp();
@@ -147,9 +161,7 @@ public sealed class VulkanQuantizedLayers : IDisposable
                     batch.Scatter(output, destination.Tensor, destination.Row);
                 }
                 long start = Stopwatch.GetTimestamp();
-                ComputeMathResult result = pendingUpload.IsEmpty
-                    ? compute.Execute(batch)
-                    : compute.ExecuteWithUInt32Upload(batch, packed, pendingUpload);
+                ComputeMathResult result = ExecuteProjection(batch, packed, prepared, pendingUpload, name, firstRow, requested);
                 executeMilliseconds += Stopwatch.GetElapsedTime(start).TotalMilliseconds;
                 if (uploading)
                 {
@@ -185,7 +197,53 @@ public sealed class VulkanQuantizedLayers : IDisposable
         }
     }
 
-    private ReadOnlyMemory<byte> ReadPacked(string name, int first, int count, int byteCount, bool cacheOnGpu)
+    private ComputeMathResult ExecuteProjection(ComputeMathBatch batch, GpuTensor packed, GpuTensor? prepared,
+        ReadOnlyMemory<byte> bytes, string name, int firstRow, long requested)
+    {
+        QueuedDispatchProfile? profile;
+        if (prepared is not null)
+        {
+            profile = compute.EnqueuePreparedUInt32Upload(batch, packed, prepared, TraceWeightDelivery is not null);
+        }
+        else if (bytes.IsEmpty)
+        {
+            return compute.Execute(batch);
+        }
+        else if (TraceWeightDelivery is not null && compute.HasActiveQueue)
+        {
+            profile = compute.EnqueueWithDispatchTimings(batch, new([packed], bytes), timeDispatches: false);
+        }
+        else
+        {
+            return compute.ExecuteWithUInt32Upload(batch, packed, bytes);
+        }
+        if (profile is not null)
+        {
+            TraceWeightDelivery?.Invoke(name, firstRow, requested, profile);
+        }
+        return new(batch.DispatchCount, null);
+    }
+
+    private GpuTensor? GetPreparedSource(string name, int first, int rows, int packedRows, int packedColumns, int byteCount)
+    {
+        var key = (name, first, rows);
+        if (preparedSources.TryGetValue(key, out var source))
+        {
+            hostCacheHits++;
+            return source;
+        }
+        if (byteCount > hostCacheBudget - HostCacheBytes)
+        {
+            return null;
+        }
+        var bytes = ReadPacked(name, first, rows, byteCount, allowHostCache: false);
+        source = compute.CreatePackedUploadSource(packedRows, packedColumns, bytes.Span);
+        preparedSources.Add(key, source);
+        HostCacheBytes += byteCount;
+        return source;
+    }
+
+    private ReadOnlyMemory<byte> ReadPacked(string name, int first, int count, int byteCount, bool allowHostCache)
     {
         var key = (name, first, count);
         if (hostCache.TryGetValue(key, out byte[]? cached))
@@ -194,7 +252,7 @@ public sealed class VulkanQuantizedLayers : IDisposable
             return cached;
         }
         // Cache only private, validated bytes. GPU-resident matrices do not need a second cache.
-        bool retain = !cacheOnGpu && byteCount <= hostCacheBudget - HostCacheBytes;
+        bool retain = allowHostCache && byteCount <= hostCacheBudget - HostCacheBytes;
         byte[] destination;
         if (retain)
         {
@@ -228,6 +286,8 @@ public sealed class VulkanQuantizedLayers : IDisposable
         streamedBuffers.Clear();
         StreamedBufferBytes = 0;
         hostCache.Clear();
+        foreach (var source in preparedSources.Values) { source.Dispose(); }
+        preparedSources.Clear();
         HostCacheBytes = 0;
         uploadScratch = [];
         ResidentBytes = 0;

@@ -80,10 +80,12 @@ if (command == "--tokenizer")
     Console.WriteLine("AURELIAN_GEMMA_TOKENIZER_PASSED");
     return;
 }
+bool traceDeliveries = args.Contains("--trace-deliveries", StringComparer.Ordinal);
 using var session = VulkanInferenceSession.Create(new()
 {
     ApplicationName = "Aurelian Gemma 4 text proof",
     MaximumTensorElements = 33554432,
+    EnableCalibratedTimestamps = traceDeliveries,
     EnableValidation = command != "--residency" && !args.Contains("--no-validation", StringComparer.Ordinal),
     PushDispatchParameters = args.Contains("--push-parameters", StringComparer.Ordinal),
     UsePrecompiledShaders = !args.Contains("--compile-shaders-at-runtime", StringComparer.Ordinal),
@@ -109,9 +111,9 @@ if (command == "--benchmark")
     BenchmarkQuantized(compute, outputDirectory);
     return;
 }
-if (command is not "--generate" and not "--block" and not "--residency")
+if (command is not "--generate" and not "--block" and not "--residency" and not "--check-head-scores")
 {
-    throw new ArgumentException("Expected --compile, --tokenizer, --kernels, --benchmark, --scheduling, --block, --residency or --generate.");
+    throw new ArgumentException("Expected --compile, --tokenizer, --kernels, --benchmark, --scheduling, --block, --residency, --check-head-scores or --generate.");
 }
 Gemma4TextModel.ValidateConfiguration(Path.Combine(directory, "config.json"));
 using var weights = new SafeTensorFile(sourcePath);
@@ -124,6 +126,13 @@ int residentBudgetOption = Array.IndexOf(args, "--resident-mib");
 long residentBudget = residentBudgetOption >= 0 ? checked(long.Parse(args[residentBudgetOption + 1]) * 1024 * 1024) : 1536L * 1024 * 1024;
 bool queued = args.Contains("--queued", StringComparer.Ordinal);
 bool separateUploads = args.Contains("--separate-uploads", StringComparer.Ordinal);
+bool preparedHostUploads = args.Contains("--prepared-host-uploads", StringComparer.Ordinal);
+int cpuHeadOption = Array.IndexOf(args, "--cpu-head-workers");
+int cpuHeadWorkers = cpuHeadOption >= 0 ? int.Parse(args[cpuHeadOption + 1]) : 0;
+if (cpuHeadOption >= 0 && (cpuHeadWorkers < 1 || args.Contains("--gpu-argmax", StringComparer.Ordinal)))
+{
+    throw new ArgumentException("Select one head placement. --cpu-head-workers requires a positive worker count.");
+}
 using var feedforward = new DominatusComputeFeedforward(64 * 1024 * 1024);
 compute.StreamController = feedforward;
 if (command == "--residency")
@@ -135,7 +144,8 @@ if (command == "--residency")
 }
 using var model = new Gemma4TextModel(compute, weights, packed,
     residentWeightBudget: residentBudget, useChunkedReference: useChunkedReference, hostWeightBudget: hostBudget,
-    useQueuedExecution: queued, useSeparateUploads: separateUploads)
+    useQueuedExecution: queued, useSeparateUploads: separateUploads, usePreparedHostUploads: preparedHostUploads,
+    cpuHeadWorkers: cpuHeadWorkers)
 {
     UseDeviceGreedyHead = args.Contains("--gpu-argmax", StringComparer.Ordinal),
     StreamedWeightBufferBudget = args.Contains("--reuse-streamed-buffers", StringComparer.Ordinal) ? 192L * 1024 * 1024 : 0,
@@ -159,19 +169,47 @@ int maximumTokens = args.Length > 3 ? int.Parse(args[3]) : 16;
 if (maximumTokens is < 1 or > 128) { throw new ArgumentOutOfRangeException(nameof(maximumTokens)); }
 string formatted = Gemma4Chat.FormatUser(prompt);
 int[] promptTokens = bpe.Encode(formatted);
+var stops = new HashSet<int> { bpe.TokenId("<eos>"), bpe.TokenId("<turn|>") };
+int evidenceOption = Array.IndexOf(args, "--evidence");
+string defaultEvidence = command == "--check-head-scores" ? "head-scores.json" : "generation.json";
+string evidencePath = evidenceOption >= 0 ? Path.GetFullPath(args[evidenceOption + 1]) : Path.Combine(outputDirectory, defaultEvidence);
+Directory.CreateDirectory(Path.GetDirectoryName(evidencePath)!);
+if (command == "--check-head-scores")
+{
+    if (cpuHeadWorkers == 0) { throw new ArgumentException("Score comparison requires --cpu-head-workers."); }
+    GemmaCpuHeadCheck.Run(model, promptTokens, maximumTokens, stops, evidencePath);
+    return;
+}
 var schedule = new DominatusComputeSchedule("gemma.generate");
 var generator = new CausalTextGenerator(model, schedule);
 int runsOption = Array.IndexOf(args, "--generation-runs");
 int repeatCount = runsOption >= 0 ? int.Parse(args[runsOption + 1]) : 1;
 if (repeatCount is < 1 or > 8) { throw new ArgumentOutOfRangeException(nameof(repeatCount)); }
-var stops = new HashSet<int> { bpe.TokenId("<eos>"), bpe.TokenId("<turn|>") };
+bool alternateHeads = args.Contains("--alternate-heads", StringComparer.Ordinal);
+if (alternateHeads && (cpuHeadWorkers == 0 || !queued || !preparedHostUploads || repeatCount != 8 || traceDeliveries))
+{
+    throw new ArgumentException("--alternate-heads needs a prepared, queued CPU head and eight untraced generation runs.");
+}
+if (traceDeliveries && (!queued || separateUploads || !model.UseDeviceGreedyHead || repeatCount < 2))
+{
+    throw new ArgumentException("--trace-deliveries requires --queued --gpu-argmax and at least two generation runs with inline uploads.");
+}
+var traces = new List<WeightDeliveryTrace>();
 var runs = new List<StreamingGenerationRun>();
 long uploadStart = model.UploadedWeightBytes;
 model.ObserveLayer = layer => Console.WriteLine($"layer {layer + 1}/48");
 for (int run = 0; run < repeatCount; run++)
 {
+    if (alternateHeads)
+    {
+        // Warm both placements, then reverse the order in the middle pair.
+        model.UseDeviceGreedyHead = run is 0 or 2 or 5 or 6;
+    }
     var emitted = new List<int>();
+    ClockSample? traceStart = null;
+    var deliveries = new List<WeightDelivery>();
     var headQueues = new List<ComputeQueueMetrics>();
+    var cpuHeads = new List<CpuHeadMeasurement>();
     long beforeUploads = model.UploadedWeightBytes;
     int beforeReadbacks = compute.ReadbackCount;
     var beforeWeights = model.WeightTimings;
@@ -180,21 +218,35 @@ for (int run = 0; run < repeatCount; run++)
     {
         model.ObserveLayer = null;
         emitted.Add(token.Id);
+        if (traceDeliveries && run == 1)
+        {
+            var boundary = ClockSample.Capture(session.Plant);
+            if (traceStart is not null)
+            {
+                traces.Add(new(emitted.Count - 1, traceStart, boundary, deliveries.ToArray()));
+                deliveries.Clear();
+            }
+            traceStart = boundary;
+            model.TraceWeightDelivery = (name, first, requested, profile) =>
+                deliveries.Add(new(name, first, requested, profile));
+        }
         if (model.LastHeadQueue is { } headQueue) { headQueues.Add(headQueue); }
+        if (model.CpuHeadReadbackMilliseconds is { } read && model.CpuHeadProjectionMilliseconds is { } projection)
+        {
+            cpuHeads.Add(new(read, projection));
+        }
         var partial = Gemma4Chat.ParseResponse(bpe.Decode(emitted, skipSpecial: false));
         Console.WriteLine($"token={token.Id}, content={JsonSerializer.Serialize(partial.Content)}");
     });
+    model.TraceWeightDelivery = null;
     var bodyQueues = model.QueueMeasurements.TakeLast(queued ? generation.Tokens.Count : 0).ToArray();
     runs.Add(new(startedMs, generation, model.UploadedWeightBytes - beforeUploads,
         compute.ReadbackCount - beforeReadbacks, beforeWeights, model.WeightTimings,
-        schedule.Measurements.ToArray(), bodyQueues, headQueues.ToArray()));
+        schedule.Measurements.ToArray(), bodyQueues, headQueues.ToArray(), cpuHeads.ToArray(), model.UseDeviceGreedyHead));
 }
 TextGenerationResult result = runs[0].Generation;
 string raw = bpe.Decode(result.Tokens.Select(token => token.Id), skipSpecial: false);
 Gemma4ChatResponse response = Gemma4Chat.ParseResponse(raw);
-int evidenceOption = Array.IndexOf(args, "--evidence");
-string evidencePath = evidenceOption >= 0 ? Path.GetFullPath(args[evidenceOption + 1]) : Path.Combine(outputDirectory, "generation.json");
-Directory.CreateDirectory(Path.GetDirectoryName(evidencePath)!);
 double decodeSeconds = (result.TotalMilliseconds - result.TimeToFirstTokenMilliseconds) / 1000;
 File.WriteAllText(evidencePath, JsonSerializer.Serialize(new
 {
@@ -208,6 +260,8 @@ File.WriteAllText(evidencePath, JsonSerializer.Serialize(new
     RawResponse = raw,
     Response = response,
     Generation = result,
+    DeliveryClockFrequency = Stopwatch.Frequency,
+    DeliveryTraces = traces,
     ColdFirstTokenMs = runs[0].StartedMs + result.TimeToFirstTokenMilliseconds,
     Runs = runs,
     DecodeTokensPerSecond = result.Tokens.Count > 1 ? (result.Tokens.Count - 1) / decodeSeconds : 0,
@@ -221,6 +275,11 @@ File.WriteAllText(evidencePath, JsonSerializer.Serialize(new
     compute.PushDispatchParameters,
     PipelineCreationMs = pipelineCreationMs,
     SeparateUploads = separateUploads,
+    PreparedHostUploads = preparedHostUploads,
+    CpuHeadWorkers = cpuHeadWorkers,
+    AlternateHeads = alternateHeads,
+    model.CpuHeadWeightBytes,
+    model.CpuHeadPreparationMilliseconds,
     QueueMeasurements = model.QueueMeasurements,
     Feedforward = feedforward.Evidence,
     WeightHostScratchBytes = model.WeightHostScratchBytes,
@@ -264,6 +323,7 @@ static void SchedulingChecks(VulkanComputeMath compute, string outputDirectory)
     using var controller = new DominatusComputeFeedforward(64 * 1024 * 1024);
     var outputs = new List<GpuTensor>();
     var retiredWeights = new List<GpuTensor>();
+    long expectedUploadBytes = 0;
     try
     {
         using var queue = compute.BeginQueuedScope(controller, new(13, 1, 300));
@@ -285,7 +345,19 @@ static void SchedulingChecks(VulkanComputeMath compute, string outputDirectory)
             byte[] payload = MemoryMarshal.AsBytes(words.AsSpan()).ToArray();
             var batch = compute.CreateBatch();
             batch.QuantizedLinear(input, weight, output);
-            compute.ExecuteWithUInt32Upload(batch, weight, payload);
+            if (step % 4 < 2)
+            {
+                // Reuse each ring slot with both kinds of source. Release the
+                // prepared source before harvest to exercise its reader fence.
+                using var source = compute.CreatePackedUploadSource(5, 15, payload);
+                compute.EnqueuePreparedUInt32Upload(batch, weight, source);
+                retiredWeights.Add(source);
+            }
+            else
+            {
+                compute.ExecuteWithUInt32Upload(batch, weight, payload);
+            }
+            expectedUploadBytes += payload.Length;
             Array.Clear(payload); // Submit must consume caller scratch immediately.
             weight.Dispose(); // Physical allocation retires at completion.
             try
@@ -313,7 +385,8 @@ static void SchedulingChecks(VulkanComputeMath compute, string outputDirectory)
         {
             throw new InvalidDataException("Read boundary did not collect retired weight allocations.");
         }
-        if (queue.Metrics.Submissions != 13 || queue.Metrics.MaximumOutstanding != 2)
+        if (queue.Metrics.Submissions != 13 || queue.Metrics.MaximumOutstanding != 2
+            || queue.Metrics.UploadedBytes != expectedUploadBytes)
         {
             throw new InvalidDataException("Queue did not exercise bounded slot reuse.");
         }
@@ -1006,7 +1079,10 @@ sealed class FailingStreamController(Exception failure) : IComputeStreamControll
     }
 }
 
+sealed record CpuHeadMeasurement(double ReadbackMs, double ProjectionAndSelectionMs);
+
 sealed record StreamingGenerationRun(double StartedMs, TextGenerationResult Generation, long UploadedWeightBytes,
     int Readbacks, QuantizedLayerTimings WeightTimingsBefore, QuantizedLayerTimings WeightTimingsAfter,
-    ComputeStageMeasurement[] Stages, ComputeQueueMetrics[] BodyQueues, ComputeQueueMetrics[] HeadQueues);
+    ComputeStageMeasurement[] Stages, ComputeQueueMetrics[] BodyQueues, ComputeQueueMetrics[] HeadQueues,
+    CpuHeadMeasurement[] CpuHeads, bool UsedDeviceGreedyHead);
 

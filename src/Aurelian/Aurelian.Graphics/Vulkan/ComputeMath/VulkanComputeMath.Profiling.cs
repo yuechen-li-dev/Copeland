@@ -20,6 +20,9 @@ public sealed class QueuedDispatchProfile
     public double? CopyMs { get; internal set; }
     public double? PreComputeGapMs { get; internal set; }
     public double? CopyInGapMs { get; internal set; }
+    public ulong? PreviousComputeEndTicks { get; internal set; }
+    public long StagingStartTimestamp { get; internal set; }
+    public long SubmitStartTimestamp { get; internal set; }
     internal int Count => ShaderNames.Count;
     internal double[]? CompletedIntervals { get; set; }
 

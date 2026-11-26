@@ -16,6 +16,7 @@ public sealed record ComputeQueueMetrics(int Submissions, int Dispatches, int De
 public sealed unsafe partial class VulkanComputeMath
 {
     private QueuedComputeScope? queuedScope;
+    public bool HasActiveQueue => queuedScope is not null;
 
     /// <summary>Uses the existing physical submission ring to queue ordered batches.
     /// The forecast bounds submissions and upload bytes per slot. Tensor disposal
@@ -38,6 +39,20 @@ public sealed unsafe partial class VulkanComputeMath
     {
         var scope = queuedScope ?? throw new InvalidOperationException("Batch upload requires an active queue.");
         return scope.Submit(batch, null, upload.Payload, plan: upload);
+    }
+
+    /// <summary>Copy a previously prepared host tensor to its device destination immediately before use.</summary>
+    public QueuedDispatchProfile? EnqueuePreparedUInt32Upload(ComputeMathBatch batch, GpuTensor destination,
+        GpuTensor source, bool timeDelivery = false)
+    {
+        var scope = queuedScope ?? throw new InvalidOperationException("Prepared upload requires an active queue.");
+        Validate(source, GpuTensorFormat.UInt32);
+        Validate(destination, GpuTensorFormat.UInt32);
+        Require(source.Buffer.IsMapped && !ReferenceEquals(source, destination)
+            && source.Elements == destination.Elements, "Prepared source must be mapped and fill a distinct destination.");
+        var profile = timeDelivery ? new QueuedDispatchProfile(batch, timeDispatches: false) : null;
+        scope.Submit(batch, destination, default, profile, preparedSource: source);
+        return profile;
     }
 
     public sealed class QueuedComputeScope : IDisposable
@@ -91,13 +106,15 @@ public sealed unsafe partial class VulkanComputeMath
         };
 
         internal ComputeMathResult Submit(ComputeMathBatch batch, GpuTensor? upload, ReadOnlyMemory<byte> bytes,
-            QueuedDispatchProfile? profile = null, ComputeBatchUpload? plan = null)
+            QueuedDispatchProfile? profile = null, ComputeBatchUpload? plan = null, GpuTensor? preparedSource = null)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             ComputeMathBatch.Require(ring.Submissions < forecast.BatchCount
-                && batch.DispatchCount <= forecast.DispatchesPerBatch && (ulong)bytes.Length <= forecast.UploadBytes,
+                && batch.DispatchCount <= forecast.DispatchesPerBatch
+                && (preparedSource?.Buffer.SizeBytes ?? (ulong)bytes.Length) <= forecast.UploadBytes,
                 "Queued work exceeds its authored submission, dispatch or transfer forecast.");
-            ring.Submit(batch, upload: upload, bytes: bytes, profile: profile, plan: plan, waits: consumerWait);
+            ring.Submit(batch, upload: upload, bytes: bytes, profile: profile, plan: plan, waits: consumerWait,
+                preparedSource: preparedSource);
             consumerWait = null;
             CollectCompleted();
             // GPU cost is available only after harvest, through Metrics.

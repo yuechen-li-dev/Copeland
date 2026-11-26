@@ -17,6 +17,7 @@ public sealed class Gemma4TextModel : ICausalTextModel, IDisposable
     private readonly VulkanComputeMath compute;
     private readonly SafeTensorFile source;
     private readonly VulkanQuantizedLayers layers;
+    private Gemma4CpuVocabularyHead? cpuHead;
     private readonly Dictionary<string, GpuTensor> vectors = new(StringComparer.Ordinal);
     private readonly Dictionary<int, (GpuTensor Keys, GpuTensor Values)> cache = [];
     private readonly int capacity;
@@ -28,12 +29,22 @@ public sealed class Gemma4TextModel : ICausalTextModel, IDisposable
     public int Position { get; private set; }
     public int ContextCapacity => capacity;
     public Action<int>? ObserveLayer { get; set; }
+    public Action<string, int, long, QueuedDispatchProfile>? TraceWeightDelivery
+    {
+        get => layers.TraceWeightDelivery;
+        set => layers.TraceWeightDelivery = value;
+    }
     public long ResidentWeightBytes => layers.ResidentBytes;
     public long UploadedWeightBytes => layers.UploadedBytes;
     public QuantizedLayerTimings WeightTimings => layers.Timings;
     public int WeightHostScratchBytes => layers.HostScratchBytes;
-    public long WeightHostCacheBytes => layers.HostCacheBytes;
-    public bool UseDeviceGreedyHead { get; init; }
+    public long WeightHostCacheBytes => layers.HostCacheBytes + CpuHeadWeightBytes;
+    public long CpuHeadWeightBytes => cpuHead is null ? 0 : Gemma4CpuVocabularyHead.WeightBytes;
+    public double? CpuHeadPreparationMilliseconds => cpuHead?.PreparationMilliseconds;
+    public double? CpuHeadReadbackMilliseconds => UseDeviceGreedyHead ? null : cpuHead?.LastReadbackMilliseconds;
+    public double? CpuHeadProjectionMilliseconds => UseDeviceGreedyHead ? null : cpuHead?.LastProjectionMilliseconds;
+    /// <summary>Select the queued/device argmax head. Change placement between generation calls.</summary>
+    public bool UseDeviceGreedyHead { get; set; }
     public long StreamedWeightBufferBudget
     {
         get => layers.StreamedWeightBufferBudget;
@@ -114,7 +125,8 @@ public sealed class Gemma4TextModel : ICausalTextModel, IDisposable
     public Gemma4TextModel(VulkanComputeMath compute, SafeTensorFile source, QuantizedCheckpoint weights,
         int capacity = 256, long residentWeightBudget = 1536L * 1024 * 1024,
         bool useChunkedReference = false, long hostWeightBudget = 0,
-        bool useQueuedExecution = false, bool useSeparateUploads = false)
+        bool useQueuedExecution = false, bool useSeparateUploads = false, bool usePreparedHostUploads = false,
+        int cpuHeadWorkers = 0)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(capacity, 1);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(capacity, 1024);
@@ -131,14 +143,25 @@ public sealed class Gemma4TextModel : ICausalTextModel, IDisposable
         this.source = source;
         this.capacity = capacity;
         this.useQueuedExecution = useQueuedExecution;
+        if (usePreparedHostUploads && (!useQueuedExecution || useSeparateUploads))
+        {
+            throw new ArgumentException("Prepared host uploads require queued execution with inline copies.");
+        }
         if (useQueuedExecution && compute.StreamController is null)
         {
             throw new ArgumentException("Queued evaluation requires a compute stream controller.", nameof(compute));
         }
-        layers = new(compute, weights, residentWeightBudget, hostWeightBudget)
+        ArgumentOutOfRangeException.ThrowIfNegative(cpuHeadWorkers);
+        if (cpuHeadWorkers > 0)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(hostWeightBudget, Gemma4CpuVocabularyHead.WeightBytes);
+            cpuHead = new(weights, cpuHeadWorkers);
+        }
+        layers = new(compute, weights, residentWeightBudget, hostWeightBudget - CpuHeadWeightBytes)
         {
             UseChunkedReference = useChunkedReference,
             UseSeparateUploads = useSeparateUploads,
+            UsePreparedHostUploads = usePreparedHostUploads,
         };
     }
 
@@ -299,7 +322,15 @@ public sealed class Gemma4TextModel : ICausalTextModel, IDisposable
     }
 
     public (int Token, float Score) GreedyToken(GpuTensor hidden)
+        => GreedyToken(hidden, null);
+
+    /// <summary>Optionally collect the complete BF16-softcapped vocabulary for numerical qualification.</summary>
+    public (int Token, float Score) GreedyToken(GpuTensor hidden, float[]? scores)
     {
+        if (scores is not null && scores.Length != VocabularySize)
+        {
+            throw new ArgumentException("The score buffer must fit the full vocabulary.", nameof(scores));
+        }
         using var last = compute.CreateTensor(1, HiddenWidth);
         var gather = compute.CreateBatch();
         gather.Gather(hidden, last, hidden.Rows - 1);
@@ -308,7 +339,11 @@ public sealed class Gemma4TextModel : ICausalTextModel, IDisposable
         LastHeadQueue = null;
         if (UseDeviceGreedyHead)
         {
-            return DeviceGreedyToken(last);
+            return DeviceGreedyToken(last, scores);
+        }
+        if (cpuHead is not null)
+        {
+            return cpuHead.Predict(compute, last, scores);
         }
         int winner = -1;
         float maximum = float.NegativeInfinity;
@@ -319,6 +354,7 @@ public sealed class Gemma4TextModel : ICausalTextModel, IDisposable
             for (int index = 0; index < values.Length; index++)
             {
                 float score = ScoreLogit(values[index]);
+                if (scores is not null) { scores[first + index] = score; }
                 if (!float.IsFinite(score)) { throw new InvalidDataException("AUR-GEMMA-004: Nonfinite output logit."); }
                 if (score > maximum) { maximum = score; winner = first + index; }
             }
@@ -326,7 +362,7 @@ public sealed class Gemma4TextModel : ICausalTextModel, IDisposable
         return (winner, maximum);
     }
 
-    private (int Token, float Score) DeviceGreedyToken(GpuTensor last)
+    private (int Token, float Score) DeviceGreedyToken(GpuTensor last, float[]? scores)
     {
         int slices = VocabularySize / HeadSliceRows;
         var logits = GetHeadTensor("head.logits", slices, HeadSliceRows);
@@ -347,6 +383,10 @@ public sealed class Gemma4TextModel : ICausalTextModel, IDisposable
         compute.Execute(selection);
         Span<float> pair = stackalloc float[2];
         compute.ReadInto(winner, pair);
+        if (scores is not null)
+        {
+            compute.ReadInto(logits, scores);
+        }
         LastHeadQueue = queue?.Metrics;
         int token = (int)pair[1];
         if (!float.IsFinite(pair[0]) || pair[0] == float.MaxValue || token is < 0 or >= VocabularySize || pair[1] != token)
@@ -373,13 +413,7 @@ public sealed class Gemma4TextModel : ICausalTextModel, IDisposable
         {
             return cached;
         }
-        var scores = new float[65536];
-        for (int index = 0; index < scores.Length; index++)
-        {
-            float score = ScoreLogit(BitConverter.UInt32BitsToSingle((uint)index << 16));
-            // Argmax reports a nonfinite logit anywhere in the vocabulary through the winning score.
-            scores[index] = float.IsFinite(score) ? score : float.MaxValue;
-        }
+        var scores = CreateHeadScoreTable();
         var table = compute.CreateTensor(1, scores.Length);
         try
         {
@@ -394,9 +428,21 @@ public sealed class Gemma4TextModel : ICausalTextModel, IDisposable
         }
     }
 
+    internal static float[] CreateHeadScoreTable()
+    {
+        var scores = new float[65536];
+        for (int index = 0; index < scores.Length; index++)
+        {
+            float score = ScoreLogit(BitConverter.UInt32BitsToSingle((uint)index << 16));
+            // Argmax reports a nonfinite logit anywhere in the vocabulary through the winning score.
+            scores[index] = float.IsFinite(score) ? score : float.MaxValue;
+        }
+        return scores;
+    }
+
     private static float ScoreLogit(float value) => Round(Round(MathF.Tanh(Round(value / 30))) * 30);
 
-    private static float Round(float value)
+    internal static float Round(float value)
     {
         uint bits = BitConverter.SingleToUInt32Bits(value);
         return BitConverter.UInt32BitsToSingle((bits + 32767 + ((bits >> 16) & 1)) & 0xFFFF0000);
@@ -417,6 +463,7 @@ public sealed class Gemma4TextModel : ICausalTextModel, IDisposable
         Reset();
         foreach (var tensor in vectors.Values) { tensor.Dispose(); }
         vectors.Clear();
+        cpuHead = null;
         layers.Dispose();
     }
 }
