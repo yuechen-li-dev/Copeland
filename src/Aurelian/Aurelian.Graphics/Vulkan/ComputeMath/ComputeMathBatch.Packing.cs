@@ -2,6 +2,23 @@ namespace Aurelian.Graphics.Vulkan.ComputeMath;
 
 public sealed partial class ComputeMathBatch
 {
+    /// <summary>Decode a K slice of packed [output,input] Q4B32 weights into
+    /// transposed binary16 storage for cooperative projection.</summary>
+    public void PackQ4WeightsHalf(GpuTensor weights, GpuTensor output, int inputWidth, int firstInput = 0)
+    {
+        Owner.Validate(weights, GpuTensorFormat.UInt32);
+        Owner.Validate(output, GpuTensorFormat.PackedFloat16);
+        Require(inputWidth > 0 && inputWidth % 32 == 0 && firstInput >= 0 && firstInput % 16 == 0
+            && output.Rows % 16 == 0 && output.Columns % 16 == 0
+            && firstInput + (long)output.Rows <= inputWidth
+            && weights.Elements == (long)output.Columns * inputWidth / 32 * 5,
+            "Q4 weight packing needs complete aligned weights and an in-range K tile.");
+        Add([new("PackQ4WeightsHalf.v.ts", weights, weights, output, new()
+        {
+            Columns = (uint)output.Columns, Inner = (uint)inputWidth, Offset = (uint)firstInput,
+        }, (uint)output.Rows / 16, (uint)output.Columns / 16)]);
+    }
+
     /// <summary>Explicit FP16 precision conversion, zero row padding, and an
     /// optional transpose of streamed [output,input,bias] weights.</summary>
     public void PackMatrixHalf(GpuTensor input, GpuTensor output, int firstColumn = 0, bool transposeWeights = false)

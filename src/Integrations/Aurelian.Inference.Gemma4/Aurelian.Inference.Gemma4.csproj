@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Explicit Gemma 4 12B Unified text graph on the shared Vulkan inference owner.</Description>
+    <Description>Gemma 4 12B Unified and E2B text graphs on the shared Vulkan inference owner.</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../Aurelian/Aurelian.Inference/Aurelian.Inference.csproj" />

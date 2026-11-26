@@ -188,6 +188,118 @@ host scratch consumption, disposal before harvest, physical retirement after
 read, resident staging reuse, forecast/nesting rejection, failure cleanup,
 owner recovery and composite streamed-linear/tiled-attention boundaries.
 
+## Resident-weight diagnostic
+
+The proof runner can measure the first six real 12B Unified layers, including
+the first global-attention layer. It runs a 64-token prefill and 16 fixed
+single-token evaluations, excludes the vocabulary head and sampling, and
+reports three warmed trials. The streamed arms keep all projection weights in
+host RAM and reupload them at each evaluation. The resident arms keep the same
+packed projection weights on the device. Token embedding lookup is the same
+host-side operation in every arm. The timer ends before output readback and
+hashing.
+
+| Packed projections | Submission | Prefill, median ms | Decode, median ms/token | Peak process dedicated VRAM |
+|---|---|---:|---:|---:|
+| Streamed | Synchronous | 988 | 160.5 | 72 MiB |
+| Streamed | Queued | 897 | 142.1 | 107 MiB |
+| Resident | Synchronous | 866 | 45.9 | 848 MiB |
+| Resident | Queued | 786 | 34.1 | 851 MiB |
+
+RTX 3070, Windows driver 610.88, Vulkan validation disabled. All arms produced
+byte-identical prefill activations and final decode activations. The 41 packed
+projections total 812 MiB. Keeping them resident eliminates 812 MiB of uploads
+per decode step and improves queued decode by 4.2×. GPU copy timestamps in the
+streamed queued arm account for about 34 ms per token. CPU recording grows from
+1.7 to 62.3 ms per token and includes staging writes. Both quantities can overlap.
+
+In the synchronous resident arm, the packed linear dispatches account for about
+792 of 866 ms of prefill. `QuantizedGemv.v.ts` schedules a separate workgroup
+for every token/output-column pair. A tiled packed-matrix kernel can reuse a
+weight tile across prompt tokens. Resident queued decode still issues 103
+submissions and 157 dispatches per token. Its summed GPU compute timestamps are
+14.6 of 34.1 ms per token, leaving time for buffer allocation, dispatch recording,
+fence operations and gaps between submissions. Those intervals do not give an
+exclusive host time breakdown.
+
+```powershell
+dotnet build tools/Aurelian.GemmaProof -c Release -m:1
+$proof = 'tools/Aurelian.GemmaProof/bin/Release/net10.0/Aurelian.GemmaProof.dll'
+$model = 'artifacts/local/models/gemma4-12b'
+dotnet $proof --residency $model --streamed
+dotnet $proof --residency $model --streamed --queued
+dotnet $proof --residency $model
+dotnet $proof --residency $model --queued
+```
+
+The JSON files `artifacts/local/gemma4/residency-*.json` capture tokens, raw
+timings, cache hits, transfer bytes, output hashes and runtime memory telemetry.
+Process dedicated VRAM above comes from Windows GPU Process Memory counters.
+
+## E2B Vulkan reference
+
+The original residency experiment below predates the
+[Aurelian E2B adapter and matched llama.cpp parity run](gemma4-e2b-parity.md).
+
+The same RTX 3070 ran the
+[Google Gemma 4 E2B IT QAT Q4_0 GGUF](https://huggingface.co/google/gemma-4-E2B-it-qat-q4_0-gguf)
+with llama.cpp `b12453` (`c7518dbec`), Flash Attention, 512-token batches
+and no vision/audio projector. The text checkpoint is 3.12 GiB. The table
+shows medians from five warmed synthetic benchmark repetitions. The 128-token
+test times incremental evaluation starting with an empty cache.
+
+| Placement, same official GGUF | 512-token prefill, tok/s | 128-token decode, tok/s | Peak dedicated GPU memory | Peak shared GPU memory |
+|---|---:|---:|---:|---:|
+| 36/36 transformer and output layers on Vulkan, input tables on host | 7,435 | 133.2 | 1,960 MiB | 52 MiB |
+| 18/36 layers on Vulkan, rest on CPU | 3,889 | 54.2 | 1,487 MiB | 90 MiB |
+| Every weight assigned to Vulkan | 511 | 20.3 | 2,577 MiB | 1,592 MiB |
+
+The 36-layer run keeps 1,342 MiB of model tensors in Vulkan memory and
+uses CPU lookups for the large input tables. The last arm assigns 3,179 MiB
+of model tensors to Vulkan, with the 1,838 MiB per-layer Q6_K embedding table
+among them. Windows reports about 1 GiB of shared memory throughout steady
+execution in that arm. Device assignment alone is insufficient evidence of
+dedicated residency on this desktop. The 18-layer arm measures hybrid CPU
+execution. Aurelian's streamed arm executes its transformer layers on Vulkan
+and transfers packed weights from host RAM.
+
+A local all-device diagnostic changes just `per_layer_token_embd.weight`
+from Q6_K to Q2_0, shrinking the table from 1,838 to 630 MiB. The other 540
+tensor payloads match byte for byte. On Vulkan, this model reports 1,972 MiB
+of model buffers, one graph split, a 2,596 MiB peak in dedicated GPU memory
+and 32 MiB peak shared. Median performance is **8,007 tok/s** for 512-token
+prefill and **128.9 tok/s** for 128-token decode. A follow-up starting with
+512 cached tokens decodes at **131.0 tok/s** with 2,600 MiB peak dedicated
+memory. Both the compact variant and the official checkpoint returned `4` in
+a text generation smoke test. The compact table is lossy and the smoke test
+covers a single prompt.
+
+The E2B config has 35 transformer layers, 256-wide per-layer embedding inputs
+and 20 layers sharing KV. The 12B Unified configuration gate rejects it with
+`AUR-GEMMA-001`, so the earlier test used the 12B adapter for the residency A/B.
+The six-layer Aurelian results above isolate transfer and
+execution costs within one graph. They cannot be used to compute an E2B runtime
+speedup or a numerical parity result.
+[E2B config](https://huggingface.co/google/gemma-4-E2B-it/blob/main/config.json)
+
+Reproduce the two default placements with `llama-bench` from build `b12453`
+and a SHA-256-verified checkpoint from revision
+`675cff42a74c774d6cb76f76d8eacb49b48c9b93`.
+
+```powershell
+$model = 'artifacts/local/models/gemma4-e2b/gemma-4-E2B_q4_0-it.gguf'
+llama-bench -m $model -dev Vulkan0 -sm none -fa on -lzm off -ngl 999,18 -p 64,512 -n 16,128 -pg 256,64 -b 512 -ub 512 -r 5 -o json -v
+llama-bench -m $model -dev Vulkan0 -sm none -fa on -lzm off -ngl 999 -ot '.*=Vulkan0' -p 64,512 -n 16,128 -pg 256,64 -b 512 -ub 512 -r 5 -o json -v
+$compact = 'artifacts/local/models/gemma4-e2b/gemma-4-E2B_q4_0-ple-q2_0-it.gguf'
+llama-quantize --allow-requantize --token-embedding-type q6_k --tensor-type '^per_layer_token_embd[.]weight$=q2_0' $model $compact Q4_0 8
+llama-bench -m $compact -dev Vulkan0 -sm none -fa on -lzm off -ngl 999 -ot '.*=Vulkan0' -p 512 -n 128 -b 512 -ub 512 -r 5 -o json -v
+```
+
+The checkpoint SHA-256 is
+`fa401b55b07ee70a54c6dae3903c783a6e65064312529ea57175cb5f8dec6634`.
+Local benchmark JSON, Vulkan logs and WDDM samples are under
+`artifacts/local/gemma4/e2b-reference/`.
+
 ## Reproduce qualification
 
 ```powershell

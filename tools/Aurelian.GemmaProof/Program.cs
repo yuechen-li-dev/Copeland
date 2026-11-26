@@ -8,6 +8,11 @@ using Aurelian.Inference.Dominatus;
 using Aurelian.Inference.Gemma4;
 
 string command = args.Length > 0 ? args[0] : "--kernels";
+if (command is "--e2b" or "--e2b-generate")
+{
+    GemmaE2bProof.Run(args);
+    return;
+}
 string directory = Path.GetFullPath(args.Length > 1 ? args[1] : "artifacts/local/models/gemma4-12b");
 string outputDirectory = Path.GetFullPath("artifacts/local/gemma4");
 Directory.CreateDirectory(outputDirectory);
@@ -48,6 +53,7 @@ using var session = VulkanInferenceSession.Create(new()
 {
     ApplicationName = "Aurelian Gemma 4 text proof",
     MaximumTensorElements = 33554432,
+    EnableValidation = command != "--residency",
 });
 var compute = session.Compute;
 if (command == "--scheduling")
@@ -65,9 +71,9 @@ if (command == "--benchmark")
     BenchmarkQuantized(compute, outputDirectory);
     return;
 }
-if (command is not "--generate" and not "--block")
+if (command is not "--generate" and not "--block" and not "--residency")
 {
-    throw new ArgumentException("Expected --compile, --tokenizer, --kernels, --benchmark, --scheduling, --block or --generate.");
+    throw new ArgumentException("Expected --compile, --tokenizer, --kernels, --benchmark, --scheduling, --block, --residency or --generate.");
 }
 Gemma4TextModel.ValidateConfiguration(Path.Combine(directory, "config.json"));
 using var weights = new SafeTensorFile(sourcePath);
@@ -80,6 +86,13 @@ bool queued = args.Contains("--queued", StringComparer.Ordinal);
 bool separateUploads = args.Contains("--separate-uploads", StringComparer.Ordinal);
 using var feedforward = new DominatusComputeFeedforward(64 * 1024 * 1024);
 compute.StreamController = feedforward;
+if (command == "--residency")
+{
+    bool streamed = args.Contains("--streamed", StringComparer.Ordinal);
+    GemmaResidencyBenchmark.Run(compute, weights, packed, directory, outputDirectory,
+        session.Plant.Facts.PhysicalDeviceName, streamed, queued);
+    return;
+}
 using var model = new Gemma4TextModel(compute, weights, packed,
     useChunkedReference: useChunkedReference, hostWeightBudget: hostBudget,
     useQueuedExecution: queued, useSeparateUploads: separateUploads);

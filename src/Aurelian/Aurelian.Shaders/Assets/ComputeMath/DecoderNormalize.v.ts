@@ -34,7 +34,9 @@ function DecoderNormalizeMain(@builtin(groupId) group: uint3,
     static for (let tile of Indices<128>()) {
         let columnIndex = lane + tile * 64;
         if (columnIndex < p.columns) {
-            Output[base + columnIndex] = BFloat16(Input[base + columnIndex] * inverse * Gamma[columnIndex]);
+            var value = Input[base + columnIndex] * inverse * Gamma[columnIndex];
+            if (p.mode == 0) { value = BFloat16(value); }
+            Output[base + columnIndex] = value;
         }
     }
 }

@@ -1,7 +1,7 @@
 import { KernelParameters } from "./KernelMath";
 
 // A full-K resident 64x64 tile with a 4x4 register tile per lane. Host admission
-// proves K <= 8192, so the uniform bounded loop covers every 16-wide K tile.
+// bounds K, so the uniform loop covers every 16-wide K tile.
 // Adjacent lanes load contiguous input columns. All lanes reach both barriers.
 @compute
 @numthreads(16, 16, 1)
@@ -10,7 +10,7 @@ function ResidentSgemmMain(@builtin(groupId) group: uint3,
     @workgroup readwrite TileA: WorkgroupArray<f32, 1024>,
     @workgroup readwrite TileB: WorkgroupArray<f32, 1024>,
     @binding(0) readonly A: StorageBuffer<f32>,
-    @binding(1) readonly B: StorageBuffer<f32>,
+    @binding(1) readonly B: StorageBuffer<u32>,
     @binding(2) readwrite Output: StorageBuffer<f32>,
     @binding(3) readonly Parameters: StorageBuffer<KernelParameters>): void {
     let p = Parameters[0];
@@ -24,7 +24,7 @@ function ResidentSgemmMain(@builtin(groupId) group: uint3,
         0.0, 0.0, 0.0, 0.0,
     ];
 
-    for (let tile of BoundedIndices<512>((p.inner + 15) / 16)) {
+    for (let tile of BoundedIndices<512>(p.kernelWidth)) {
         static for (let part of Indices<4>()) {
             let index = lane + part * 256;
             let aRow = tileRow + index / 16;
@@ -38,9 +38,14 @@ function ResidentSgemmMain(@builtin(groupId) group: uint3,
             }
             if (bRow < p.inner && bColumn < p.columns) {
                 if (p.mode == 1) {
-                    b = B[bColumn * p.inner + bRow];
+                    b = Bitcast<f32>(B[bColumn * p.inner + bRow]);
+                } else if (p.mode == 2) {
+                    let address = (bColumn * p.inner + bRow) / 32 * 5;
+                    let word = B[address + 1 + bRow % 32 / 8];
+                    let nibble = (word >> (bRow % 8 * 4)) & 15;
+                    b = Bitcast<f32>(B[address]) * (Convert<f32>(nibble) - 8.0);
                 } else {
-                    b = B[bRow * p.columns + bColumn];
+                    b = Bitcast<f32>(B[bRow * p.columns + bColumn]);
                 }
             }
             TileA[index] = a;

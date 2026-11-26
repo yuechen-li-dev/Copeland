@@ -103,6 +103,7 @@ public sealed partial class ComputeMathBatch
             {
                 Rows = (uint)a.Rows, Columns = (uint)columns, Inner = (uint)inner,
                 Offset = (uint)offset, Mode = transposeB ? 1u : 0u, Alpha = alpha, Beta = beta,
+                KernelWidth = Groups(Math.Min(inner - offset, chunk), 16),
             }, Groups(a.Rows, tileRows), Groups(columns, tileColumns)));
         }
         return steps.ToArray();

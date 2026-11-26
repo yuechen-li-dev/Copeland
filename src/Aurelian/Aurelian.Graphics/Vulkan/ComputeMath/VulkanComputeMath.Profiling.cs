@@ -4,7 +4,10 @@ using Silk.NET.Vulkan;
 
 namespace Aurelian.Graphics.Vulkan.ComputeMath;
 
-public sealed record ComputeDispatchProfile(ComputeMathResult Execution, IReadOnlyList<double> DispatchMilliseconds);
+public sealed record ComputeDispatchProfile(ComputeMathResult Execution, IReadOnlyList<double> DispatchMilliseconds)
+{
+    public IReadOnlyList<string> ShaderNames { get; init; } = [];
+}
 
 /// <summary>Per-dispatch intervals become available when the queue harvests this batch.</summary>
 public sealed class QueuedDispatchProfile
@@ -39,7 +42,10 @@ public sealed unsafe partial class VulkanComputeMath
         ComputeMathBatch.Require(queuedScope is null, "Dispatch profiling requires synchronous execution.");
         dispatchTimestamps ??= new(plant, MaximumDispatches + 1);
         ComputeMathResult result = ExecuteCore(batch, null, default, dispatchTimestamps);
-        return new(result, dispatchTimestamps.Read(batch.DispatchCount));
+        return new(result, dispatchTimestamps.Read(batch.DispatchCount))
+        {
+            ShaderNames = Array.AsReadOnly(batch.Dispatches.Select(dispatch => dispatch.Shader).ToArray()),
+        };
     }
 
     /// <summary>Time one batch on the active queue without changing its submission or wait boundaries.</summary>

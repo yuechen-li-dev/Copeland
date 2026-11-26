@@ -14,3 +14,10 @@ checkpoint's training variant. No model weights are redistributed.
 
 Q4B32 is Aurelian's explicit post-training block representation with FP32 scales.
 It is not Google QAT, GGUF or byte-compatible with GGUF's Q4_0.
+
+The E2B profile follows the published Gemma 4 operation order and uses the
+Google Gemma 4 E2B IT QAT GGUF directly. The Vulkan path losslessly rearranges
+Q4_0 blocks into Q4B32 and reads the original Q6_K token weights. Per-layer
+inputs, shared KV, proportional RoPE, and the numerical oracle were checked
+against llama.cpp at commit `c7518dbec` (MIT).
+https://github.com/ggml-org/llama.cpp/blob/c7518dbec/src/models/gemma4.cpp

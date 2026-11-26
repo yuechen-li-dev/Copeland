@@ -219,31 +219,68 @@ public sealed partial class ComputeMathBatch
         }
     }
 
-    public void NormalizeHeads(GpuTensor input, GpuTensor gamma, GpuTensor output, int headWidth, float epsilon = 1e-6f)
+    /// <summary>Reuse a packed projection tile across multiple prompt rows, or group four
+    /// independent output rows per workgroup for a single input token.</summary>
+    public void ProjectPackedQ4(GpuTensor input, GpuTensor weights, GpuTensor output)
+    {
+        Check(input, output);
+        Owner.Validate(weights, GpuTensorFormat.UInt32);
+        Require(input.Columns % 32 == 0 && input.Columns <= 32768 && output.Rows == input.Rows
+            && weights.Elements == (long)output.Columns * input.Columns / 32 * 5
+            && !ReferenceEquals(input, output), "Packed Q4 projection requires aligned complete matrices.");
+        if (input.Rows == 1)
+        {
+            Add([new("QuantizedGemv4.v.ts", input, weights, output, new()
+            {
+                Columns = (uint)output.Columns, Inner = (uint)input.Columns, Width = Groups(input.Columns, 256),
+            }, Groups(output.Columns, 4))]);
+            return;
+        }
+        for (int first = 0; first < input.Columns; first += 8192)
+        {
+            Add([new("ResidentSgemm.v.ts", input, weights, output, new()
+            {
+                Rows = (uint)input.Rows, Columns = (uint)output.Columns, Inner = (uint)input.Columns,
+                Offset = (uint)first, Mode = 2, Alpha = 1, KernelWidth = Groups(Math.Min(input.Columns - first, 8192), 16),
+            }, Groups(input.Rows, 64), Groups(output.Columns, 64))]);
+        }
+    }
+
+    public void NormalizeHeads(GpuTensor input, GpuTensor gamma, GpuTensor output, int headWidth,
+        float epsilon = 1e-6f, bool roundBFloat16 = true, bool bounded = false)
     {
         Check(input, gamma, output);
         Require(SameShape(input, output) && headWidth is > 0 and <= 8192
             && input.Columns % headWidth == 0 && input.Elements / headWidth <= 65535 && gamma.Elements == headWidth
             && float.IsFinite(epsilon) && epsilon > 0 && !ReferenceEquals(output, gamma),
             "Head RMSNorm requires matching shapes, independent gamma and a bounded head width.");
-        Add([new("DecoderNormalize.v.ts", input, gamma, output, new()
+        Add([new(bounded ? "DecoderNormalizeBounded.v.ts" : "DecoderNormalize.v.ts", input, gamma, output, new()
         {
-            Rows = (uint)(input.Elements / headWidth), Columns = (uint)headWidth, Epsilon = epsilon,
+            Rows = (uint)(input.Elements / headWidth), Columns = (uint)headWidth, Epsilon = epsilon, Mode = roundBFloat16 ? 0u : 1u,
+            Width = Groups(headWidth, 64),
         }, (uint)(input.Elements / headWidth))]);
     }
 
     public void RotateHeads(GpuTensor input, GpuTensor output, int headWidth, int positionOffset,
-        float theta, float rotaryProportion = 1)
+        float theta, float rotaryProportion = 1, bool roundBFloat16 = true, GpuTensor? frequencyFactors = null)
     {
         Check(input, output);
         Require(SameShape(input, output) && headWidth is > 0 and <= 512 && headWidth % 2 == 0
             && input.Columns % headWidth == 0 && positionOffset is >= 0 and <= 262144
             && float.IsFinite(theta) && theta > 1 && rotaryProportion is > 0 and <= 1,
             "Head RoPE requires bounded even heads, position and rotary proportion.");
-        Add([new("DecoderRope.v.ts", input, input, output, new()
+        uint mode = roundBFloat16 ? 0u : 1u;
+        if (frequencyFactors is not null)
+        {
+            Check(frequencyFactors);
+            Require(!roundBFloat16 && frequencyFactors.Elements == headWidth / 2 && !ReferenceEquals(frequencyFactors, output),
+                "Explicit RoPE frequency factors are one independent FP32 value per pair.");
+            mode = 2;
+        }
+        Add([new("DecoderRope.v.ts", input, frequencyFactors ?? input, output, new()
         {
             Rows = (uint)input.Rows, Columns = (uint)input.Columns, Width = (uint)headWidth,
-            Offset = (uint)positionOffset, Theta = theta, Height = (uint)(headWidth / 2 * rotaryProportion),
+            Offset = (uint)positionOffset, Theta = theta, Height = (uint)(headWidth / 2 * rotaryProportion), Mode = mode,
         }, Groups(input.Elements / 2, 64))]);
     }
 
@@ -279,6 +316,27 @@ public sealed partial class ComputeMathBatch
         GroupedAttentionValues(probabilities, values, output, heads, kvHeads, headWidth, roundBFloat16: true);
     }
 
+    /// <summary>Fused FP32 causal attention. K and V occupy the
+    /// two equal row ranges in the cache tensor.</summary>
+    public void FusedGroupedAttention(GpuTensor query, GpuTensor keyValue, GpuTensor output,
+        int heads, int headWidth, int position, int window)
+    {
+        Check(query, keyValue, output);
+        int capacity = keyValue.Rows / 2;
+        Require(SameShape(query, output) && heads is > 0 and <= 64
+            && headWidth is 256 or 512 && query.Columns == heads * headWidth
+            && keyValue.Columns == headWidth && keyValue.Rows == capacity * 2
+            && position >= 0 && query.Rows <= capacity - position && capacity <= 1024 && window is > 0 and <= 1024
+            && !ReferenceEquals(query, output) && !ReferenceEquals(keyValue, output),
+            "Fused causal attention requires up to 1024 KV rows and an independent output.");
+        int count = Math.Min(position + query.Rows, window);
+        Add([new("FusedGroupedAttention.v.ts", query, keyValue, output, new()
+        {
+            Width = (uint)headWidth, Offset = (uint)position, Height = (uint)heads, Mode = (uint)window,
+            Rows = (uint)capacity, Inner = Groups(count, 4),
+        }, (uint)heads, (uint)query.Rows)]);
+    }
+
     public void GroupedAttentionValues(GpuTensor probabilities, GpuTensor values, GpuTensor output,
         int heads, int kvHeads, int headWidth, bool roundBFloat16)
         => GroupedAttentionValues(probabilities, values, output, heads, kvHeads, headWidth, roundBFloat16, 0);
@@ -300,13 +358,73 @@ public sealed partial class ComputeMathBatch
         }, (uint)headWidth, (uint)(output.Rows * heads))]);
     }
 
-    public void Scale(GpuTensor input, GpuTensor output, float factor)
+    /// <summary>Apply FP32 GELU to a gate and multiply by a region of another tensor.</summary>
+    public void GeluGate(GpuTensor gate, GpuTensor values, GpuTensor output, int firstRow = 0, int firstColumn = 0)
+    {
+        Check(gate, values, output);
+        Require(SameShape(gate, output) && firstRow >= 0 && firstColumn >= 0
+            && firstRow + (long)gate.Rows <= values.Rows && firstColumn + (long)gate.Columns <= values.Columns
+            && !ReferenceEquals(values, output), "GELU gate requires matching output and an independent input region.");
+        uint groups = Groups(gate.Elements, 64);
+        uint groupsX = Math.Min(groups, 65535);
+        Add([new("DecoderPointwiseFp32.v.ts", gate, values, output, new()
+        {
+            Rows = (uint)gate.Rows, Columns = (uint)gate.Columns, Inner = (uint)values.Columns,
+            Offset = (uint)firstRow, Width = (uint)firstColumn, Mode = 1, Stride = groupsX * 64,
+        }, groupsX, (groups + groupsX - 1) / groupsX)]);
+    }
+
+    /// <summary>Project one row to a vocabulary slice using native GGUF Q6_K weights.</summary>
+    public void ProjectQ6K(GpuTensor input, GpuTensor weights, GpuTensor output,
+        int firstOutput = 0, int outputCount = 0, float softCap = 0)
+    {
+        Check(input, output);
+        Owner.Validate(weights, GpuTensorFormat.UInt32);
+        int count = outputCount == 0 ? output.Elements : outputCount;
+        Require(input.Rows == 1 && input.Columns is > 0 and <= 8192 && input.Columns % 512 == 0
+            && firstOutput >= 0 && count > 0 && (long)firstOutput + count <= output.Elements
+            && float.IsFinite(softCap) && softCap >= 0
+            && weights.Elements * 4L == count * (input.Columns / 256L) * 210
+            && !ReferenceEquals(input, output), "Q6_K projection needs one input and aligned packed weight rows.");
+        Add([new("QuantizedQ6K.v.ts", input, weights, output, new()
+        {
+            Columns = (uint)count, Width = (uint)input.Columns / 256, Offset = (uint)firstOutput, Alpha = softCap,
+        }, Groups(count, 4))]);
+    }
+
+    /// <summary>Reduce a flat scores tensor to one FP32 score and exact FP32 index.</summary>
+    public void ArgMax(GpuTensor input, GpuTensor partials, GpuTensor output)
+    {
+        Check(input, partials, output);
+        uint groups = Groups(input.Elements, 1024);
+        Require(groups <= 1024 && partials.Rows == groups && partials.Columns == 2
+            && output.Rows == 1 && output.Columns == 2
+            && !ReferenceEquals(input, partials) && !ReferenceEquals(partials, output),
+            "ArgMax needs up to 1024 score tiles and a matching independent pair per tile.");
+        Add([
+            new("ArgMax.v.ts", input, input, partials, new() { Columns = (uint)input.Elements }, groups),
+            new("ArgMax.v.ts", partials, partials, output, new() { Columns = groups, Mode = 1 }, 1),
+        ]);
+    }
+
+    public void Scale(GpuTensor input, GpuTensor output, float factor, bool roundBFloat16 = true)
     {
         Check(input, output);
         Require(SameShape(input, output) && float.IsFinite(factor), "Scale requires finite factor and matching shapes.");
-        Add([new("DecoderScale.v.ts", input, input, output, new()
+        uint groups = Groups(input.Elements, 64);
+        if (roundBFloat16)
+        {
+            Add([new("DecoderScale.v.ts", input, input, output, new()
+            {
+                Rows = (uint)input.Rows, Columns = (uint)input.Columns, Alpha = factor,
+            }, groups)]);
+            return;
+        }
+        uint groupsX = Math.Min(groups, 65535);
+        Add([new("DecoderPointwiseFp32.v.ts", input, input, output, new()
         {
             Rows = (uint)input.Rows, Columns = (uint)input.Columns, Alpha = factor,
-        }, Groups(input.Elements, 64))]);
+            Stride = groupsX * 64,
+        }, groupsX, (groups + groupsX - 1) / groupsX)]);
     }
 }

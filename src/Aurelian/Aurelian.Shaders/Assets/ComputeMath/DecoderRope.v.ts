@@ -18,13 +18,23 @@ function DecoderRopeMain(@builtin(dispatchThreadId) thread: uint3,
     if (pair < p.height) {
         frequency = Pow(p.theta, -2.0 * Convert<f32>(pair) / Convert<f32>(p.width));
     }
+    if (p.mode == 2) {
+        frequency = frequency / Auxiliary[pair];
+    }
     let angle = Convert<f32>(token + p.offset) * frequency;
-    let cosine = BFloat16(Cos(angle));
-    let sine = BFloat16(Sin(angle));
+    let cosine = Cos(angle);
+    let sine = Sin(angle);
     let first = head * p.width + pair;
     let second = first + half;
     let x = Input[first];
     let y = Input[second];
-    Output[first] = BFloat16(BFloat16(x * cosine) - BFloat16(y * sine));
-    Output[second] = BFloat16(BFloat16(y * cosine) + BFloat16(x * sine));
+    if (p.mode == 0) {
+        let roundedCos = BFloat16(cosine);
+        let roundedSin = BFloat16(sine);
+        Output[first] = BFloat16(BFloat16(x * roundedCos) - BFloat16(y * roundedSin));
+        Output[second] = BFloat16(BFloat16(y * roundedCos) + BFloat16(x * roundedSin));
+    } else {
+        Output[first] = x * cosine - y * sine;
+        Output[second] = y * cosine + x * sine;
+    }
 }
