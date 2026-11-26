@@ -1,6 +1,6 @@
 # Whisper Tiny.en on Vulkan
 
-The latest JFK run took **52.27 ms** with synchronous submissions and **47.54 ms** with a retained two-slot queue. The fresh whisper.cpp flash control took **28.95 ms**. [Decoder scheduling and allocation policy](#decoder-scheduling-and-allocation-policy)
+The FP32 two-slot control took **50.58 ms** on JFK. Packing Q/K/V cost **0.121 ms GPU** across the encoder. [FP16 packing and attention timings](#separating-fp16-packing-from-encoder-attention)
 
 Copeland commit `64cba528` plus the benchmark changes was measured against
 [whisper.cpp v1.9.6](https://github.com/ggml-org/whisper.cpp/releases/tag/v1.9.6)
@@ -309,6 +309,57 @@ the combined run. Append `queue=fixed-one`, `queue=fixed-two`,
 The upload and parameter changes are in the runtime. The four controlled
 assemblies, their hashes, command drivers, raw samples and traces are under
 `artifacts/local/whisper-baseline/acceleration/schedule-allocation/`.
+
+## Encoder precision and decoder submissions
+
+All Aurelian latency variants use the retained two-slot queue, pooled scratch, direct mel staging, batched decoder cross-attention and full host logits. Each standalone row pools seven requests from each of three fresh processes after two warmups. The paired column uses request-matched differences in two resident, interleaved runs.
+
+| Isolated change | Request, ms | GPU, ms | Compute submissions | Paired request change, ms |
+| --- | ---: | ---: | ---: | ---: |
+| FP32 control | 49.17 | 39.46 | 66 | +0.00 |
+| Packed FP16 projections | 54.11 | 46.14 | 66 | +7.13 |
+| Packed FP16 attention operands | 54.67 | 44.78 | 66 | +7.62 |
+| Decoder body and logits in one submission | 46.69 | 37.96 | 40 | -0.17 |
+
+The projection variant retains transposed FP16 weights, packs activations for each projection, pads 1,500 rows to 1,504, and crops the FP32 cooperative-matrix result. It covers encoder Q/K/V, output and MLP projections plus decoder cross-cache K/V preparation. The attention variant packs Q/K/V for each block using the existing FP32 softmax and FP32 accumulation. Convolution and the decoder body use FP32.
+
+| Fresh comparison | Request, ms |
+| --- | ---: |
+| Aurelian FP32 two-slot control | 48.36 |
+| Aurelian with joined logits | 46.86 |
+| whisper.cpp standard | 36.53 |
+| whisper.cpp flash | 29.02 |
+
+Each Aurelian request made 26 full-logit readbacks and zero warm Vulkan allocations. Joining the decoder and logits removed 26 compute submissions. Its two request-matched runs moved wall time by +0.44 and -1.10 ms respectively. The FP32 two-slot path remains the control. A separate synchronous diagnostic localized the FP16 attention cost to the four encoder attention batches, which rose from 5.55 to 13.80 ms GPU including packing. With cooperative projections, the encoder output and MLP batches rose from 5.36 to 10.01 ms. The group timers include conversion, multiply and output handling. The precision captures use separate validation-enabled runs and are excluded from every latency median.
+
+| FP16 change | Encoder RMS / max absolute error | Logits RMS / max absolute error | Full-vocabulary top-1 agreement |
+| --- | ---: | ---: | ---: |
+| Projections | 0.000398 / 0.01799 | 0.003117 / 0.01583 | 26/26 |
+| Attention operands | 0.000237 / 0.00406 | 0.004266 / 0.02533 | 26/26 |
+| Both | 0.000464 / 0.00884 | 0.006018 / 0.02561 | 26/26 |
+
+The comparison covers all 576,000 final normalized encoder values and 1,348,464 logits per variant. All variants followed the same 25-token JFK trajectory including end-of-text. This single clip measures numerical drift along that trajectory. Corpus-level word error rate is outside this measurement.
+
+Append `half-projections`, `half-attention`, or `join-logits` to the `fused persistent-read persistent-upload host-logits batch-cross queue=fixed-two` control. For numerical comparisons add `capture` in a separate run. The last request writes `encoder.f32` and one little-endian FP32 file per logit vector beside the JSON result.
+
+```powershell
+python tools/whisper-benchmark/compare_precision.py control.json variant.json
+```
+
+The raw samples, separately timestamped synchronous operation groups, capture comparisons and build hashes are under `artifacts/local/whisper-baseline/acceleration/shape-precision-qualified/`.
+
+## Separating FP16 packing from encoder attention
+
+The two-slot FP32 control and packed-Q/K/V variant use the same JFK mel window, checkpoint, decoder path and 26 logits readbacks. Each request submitted 66 compute batches. In separate profiling processes, Vulkan timestamps bracketed each dispatch and its following dependency barrier inside the original encoder attention command buffer. Each queue slot owns its query pool until its fence completes. The table reports medians of per-request sums over all four encoder layers, with 21 requests per mode.
+
+| Mode | K/V scatters, ms GPU | Pack Q, ms GPU | Pack K/V, ms GPU | Fused attention, ms GPU | Attention batch, ms GPU | Uninstrumented request, ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| FP32 two-slot control | 0.119 | 0.000 | 0.000 | 5.034 | 5.152 | 50.58 |
+| Packed FP16 Q/K/V | 0.119 | 0.045 | 0.077 | 12.531 | 12.770 | 58.36 |
+
+Packing Q and K/V together cost 0.121 ms GPU. The packed-input attention dispatch took 7.497 ms more than the FP32 dispatch. This interval includes packed loads, binary16-to-FP32 conversion, shared-memory work, score accumulation, softmax and the output write. The timestamp boundaries do not distinguish those operations within the dispatch.
+
+The FP32 run and the FP16 run each reproduced their corresponding prior encoder and logits captures. Enable `profile-attention` on the `fused persistent-read persistent-upload host-logits batch-cross queue=fixed-two` control, then repeat with `half-attention`. Each sample exposes per-layer GPU milliseconds in `EncoderAttentionProfile`. Use separate runs without profiling for request latency. Raw results are under `artifacts/local/whisper-baseline/acceleration/prefill-attention-qualified/`.
 
 ## Reproduce on Windows
 

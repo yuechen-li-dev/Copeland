@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Aurelian.Inference.Benchmarks;
 using Aurelian.Graphics.Vulkan.ComputeMath;
 using static Aurelian.WhisperBenchmark.TinyEnglishCheckpoint;
@@ -21,6 +22,11 @@ internal sealed class TinyEnglishModel : IDisposable
     private readonly float[]? hostLogits;
     private readonly bool fusedAttention;
     private readonly bool batchCross;
+    private readonly bool halfAttention;
+    private readonly bool joinLogits;
+    private readonly Dictionary<(int Rows, int Columns, GpuTensorFormat Format), GpuTensor> projectionScratch = [];
+    public bool ProfileAttention { get; init; }
+    public string? CaptureDirectory { get; set; }
     private readonly bool reuseReadback;
     private readonly bool reuseUpload;
     private readonly VulkanComputeMath.TiledAttentionWorkspace? crossWorkspace;
@@ -43,7 +49,8 @@ internal sealed class TinyEnglishModel : IDisposable
 
     public TinyEnglishModel(VulkanComputeMath math, TinyEnglishCheckpoint weights, bool batchAcrossHeads,
         bool reuseAttention, bool directAttention, bool vectorProjection, bool reuseScratch,
-        bool fusedAttention, bool reuseReadback, bool reuseUpload, bool hostLogits, bool batchCross)
+        bool fusedAttention, bool reuseReadback, bool reuseUpload, bool hostLogits, bool batchCross,
+        bool halfProjections, bool halfAttention, bool joinLogits)
     {
         this.math = math;
         this.batchAcrossHeads = batchAcrossHeads;
@@ -51,6 +58,12 @@ internal sealed class TinyEnglishModel : IDisposable
         this.hostLogits = hostLogits ? new float[Vocabulary] : null;
         this.fusedAttention = fusedAttention;
         this.batchCross = batchCross;
+        this.halfAttention = halfAttention;
+        this.joinLogits = joinLogits;
+        if (halfProjections && !math.CooperativeMatrixEnabled)
+        {
+            throw new NotSupportedException("Packed encoder projections require cooperative FP16 multiply with FP32 accumulation.");
+        }
         this.reuseReadback = reuseReadback;
         this.reuseUpload = reuseUpload;
         try
@@ -114,9 +127,33 @@ internal sealed class TinyEnglishModel : IDisposable
         GpuTensor Norm(string name) => Upload(1, 2 * Width,
             [.. weights.Read(name + ".weight", Width), .. weights.Read(name + ".bias", Width)]);
 
-        Linear Affine(string name, int inputWidth, int outputWidth, bool bias = true) => new(
-            Upload(outputWidth, inputWidth, weights.Read(name + ".weight", inputWidth, outputWidth)),
-            bias ? Upload(1, outputWidth, weights.Read(name + ".bias", outputWidth)) : null);
+        Linear Affine(string name, int inputWidth, int outputWidth, bool bias = true)
+        {
+            float[] source = weights.Read(name + ".weight", inputWidth, outputWidth);
+            bool encoderProjection = name.StartsWith("encoder.", StringComparison.Ordinal)
+                || name.EndsWith(".cross_attn.key", StringComparison.Ordinal)
+                || name.EndsWith(".cross_attn.value", StringComparison.Ordinal);
+            GpuTensor weight;
+            if (halfProjections && encoderProjection)
+            {
+                var transposed = new float[source.Length];
+                for (int row = 0; row < outputWidth; row++)
+                {
+                    for (int col = 0; col < inputWidth; col++)
+                    {
+                        transposed[col * outputWidth + row] = source[row * inputWidth + col];
+                    }
+                }
+                weight = math.CreateTensor(inputWidth, outputWidth, GpuTensorFormat.PackedFloat16);
+                resident.Add(weight);
+                math.Upload(weight, transposed);
+            }
+            else
+            {
+                weight = Upload(outputWidth, inputWidth, source);
+            }
+            return new(weight, bias ? Upload(1, outputWidth, weights.Read(name + ".bias", outputWidth)) : null);
+        }
 
         Attention LoadAttention(string name) => new(Norm(name + "_ln"),
             Affine(name + ".query", Width, Width),
@@ -160,7 +197,8 @@ internal sealed class TinyEnglishModel : IDisposable
         var scope = requestScope ?? queue?.Retained;
         var initialMetrics = scope?.Metrics;
         var timer = Stopwatch.StartNew();
-        Encode(mel, metrics);
+        List<QueuedDispatchProfile>? profiles = ProfileAttention ? new(Layers) : null;
+        Encode(mel, metrics, profiles);
         double encode = timer.Elapsed.TotalMilliseconds;
         timer.Restart();
         Evaluate(StartOfText, 0, metrics);
@@ -182,10 +220,11 @@ internal sealed class TinyEnglishModel : IDisposable
         var queueMetrics = QueueSample.Between(initialMetrics, scope?.Metrics);
         return new(total.Elapsed.TotalMilliseconds, encode, prefill, decode,
             tokens, math.ReadbackCount - readbacks, math.MemoryTelemetry.AllocationCount - allocations,
-            GC.GetAllocatedBytesForCurrentThread() - managedStart, metrics.Operations, queueMetrics);
+            GC.GetAllocatedBytesForCurrentThread() - managedStart, metrics.Operations, queueMetrics,
+            profiles?.Select(profile => EncoderAttentionGpuTiming.From(profile.DispatchMilliseconds, halfAttention)).ToArray());
     }
 
-    private void Encode(float[] mel, InferenceMetrics metrics)
+    private void Encode(float[] mel, InferenceMetrics metrics, List<QueuedDispatchProfile>? profiles)
     {
         using var scratch = new ScratchScope(math, scratchPool);
         var audio = scratch.Create(AudioRows * 2, MelBins);
@@ -206,7 +245,7 @@ internal sealed class TinyEnglishModel : IDisposable
 
         for (int layer = 0; layer < Layers; layer++)
         {
-            EncodeBlock(hidden, encoder[layer], metrics);
+            EncodeBlock(hidden, encoder[layer], metrics, profiles);
         }
         batch = math.CreateBatch();
         batch.Normalize(hidden, encodedNorm, hidden, Normalization.LayerNorm);
@@ -217,9 +256,13 @@ internal sealed class TinyEnglishModel : IDisposable
             Project(batch, hidden, cross.Value, crossCache[layer].Value);
         }
         Execute(batch, metrics, "encoder-cross-cache");
+        if (CaptureDirectory is not null)
+        {
+            Capture("encoder.f32", math.Read(hidden));
+        }
     }
 
-    private void EncodeBlock(GpuTensor hidden, Block block, InferenceMetrics metrics)
+    private void EncodeBlock(GpuTensor hidden, Block block, InferenceMetrics metrics, List<QueuedDispatchProfile>? profiles)
     {
         using var scratch = new ScratchScope(math, scratchPool);
         var normalized = scratch.Create(hidden.Rows, Width);
@@ -241,8 +284,28 @@ internal sealed class TinyEnglishModel : IDisposable
             batch = math.CreateBatch();
             batch.Scatter(key, packedKeyValue);
             batch.Scatter(value, packedKeyValue, firstRow: key.Rows);
-            batch.FusedAttention64(query, packedKeyValue, attention);
-            Execute(batch, metrics, "encoder-attention");
+            if (halfAttention)
+            {
+                var halfQuery = AlignedScratch(query, GpuTensorFormat.PackedFloat16);
+                var halfKeyValue = AlignedScratch(packedKeyValue, GpuTensorFormat.PackedFloat16);
+                batch.PackMatrixHalf(query, halfQuery);
+                batch.PackMatrixHalf(packedKeyValue, halfKeyValue);
+                batch.FusedAttention64Packed(halfQuery, halfKeyValue, attention, key.Rows);
+            }
+            else
+            {
+                batch.FusedAttention64(query, packedKeyValue, attention);
+            }
+            if (profiles is null)
+            {
+                Execute(batch, metrics, "encoder-attention");
+            }
+            else
+            {
+                var timer = Stopwatch.StartNew();
+                profiles.Add(math.EnqueueWithDispatchTimings(batch));
+                metrics.Record("encoder-attention", timer.Elapsed.TotalMilliseconds, null, 1, batch.DispatchCount, 0);
+            }
         }
         else
         {
@@ -297,12 +360,15 @@ internal sealed class TinyEnglishModel : IDisposable
             ProjectResidual(batch, hidden, scratch.Attended, cross.Output, scratch.Projected);
             FeedForward(batch, hidden, block.Mlp, scratch.Normalized, scratch.Expanded, scratch.Projected);
         }
-        Execute(batch, metrics, "decoder-blocks");
+        if (!joinLogits)
+        {
+            Execute(batch, metrics, "decoder-blocks");
+            batch = math.CreateBatch();
+        }
         var logits = allocations.Create(1, Vocabulary);
-        batch = math.CreateBatch();
         batch.Normalize(hidden, decodedNorm, scratch.Normalized, Normalization.LayerNorm);
         MultiplyProjection(batch, scratch.Normalized, embedding, logits);
-        Execute(batch, metrics, "decoder-logits");
+        Execute(batch, metrics, joinLogits ? "decoder-body-and-logits" : "decoder-logits");
         var timer = Stopwatch.StartNew();
         float[] values;
         if (hostLogits is { } destination)
@@ -315,6 +381,10 @@ internal sealed class TinyEnglishModel : IDisposable
             values = math.Read(logits, reuseReadback);
         }
         metrics.RecordTransfer("decoder-logits-readback", timer.Elapsed.TotalMilliseconds);
+        if (CaptureDirectory is not null)
+        {
+            Capture($"logits-{position:D3}.f32", values);
+        }
         int next = 0;
         for (int index = 0; index <= EndOfText; index++)
         {
@@ -328,6 +398,25 @@ internal sealed class TinyEnglishModel : IDisposable
             }
         }
         return next;
+    }
+
+    private void Capture(string name, float[] values)
+    {
+        using var stream = File.Create(Path.Combine(CaptureDirectory!, name));
+        stream.Write(MemoryMarshal.AsBytes(values.AsSpan()));
+    }
+
+    private GpuTensor AlignedScratch(GpuTensor source, GpuTensorFormat format)
+    {
+        int rows = (source.Rows + 15) / 16 * 16;
+        var key = (rows, source.Columns, format);
+        if (!projectionScratch.TryGetValue(key, out var result))
+        {
+            result = math.CreateTensor(rows, source.Columns, format);
+            resident.Add(result);
+            projectionScratch.Add(key, result);
+        }
+        return result;
     }
 
     private static void Convolve(ComputeMathBatch batch, GpuTensor input, Linear weights,
@@ -352,7 +441,18 @@ internal sealed class TinyEnglishModel : IDisposable
 
     private void Project(ComputeMathBatch batch, GpuTensor input, Linear layer, GpuTensor output)
     {
-        MultiplyProjection(batch, input, layer.Weight, output);
+        if (layer.Weight.Format == GpuTensorFormat.PackedFloat16)
+        {
+            var operand = AlignedScratch(input, GpuTensorFormat.PackedFloat16);
+            var product = AlignedScratch(output, GpuTensorFormat.Float32);
+            batch.PackMatrixHalf(input, operand);
+            batch.MultiplyCooperative(operand, layer.Weight, product);
+            batch.Gather(product, output);
+        }
+        else
+        {
+            MultiplyProjection(batch, input, layer.Weight, output);
+        }
         if (layer.Bias is { } bias)
         {
             batch.Activate(output, output, TensorActivation.Bias, bias);

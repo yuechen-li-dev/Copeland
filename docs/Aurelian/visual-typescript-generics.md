@@ -131,6 +131,27 @@ GPU static `if` requires a closed condition at binding; open generic bodies can
 use ordinary typed branches. This slice does not add a specialization-dependent
 syntax expansion phase.
 
+## Choosing an operand layout for a compute kernel
+
+The Whisper attention kernel imports `Operand` from `AttentionOperand.v.ts`.
+The FP32 implementation calls `ReadOperand<false>(data, index)`. The packed
+implementation calls `ReadOperand<true>(data, index)`, which extracts one IEEE
+binary16 value from a pair and converts it to FP32. Both implementations use
+the same storage-buffer signature.
+
+`BuiltinComputeShaderCache` registers the packed program under
+`FusedAttention64.Packed`. Its variant entry names the shared compute source,
+the imported module, and its replacement. The source loader binds that module
+before Visual TypeScript specializes the generic. Each resulting SPIR-V
+program has its own pipeline. Query and key tiling, barriers, online softmax,
+and output accumulation are authored once in `FusedAttention64.v.ts`.
+
+GPT-2 selects `FusedAttention64.Causal` for prefill. It keeps the FP32 operand
+reader and binds `CausalAttentionLayout.v.ts` in place of `AttentionLayout.v.ts`.
+That module selects `MaskedScore<true, 1.0>` because GPT-2 supplies scaled
+queries, and locates the value rows using the resident cache capacity.
+Whisper selects `MaskedScore<false, 0.125>` for its 64-channel heads.
+
 ## Qualification
 
 ```powershell

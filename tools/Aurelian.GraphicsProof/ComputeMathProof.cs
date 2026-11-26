@@ -389,6 +389,50 @@ internal static class ComputeMathProof
         Check("fused-attention64-interleaved-tails", batch, fusedOutput, fusedExpected);
         ExpectRejected(() => math.CreateBatch().FusedAttention64(fusedQuery, fusedCache, fusedQuery));
 
+        // Three query tiles span the 32-key boundary. Poison the unused cache capacity.
+        const int promptRows = 35;
+        const int cacheCapacity = 47;
+        float[] promptQ = Values(promptRows * 64, 119);
+        float[] promptK = Values(promptRows * 64, 121);
+        float[] promptV = Values(promptRows * 64, 123);
+        float[] cacheData = Enumerable.Repeat(123f, 2 * cacheCapacity * 64).ToArray();
+        promptK.CopyTo(cacheData, 0);
+        promptV.CopyTo(cacheData, cacheCapacity * 64);
+        var scaledPrompt = Tensor(promptRows, 64, promptQ.Select(value => value * 0.125f).ToArray());
+        var promptCache = Tensor(2 * cacheCapacity, 64, cacheData);
+        var promptOutput = Tensor(promptRows, 64);
+        batch = math.CreateBatch();
+        batch.CausalPrefillAttention64(scaledPrompt, promptCache, promptOutput);
+        Check("causal-prefill-scaled-query-padded-cache", batch, promptOutput,
+            Attention(promptQ, promptK, promptV, promptRows, promptRows, 64, 64, true, 0));
+        ExpectRejected(() => math.CreateBatch().CausalPrefillAttention64(scaledPrompt, promptCache, scaledPrompt));
+
+        var halfQuery = Tensor(32, fusedWidth, format: GpuTensorFormat.PackedFloat16);
+        var halfCache = Tensor(144, fusedWidth, format: GpuTensorFormat.PackedFloat16);
+        batch = math.CreateBatch();
+        batch.PackMatrixHalf(fusedQuery, halfQuery);
+        batch.PackMatrixHalf(fusedCache, halfCache);
+        batch.FusedAttention64Packed(halfQuery, halfCache, fusedOutput, fusedKeys);
+        Check("packed-attention64-interleaved-tails", batch, fusedOutput, fusedExpected, 0.001);
+
+        // The fused decoder writes two bindings, including only the selected cache row in each half.
+        const int qkvWidth = 65;
+        float[] qkvValues = Values(3 * qkvWidth, 151);
+        var qkv = Tensor(1, 3 * qkvWidth, qkvValues);
+        var kv = Tensor(6, qkvWidth, new float[6 * qkvWidth]);
+        var scaledQuery = Tensor(1, qkvWidth);
+        var cacheCopy = Tensor(6, qkvWidth);
+        batch = math.CreateBatch();
+        batch.DecodeQkv(qkv, kv, scaledQuery, 1, 0.125f);
+        batch.Gather(kv, cacheCopy);
+        ExpectRejected(() => math.Prepare(batch, new PreparedComputeOptions(ElideIndependentBarriers: true)));
+        float[] expectedCache = new float[6 * qkvWidth];
+        Array.Copy(qkvValues, qkvWidth, expectedCache, qkvWidth, qkvWidth);
+        Array.Copy(qkvValues, 2 * qkvWidth, expectedCache, 4 * qkvWidth, qkvWidth);
+        Check("decode-qkv-cache-append", batch, cacheCopy, expectedCache, 0);
+        Require(math.Read(scaledQuery).SequenceEqual(qkvValues.Take(qkvWidth).Select(value => value * 0.125f)),
+            "Fused decoder returned the wrong scaled query.");
+
         // A tiny random-weight transformer-style chain, not a model loader or claim
         // of model inference: RMSNorm -> Q/K/V -> RoPE -> attention -> gated FFN -> residual.
         float[] xValues = Values(5 * 8, 47);

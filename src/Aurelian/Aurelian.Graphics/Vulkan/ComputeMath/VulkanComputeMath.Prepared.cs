@@ -58,15 +58,18 @@ public sealed unsafe partial class VulkanComputeMath
                     {
                         var a = dispatches[first];
                         var b = dispatches[second];
-                        ComputeMathBatch.Require(!ReferenceEquals(a.Output.Buffer, b.Input.Buffer)
-                            && !ReferenceEquals(a.Output.Buffer, b.Auxiliary.Buffer)
-                            && !ReferenceEquals(a.Output.Buffer, b.Output.Buffer)
-                            && !ReferenceEquals(b.Output.Buffer, a.Input.Buffer)
-                            && !ReferenceEquals(b.Output.Buffer, a.Auxiliary.Buffer),
+                        ComputeMathBatch.Require(!Touches(b, a.Output) && !Touches(a, b.Output)
+                            && !(a.WritesAuxiliary && Touches(b, a.Auxiliary))
+                            && !(b.WritesAuxiliary && Touches(a, b.Auxiliary)),
                             "Barrier elision requires independent dispatch allocations; read/write and write/write hazards are rejected.");
                     }
                 }
             }
+            static bool Touches(ComputeMathDispatch dispatch, GpuTensor tensor)
+                => ReferenceEquals(dispatch.Input.Buffer, tensor.Buffer)
+                    || ReferenceEquals(dispatch.Auxiliary.Buffer, tensor.Buffer)
+                    || ReferenceEquals(dispatch.Output.Buffer, tensor.Buffer);
+
             DispatchCount = dispatches.Length;
             HasDeviceLocalParameters = options.DeviceLocalParameters;
             tensors = dispatches.SelectMany(dispatch => new[]

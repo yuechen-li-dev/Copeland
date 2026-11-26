@@ -49,13 +49,14 @@ public sealed unsafe partial class VulkanComputeMath
             ring.CompletionWaits, ring.MaximumOutstanding, ring.MaximumInFlight,
             ring.UploadedBytes, ring.GpuMilliseconds, maximumRetiredBuffers, ring.TransferGpuMilliseconds);
 
-        internal ComputeMathResult Submit(ComputeMathBatch batch, GpuTensor? upload, ReadOnlyMemory<byte> bytes)
+        internal ComputeMathResult Submit(ComputeMathBatch batch, GpuTensor? upload, ReadOnlyMemory<byte> bytes,
+            QueuedDispatchProfile? profile = null)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             ComputeMathBatch.Require(ring.Submissions < forecast.BatchCount
                 && batch.DispatchCount <= forecast.DispatchesPerBatch && (ulong)bytes.Length <= forecast.UploadBytes,
                 "Queued work exceeds its authored submission, dispatch or transfer forecast.");
-            ring.Submit(batch, upload: upload, bytes: bytes);
+            ring.Submit(batch, upload: upload, bytes: bytes, profile: profile);
             CollectCompleted();
             // GPU cost is available only after harvest, through Metrics.
             return new(batch.DispatchCount, null);

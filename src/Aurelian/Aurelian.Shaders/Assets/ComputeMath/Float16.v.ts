@@ -23,3 +23,23 @@ export function Float16(value: f32): f32 {
     let sign = Bitcast<u32>(value) & (32768 << 16);
     return Bitcast<f32>(Bitcast<u32>(result) | sign);
 }
+
+// Decode a logical scalar from packed IEEE binary16 or a full FP32 word.
+export function ReadOperand<static Packed: bool>(readonly data: StorageBuffer<u32>, index: u32): f32 {
+    if (Packed) {
+        let word = data[index >> 1];
+        let half = (word >> ((index & 1) * 16)) & 65535;
+        let exponent = (half >> 10) & 31;
+        let mantissa = half & 1023;
+        let sign = (half & 32768) << 16;
+        if (exponent == 0) {
+            let magnitude = Convert<f32>(mantissa) * 0.000000059604644775390625;
+            return Bitcast<f32>(sign | Bitcast<u32>(magnitude));
+        }
+        if (exponent == 31) {
+            return Bitcast<f32>(sign | 0x7f800000 | (mantissa << 13));
+        }
+        return Bitcast<f32>(sign | ((exponent + 112) << 23) | (mantissa << 13));
+    }
+    return Bitcast<f32>(data[index]);
+}

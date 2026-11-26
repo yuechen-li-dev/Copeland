@@ -1,6 +1,6 @@
 # GPT-2 small on Vulkan
 
-The latest full runtime build took **75.71 ms** for 32 decode steps on the RTX 3070. The fresh llama.cpp control took **67.87 ms**. [Dispatch allocation and queue policy](#dispatch-allocation-and-queue-policy)
+The FP32 path with causal prefill attention and a single-row final MLP took **5.95 ms for prefill**. The fresh llama.cpp control took **4.00 ms**. [Causal prefill attention and the last-row MLP](#causal-prefill-attention-and-the-last-row-mlp)
 
 On an RTX 3070 with Vulkan driver 610.88 and a Ryzen 7 7700X, the dedicated
 single-row projection increased Aurelian decode throughput from **93.1 to
@@ -181,6 +181,53 @@ usual `gemv persistent-staging width-norm host-logits` arguments. Omit the
 queue option for the synchronous path. Raw samples, controller observations,
 assembly hashes, traces and the serial and paired drivers are under
 `artifacts/local/whisper-baseline/acceleration/schedule-allocation/`.
+
+## Prefill shapes and decode cache writes
+
+The FP32 GPT-2 test uses a 32-token prompt and 32 forced decode steps on the RTX 3070. Aurelian and llama.cpp b12453 consume the same GGUF and read the full vocabulary to the host at each evaluation. Each standalone row pools nine measured requests from each of three fresh processes after two warmups. The paired column is the median per-request difference from the resident control over two interleaved runs. Only one process executes on the GPU at a time.
+
+| Isolated change | Prefill, ms | 32-step decode, ms | Paired change in targeted phase, ms |
+| --- | ---: | ---: | ---: |
+| Control | 11.46 | 78.71 | +0.00 |
+| Vocabulary GEMV for the last prompt row | 10.69 | 77.17 | -0.70 |
+| 8-row × 4-output tile for the MLP down projection | 8.41 | 79.51 | -3.13 |
+| Fuse Q scaling and K/V cache append | 11.48 | 72.31 | -5.83 |
+
+| Fresh comparison | Prefill, ms | 32-step decode, ms | Prefill + decode, ms |
+| --- | ---: | ---: | ---: |
+| Aurelian control | 11.51 | 78.19 | 89.46 |
+| Aurelian, all three switches | 7.65 | 73.48 | 81.12 |
+| llama.cpp Vulkan | 3.92 | 67.42 | 71.38 |
+
+The combined path closes 46% of the control's request-time gap. Managed allocation per request fell from 1,954,416 to 1,699,448 bytes, with zero warm Vulkan buffer allocations. All 33 predicted token IDs agreed. The largest winning-score difference between the combined and FP32 control paths was 0.05956.
+
+In the separate five-request GPU profile the prefill down-projection group fell from 4.33 to 1.03 ms, the vocabulary head from 1.01 to 0.35 ms and the 32-step decode cache-write group from 6.04 to 0.95 ms. The fresh llama.cpp prefill vocabulary head also took 0.35 ms. Aurelian prefill attention score/softmax/value still took 1.47 ms versus 0.27 ms in llama.cpp. The reference ran the final MLP on one row, which gives a concrete next experiment for the full-prompt Aurelian path. Group boundaries differ where llama.cpp fuses affine or residual work.
+
+Append `prefill-head prefill-down fused-qkv` to the benchmark's `gemv persistent-staging width-norm host-logits` control. The separate `profile` run records per-dispatch GPU timestamps. Raw measurements, profile groups and hashes are in `artifacts/local/whisper-baseline/acceleration/shape-precision-qualified/`.
+
+## Causal prefill attention and the last-row MLP
+
+The incoming control enables `prefill-head prefill-down fused-qkv` on the FP32 GEMV path. Each A/B pools 27 requests across three fresh processes. The paired column compares 72 requests per variant from three interleaved process sets. Each request has a 32-token prompt, 32 fixed decode steps and full host logits. Only the selected worker runs on the GPU during an interleaved request.
+
+| Isolated change | Prefill, ms | Paired prefill change, ms |
+| --- | ---: | ---: |
+| Incoming control | 7.56 | +0.000 |
+| Fused causal prefill attention | 6.17 | -1.460 |
+| Final MLP on last row | 7.36 | -0.120 |
+
+The attention kernel reads all live K/V rows from the existing paired cache and applies the causal mask before online softmax. The last-row variant runs the full attention output and residual first, then gathers the final hidden row into resident single-row scratch. All 12 layers still populate the entire prompt cache.
+
+| Fresh comparison | Prefill, ms | 32-step decode, ms | Prefill + decode, ms |
+| --- | ---: | ---: | ---: |
+| Aurelian incoming control | 7.55 | 71.12 | 78.68 |
+| Aurelian with both changes | 5.95 | 70.18 | 75.99 |
+| llama.cpp b12453 Vulkan | 4.00 | 68.14 | 72.15 |
+
+In the separately instrumented prefill, Aurelian attention moved from 1.472 to 0.072 ms GPU. The fresh reference logger measured 0.267 ms for its attention group. Aurelian's combined QKV projection and bias group took 1.119 ms and its attention output projection and residual group took 1.120 ms. The reference matrix groups took 0.420 and 0.181 ms respectively. The runtimes group bias and residual work differently.
+
+All 33 winning token IDs agreed across controls and both variants. A separate full-vocabulary capture compared 1,658,481 logits per Aurelian variant. The combined RMS error was 0.000974, with maximum absolute change 0.004074 against the incoming control. Warm Vulkan allocation counts stayed at zero.
+
+Add `prefill-attention` and `last-row-mlp` independently or together. The optional `capture` writes little-endian FP32 logits for all 33 evaluations in the last request to `OUTPUT_JSON.logits.f32`. Raw samples, interleave orders, profiles, input hashes and the runner are under `artifacts/local/whisper-baseline/acceleration/prefill-attention-qualified/`.
 
 ## Run the comparison
 

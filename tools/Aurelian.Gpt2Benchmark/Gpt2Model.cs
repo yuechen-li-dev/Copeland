@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Aurelian.Inference.Benchmarks;
 using Aurelian.Graphics.Vulkan.ComputeMath;
 
@@ -37,12 +38,19 @@ internal sealed class Gpt2Model : IDisposable
         GpuTensor Key, GpuTensor Value, GpuTensor Attention, GpuTensor Projected, GpuTensor Expanded);
     private sealed record AttentionScratch(GpuTensor Scores, GpuTensor Probabilities);
 
+    public Stream? LogitsCapture { private get; set; }
+
     private readonly VulkanComputeMath math;
     private readonly bool vectorProjection;
     private readonly float[]? hostLogits;
     private readonly bool profileDispatches;
     private readonly bool reuseStaging;
     private readonly bool widthNorm;
+    private readonly bool prefillHead;
+    private readonly bool prefillDown;
+    private readonly bool fusedQkv;
+    private readonly bool prefillAttentionKernel;
+    private readonly bool lastRowMlp;
     private readonly List<GpuTensor> tensors = [];
     private readonly Block[] blocks = new Block[12];
     private readonly GpuTensor embeddings;
@@ -57,7 +65,8 @@ internal sealed class Gpt2Model : IDisposable
     private readonly AttentionScratch[] decodeAttention = new AttentionScratch[DecodeSteps];
 
     public Gpt2Model(VulkanComputeMath math, Gpt2Checkpoint checkpoint, bool vectorProjection,
-        bool profileDispatches, bool reuseStaging, bool widthNorm, bool hostLogits)
+        bool profileDispatches, bool reuseStaging, bool widthNorm, bool hostLogits, bool prefillHead, bool prefillDown, bool fusedQkv,
+        bool prefillAttentionKernel, bool lastRowMlp)
     {
         this.math = math;
         this.vectorProjection = vectorProjection;
@@ -65,6 +74,11 @@ internal sealed class Gpt2Model : IDisposable
         this.profileDispatches = profileDispatches;
         this.reuseStaging = reuseStaging;
         this.widthNorm = widthNorm;
+        this.prefillHead = prefillHead;
+        this.prefillDown = prefillDown;
+        this.fusedQkv = fusedQkv;
+        this.prefillAttentionKernel = prefillAttentionKernel;
+        this.lastRowMlp = lastRowMlp;
         try
         {
             embeddings = Upload("token_embd.weight", Vocabulary, Width, Width, Vocabulary);
@@ -74,13 +88,14 @@ internal sealed class Gpt2Model : IDisposable
             for (int layer = 0; layer < blocks.Length; layer++)
             {
                 string prefix = $"blk.{layer}.";
+                var keys = Create(fusedQkv || prefillAttentionKernel ? 2 * Context : Context, Width);
                 blocks[layer] = new(LoadNorm(prefix + "attn_norm"),
                     LoadLinear(prefix + "attn_qkv", Width, 3 * Width),
                     LoadLinear(prefix + "attn_output", Width, Width),
                     LoadNorm(prefix + "ffn_norm"),
                     LoadLinear(prefix + "ffn_up", Width, Expansion),
                     LoadLinear(prefix + "ffn_down", Expansion, Width),
-                    Create(Context, Width), Create(Context, Width));
+                    keys, fusedQkv || prefillAttentionKernel ? keys : Create(Context, Width));
             }
 
             lastRow = Create(1, Width);
@@ -172,6 +187,7 @@ internal sealed class Gpt2Model : IDisposable
         List<(GpuPhase Phase, int End)>? boundaries = phases is null ? null : [];
         int rows = s.Hidden.Rows;
         int keyCount = position + rows;
+        bool trimFinalMlp = lastRowMlp && rows > 1;
         batch.Gather(embeddings, s.Hidden, firstRow: firstToken);
         batch.Gather(positions, s.Normalized, firstRow: position);
         batch.Activate(s.Hidden, s.Hidden, TensorActivation.Residual, s.Normalized);
@@ -182,22 +198,43 @@ internal sealed class Gpt2Model : IDisposable
             Mark(GpuPhase.Normalization);
             Project(batch, s.Normalized, block.Qkv, s.Qkv);
             Mark(GpuPhase.QueryKeyValue);
-            batch.Gather(s.Qkv, s.Query);
-            batch.Gather(s.Qkv, s.Key, firstColumn: Width);
-            batch.Gather(s.Qkv, s.Value, firstColumn: 2 * Width);
-            batch.Scatter(s.Key, block.KeyCache, firstRow: position);
-            batch.Scatter(s.Value, block.ValueCache, firstRow: position);
+            int valueOffset = fusedQkv || prefillAttentionKernel ? Context : 0;
+            if (fusedQkv && rows == 1)
+            {
+                batch.DecodeQkv(s.Qkv, block.KeyCache, s.Query, position, 1f / MathF.Sqrt(HeadWidth));
+            }
+            else
+            {
+                batch.Gather(s.Qkv, s.Query);
+                batch.Gather(s.Qkv, s.Key, firstColumn: Width);
+                batch.Gather(s.Qkv, s.Value, firstColumn: 2 * Width);
+                batch.Scatter(s.Key, block.KeyCache, firstRow: position);
+                batch.Scatter(s.Value, block.ValueCache, firstRow: valueOffset + position);
+                batch.Scale(s.Query, s.Query, 1f / MathF.Sqrt(HeadWidth));
+            }
             Mark(GpuPhase.CacheWrites);
-            batch.Scale(s.Query, s.Query, 1f / MathF.Sqrt(HeadWidth));
-            batch.GroupedAttentionScores(s.Query, block.KeyCache, attention.Scores,
-                Heads, Heads, HeadWidth, position, keyCount, Context, roundBFloat16: false);
-            batch.ReduceRows(attention.Scores, attention.Probabilities);
-            batch.GroupedAttentionValues(attention.Probabilities, block.ValueCache, s.Attention,
-                Heads, Heads, HeadWidth, roundBFloat16: false);
+            if (prefillAttentionKernel && rows > 1)
+            {
+                batch.CausalPrefillAttention64(s.Query, block.KeyCache, s.Attention);
+            }
+            else
+            {
+                batch.GroupedAttentionScores(s.Query, block.KeyCache, attention.Scores,
+                    Heads, Heads, HeadWidth, position, keyCount, Context, roundBFloat16: false);
+                batch.ReduceRows(attention.Scores, attention.Probabilities);
+                batch.GroupedAttentionValues(attention.Probabilities, block.ValueCache, s.Attention,
+                    Heads, Heads, HeadWidth, roundBFloat16: false, firstValueRow: valueOffset);
+            }
             Mark(GpuPhase.Attention);
             Project(batch, s.Attention, block.AttentionOutput, s.Projected);
             batch.Activate(s.Hidden, s.Hidden, TensorActivation.Residual, s.Projected);
             Mark(GpuPhase.AttentionOutput);
+            if (trimFinalMlp && ReferenceEquals(block, blocks[^1]))
+            {
+                // All layer caches are complete. Only this row contributes to the requested logits.
+                batch.Gather(s.Hidden, decode.Hidden, firstRow: rows - 1);
+                s = decode;
+            }
             Normalize(batch, s.Hidden, block.FeedForwardNorm, s.Normalized);
             Mark(GpuPhase.Normalization);
             Project(batch, s.Normalized, block.Up, s.Expanded);
@@ -208,10 +245,13 @@ internal sealed class Gpt2Model : IDisposable
             batch.Activate(s.Hidden, s.Hidden, TensorActivation.Residual, s.Projected);
             Mark(GpuPhase.FeedForwardDown);
         }
-        batch.Gather(s.Hidden, lastRow, firstRow: rows - 1);
-        Normalize(batch, lastRow, outputNorm, lastRow);
+        if (!trimFinalMlp)
+        {
+            batch.Gather(s.Hidden, lastRow, firstRow: rows - 1);
+        }
+        Normalize(batch, trimFinalMlp ? decode.Hidden : lastRow, outputNorm, lastRow);
         Mark(GpuPhase.Normalization);
-        Multiply(batch, lastRow, outputWeights, logits, allowVector: rows == 1);
+        Multiply(batch, lastRow, outputWeights, logits, allowVector: prefillHead || rows == 1);
         Mark(GpuPhase.Vocabulary);
         ComputeMathResult execution;
         if (phases is not null && boundaries is not null)
@@ -245,6 +285,10 @@ internal sealed class Gpt2Model : IDisposable
             values = math.Read(logits, reuseStaging);
         }
         double readbackMs = Stopwatch.GetElapsedTime(readbackStart).TotalMilliseconds;
+        if (LogitsCapture is { } capture)
+        {
+            capture.Write(MemoryMarshal.AsBytes(values.AsSpan()));
+        }
         int best = 0;
         for (int index = 0; index < values.Length; index++)
         {
@@ -282,7 +326,11 @@ internal sealed class Gpt2Model : IDisposable
 
     private void Multiply(ComputeMathBatch batch, GpuTensor input, GpuTensor weight, GpuTensor output, bool allowVector)
     {
-        if (allowVector && vectorProjection)
+        if (prefillDown && input.Rows == PromptLength && input.Columns == Expansion && output.Columns == Width)
+        {
+            batch.PrefillDown32(input, weight, output);
+        }
+        else if (allowVector && vectorProjection)
         {
             batch.MultiplyVector(input, weight, output);
         }

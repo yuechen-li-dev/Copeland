@@ -2,6 +2,29 @@ namespace Aurelian.Graphics.Vulkan.ComputeMath;
 
 public sealed partial class ComputeMathBatch
 {
+    public void PrefillDown32(GpuTensor input, GpuTensor weights, GpuTensor output)
+    {
+        Check(input, weights, output);
+        Require(input.Rows == 32 && input.Columns == 3072 && weights.Rows == 768 && weights.Columns == 3072
+            && output.Rows == 32 && output.Columns == 768, "Expected a 32-row 3072-to-768 projection.");
+        Add([new("PrefillDown.v.ts", input, weights, output, new() { Columns = 768 }, 4, 192)]);
+    }
+
+    public void DecodeQkv(GpuTensor qkv, GpuTensor cache, GpuTensor query, int position, float scale)
+    {
+        Check(qkv, cache, query);
+        int capacity = cache.Rows / 2;
+        Require(qkv.Rows == 1 && query.Rows == 1 && qkv.Columns == 3L * query.Columns
+            && cache.Columns == query.Columns && cache.Rows == capacity * 2
+            && position >= 0 && position < capacity && float.IsFinite(scale)
+            && Groups(query.Columns, 64) <= 65535,
+            "Decode QKV needs one projected row and a paired key/value cache.");
+        Add([new("DecodeQkv.v.ts", qkv, cache, query, new()
+        {
+            Width = (uint)query.Columns, Rows = (uint)capacity, Offset = (uint)position, Alpha = scale,
+        }, Groups(query.Columns, 64))]);
+    }
+
     /// <summary>Single-row projection with contiguous input weights for each output.</summary>
     public void MultiplyVector(GpuTensor input, GpuTensor weights, GpuTensor output)
     {
@@ -34,6 +57,43 @@ public sealed partial class ComputeMathBatch
         {
             Rows = (uint)query.Rows, Columns = (uint)keys, Width = (uint)query.Columns, Inner = Groups(keys, 32),
         }, Groups(query.Rows, 16), (uint)heads)]);
+    }
+
+    /// <summary>FP32 causal prefill from position zero. Query already includes the
+    /// head scale. Cache halves hold K and V and may extend beyond the live rows.</summary>
+    public void CausalPrefillAttention64(GpuTensor scaledQuery, GpuTensor keyValue, GpuTensor output)
+    {
+        Check(scaledQuery, keyValue, output);
+        int rows = scaledQuery.Rows;
+        int capacity = keyValue.Rows / 2;
+        Require(SameShape(scaledQuery, output) && rows <= 2048 && rows <= capacity
+            && keyValue.Rows == capacity * 2 && keyValue.Columns == scaledQuery.Columns
+            && output.Columns % 64 == 0 && output.Columns / 64 <= 65535
+            && !ReferenceEquals(scaledQuery, output) && !ReferenceEquals(keyValue, output),
+            "Causal prefill requires 64-wide heads, independent output, and two cache halves covering the prompt.");
+        Add([new("FusedAttention64.Causal", scaledQuery, keyValue, output, new()
+        {
+            Rows = (uint)rows, Columns = (uint)rows, Width = (uint)output.Columns,
+            Inner = Groups(rows, 32), Offset = (uint)capacity,
+        }, Groups(rows, 16), (uint)output.Columns / 64)]);
+    }
+
+    /// <summary>Uses packed binary16 Q/K/V with FP32 reduction and accumulation.</summary>
+    public void FusedAttention64Packed(GpuTensor query, GpuTensor keyValue, GpuTensor output, int keys)
+    {
+        Owner.Validate(query, GpuTensorFormat.PackedFloat16);
+        Owner.Validate(keyValue, GpuTensorFormat.PackedFloat16);
+        Owner.Validate(output, GpuTensorFormat.Float32);
+        Require(keys is > 0 and <= 2048 && keyValue.Rows == Groups(2 * keys, 16) * 16
+            && query.Rows == Groups(output.Rows, 16) * 16 && query.Columns == output.Columns
+            && keyValue.Columns == output.Columns && output.Columns % 64 == 0
+            && Groups(output.Rows, 16) <= 65535 && output.Columns / 64 <= 65535,
+            "Packed fused attention requires aligned Q/K/V, paired key/value rows, and 64-wide heads.");
+        Add([new("FusedAttention64.Packed", query, keyValue, output, new()
+        {
+            Rows = (uint)output.Rows, Columns = (uint)keys, Width = (uint)output.Columns,
+            Inner = Groups(keys, 32),
+        }, Groups(output.Rows, 16), (uint)output.Columns / 64)]);
     }
 
     /// <summary>Single-query cross-attention over a resident token-major FP32 cache.</summary>
@@ -167,18 +227,22 @@ public sealed partial class ComputeMathBatch
 
     public void GroupedAttentionValues(GpuTensor probabilities, GpuTensor values, GpuTensor output,
         int heads, int kvHeads, int headWidth, bool roundBFloat16)
+        => GroupedAttentionValues(probabilities, values, output, heads, kvHeads, headWidth, roundBFloat16, 0);
+
+    public void GroupedAttentionValues(GpuTensor probabilities, GpuTensor values, GpuTensor output,
+        int heads, int kvHeads, int headWidth, bool roundBFloat16, int firstValueRow)
     {
         Check(probabilities, values, output);
         Require(heads is > 0 and <= 64 && kvHeads > 0 && heads % kvHeads == 0
             && headWidth is > 0 and <= 512 && output.Columns == heads * headWidth
-            && values.Columns == kvHeads * headWidth && values.Rows >= probabilities.Columns
+            && values.Columns == kvHeads * headWidth && firstValueRow >= 0 && values.Rows - firstValueRow >= probabilities.Columns
             && probabilities.Columns is > 0 and <= 1024 && probabilities.Rows == output.Rows * heads
             && !ReferenceEquals(output, probabilities) && !ReferenceEquals(output, values),
             "GQA values require matching probabilities, cache and independent output.");
         Add([new("GroupedAttention.v.ts", probabilities, values, output, new()
         {
             Rows = (uint)output.Rows, Columns = (uint)probabilities.Columns, Width = (uint)headWidth,
-            Height = (uint)heads, Channels = (uint)kvHeads, Mode = roundBFloat16 ? 1u : 3u,
+            Height = (uint)heads, Channels = (uint)kvHeads, Offset = (uint)firstValueRow, Mode = roundBFloat16 ? 1u : 3u,
         }, (uint)headWidth, (uint)(output.Rows * heads))]);
     }
 

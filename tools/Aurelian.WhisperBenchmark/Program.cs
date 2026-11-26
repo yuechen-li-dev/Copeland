@@ -12,14 +12,16 @@ string? queueOption = options.FirstOrDefault(option => option.StartsWith("queue=
 string? queuePolicy = queueOption?["queue=".Length..];
 if (args.Length < 4)
 {
-    throw new ArgumentException("Usage: Aurelian.WhisperBenchmark CHECKPOINT MEL_F32 OUTPUT_JSON SAMPLES [per-head|batched|reuse|direct|gemv|gemv-scratch|fused] [persistent-read] [persistent-upload] [host-logits] [batch-cross] [queue=fixed-one|fixed-two|dominatus|dominatus-per-request] [step] [validate]");
+    throw new ArgumentException("Usage: Aurelian.WhisperBenchmark CHECKPOINT MEL_F32 OUTPUT_JSON SAMPLES [per-head|batched|reuse|direct|gemv|gemv-scratch|fused] [persistent-read] [persistent-upload] [host-logits] [batch-cross] [join-logits] [half-projections] [half-attention] [profile-attention] [capture] [queue=fixed-one|fixed-two|dominatus|dominatus-per-request] [step] [validate]");
 }
 int sampleCount = int.Parse(args[3], CultureInfo.InvariantCulture);
 string mode = args.Length >= 5 ? args[4] : "per-head";
 if (sampleCount is < 1 or > 100 || mode is not ("per-head" or "batched" or "reuse" or "direct" or "gemv" or "gemv-scratch" or "fused")
-    || options.Any(option => option != queueOption && option is not ("validate" or "persistent-read" or "persistent-upload" or "host-logits" or "batch-cross" or "step"))
+    || options.Any(option => option != queueOption && option is not ("validate" or "persistent-read" or "persistent-upload" or "host-logits" or "batch-cross" or "step" or "capture" or "half-attention" or "half-projections" or "join-logits" or "profile-attention"))
     || (options.Contains("host-logits") && !options.Contains("persistent-read"))
     || (options.Contains("batch-cross") && mode is not ("direct" or "gemv" or "gemv-scratch" or "fused"))
+    || (options.Contains("profile-attention") && queuePolicy is null)
+    || (options.Contains("half-attention") && mode != "fused")
     || (queuePolicy is not null && mode != "fused")
     || options.Distinct().Count() != options.Length)
 {
@@ -38,6 +40,7 @@ using var session = VulkanInferenceSession.Create(new()
 {
     ApplicationName = "Aurelian Whisper benchmark",
     MaximumTensorElements = 32 * 1024 * 1024,
+    UseCooperativeLinear = options.Contains("half-projections"),
     EnableValidation = options.Contains("validate"),
 });
 bool useGemv = mode is "gemv" or "gemv-scratch" or "fused";
@@ -45,9 +48,18 @@ using var model = new TinyEnglishModel(session.Compute, checkpoint, batchAcrossH
     reuseAttention: mode == "reuse", directAttention: mode == "direct" || useGemv, vectorProjection: useGemv,
     reuseScratch: mode is "gemv-scratch" or "fused", fusedAttention: mode == "fused",
     reuseReadback: options.Contains("persistent-read"), reuseUpload: options.Contains("persistent-upload"),
-    hostLogits: options.Contains("host-logits"), batchCross: options.Contains("batch-cross"));
+    hostLogits: options.Contains("host-logits"), batchCross: options.Contains("batch-cross"),
+    halfProjections: options.Contains("half-projections"), halfAttention: options.Contains("half-attention"),
+    joinLogits: options.Contains("join-logits"))
+{
+    ProfileAttention = options.Contains("profile-attention"),
+};
 const int maximumTokens = 64;
 int decoderBatches = options.Contains("batch-cross") ? 2 : 2 * Layers + 2;
+if (options.Contains("join-logits"))
+{
+    decoderBatches--;
+}
 int encoderBatches = 2 + 3 * Layers;
 using var queue = queuePolicy is null ? null : new BenchmarkQueue(session.Compute, queuePolicy,
     encoderBatches + (maximumTokens + 1) * decoderBatches, sampleCount + 2);
@@ -61,6 +73,10 @@ for (int index = -2; index < sampleCount; index++)
     if (stepRequests && index >= 0)
     {
         BenchmarkQueue.WaitForRequest();
+    }
+    if (options.Contains("capture") && index == sampleCount - 1)
+    {
+        model.CaptureDirectory = Directory.CreateDirectory(args[2] + ".capture").FullName;
     }
     InferenceSample sample = model.Transcribe(mel, maximumTokens, queue);
     Console.WriteLine(FormattableString.Invariant(
@@ -99,7 +115,22 @@ namespace Aurelian.WhisperBenchmark
 {
     internal sealed record InferenceSample(double TotalMs, double EncodeMs, double PrefillMs,
         double DecodeMs, List<int> Tokens, int Readbacks, ulong Allocations, long ManagedBytes,
-        IReadOnlyDictionary<string, OperationTiming> Operations, QueueSample? Queue);
+        IReadOnlyDictionary<string, OperationTiming> Operations, QueueSample? Queue,
+        IReadOnlyList<EncoderAttentionGpuTiming>? EncoderAttentionProfile);
+
+    internal sealed record EncoderAttentionGpuTiming(double KeyScatterMs, double ValueScatterMs,
+        double QueryPackMs, double KeyValuePackMs, double AttentionMs)
+    {
+        internal static EncoderAttentionGpuTiming From(IReadOnlyList<double> intervals, bool packed)
+        {
+            if (intervals.Count != (packed ? 5 : 3))
+            {
+                throw new InvalidDataException("Unexpected encoder attention dispatch sequence.");
+            }
+            return new(intervals[0], intervals[1], packed ? intervals[2] : 0,
+                packed ? intervals[3] : 0, intervals[^1]);
+        }
+    }
 
     internal sealed class OperationTiming
     {

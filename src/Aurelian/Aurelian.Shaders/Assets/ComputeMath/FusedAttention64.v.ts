@@ -1,6 +1,8 @@
 import { KernelParameters } from "./KernelMath";
+import { AttentionScore, ValueRowOffset } from "./AttentionLayout";
+import { Operand } from "./AttentionOperand";
 
-// Noncausal FP32 attention. A workgroup owns 16 queries of one head, streams
+// Tiled attention with FP32 accumulation. A workgroup owns 16 queries of one head, streams
 // 32 keys at a time and keeps the unnormalized output in registers.
 @compute
 @numthreads(8, 8, 1)
@@ -12,8 +14,8 @@ function FusedAttention64Main(@builtin(groupId) group: uint3,
     @workgroup readwrite Maximum: WorkgroupArray<f32, 16>,
     @workgroup readwrite Scale: WorkgroupArray<f32, 16>,
     @workgroup readwrite Denominator: WorkgroupArray<f32, 16>,
-    @binding(0) readonly Query: StorageBuffer<f32>,
-    @binding(1) readonly KeyValue: StorageBuffer<f32>,
+    @binding(0) readonly Query: StorageBuffer<u32>,
+    @binding(1) readonly KeyValue: StorageBuffer<u32>,
     @binding(2) readwrite Output: StorageBuffer<f32>,
     @binding(3) readonly Parameters: StorageBuffer<KernelParameters>): void {
     let p = Parameters[0];
@@ -24,7 +26,7 @@ function FusedAttention64Main(@builtin(groupId) group: uint3,
         let row = firstQuery + part;
         var q: f32 = 0.0;
         if (row < p.rows) {
-            q = Query[row * p.width + head + lane];
+            q = Operand(Query, row * p.width + head + lane);
         }
         Queries[part * 65 + lane] = q;
     }
@@ -41,7 +43,7 @@ function FusedAttention64Main(@builtin(groupId) group: uint3,
         for (let part of BoundedIndices<32>(32)) {
             var k: f32 = 0.0;
             if (firstKey + part < p.columns) {
-                k = KeyValue[(firstKey + part) * p.width + head + lane];
+                k = Operand(KeyValue, (firstKey + part) * p.width + head + lane);
             }
             Tile[lane * 33 + part] = k;
         }
@@ -60,11 +62,8 @@ function FusedAttention64Main(@builtin(groupId) group: uint3,
             let row = local.y + r * 8;
             static for (let j of Indices<4>()) {
                 let key = local.x + j * 8;
-                var score: f32 = -3.402823466e38;
-                if (firstKey + key < p.columns) {
-                    score = dots[r * 4 + j] * 0.125;
-                }
-                Scores[row * 32 + key] = score;
+                Scores[row * 32 + key] = AttentionScore(dots[r * 4 + j], firstQuery + row,
+                    firstKey + key, p.columns);
             }
         }
         WorkgroupBarrier();
@@ -80,7 +79,7 @@ function FusedAttention64Main(@builtin(groupId) group: uint3,
         for (let part of BoundedIndices<32>(32)) {
             var v: f32 = 0.0;
             if (firstKey + part < p.columns) {
-                v = KeyValue[(p.columns + firstKey + part) * p.width + head + lane];
+                v = Operand(KeyValue, (ValueRowOffset(p) + firstKey + part) * p.width + head + lane);
             }
             Tile[part * 64 + lane] = v;
         }

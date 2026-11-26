@@ -16,6 +16,8 @@ public sealed unsafe partial class VulkanComputeMath
         {
             public GpuTensor? Weights { get; set; }
             public AurelianVulkanBuffer? Staging { get; set; }
+            public DispatchTimestamps? DispatchQueries { get; set; }
+            public QueuedDispatchProfile? PendingProfile { get; set; }
             public required Vulkan3DGpuTimings Timings { get; init; }
             public List<DispatchSlot> Descriptors { get; } = [];
             public ulong FenceValue { get; set; }
@@ -31,6 +33,7 @@ public sealed unsafe partial class VulkanComputeMath
                 {
                     descriptor.Parameters.Dispose();
                 }
+                DispatchQueries?.Dispose();
                 Timings.Dispose();
                 Staging?.Dispose();
                 Weights?.Dispose();
@@ -114,7 +117,7 @@ public sealed unsafe partial class VulkanComputeMath
         }
 
         public void Submit(ComputeMathBatch batch, double preparationMilliseconds = 0,
-            GpuTensor? upload = null, ReadOnlyMemory<byte> bytes = default)
+            GpuTensor? upload = null, ReadOnlyMemory<byte> bytes = default, QueuedDispatchProfile? profile = null)
         {
             ComputeMathBatch.Require(ReferenceEquals(batch.Owner, owner) && batch.DispatchCount is > 0
                 && batch.DispatchCount <= owner.MaximumDispatches, "Stream needs a nonempty bounded batch from its owner.");
@@ -149,8 +152,14 @@ public sealed unsafe partial class VulkanComputeMath
             {
                 owner.Configure(slot.Descriptors[index], batch.Dispatches[index]);
             }
+            DispatchTimestamps? queries = null;
+            if (profile is not null)
+            {
+                queries = slot.DispatchQueries ??= new(owner.plant, owner.MaximumDispatches + 1);
+            }
             var command = owner.commands.Rent(owner.fences.CommandListFence.LastKnownCompletedValue);
             Require(command.Begin().Success, "Stream command begin failed.");
+            queries?.Begin(command, batch.DispatchCount);
             slot.Timings.Reset(command);
             slot.Timings.BeginFrame(command, Submissions + 1);
             GpuTensor? copyDestination = upload ?? slot.Weights;
@@ -179,6 +188,7 @@ public sealed unsafe partial class VulkanComputeMath
                 PipelineStageFlags.HostBit | PipelineStageFlags.TransferBit | PipelineStageFlags.ComputeShaderBit,
                 PipelineStageFlags.ComputeShaderBit);
             slot.Timings.Mark(command, 0, PipelineStageFlags.ComputeShaderBit);
+            queries?.Mark(command, 0);
             for (int index = 0; index < batch.DispatchCount; index++)
             {
                 var dispatch = batch.Dispatches[index];
@@ -189,6 +199,7 @@ public sealed unsafe partial class VulkanComputeMath
                 owner.Barrier(command, AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
                     AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
                     PipelineStageFlags.ComputeShaderBit, PipelineStageFlags.ComputeShaderBit);
+                queries?.Mark(command, index + 1);
             }
             slot.Timings.Mark(command, 1, PipelineStageFlags.ComputeShaderBit);
             slot.Timings.EndFrame(command);
@@ -201,6 +212,7 @@ public sealed unsafe partial class VulkanComputeMath
             slot.FenceValue = submission.SignalFenceValue ?? 0;
             LastSubmittedFenceValue = Math.Max(LastSubmittedFenceValue, slot.FenceValue);
             Require(submission.Success && slot.FenceValue != 0, "Stream submission failed.");
+            slot.PendingProfile = profile;
             slot.Sequence = ++Submissions;
             slot.PreparationMilliseconds = preparationMilliseconds;
             Dispatches += batch.DispatchCount;
@@ -242,6 +254,11 @@ public sealed unsafe partial class VulkanComputeMath
                 Require(owner.fences.CommandListFence.WaitForValue(slot.FenceValue, 30_000_000_000).Success,
                     "Stream completion wait failed.");
                 waitMilliseconds = System.Diagnostics.Stopwatch.GetElapsedTime(waitStart).TotalMilliseconds;
+            }
+            if (slot.PendingProfile is { } profile)
+            {
+                profile.CompletedIntervals = slot.DispatchQueries!.Read(profile.Count);
+                slot.PendingProfile = null;
             }
             var timings = slot.Timings.Read();
             var computeInterval = slot.Timings.ReadInterval(0);

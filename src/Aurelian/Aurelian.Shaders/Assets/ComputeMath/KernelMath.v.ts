@@ -47,3 +47,11 @@ export function GeluErf(value: f32): f32 {
     }
     return value * (1.0 - 0.5 * tail);
 }
+
+// Inputs may already carry the head scale (GPT-2) or require it here (Whisper).
+export function MaskedScore<static Causal: bool, static Scale: f32>(dot: f32, query: u32, key: u32, keys: u32): f32 {
+    if (key >= keys || (Causal && key > query)) {
+        return -3.402823466e38;
+    }
+    return dot * Scale;
+}

@@ -6,6 +6,18 @@ namespace Aurelian.Graphics.Vulkan.ComputeMath;
 
 public sealed record ComputeDispatchProfile(ComputeMathResult Execution, IReadOnlyList<double> DispatchMilliseconds);
 
+/// <summary>Per-dispatch intervals become available when the queue harvests this batch.</summary>
+public sealed class QueuedDispatchProfile
+{
+    internal int Count { get; }
+    internal double[]? CompletedIntervals { get; set; }
+
+    internal QueuedDispatchProfile(int count) => Count = count;
+
+    public IReadOnlyList<double> DispatchMilliseconds => CompletedIntervals
+        ?? throw new InvalidOperationException("Collect the queued dispatch timings after a readback or queue flush.");
+}
+
 public sealed unsafe partial class VulkanComputeMath
 {
     /// <summary>Times dispatch intervals in one synchronous submission. Intervals include
@@ -17,6 +29,16 @@ public sealed unsafe partial class VulkanComputeMath
         dispatchTimestamps ??= new(plant, MaximumDispatches + 1);
         ComputeMathResult result = ExecuteCore(batch, null, default, dispatchTimestamps);
         return new(result, dispatchTimestamps.Read(batch.DispatchCount));
+    }
+
+    /// <summary>Time one batch on the active queue without changing its submission or wait boundaries.</summary>
+    public QueuedDispatchProfile EnqueueWithDispatchTimings(ComputeMathBatch batch)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        var scope = queuedScope ?? throw new InvalidOperationException("Queued dispatch timing requires an active scope.");
+        var profile = new QueuedDispatchProfile(batch.DispatchCount);
+        scope.Submit(batch, null, default, profile);
+        return profile;
     }
 
     private sealed class DispatchTimestamps : IDisposable

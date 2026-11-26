@@ -28,7 +28,7 @@ function GroupedAttentionMain(@builtin(groupId) group: uint3,
             let key = lane + tile * 64;
             if (key < p.columns) {
                 sum = sum + Input[group.y * p.columns + key]
-                    * Cache[(key * p.channels + kvHead) * p.width + group.x];
+                    * Cache[((key + p.offset) * p.channels + kvHead) * p.width + group.x];
             }
         }
     }

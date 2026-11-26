@@ -18,7 +18,10 @@ internal struct KernelParameters
 }
 
 internal sealed record ComputeMathDispatch(string Shader, GpuTensor Input, GpuTensor Auxiliary,
-    GpuTensor Output, KernelParameters Parameters, uint GroupsX, uint GroupsY = 1);
+    GpuTensor Output, KernelParameters Parameters, uint GroupsX, uint GroupsY = 1)
+{
+    public bool WritesAuxiliary => Shader == "DecodeQkv.v.ts";
+}
 
 /// <summary>A bounded dispatch plan with immutable shape-checked steps.
 /// Execute it on its owning VulkanComputeMath; intermediate tensors never require readback.</summary>
