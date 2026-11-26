@@ -24,6 +24,12 @@ internal static class GemmaE2bProof
         bool requireCooperative = args.Contains("--cooperative", StringComparer.Ordinal);
         bool cooperative = optimized || requireCooperative;
         bool queued = args.Contains("--queued-e2b", StringComparer.Ordinal);
+        bool replay = args.Contains("--replay-e2b", StringComparer.Ordinal);
+        if (replay && (!tunedDecode || generate || queued || args.Contains("--greedy", StringComparer.Ordinal)
+            || args.Contains("--profile", StringComparer.Ordinal)))
+        {
+            throw new ArgumentException("--replay-e2b requires an optimized full-logit benchmark without queued or per-shader profiling.");
+        }
         if (queued && args.Contains("--profile", StringComparer.Ordinal))
         {
             throw new ArgumentException("Use the queue timing report or the synchronous shader profile in separate runs.");
@@ -62,13 +68,18 @@ internal static class GemmaE2bProof
             MaximumTensorElements = 33554432,
             EnableValidation = false,
             UseCooperativeLinear = cooperative,
-            PushDispatchParameters = optimized && !args.Contains("--storage-parameters", StringComparer.Ordinal),
+            PushDispatchParameters = optimized && !replay && !args.Contains("--storage-parameters", StringComparer.Ordinal),
         });
         if (requireCooperative && !session.Compute.CooperativeMatrixEnabled)
         {
             throw new InvalidOperationException("Cooperative matrix support is required for this experiment.");
         }
         session.Compute.MeasureBatchCpuTime = args.Contains("--profile-cpu", StringComparer.Ordinal);
+        var pipelineCreationMs = new Dictionary<string, double>(StringComparer.Ordinal);
+        if (replay)
+        {
+            session.Compute.PipelineCreated = (shader, milliseconds) => pipelineCreationMs.Add(shader, milliseconds);
+        }
         var timer = Stopwatch.StartNew();
         using var checkpoint = new GgufCheckpoint(args[1]);
         bool interleaved = !args.Contains("--row-major-q4", StringComparer.Ordinal)
@@ -90,7 +101,7 @@ internal static class GemmaE2bProof
             || args.Contains("--merge-down-norm", StringComparer.Ordinal))
             && !args.Contains("--separate-down-norm", StringComparer.Ordinal);
         using var model = new Gemma4E2bModel(session.Compute, checkpoint, capacity, layout, fuseKeyCache, headLayout,
-            headShardRows, fuseGateUp)
+            headShardRows, fuseGateUp, fuseQueryRope: tunedDecode && !args.Contains("--separate-query-rope", StringComparer.Ordinal))
         {
             LayerSubmissions = args.Contains("--layer-submissions", StringComparer.Ordinal),
             PruneSharedRows = !args.Contains("--full-prefill", StringComparer.Ordinal),
@@ -143,19 +154,28 @@ internal static class GemmaE2bProof
             {
                 long start = Stopwatch.GetTimestamp();
                 long allocated = session.Compute.MeasureBatchCpuTime ? GC.GetAllocatedBytesForCurrentThread() : 0;
-                using var hidden = model.Evaluate(tokens);
                 double elapsed;
-                if (greedy)
+                if (replay && tokens.Length == 1)
                 {
-                    var prediction = model.GreedyToken(hidden);
+                    ReadOnlySpan<float> scores = model.DecodeLogitsWithReplay(tokens[0]);
                     elapsed = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
-                    if (run == 1) { predictions.Add(prediction.Token); }
+                    logits?.Write(MemoryMarshal.AsBytes(scores));
                 }
                 else
                 {
-                    ReadOnlySpan<float> scores = model.Logits(hidden);
-                    elapsed = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
-                    logits?.Write(MemoryMarshal.AsBytes(scores));
+                    using var hidden = model.Evaluate(tokens);
+                    if (greedy)
+                    {
+                        var prediction = model.GreedyToken(hidden);
+                        elapsed = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+                        if (run == 1) { predictions.Add(prediction.Token); }
+                    }
+                    else
+                    {
+                        ReadOnlySpan<float> scores = model.Logits(hidden);
+                        elapsed = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+                        logits?.Write(MemoryMarshal.AsBytes(scores));
+                    }
                 }
                 long? managedBytes = session.Compute.MeasureBatchCpuTime
                     ? GC.GetAllocatedBytesForCurrentThread() - allocated : null;
@@ -195,6 +215,7 @@ internal static class GemmaE2bProof
             session.Compute.MeasureBatchCpuTime,
             model.FusedDecodeMaxKeys,
             model.SplitDecodeTileKeys,
+            model.FuseQueryRope,
             model.FusedPrefillAttention,
             model.WidePrefillKeyTile,
             model.BoundedNorm,
@@ -203,6 +224,10 @@ internal static class GemmaE2bProof
             HeadLayout = model.HeadLayout.ToString(),
             model.HeadShardRows,
             Queued = queued,
+            Replay = replay,
+            model.ReplayPreparationMs,
+            model.ReplayedTokens,
+            PipelineCreationMs = pipelineCreationMs,
             QueueRuns = queueRuns,
             Greedy = greedy,
             Predictions = predictions,

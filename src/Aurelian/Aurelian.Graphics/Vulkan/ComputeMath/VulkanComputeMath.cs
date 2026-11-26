@@ -189,6 +189,14 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
         return new(this);
     }
 
+    /// <summary>Record a single-token batch with position-relative scatter, fused RoPE and split attention.</summary>
+    public ComputeMathBatch CreateTokenReplayBatch(int position, int capacity)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        Require(position >= 0 && position < capacity && capacity <= 262145, "Replay position must fit its capacity.");
+        return new(this) { TokenReplayPosition = position, TokenReplayCapacity = capacity };
+    }
+
     public void UploadUInt32(GpuTensor tensor, ReadOnlySpan<uint> values)
     {
         Validate(tensor, GpuTensorFormat.UInt32);
@@ -265,7 +273,7 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
         DispatchTimestamps? profile = null, ComputeBatchUpload? plan = null)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
-        ComputeMathBatch.Require(ReferenceEquals(batch.Owner, this) && batch.DispatchCount > 0,
+        ComputeMathBatch.Require(ReferenceEquals(batch.Owner, this) && batch.DispatchCount > 0 && batch.TokenReplayCapacity == 0,
             "Execute requires a nonempty batch from this compute owner.");
         if (queuedScope is not null)
         {

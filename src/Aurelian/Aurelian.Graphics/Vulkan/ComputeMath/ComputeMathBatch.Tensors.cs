@@ -76,6 +76,7 @@ public sealed partial class ComputeMathBatch
             Rows = (uint)input.Rows, Columns = (uint)input.Columns, Inner = (uint)output.Columns,
             Offset = (uint)firstRow, Height = (uint)firstColumn,
         });
+        TrackTokenOffset(firstRow, output.Rows, input.Rows);
     }
 
     public void ModulateBFloat16(GpuTensor input, GpuTensor modulation, GpuTensor output, int firstOffset = 0)

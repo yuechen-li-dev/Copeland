@@ -37,6 +37,7 @@ public sealed unsafe partial class VulkanComputeMath
         ["DecoderNormalize1536.SplitProjection"] = "DecoderNormalize1536Main",
         ["DecoderRope.v.ts"] = "DecoderRopeMain",
         ["NormalizeRotateCacheKey.v.ts"] = "NormalizeRotateCacheKeyMain",
+        ["NormalizeRotateCacheKey.Query"] = "NormalizeRotateCacheKeyMain",
         ["DecoderScale.v.ts"] = "DecoderScaleMain",
         ["DecoderPointwiseFp32.v.ts"] = "DecoderPointwiseFp32Main",
         ["GroupedAttention.v.ts"] = "GroupedAttentionMain",
@@ -120,7 +121,8 @@ public sealed unsafe partial class VulkanComputeMath
         }
     }
 
-    private DispatchSlot CreateSlot(DescriptorPool? pool = null, bool deviceLocalParameters = false)
+    private DispatchSlot CreateSlot(DescriptorPool? pool = null, bool deviceLocalParameters = false,
+        bool externalParameters = false)
     {
         var descriptorLayout = setLayout;
         var allocation = new DescriptorSetAllocateInfo
@@ -130,12 +132,13 @@ public sealed unsafe partial class VulkanComputeMath
         };
         DescriptorSet set;
         Check(plant.Vk.AllocateDescriptorSets(plant.Device, &allocation, &set));
-        return new(set, PushDispatchParameters ? null : Buffer((ulong)sizeof(KernelParameters),
+        return new(set, PushDispatchParameters || externalParameters ? null : Buffer((ulong)sizeof(KernelParameters),
             deviceLocalParameters ? VulkanBufferUsage.Storage | VulkanBufferUsage.TransferDestination : VulkanBufferUsage.Storage,
             deviceLocalParameters ? VulkanMemoryUsage.GpuOnly : VulkanMemoryUsage.CpuToGpu));
     }
 
-    private void Configure(DispatchSlot slot, ComputeMathDispatch dispatch)
+    private void Configure(DispatchSlot slot, ComputeMathDispatch dispatch, AurelianVulkanBuffer? parameterTable = null,
+        ulong parameterOffset = 0)
     {
         if (slot.Parameters is { } parameterBuffer)
         {
@@ -172,7 +175,11 @@ public sealed unsafe partial class VulkanComputeMath
         infos[0] = new(input.NativeBuffer, 0, input.SizeBytes);
         infos[1] = new(auxiliary.NativeBuffer, 0, auxiliary.SizeBytes);
         infos[2] = new(output.NativeBuffer, 0, output.SizeBytes);
-        if (slot.Parameters is { } buffer)
+        if (parameterTable is not null)
+        {
+            infos[3] = new(parameterTable.NativeBuffer, parameterOffset, (ulong)sizeof(KernelParameters));
+        }
+        else if (slot.Parameters is { } buffer)
         {
             infos[3] = new(buffer.NativeBuffer, 0, buffer.SizeBytes);
         }
@@ -191,7 +198,8 @@ public sealed unsafe partial class VulkanComputeMath
         slot.Output = output;
     }
 
-    private void RecordDispatch(CommandBuffer command, DispatchSlot slot, ComputeMathDispatch dispatch)
+    private void RecordDispatch(CommandBuffer command, DispatchSlot slot, ComputeMathDispatch dispatch,
+        AurelianVulkanBuffer? indirectTable = null, ulong indirectOffset = 0)
     {
         var set = slot.Set;
         plant.Vk.CmdBindPipeline(command, PipelineBindPoint.Compute, pipelines[dispatch.Shader]);
@@ -202,7 +210,14 @@ public sealed unsafe partial class VulkanComputeMath
             plant.Vk.CmdPushConstants(command, pipelineLayout, ShaderStageFlags.ComputeBit,
                 0, (uint)sizeof(KernelParameters), &parameters);
         }
-        plant.Vk.CmdDispatch(command, dispatch.GroupsX, dispatch.GroupsY, 1);
+        if (indirectTable is null)
+        {
+            plant.Vk.CmdDispatch(command, dispatch.GroupsX, dispatch.GroupsY, 1);
+        }
+        else
+        {
+            plant.Vk.CmdDispatchIndirect(command, indirectTable.NativeBuffer, indirectOffset);
+        }
     }
 
     /// <summary>Optional profiling callback when a previously unseen kernel pipeline is created.</summary>

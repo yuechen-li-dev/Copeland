@@ -495,10 +495,107 @@ static void KernelChecks(VulkanComputeMath compute)
     File.WriteAllText("artifacts/local/gemma4/kernels.json", JsonSerializer.Serialize(checks, new JsonSerializerOptions { WriteIndented = true }));
     GroupedAttentionChecks(compute);
     SplitDecodeAttentionChecks(compute);
+    if (!compute.PushDispatchParameters) { TokenReplayChecks(compute); }
+    FusedQueryRopeChecks(compute);
     PackedFeedForwardChecks(compute);
     Q6ProjectionChecks(compute);
     ArgMaxChecks(compute);
     Console.WriteLine("AURELIAN_GEMMA_KERNELS_PASSED");
+}
+
+static void TokenReplayChecks(VulkanComputeMath compute)
+{
+    const int capacity = 48;
+    const int width = 256;
+    const int heads = 2;
+    const int window = 20;
+    const int tileKeys = 16;
+    using var query = compute.CreateTensor(1, heads * width);
+    using var key = compute.CreateTensor(1, width);
+    using var value = compute.CreateTensor(1, width);
+    using var gamma = compute.CreateTensor(1, width);
+    using var cache = compute.CreateTensor(capacity * 2, width);
+    using var partials = compute.CreateTensor(heads * 2, width + 2);
+    using var output = compute.CreateTensor(1, heads * width);
+    using var referenceCache = compute.CreateTensor(capacity * 2, width);
+    float[] initialCache = Enumerable.Range(0, cache.Elements).Select(i => MathF.Cos(i * .031f)).ToArray();
+    compute.Upload(cache, initialCache);
+    compute.Upload(referenceCache, initialCache);
+    compute.Upload(gamma, Enumerable.Repeat(1.0f, width).ToArray());
+    var input = new float[query.Elements + key.Elements + value.Elements];
+    byte[] payload = new byte[input.Length * sizeof(float)];
+    var upload = new ComputeBatchUpload([query, key, value], payload);
+    var batch = compute.CreateTokenReplayBatch(0, capacity);
+    Record(batch, cache, 0);
+    using var replay = compute.PrepareTokenReplay(batch, upload, output);
+    float[] actual = new float[output.Elements];
+    foreach (int position in new[] { 0, 15, 16, 19, 20, 47, 12 })
+    {
+        for (int index = 0; index < input.Length; index++)
+        {
+            input[index] = MathF.Sin((index + position * 11) * .043f);
+        }
+        MemoryMarshal.AsBytes(input.AsSpan()).CopyTo(payload);
+        replay.ExecuteToken(position, actual);
+        var reference = compute.CreateBatch();
+        Record(reference, referenceCache, position);
+        compute.ExecuteWithUpload(reference, upload);
+        if (!actual.SequenceEqual(compute.Read(output)))
+        {
+            throw new InvalidDataException($"Token replay differs from fresh recording at position {position}.");
+        }
+    }
+    if (!compute.Read(cache).SequenceEqual(compute.Read(referenceCache)))
+    {
+        throw new InvalidDataException("Token replay wrote different KV cache slots.");
+    }
+
+    void Record(ComputeMathBatch graph, GpuTensor destination, int position)
+    {
+        graph.NormalizeRotateQueries(query, gamma, width, position, 10000);
+        graph.NormalizeRotateCacheKey(key, gamma, destination, position, 10000);
+        graph.Scatter(value, destination, position + capacity);
+        graph.SplitDecodeAttention(query, destination, partials, output, heads, width, position, window, tileKeys);
+    }
+}
+
+static void FusedQueryRopeChecks(VulkanComputeMath compute)
+{
+    const int rows = 2;
+    const int heads = 3;
+    const int position = 511;
+    foreach (int width in new[] { 256, 512 })
+    {
+        float theta = width == 256 ? 10000 : 1000000;
+        using var control = compute.CreateTensor(rows, heads * width);
+        using var fused = compute.CreateTensor(rows, heads * width);
+        using var gamma = compute.CreateTensor(1, width);
+        using var factors = width == 512 ? compute.CreateTensor(1, width / 2) : null;
+        using var constants = compute.CreateTensor(1, width + (factors?.Elements ?? 0));
+        float[] rowsData = Enumerable.Range(0, control.Elements).Select(i => MathF.Sin(i * .073f)).ToArray();
+        float[] gammaData = Enumerable.Range(0, width).Select(i => .75f + (i % 17) * .04f).ToArray();
+        float[] factorData = Enumerable.Range(0, factors?.Elements ?? 0).Select(i => 1 + i * .01f).ToArray();
+        compute.Upload(control, rowsData);
+        compute.Upload(fused, rowsData);
+        compute.Upload(gamma, gammaData);
+        compute.Upload(constants, gammaData.Concat(factorData).ToArray());
+        if (factors is not null) { compute.Upload(factors, factorData); }
+
+        var batch = compute.CreateBatch();
+        batch.NormalizeHeads(control, gamma, control, width, roundBFloat16: false, bounded: true);
+        batch.RotateHeads(control, control, width, position, theta, roundBFloat16: false, frequencyFactors: factors);
+        batch.NormalizeRotateQueries(fused, constants, width, position, theta);
+        compute.Execute(batch);
+        float[] expected = compute.Read(control);
+        float[] actual = compute.Read(fused);
+        for (int index = 0; index < actual.Length; index++)
+        {
+            if (!float.IsFinite(actual[index]) || MathF.Abs(actual[index] - expected[index]) > 1e-6f)
+            {
+                throw new InvalidDataException($"Fused query RMSNorm/RoPE differs at width {width}, channel {index}.");
+            }
+        }
+    }
 }
 
 static void SplitDecodeAttentionChecks(VulkanComputeMath compute)

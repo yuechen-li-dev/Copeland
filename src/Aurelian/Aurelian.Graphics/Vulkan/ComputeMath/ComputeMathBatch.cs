@@ -21,6 +21,7 @@ internal sealed record ComputeMathDispatch(string Shader, GpuTensor Input, GpuTe
     GpuTensor Output, KernelParameters Parameters, uint GroupsX, uint GroupsY = 1)
 {
     public bool WritesAuxiliary => Shader == "DecodeQkv.v.ts";
+    public TokenReplayUpdate? TokenUpdate { get; init; }
 }
 
 /// <summary>A bounded dispatch plan with immutable shape-checked steps.
@@ -335,7 +336,8 @@ public sealed partial class ComputeMathBatch
     private void Add(IEnumerable<ComputeMathDispatch> source)
     {
         var steps = source.ToArray();
-        Require(Dispatches.Count + steps.Length <= Owner.MaximumDispatches, "Batch exceeds its declared dispatch budget.");
+        int limit = TokenReplayCapacity == 0 ? Owner.MaximumDispatches : MaximumTokenReplayDispatches;
+        Require(Dispatches.Count + steps.Length <= limit, "Batch exceeds its declared dispatch budget.");
         Require(steps.All(step => step.GroupsX is > 0 and <= 65535 && step.GroupsY is > 0 and <= 65535),
             "Dispatch dimensions exceed the portable Vulkan workgroup range; tile the operation.");
         Dispatches.AddRange(steps);

@@ -28,6 +28,7 @@ public sealed class BuiltinComputeShaderCache
         ["ResidentSgemm.InterleavedHalfScale"] = new("ResidentSgemm.v.ts", "Q4Rows1.v.ts", "Q4Rows8HalfScale.v.ts"),
         ["FusedGroupedAttention.Keys8"] = new("FusedGroupedAttention.v.ts", "AttentionStripe32.v.ts", "AttentionStripe16.v.ts"),
         ["FusedGroupedAttention.SplitDecode"] = new("FusedGroupedAttention.v.ts", "AttentionStripe32.v.ts", "AttentionSplitDecode.v.ts"),
+        ["NormalizeRotateCacheKey.Query"] = new("NormalizeRotateCacheKey.v.ts", "NormalizeRopeKey.v.ts", "NormalizeRopeQuery.v.ts"),
         ["DecoderNormalize1536.SplitProjection"] = new("DecoderNormalize1536.v.ts", "NormalizeSingleProjection.v.ts", "NormalizeSplitProjection.v.ts"),
         ["FusedAttention64.Packed"] = new("FusedAttention64.v.ts", "AttentionOperand.v.ts", "PackedAttentionOperand.v.ts"),
     };

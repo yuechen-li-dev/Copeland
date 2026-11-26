@@ -26,7 +26,7 @@ public sealed unsafe partial class VulkanComputeMath
         ObjectDisposedException.ThrowIf(disposed, this);
         ArgumentNullException.ThrowIfNull(batch);
         ArgumentNullException.ThrowIfNull(options);
-        ComputeMathBatch.Require(ReferenceEquals(batch.Owner, this) && batch.DispatchCount > 0
+        ComputeMathBatch.Require(ReferenceEquals(batch.Owner, this) && batch.DispatchCount > 0 && batch.TokenReplayCapacity == 0
             && queuedScope is null, "Prepared batches need nonempty work from this owner outside a queued scope.");
         var prepared = new PreparedComputeBatch(this, batch.Dispatches.ToArray(), options);
         preparedBatches.Add(prepared);
@@ -38,6 +38,7 @@ public sealed unsafe partial class VulkanComputeMath
         private readonly VulkanComputeMath owner;
         private readonly List<DispatchSlot> slots = [];
         private readonly GpuTensor[] tensors;
+        private readonly TokenReplayResources? tokenReplay;
         private VulkanCommandBufferLease? command;
         private Vulkan3DGpuTimings? timings;
         private DescriptorPool descriptorPool;
@@ -47,7 +48,8 @@ public sealed unsafe partial class VulkanComputeMath
         public bool HasGpuTimings => timings is not null;
         public bool HasDeviceLocalParameters { get; }
 
-        internal PreparedComputeBatch(VulkanComputeMath owner, ComputeMathDispatch[] dispatches, PreparedComputeOptions options)
+        internal PreparedComputeBatch(VulkanComputeMath owner, ComputeMathDispatch[] dispatches, PreparedComputeOptions options,
+            ComputeBatchUpload? replayUpload = null, GpuTensor? replayOutput = null, int replayCapacity = 0)
         {
             this.owner = owner;
             if (options.ElideIndependentBarriers)
@@ -91,11 +93,15 @@ public sealed unsafe partial class VulkanComputeMath
                     MaxSets = (uint)DispatchCount, PoolSizeCount = 1, PPoolSizes = &size,
                 };
                 Check(owner.plant.Vk.CreateDescriptorPool(owner.plant.Device, &poolInfo, null, out descriptorPool));
-                foreach (var dispatch in dispatches)
+                if (replayUpload is not null)
                 {
-                    var slot = owner.CreateSlot(descriptorPool, options.DeviceLocalParameters);
+                    tokenReplay = new(owner, dispatches, replayUpload, replayOutput!, replayCapacity);
+                }
+                for (int index = 0; index < dispatches.Length; index++)
+                {
+                    var slot = owner.CreateSlot(descriptorPool, options.DeviceLocalParameters, externalParameters: tokenReplay is not null);
                     slots.Add(slot);
-                    owner.Configure(slot, dispatch);
+                    owner.Configure(slot, dispatches[index], tokenReplay?.Parameters, tokenReplay?.ParameterOffset(index) ?? 0);
                 }
                 if (options.EnableGpuTimings)
                 {
@@ -104,6 +110,7 @@ public sealed unsafe partial class VulkanComputeMath
                 command = owner.commands.Rent(owner.fences.CommandListFence.LastKnownCompletedValue);
                 Require(command.Begin(reusable: true).Success, "Prepared compute recording failed.");
                 timings?.Reset(command);
+                tokenReplay?.RecordUpload(command);
                 owner.Barrier(command, AccessFlags.HostWriteBit | AccessFlags.ShaderWriteBit | AccessFlags.TransferWriteBit,
                     AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
                     PipelineStageFlags.HostBit | PipelineStageFlags.ComputeShaderBit | PipelineStageFlags.TransferBit,
@@ -112,7 +119,15 @@ public sealed unsafe partial class VulkanComputeMath
                 for (int index = 0; index < dispatches.Length; index++)
                 {
                     var dispatch = dispatches[index];
-                    owner.RecordDispatch(command.CommandBuffer, slots[index], dispatch);
+                    if (tokenReplay is not null && dispatch.TokenUpdate is { Kind: TokenReplayUpdateKind.SplitAttention })
+                    {
+                        owner.RecordDispatch(command.CommandBuffer, slots[index], dispatch,
+                            tokenReplay.Parameters, tokenReplay.IndirectOffset(index));
+                    }
+                    else
+                    {
+                        owner.RecordDispatch(command.CommandBuffer, slots[index], dispatch);
+                    }
                     if (!options.ElideIndependentBarriers || index == dispatches.Length - 1)
                     {
                         owner.Barrier(command, AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
@@ -121,6 +136,7 @@ public sealed unsafe partial class VulkanComputeMath
                     }
                 }
                 timings?.Mark(command, 1);
+                tokenReplay?.RecordReadback(command);
                 Require(command.End().Success, "Prepared compute command end failed.");
             }
             catch
@@ -133,12 +149,26 @@ public sealed unsafe partial class VulkanComputeMath
         /// <summary>Replays synchronously. An explicit polling budget can trade
         /// CPU work for lower wait latency; zero uses a blocking wait.</summary>
         public ComputeMathResult Execute(uint spinWaitNanoseconds = 0)
-            => ExecuteCore(spinWaitNanoseconds, measureCpuTime: false, out _);
+        {
+            Require(tokenReplay is null, "Token replay requires a position and readback destination.");
+            return ExecuteCore(spinWaitNanoseconds, measureCpuTime: false, out _);
+        }
+
+        public ComputeMathResult ExecuteToken(int position, Span<float> destination)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            var replay = tokenReplay ?? throw new InvalidOperationException("This batch has no token replay resources.");
+            replay.Stage(position, destination.Length);
+            var result = ExecuteCore(0, measureCpuTime: false, out _);
+            replay.Read(destination);
+            return result;
+        }
 
         /// <summary>Measures CPU validation, queue submission, completion and query retrieval.
         /// Instrumentation overhead is included; use Execute for latency measurements.</summary>
         public PreparedComputeProfile ExecuteProfiled(uint spinWaitNanoseconds = 0)
         {
+            Require(tokenReplay is null, "Token replay requires a position and readback destination.");
             ExecuteCore(spinWaitNanoseconds, measureCpuTime: true, out var profile);
             return profile!;
         }
@@ -191,6 +221,7 @@ public sealed unsafe partial class VulkanComputeMath
                 owner.commands.Retire(command, owner.fences.CommandListFence.LastKnownCompletedValue);
             }
             timings?.Dispose();
+            tokenReplay?.Dispose();
             foreach (var slot in slots)
             {
                 slot.Parameters?.Dispose();

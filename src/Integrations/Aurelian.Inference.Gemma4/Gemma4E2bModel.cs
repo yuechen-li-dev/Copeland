@@ -39,6 +39,7 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
     private readonly byte[] layerTokenBlock = new byte[GgufCheckpoint.RowBytes(GgufTensorType.Q6_K, AllLayerInputs)];
     private readonly float[] logitReadback = new float[VocabularySize];
     private Scratch? decodeScratch, promptScratch;
+    private VulkanComputeMath.PreparedComputeBatch? tokenReplay;
     private bool disposed;
 
     public Gemma4E2bModel(VulkanComputeMath compute, GgufCheckpoint checkpoint, int capacity = 640)
@@ -65,6 +66,13 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
 
     public Gemma4E2bModel(VulkanComputeMath compute, GgufCheckpoint checkpoint, int capacity,
         PackedQ4Layout q4Layout, bool fuseKeyCache, PackedQ6Layout headLayout, int headShardRows, bool fuseGateUp)
+        : this(compute, checkpoint, capacity, q4Layout, fuseKeyCache, headLayout, headShardRows, fuseGateUp, fuseQueryRope: false)
+    {
+    }
+
+    public Gemma4E2bModel(VulkanComputeMath compute, GgufCheckpoint checkpoint, int capacity,
+        PackedQ4Layout q4Layout, bool fuseKeyCache, PackedQ6Layout headLayout, int headShardRows, bool fuseGateUp,
+        bool fuseQueryRope)
     {
         ArgumentNullException.ThrowIfNull(compute);
         ArgumentNullException.ThrowIfNull(checkpoint);
@@ -88,6 +96,7 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
         }
         Q4Layout = q4Layout;
         FuseKeyCache = fuseKeyCache;
+        FuseQueryRope = fuseQueryRope;
         FuseGateUp = fuseGateUp;
         HeadLayout = headLayout;
         HeadShardRows = headShardRows;
@@ -108,10 +117,10 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
             layerInputProjection = Own(compute.CreateSparseTensor(AllLayerInputs, Width));
             compute.Upload(layerInputProjection, dense, reuseStaging: true);
 
-            float[]? keyFactors = FuseKeyCache ? ReadVector("rope_freqs.weight", 256) : null;
+            float[]? fusedFactors = FuseKeyCache || FuseQueryRope ? ReadVector("rope_freqs.weight", 256) : null;
             for (int index = 0; index < layers.Length; index++)
             {
-                layers[index] = LoadLayer(index, keyFactors);
+                layers[index] = LoadLayer(index, fusedFactors);
             }
             LoadHeadWeights();
             headInput = Own(compute.CreateTensor(1, Width));
@@ -148,6 +157,7 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
     public bool BatchInputUpload { get; init; }
     public int FusedDecodeMaxKeys { get; init; } = 128;
     public int SplitDecodeTileKeys { get; init; }
+    public bool FuseQueryRope { get; }
     public bool FusedPrefillAttention { get; init; } = true;
     public bool WidePrefillKeyTile { get; init; } = true;
     public bool BoundedNorm { get; init; } = true;
@@ -155,6 +165,8 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
     public bool DeviceHead { get; init; } = true;
     public Gemma4StageProfile? BodyProfile { get; private set; }
     public Gemma4StageProfile? HeadProfile { get; private set; }
+    public double? ReplayPreparationMs { get; private set; }
+    public int ReplayedTokens { get; private set; }
 
     private void LoadHeadWeights()
     {
@@ -234,22 +246,13 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
             long decodeStart = compute.MeasureBatchCpuTime ? Stopwatch.GetTimestamp() : 0;
             for (int row = 0; row < rows; row++)
             {
-                checkpoint.ReadRows(Tokens, tokens[row], 1, tokenBlock);
-                GgufBlocks.DecodeQ6_K(tokenBlock, initial.HostInput.Slice(row * Width, Width));
-                checkpoint.ReadRows(PerLayerTokens, tokens[row], 1, layerTokenBlock);
-                GgufBlocks.DecodeQ6_K(layerTokenBlock, initial.HostLayerInput.Slice(row * AllLayerInputs, AllLayerInputs));
+                ReadEmbedding(tokens[row], initial, row);
             }
             double? inputDecodeMs = decodeStart == 0 ? null : Stopwatch.GetElapsedTime(decodeStart).TotalMilliseconds;
             ComputeBatchUpload? inputUpload = null;
             if (BatchInputUpload)
             {
-                foreach (float value in initial.HostEmbeddings)
-                {
-                    if (!float.IsFinite(value))
-                    {
-                        throw new InvalidDataException("E2B input embeddings contain a nonfinite value.");
-                    }
-                }
+                ValidateEmbeddings(initial.HostEmbeddings);
                 inputUpload = initial.EmbeddingUpload;
             }
             else
@@ -285,11 +288,7 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
                 batch = compute.CreateBatch();
             }
 
-            batch.Scale(initial.Hidden, initial.Hidden, MathF.Sqrt(Width), roundBFloat16: false);
-            batch.ProjectDense(initial.Hidden, layerInputProjection, initial.LayerInput);
-            Norm(batch, initial.LayerInput, layerInputNorm, initial.LayerInput, LayerInput, Width * 1e-6f);
-            batch.Scale(initial.LayerTokenInput, initial.LayerTokenInput, MathF.Sqrt(LayerInput / 2f), roundBFloat16: false);
-            batch.Activate(initial.LayerInput, initial.LayerInput, TensorActivation.Residual, initial.LayerTokenInput);
+            RecordEmbeddingProjection(batch, initial);
             for (int index = 0; index < LayerCount; index++)
             {
                 if (batch.DispatchCount > compute.MaximumDispatches - 64) { Submit(); }
@@ -322,6 +321,92 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
         }
     }
 
+    /// <summary>Advance one supplied token and return its full post-softcap logits.</summary>
+    public ReadOnlySpan<float> DecodeLogitsWithReplay(int token)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        if (token is < 0 or >= VocabularySize || Position >= ContextCapacity)
+        {
+            throw new ArgumentOutOfRangeException(nameof(token), "The token and position must fit the model.");
+        }
+        if (!BatchInputUpload || !DeviceHead || !FuseKeyCache || !FuseQueryRope || LayerSubmissions
+            || ProfileDispatches || !PackedDecode || PackedDecodeLanes != 16 || Q4Layout != PackedQ4Layout.Interleaved8
+            || SplitDecodeTileKeys == 0)
+        {
+            throw new InvalidOperationException("Token replay requires the optimized E2B decode path and batch input upload.");
+        }
+        if (!UseSplitAttention(1, Position + 1, prune: false))
+        {
+            using var hidden = Evaluate([token]);
+            return Logits(hidden);
+        }
+
+        long start = Stopwatch.GetTimestamp();
+        try
+        {
+            var work = GetScratch(1);
+            ReadEmbedding(token, work, 0);
+            ValidateEmbeddings(work.HostEmbeddings);
+            double inputMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+            if (tokenReplay is null)
+            {
+                long prepareStart = Stopwatch.GetTimestamp();
+                var batch = compute.CreateTokenReplayBatch(Position, ContextCapacity);
+                RecordEmbeddingProjection(batch, work);
+                for (int index = 0; index < LayerCount; index++)
+                {
+                    RecordLayer(batch, index, work, work.LayerInput, Position, null, null, 0, null);
+                }
+                RecordHead(batch, work.Hidden);
+                tokenReplay = compute.PrepareTokenReplay(batch, work.EmbeddingUpload, logitStorage,
+                    enableGpuTimings: compute.MeasureBatchCpuTime);
+                ReplayPreparationMs = Stopwatch.GetElapsedTime(prepareStart).TotalMilliseconds;
+            }
+            var result = tokenReplay.ExecuteToken(Position, logitReadback);
+            Position++;
+            ReplayedTokens++;
+            BodyProfile = new(Stopwatch.GetElapsedTime(start).TotalMilliseconds, result.GpuMilliseconds.GetValueOrDefault(),
+                inputMs, 1, result.Dispatches);
+            HeadProfile = new(0, 0, 0, 0, 0);
+            return logitReadback;
+        }
+        catch
+        {
+            tokenReplay?.Dispose();
+            tokenReplay = null;
+            Reset();
+            throw;
+        }
+    }
+
+    private void ReadEmbedding(int token, Scratch scratch, int row)
+    {
+        checkpoint.ReadRows(Tokens, token, 1, tokenBlock);
+        GgufBlocks.DecodeQ6_K(tokenBlock, scratch.HostInput.Slice(row * Width, Width));
+        checkpoint.ReadRows(PerLayerTokens, token, 1, layerTokenBlock);
+        GgufBlocks.DecodeQ6_K(layerTokenBlock, scratch.HostLayerInput.Slice(row * AllLayerInputs, AllLayerInputs));
+    }
+
+    private static void ValidateEmbeddings(Span<float> embeddings)
+    {
+        foreach (float value in embeddings)
+        {
+            if (!float.IsFinite(value))
+            {
+                throw new InvalidDataException("E2B input embeddings contain a nonfinite value.");
+            }
+        }
+    }
+
+    private void RecordEmbeddingProjection(ComputeMathBatch batch, Scratch work)
+    {
+        batch.Scale(work.Hidden, work.Hidden, MathF.Sqrt(Width), roundBFloat16: false);
+        batch.ProjectDense(work.Hidden, layerInputProjection, work.LayerInput);
+        Norm(batch, work.LayerInput, layerInputNorm, work.LayerInput, LayerInput, Width * 1e-6f);
+        batch.Scale(work.LayerTokenInput, work.LayerTokenInput, MathF.Sqrt(LayerInput / 2f), roundBFloat16: false);
+        batch.Activate(work.LayerInput, work.LayerInput, TensorActivation.Residual, work.LayerTokenInput);
+    }
+
     private void RecordLayer(ComputeMathBatch batch, int index, Scratch work, GpuTensor layerInput,
         int position, GpuTensor? scores, GpuTensor? probabilities, int firstLayerInputRow,
         List<FeedForwardDispatches>? feedForward)
@@ -336,8 +421,15 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
         Layer cache = layer;
         Norm(batch, work.Hidden, layer.AttnNorm, work.Norm, Width);
         Project(batch, work.Norm, layer.Query, query);
-        Norm(batch, query, layer.QueryNorm, query, headWidth);
-        batch.RotateHeads(query, query, headWidth, position, theta, roundBFloat16: false, frequencyFactors: factors);
+        if (FuseQueryRope)
+        {
+            batch.NormalizeRotateQueries(query, layer.QueryNorm, headWidth, position, theta);
+        }
+        else
+        {
+            Norm(batch, query, layer.QueryNorm, query, headWidth);
+            batch.RotateHeads(query, query, headWidth, position, theta, roundBFloat16: false, frequencyFactors: factors);
+        }
         if (index < KvLayers)
         {
             GpuTensor key = global ? work.KeyGlobal : work.KeyLocal;
@@ -583,6 +675,12 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
     private ComputeMathBatch RecordHead(GpuTensor hidden)
     {
         var batch = compute.CreateBatch();
+        RecordHead(batch, hidden);
+        return batch;
+    }
+
+    private void RecordHead(ComputeMathBatch batch, GpuTensor hidden)
+    {
         batch.Gather(hidden, headInput, hidden.Rows - 1);
         Norm(batch, headInput, outputNorm, headInput, Width);
         for (int index = 0; index < headWeights.Length; index++)
@@ -598,7 +696,6 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
                 batch.Scatter(headSlice, logitStorage, first / LogitStorageColumns, first % LogitStorageColumns);
             }
         }
-        return batch;
     }
 
     public void Reset() => Position = 0;
@@ -615,7 +712,7 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
         return promptScratch;
     }
 
-    private Layer LoadLayer(int index, float[]? keyFactors)
+    private Layer LoadLayer(int index, float[]? fusedFactors)
     {
         string prefix = $"blk.{index}.";
         bool hasKv = index < KvLayers;
@@ -626,15 +723,18 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
         GpuTensor? keyNorm = null;
         if (hasKv)
         {
-            keyNorm = headWidth == 512 && keyFactors is not null
-                ? KeyConstants(prefix + "attn_k_norm.weight", headWidth, keyFactors)
+            keyNorm = headWidth == 512 && FuseKeyCache && fusedFactors is not null
+                ? RopeConstants(prefix + "attn_k_norm.weight", headWidth, fusedFactors)
                 : V("attn_k_norm", headWidth);
         }
+        GpuTensor queryNorm = headWidth == 512 && FuseQueryRope && fusedFactors is not null
+            ? RopeConstants(prefix + "attn_q_norm.weight", headWidth, fusedFactors)
+            : V("attn_q_norm", headWidth);
         string gateName = prefix + "ffn_gate.weight";
         string upName = prefix + "ffn_up.weight";
         GpuTensor gate = PackedQ4(gateName, Width, ffn, FuseGateUp ? upName : null);
         GpuTensor up = FuseGateUp ? gate : PackedQ4(upName, Width, ffn);
-        return new(V("attn_norm", Width), Q4("attn_q", Width, Heads * headWidth), V("attn_q_norm", headWidth),
+        return new(V("attn_norm", Width), Q4("attn_q", Width, Heads * headWidth), queryNorm,
             hasKv ? Q4("attn_k", Width, headWidth) : null, hasKv ? Q4("attn_v", Width, headWidth) : null,
             keyNorm,
             hasKv ? Own(compute.CreateTensor(ContextCapacity * 2, headWidth)) : null,
@@ -644,7 +744,7 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
             V("post_norm", Width), ReadVector(prefix + "layer_output_scale.weight", 1)[0]);
     }
 
-    private GpuTensor KeyConstants(string name, int width, float[] factors)
+    private GpuTensor RopeConstants(string name, int width, float[] factors)
     {
         var constants = new float[width + factors.Length];
         ReadVector(name, width).CopyTo(constants, 0);
@@ -722,6 +822,7 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
     {
         if (disposed) { return; }
         disposed = true;
+        tokenReplay?.Dispose();
         decodeScratch?.Dispose();
         promptScratch?.Dispose();
         foreach (var tensor in owned) { tensor.Dispose(); }

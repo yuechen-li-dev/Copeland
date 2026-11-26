@@ -188,6 +188,8 @@ public static class BuiltinShaderLibrary
         new("NormalizeSplitProjection.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Module),
         new("DecoderRope.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
         new("NormalizeRotateCacheKey.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
+        new("NormalizeRopeKey.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Module),
+        new("NormalizeRopeQuery.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Module),
         new("DecoderScale.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
         new("DecoderPointwiseFp32.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
         new("GroupedAttention.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),

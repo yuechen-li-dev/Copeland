@@ -380,6 +380,24 @@ public sealed partial class ComputeMathBatch
         }, Groups(input.Elements / 2, 64))]);
     }
 
+    /// <summary>Apply FP32 RMSNorm and half-split RoPE to every query head in place.</summary>
+    public void NormalizeRotateQueries(GpuTensor query, GpuTensor gammaAndFactors, int headWidth,
+        int positionOffset, float theta, float epsilon = 1e-6f)
+    {
+        Check(query, gammaAndFactors);
+        bool hasFactors = gammaAndFactors.Elements == headWidth + headWidth / 2;
+        Require(headWidth is 256 or 512 && query.Columns % headWidth == 0 && positionOffset is >= 0 and <= 262144
+            && (hasFactors || gammaAndFactors.Elements == headWidth) && !ReferenceEquals(query, gammaAndFactors)
+            && float.IsFinite(theta) && theta > 1 && float.IsFinite(epsilon) && epsilon > 0,
+            "Fused query RoPE needs complete heads and an independent gamma and optional factor vector.");
+        Add([new("NormalizeRotateCacheKey.Query", query, gammaAndFactors, query, new()
+        {
+            Width = (uint)headWidth, Inner = (uint)headWidth / 64, Offset = (uint)positionOffset,
+            Height = (uint)query.Columns / (uint)headWidth, Mode = hasFactors ? 1u : 0u, Theta = theta, Epsilon = epsilon,
+        }, (uint)(query.Elements / headWidth))]);
+        TrackTokenOffset(positionOffset, 262145, query.Rows);
+    }
+
     public void GroupedAttentionScores(GpuTensor query, GpuTensor keys, GpuTensor scores,
         int heads, int kvHeads, int headWidth, int positionOffset, int keyCount, int window = 1024)
     {
@@ -406,6 +424,7 @@ public sealed partial class ComputeMathBatch
             Width = (uint)width, Inner = (uint)width / 64, Offset = (uint)position,
             Mode = hasFactors ? 1u : 0u, Theta = theta, Epsilon = epsilon,
         }, (uint)keys.Rows)]);
+        TrackTokenOffset(position, capacity, keys.Rows);
     }
 
     public void GroupedAttentionScores(GpuTensor query, GpuTensor keys, GpuTensor scores,
@@ -482,6 +501,7 @@ public sealed partial class ComputeMathBatch
                 Width = (uint)headWidth, Inner = tiles,
             }, (uint)heads),
         ]);
+        TrackTokenAttention(position, capacity, heads, window, tileKeys, partials.Rows);
     }
 
     public void GroupedAttentionValues(GpuTensor probabilities, GpuTensor values, GpuTensor output,

@@ -1,6 +1,7 @@
 import { KernelParameters } from "./KernelMath";
+import { WriteKeyCache } from "./NormalizeRopeKey";
 
-// One workgroup normalizes and rotates one key row, then writes its cache slot.
+// One workgroup owns a head. Each lane reads and writes only its own pairs after RMSNorm.
 @compute
 @numthreads(64, 1, 1)
 function NormalizeRotateCacheKeyMain(@builtin(groupId) group: uint3,
@@ -12,8 +13,12 @@ function NormalizeRotateCacheKeyMain(@builtin(groupId) group: uint3,
     @binding(3) readonly Parameters: StorageBuffer<KernelParameters>): void {
     let p = Parameters[0];
     let source = group.x * p.width;
-    let position = group.x + p.offset;
-    let destination = position * p.width;
+    var position = group.x + p.offset;
+    var destination = position * p.width;
+    if (!WriteKeyCache) {
+        position = group.x / p.height + p.offset;
+        destination = source;
+    }
     var sum: f32 = 0.0;
     for (let tile of BoundedIndices<8>(p.inner)) {
         let value = Keys[source + tile * 64 + lane];

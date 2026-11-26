@@ -520,6 +520,106 @@ The E2B measurements here cover resident dense weights.
 Raw timings, logits, and prototype patches are under
 `artifacts/local/gemma4/rdna-research`.
 
+### Basalt study and fused query preparation
+
+Basalt targets Blackwell CUDA and descends from Strata. This study uses
+commit `8c0fe539e06fd0eeae57524fa9d2f6c8389a6763`. It borrows
+data-reuse and fusion ideas for the RTX 3070 Vulkan path. All Aurelian
+arms use the same E2B GGUF, token fixtures and FP32 activations.
+[Basalt source and lineage](https://github.com/jesdga95/basalt/tree/8c0fe539e06fd0eeae57524fa9d2f6c8389a6763)
+
+Basalt's GQA kernel stages K/V once across a group of query heads and
+uses matrix instructions for the grouped work. Aurelian tested sharing
+each FP32 K/V load across two query heads in a Vulkan workgroup. A
+single-head version of the same shader served as an additional control
+for the specialization itself. Basalt also builds persistent RoPE
+tables and uses fused kernels in its decoder. The Aurelian experiments
+tested a standalone table lookup and fused RMSNorm and rotation separately.
+[Basalt GQA kernel](https://github.com/jesdga95/basalt/blob/8c0fe539e06fd0eeae57524fa9d2f6c8389a6763/src/kernels/cuda/gqa_attn.cu#L154)
+[Basalt RoPE setup](https://github.com/jesdga95/basalt/blob/8c0fe539e06fd0eeae57524fa9d2f6c8389a6763/src/models/qwen4exp/decode/layer.cpp#L504)
+[Basalt row normalization](https://github.com/jesdga95/basalt/blob/8c0fe539e06fd0eeae57524fa9d2f6c8389a6763/src/kernels/cuda/row_norm.cu)
+
+| GPU intervals per decode token | 64 prompt | 512 prompt |
+|---|---:|---:|
+| Current attention kernel before merge | 0.489 ms | 0.578 ms |
+| Specialized 16-key attention, one head | 0.562 ms | 0.635 ms |
+| Specialized 16-key attention, two heads sharing K/V | 0.739 ms | 0.775 ms |
+| Query RoPE, computed per invocation | 0.079 ms | 0.078 ms |
+| Query RoPE, standalone table lookup | 0.086 ms | 0.086 ms |
+| Bounded RMSNorm plus query RoPE, separate | 0.289 ms | 0.290 ms |
+| Same shader families with fused query RMSNorm/RoPE | 0.182 ms | 0.183 ms |
+
+The optimized E2B path uses the fused query kernel. One workgroup owns
+each query head and rotates its pairs in place after the RMS reduction.
+It reuses the kernel that already prepares K for cache writes through a
+Visual TypeScript module variant. It removes 35 dispatches per decode
+token and adds 7 KiB of immutable RoPE factors for the seven global
+layers. The attention-sharing and table prototypes are archived under
+`artifacts/local/gemma4/basalt-study`.
+
+Use `--separate-query-rope` with `--optimized` to select the original
+query path. The prototypes and fused path preserved bit-identical full
+logits at all 50 fixture positions.
+
+| Warm fixture | Separate query preparation | Fused query preparation | llama.cpp |
+|---|---:|---:|---:|
+| 64 prompt, 32 decode | 156.36 tok/s | 157.96 tok/s | 171.83 tok/s |
+| 512 prompt, 16 decode | 143.55 tok/s | 145.26 tok/s | 167.77 tok/s |
+
+The Aurelian columns pool six warm repetitions per cell with opposite
+arm ordering. Individual passes ranged from essentially flat to a gain
+of about 2%. The pooled gains were 1.0% and 1.2%. The fused rates are
+91.9% and 86.6% of the current native reference.
+
+Basalt also captures verify windows with CUDA graphs. Aurelian's
+existing prepared Vulkan batches fixed parameters and bindings at
+record time. The decode replay experiment below extends those batches
+with a per-token parameter upload.
+[Basalt batch graph capture](https://github.com/jesdga95/basalt/blob/8c0fe539e06fd0eeae57524fa9d2f6c8389a6763/src/models/qwen4exp/decode/verify/batch_capture.cpp#L17)
+
+### Prepared single-token Vulkan replay
+
+`--optimized --replay-e2b` records the E2B single-token body, logit head,
+input copies and full-logit readback once. Its 751 dispatches use pinned
+bindings and retained staging. Each replay uploads a contiguous,
+aligned device-local parameter table and the token's embeddings.
+The runtime patches Q/K RoPE positions, V cache slot, sliding-window
+offset and KV length, split grid and merge count. Indirect dispatch
+keeps the attention grid sized to the live KV window.
+[Vulkan indirect dispatch](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdDispatchIndirect.html)
+
+| Warm fixture | Queued E2B | Prepared replay | llama.cpp | Replay share of llama.cpp |
+|---|---:|---:|---:|---:|
+| 64 prompt, 32 decode | 156.52 tok/s | 170.68 tok/s | 173.75 tok/s | 98.2% |
+| 512 prompt, 16 decode | 146.70 tok/s | 162.89 tok/s | 166.74 tok/s | 97.7% |
+
+Aurelian columns pool six warm repetitions per cell in both arm
+orders. Native rates use three warm repetitions from llama.cpp
+`b12453` with the same GGUF and supplied tokens. Replay saved 0.53 and
+0.68 ms per decode token. A separate queued storage-parameter run
+measured 141.54 and 133.23 tok/s. Replay uses the storage ABI and
+removes command re-recording, descriptor work and the separate
+readback submission from the steady token path. In the long replay
+profile the median token took 6.14 ms wall, 5.86 ms inside the compute
+interval and 0.039 ms for host embedding preparation. The fused
+body, head and readback are reported together by the replay harness.
+
+First preparation took 0.42–0.45 s, including about 0.37 s compiling
+the split-attention and merge pipelines in the final passes. The
+warm runs reuse that graph across sequence resets. Peak Aurelian-owned
+GPU buffers fell by 1.42 and 19.32 MiB from the queued control.
+
+All 50 full logits rows matched queued E2B bit for bit, and top-one
+tokens and top-five sets matched llama.cpp. The Vulkan proof also
+compares replay with fresh recording as the tile count changes,
+the KV window slides, and position moves backward. It checks the
+final K/V cache contents as well as the output.
+
+Replay is an opt-in full-logit benchmark path. Prompt evaluation
+uses the ordinary model path before captured single-token decode.
+Use `--optimized --queued-e2b` for the queued control.
+Raw outputs are under `artifacts/local/gemma4/decode-replay`.
+
 ## Reproduce
 
 Build the C++ reference with the headers and Vulkan binaries from llama.cpp
