@@ -587,6 +587,21 @@ public sealed partial class ComputeMathBatch
         ]);
     }
 
+    /// <summary>Map the bit pattern of each BF16 value in FP32 storage through a 65,536-entry table.</summary>
+    public void LookupBFloat16(GpuTensor input, GpuTensor table, GpuTensor output)
+    {
+        Check(input, table, output);
+        Require(SameShape(input, output) && table.Elements == 65536
+            && !ReferenceEquals(table, output) && !ReferenceEquals(table, input),
+            "BF16 lookup requires matching input/output shapes and a separate 65,536-entry table.");
+        uint groups = Groups(input.Elements, 64);
+        uint groupsX = Math.Min(groups, 65535);
+        Add([new("BFloat16Lookup.v.ts", input, table, output, new()
+        {
+            Columns = (uint)input.Elements, Stride = groupsX * 64,
+        }, groupsX, (groups + groupsX - 1) / groupsX)]);
+    }
+
     public void Scale(GpuTensor input, GpuTensor output, float factor, bool roundBFloat16 = true)
     {
         Check(input, output);

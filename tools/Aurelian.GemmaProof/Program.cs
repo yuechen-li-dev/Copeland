@@ -9,10 +9,12 @@ using Aurelian.Inference.Dominatus;
 using Aurelian.Inference.Gemma4;
 using Aurelian.Shaders.Library;
 
+long invocationStart = Stopwatch.GetTimestamp();
 string command = args.Length > 0 ? args[0] : "--kernels";
-if (args is ["--compile-e2b-shaders", _] or ["--verify-e2b-shaders"])
+if (args is ["--compile-e2b-shaders" or "--compile-inference-shaders", _]
+    or ["--verify-e2b-shaders" or "--verify-inference-shaders"])
 {
-    bool verify = command == "--verify-e2b-shaders";
+    bool verify = command is "--verify-e2b-shaders" or "--verify-inference-shaders";
     var source = new BuiltinComputeShaderCache();
     var embedded = new BuiltinComputeShaderCache { UsePrecompiledShaders = true };
     if (!verify) { Directory.CreateDirectory(args[1]); }
@@ -32,7 +34,9 @@ if (args is ["--compile-e2b-shaders", _] or ["--verify-e2b-shaders"])
             }
         }
     }
-    Console.WriteLine(verify ? "AURELIAN_E2B_SHADER_PACK_VERIFIED" : "AURELIAN_E2B_SHADER_PACK_COMPILED");
+    string packLabel = command.EndsWith("-e2b-shaders", StringComparison.Ordinal) ? "E2B" : "INFERENCE";
+    string action = verify ? "VERIFIED" : "COMPILED";
+    Console.WriteLine($"AURELIAN_{packLabel}_SHADER_PACK_{action}");
     return;
 }
 if (command is "--e2b" or "--e2b-generate")
@@ -80,10 +84,16 @@ using var session = VulkanInferenceSession.Create(new()
 {
     ApplicationName = "Aurelian Gemma 4 text proof",
     MaximumTensorElements = 33554432,
-    EnableValidation = command != "--residency",
+    EnableValidation = command != "--residency" && !args.Contains("--no-validation", StringComparer.Ordinal),
     PushDispatchParameters = args.Contains("--push-parameters", StringComparer.Ordinal),
+    UsePrecompiledShaders = !args.Contains("--compile-shaders-at-runtime", StringComparer.Ordinal),
 });
 var compute = session.Compute;
+var pipelineCreationMs = new Dictionary<string, double>(StringComparer.Ordinal);
+if (command == "--generate")
+{
+    compute.PipelineCreated = (shader, milliseconds) => pipelineCreationMs.Add(shader, milliseconds);
+}
 if (command == "--scheduling")
 {
     SchedulingChecks(compute, outputDirectory);
@@ -110,6 +120,8 @@ packed.ValidateSource(sourcePath);
 bool useChunkedReference = args.Contains("--reference", StringComparer.Ordinal);
 int hostBudgetOption = Array.IndexOf(args, "--host-mib");
 long hostBudget = hostBudgetOption >= 0 ? checked(long.Parse(args[hostBudgetOption + 1]) * 1024 * 1024) : 0;
+int residentBudgetOption = Array.IndexOf(args, "--resident-mib");
+long residentBudget = residentBudgetOption >= 0 ? checked(long.Parse(args[residentBudgetOption + 1]) * 1024 * 1024) : 1536L * 1024 * 1024;
 bool queued = args.Contains("--queued", StringComparer.Ordinal);
 bool separateUploads = args.Contains("--separate-uploads", StringComparer.Ordinal);
 using var feedforward = new DominatusComputeFeedforward(64 * 1024 * 1024);
@@ -122,8 +134,12 @@ if (command == "--residency")
     return;
 }
 using var model = new Gemma4TextModel(compute, weights, packed,
-    useChunkedReference: useChunkedReference, hostWeightBudget: hostBudget,
-    useQueuedExecution: queued, useSeparateUploads: separateUploads);
+    residentWeightBudget: residentBudget, useChunkedReference: useChunkedReference, hostWeightBudget: hostBudget,
+    useQueuedExecution: queued, useSeparateUploads: separateUploads)
+{
+    UseDeviceGreedyHead = args.Contains("--gpu-argmax", StringComparer.Ordinal),
+    StreamedWeightBufferBudget = args.Contains("--reuse-streamed-buffers", StringComparer.Ordinal) ? 192L * 1024 * 1024 : 0,
+};
 if (command == "--block")
 {
     int[] tokens = [2, 2532];
@@ -145,20 +161,40 @@ string formatted = Gemma4Chat.FormatUser(prompt);
 int[] promptTokens = bpe.Encode(formatted);
 var schedule = new DominatusComputeSchedule("gemma.generate");
 var generator = new CausalTextGenerator(model, schedule);
-var emitted = new List<int>();
+int runsOption = Array.IndexOf(args, "--generation-runs");
+int repeatCount = runsOption >= 0 ? int.Parse(args[runsOption + 1]) : 1;
+if (repeatCount is < 1 or > 8) { throw new ArgumentOutOfRangeException(nameof(repeatCount)); }
+var stops = new HashSet<int> { bpe.TokenId("<eos>"), bpe.TokenId("<turn|>") };
+var runs = new List<StreamingGenerationRun>();
 long uploadStart = model.UploadedWeightBytes;
 model.ObserveLayer = layer => Console.WriteLine($"layer {layer + 1}/48");
-TextGenerationResult result = generator.Generate(promptTokens, maximumTokens,
-    new HashSet<int> { bpe.TokenId("<eos>"), bpe.TokenId("<turn|>") }, token =>
+for (int run = 0; run < repeatCount; run++)
+{
+    var emitted = new List<int>();
+    var headQueues = new List<ComputeQueueMetrics>();
+    long beforeUploads = model.UploadedWeightBytes;
+    int beforeReadbacks = compute.ReadbackCount;
+    var beforeWeights = model.WeightTimings;
+    double startedMs = Stopwatch.GetElapsedTime(invocationStart).TotalMilliseconds;
+    var generation = generator.Generate(promptTokens, maximumTokens, stops, token =>
     {
         model.ObserveLayer = null;
         emitted.Add(token.Id);
+        if (model.LastHeadQueue is { } headQueue) { headQueues.Add(headQueue); }
         var partial = Gemma4Chat.ParseResponse(bpe.Decode(emitted, skipSpecial: false));
         Console.WriteLine($"token={token.Id}, content={JsonSerializer.Serialize(partial.Content)}");
     });
+    var bodyQueues = model.QueueMeasurements.TakeLast(queued ? generation.Tokens.Count : 0).ToArray();
+    runs.Add(new(startedMs, generation, model.UploadedWeightBytes - beforeUploads,
+        compute.ReadbackCount - beforeReadbacks, beforeWeights, model.WeightTimings,
+        schedule.Measurements.ToArray(), bodyQueues, headQueues.ToArray()));
+}
+TextGenerationResult result = runs[0].Generation;
 string raw = bpe.Decode(result.Tokens.Select(token => token.Id), skipSpecial: false);
 Gemma4ChatResponse response = Gemma4Chat.ParseResponse(raw);
-string evidencePath = Path.Combine(outputDirectory, "generation.json");
+int evidenceOption = Array.IndexOf(args, "--evidence");
+string evidencePath = evidenceOption >= 0 ? Path.GetFullPath(args[evidenceOption + 1]) : Path.Combine(outputDirectory, "generation.json");
+Directory.CreateDirectory(Path.GetDirectoryName(evidencePath)!);
 double decodeSeconds = (result.TotalMilliseconds - result.TimeToFirstTokenMilliseconds) / 1000;
 File.WriteAllText(evidencePath, JsonSerializer.Serialize(new
 {
@@ -172,10 +208,18 @@ File.WriteAllText(evidencePath, JsonSerializer.Serialize(new
     RawResponse = raw,
     Response = response,
     Generation = result,
+    ColdFirstTokenMs = runs[0].StartedMs + result.TimeToFirstTokenMilliseconds,
+    Runs = runs,
     DecodeTokensPerSecond = result.Tokens.Count > 1 ? (result.Tokens.Count - 1) / decodeSeconds : 0,
     ResidentWeightBytes = model.ResidentWeightBytes,
+    ResidentWeightBudget = residentBudget,
     WeightTimings = model.WeightTimings,
     Queued = queued,
+    model.UseDeviceGreedyHead,
+    model.StreamedWeightBufferBudget,
+    model.StreamedWeightBufferBytes,
+    compute.PushDispatchParameters,
+    PipelineCreationMs = pipelineCreationMs,
     SeparateUploads = separateUploads,
     QueueMeasurements = model.QueueMeasurements,
     Feedforward = feedforward.Evidence,
@@ -526,7 +570,45 @@ static void KernelChecks(VulkanComputeMath compute)
     PackedFeedForwardChecks(compute);
     Q6ProjectionChecks(compute);
     ArgMaxChecks(compute);
+    BFloat16LookupChecks(compute);
     Console.WriteLine("AURELIAN_GEMMA_KERNELS_PASSED");
+}
+
+static void BFloat16LookupChecks(VulkanComputeMath compute)
+{
+    const int length = 2049;
+    using var scores = compute.CreateTensor(1, length);
+    using var table = compute.CreateTensor(1, 65536);
+    using var partials = compute.CreateTensor(3, 2);
+    using var result = compute.CreateTensor(1, 2);
+    var lookup = new float[65536];
+    lookup[BitConverter.SingleToUInt32Bits(-1f) >> 16] = -1;
+    lookup[BitConverter.SingleToUInt32Bits(2f) >> 16] = 3;
+    lookup[BitConverter.SingleToUInt32Bits(4f) >> 16] = 3;
+    lookup[BitConverter.SingleToUInt32Bits(8f) >> 16] = float.MaxValue;
+    compute.Upload(table, lookup);
+    var raw = Enumerable.Repeat(-1f, length).ToArray();
+    raw[17] = 2;
+    raw[2048] = 4;
+    var batch = compute.CreateBatch();
+    batch.LookupBFloat16(scores, table, scores);
+    batch.ArgMax(scores, partials, result);
+    Span<float> pair = stackalloc float[2];
+    compute.Upload(scores, raw);
+    compute.Execute(batch);
+    compute.ReadInto(result, pair);
+    if (pair[0] != 3 || pair[1] != 17)
+    {
+        throw new InvalidDataException("BF16 score lookup must resolve ties after mapping across tiles.");
+    }
+    raw[1300] = 8;
+    compute.Upload(scores, raw);
+    compute.Execute(batch);
+    compute.ReadInto(result, pair);
+    if (pair[0] != float.MaxValue || pair[1] != 1300)
+    {
+        throw new InvalidDataException("BF16 score lookup must propagate the invalid-score sentinel.");
+    }
 }
 
 static void TokenReplayChecks(VulkanComputeMath compute)
@@ -923,4 +1005,8 @@ sealed class FailingStreamController(Exception failure) : IComputeStreamControll
         }
     }
 }
+
+sealed record StreamingGenerationRun(double StartedMs, TextGenerationResult Generation, long UploadedWeightBytes,
+    int Readbacks, QuantizedLayerTimings WeightTimingsBefore, QuantizedLayerTimings WeightTimingsAfter,
+    ComputeStageMeasurement[] Stages, ComputeQueueMetrics[] BodyQueues, ComputeQueueMetrics[] HeadQueues);
 

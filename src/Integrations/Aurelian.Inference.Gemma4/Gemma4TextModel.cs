@@ -13,6 +13,7 @@ public sealed class Gemma4TextModel : ICausalTextModel, IDisposable
     public const int LayerCount = 48;
     public const string Prefix = "model.language_model.";
     public const string Embeddings = Prefix + "embed_tokens.weight";
+    private const int HeadSliceRows = 8192;
     private readonly VulkanComputeMath compute;
     private readonly SafeTensorFile source;
     private readonly VulkanQuantizedLayers layers;
@@ -32,6 +33,14 @@ public sealed class Gemma4TextModel : ICausalTextModel, IDisposable
     public QuantizedLayerTimings WeightTimings => layers.Timings;
     public int WeightHostScratchBytes => layers.HostScratchBytes;
     public long WeightHostCacheBytes => layers.HostCacheBytes;
+    public bool UseDeviceGreedyHead { get; init; }
+    public long StreamedWeightBufferBudget
+    {
+        get => layers.StreamedWeightBufferBudget;
+        init => layers.StreamedWeightBufferBudget = value;
+    }
+    public long StreamedWeightBufferBytes => layers.StreamedBufferBytes;
+    public ComputeQueueMetrics? LastHeadQueue { get; private set; }
 
     public static void ValidateConfiguration(string path)
     {
@@ -296,21 +305,96 @@ public sealed class Gemma4TextModel : ICausalTextModel, IDisposable
         gather.Gather(hidden, last, hidden.Rows - 1);
         compute.Execute(gather);
         Norm(last, last, Prefix + "norm.weight", HiddenWidth);
+        LastHeadQueue = null;
+        if (UseDeviceGreedyHead)
+        {
+            return DeviceGreedyToken(last);
+        }
         int winner = -1;
         float maximum = float.NegativeInfinity;
-        for (int first = 0; first < VocabularySize; first += 8192)
+        for (int first = 0; first < VocabularySize; first += HeadSliceRows)
         {
-            using var logits = layers.Linear(last, Embeddings, first, Math.Min(8192, VocabularySize - first));
+            using var logits = layers.Linear(last, Embeddings, first, HeadSliceRows);
             float[] values = compute.Read(logits);
             for (int index = 0; index < values.Length; index++)
             {
-                float score = Round(Round(MathF.Tanh(Round(values[index] / 30))) * 30);
+                float score = ScoreLogit(values[index]);
                 if (!float.IsFinite(score)) { throw new InvalidDataException("AUR-GEMMA-004: Nonfinite output logit."); }
                 if (score > maximum) { maximum = score; winner = first + index; }
             }
         }
         return (winner, maximum);
     }
+
+    private (int Token, float Score) DeviceGreedyToken(GpuTensor last)
+    {
+        int slices = VocabularySize / HeadSliceRows;
+        var logits = GetHeadTensor("head.logits", slices, HeadSliceRows);
+        var partials = GetHeadTensor("head.partials", VocabularySize / 1024, 2);
+        var winner = GetHeadTensor("head.winner", 1, 2);
+        var table = GetHeadScoreTable();
+        int uploadBytes = HeadSliceRows * (HiddenWidth / BlockQ4.ValuesPerBlock) * BlockQ4.WordsPerBlock * sizeof(uint);
+        using var queue = useQueuedExecution
+            ? compute.BeginQueuedScope(compute.StreamController!, new(slices + 1, 4, (ulong)uploadBytes))
+            : null;
+        for (int slice = 0; slice < slices; slice++)
+        {
+            layers.LinearScatter(last, Embeddings, slice * HeadSliceRows, HeadSliceRows, logits, slice);
+        }
+        var selection = compute.CreateBatch();
+        selection.LookupBFloat16(logits, table, logits);
+        selection.ArgMax(logits, partials, winner);
+        compute.Execute(selection);
+        Span<float> pair = stackalloc float[2];
+        compute.ReadInto(winner, pair);
+        LastHeadQueue = queue?.Metrics;
+        int token = (int)pair[1];
+        if (!float.IsFinite(pair[0]) || pair[0] == float.MaxValue || token is < 0 or >= VocabularySize || pair[1] != token)
+        {
+            throw new InvalidDataException("AUR-GEMMA-004: Invalid output logit or argmax index.");
+        }
+        return (token, pair[0]);
+    }
+
+    private GpuTensor GetHeadTensor(string name, int rows, int columns)
+    {
+        if (!vectors.TryGetValue(name, out var tensor))
+        {
+            tensor = compute.CreateTensor(rows, columns);
+            vectors.Add(name, tensor);
+        }
+        return tensor;
+    }
+
+    private GpuTensor GetHeadScoreTable()
+    {
+        const string name = "head.score-table";
+        if (vectors.TryGetValue(name, out var cached))
+        {
+            return cached;
+        }
+        var scores = new float[65536];
+        for (int index = 0; index < scores.Length; index++)
+        {
+            float score = ScoreLogit(BitConverter.UInt32BitsToSingle((uint)index << 16));
+            // Argmax reports a nonfinite logit anywhere in the vocabulary through the winning score.
+            scores[index] = float.IsFinite(score) ? score : float.MaxValue;
+        }
+        var table = compute.CreateTensor(1, scores.Length);
+        try
+        {
+            compute.Upload(table, scores);
+            vectors.Add(name, table);
+            return table;
+        }
+        catch
+        {
+            table.Dispose();
+            throw;
+        }
+    }
+
+    private static float ScoreLogit(float value) => Round(Round(MathF.Tanh(Round(value / 30))) * 30);
 
     private static float Round(float value)
     {

@@ -19,6 +19,7 @@ public sealed class VulkanQuantizedLayers : IDisposable
     private readonly long residentBudget;
     private readonly long hostCacheBudget;
     private readonly Dictionary<string, GpuTensor> resident = new(StringComparer.Ordinal);
+    private readonly Dictionary<(int Rows, int Columns), GpuTensor> streamedBuffers = [];
     private readonly Dictionary<(string Name, int First, int Count), byte[]> hostCache = [];
     private bool disposed;
     private byte[] uploadScratch = [];
@@ -35,11 +36,22 @@ public sealed class VulkanQuantizedLayers : IDisposable
     public long ResidentBytes { get; private set; }
     public long UploadedBytes { get; private set; }
     public long HostCacheBytes { get; private set; }
+    public long StreamedBufferBytes { get; private set; }
     public QuantizedLayerTimings Timings => new(calls, dispatches, cacheHits, hostCacheHits,
         readMilliseconds, allocationMilliseconds, uploadMilliseconds, executeMilliseconds,
         gpuTimingAvailable ? gpuMilliseconds : null);
     public bool UseChunkedReference { get; init; }
     public bool UseSeparateUploads { get; init; }
+    private long streamedBufferBudget;
+    public long StreamedWeightBufferBudget
+    {
+        get => streamedBufferBudget;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, StreamedBufferBytes);
+            streamedBufferBudget = value;
+        }
+    }
     public int HostScratchBytes => uploadScratch.Length;
 
     public VulkanQuantizedLayers(VulkanComputeMath compute, QuantizedCheckpoint weights,
@@ -54,6 +66,16 @@ public sealed class VulkanQuantizedLayers : IDisposable
     }
 
     public GpuTensor Linear(GpuTensor input, string name, int firstRow = 0, int? rowCount = null)
+        => LinearCore(input, name, firstRow, rowCount, null);
+
+    /// <summary>Project a matrix slice and collect its output into a larger tensor in the same batch.</summary>
+    public void LinearScatter(GpuTensor input, string name, int firstRow, int rowCount, GpuTensor destination, int destinationRow)
+    {
+        using var projected = LinearCore(input, name, firstRow, rowCount, (destination, destinationRow));
+    }
+
+    private GpuTensor LinearCore(GpuTensor input, string name, int firstRow, int? rowCount,
+        (GpuTensor Tensor, int Row)? scatter)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         var matrix = weights.Matrices[name];
@@ -79,10 +101,26 @@ public sealed class VulkanQuantizedLayers : IDisposable
             pendingUpload = ReadPacked(name, firstRow, rows, byteCount, cacheOnGpu);
             readMilliseconds += Stopwatch.GetElapsedTime(start).TotalMilliseconds;
             start = Stopwatch.GetTimestamp();
-            packed = compute.CreateSparseTensor(rows * BlockQ4.WordsPerBlock,
-                matrix.Columns / BlockQ4.ValuesPerBlock, GpuTensorFormat.UInt32);
+            int packedRows = rows * BlockQ4.WordsPerBlock;
+            int packedColumns = matrix.Columns / BlockQ4.ValuesPerBlock;
+            var shape = (packedRows, packedColumns);
+            bool reuseStreamed = !cacheOnGpu && streamedBufferBudget > 0;
+            if (!reuseStreamed || !streamedBuffers.TryGetValue(shape, out packed!))
+            {
+                packed = compute.CreateSparseTensor(packedRows, packedColumns, GpuTensorFormat.UInt32);
+                if (reuseStreamed && byteCount <= streamedBufferBudget - StreamedBufferBytes)
+                {
+                    // The upload barrier waits for earlier shader reads on the same queue
+                    // before a reused buffer is overwritten.
+                    streamedBuffers.Add(shape, packed);
+                    StreamedBufferBytes += byteCount;
+                }
+                else
+                {
+                    temporary = packed;
+                }
+            }
             allocationMilliseconds += Stopwatch.GetElapsedTime(start).TotalMilliseconds;
-            temporary = packed;
         }
         else
         {
@@ -104,6 +142,10 @@ public sealed class VulkanQuantizedLayers : IDisposable
                 var batch = compute.CreateBatch();
                 batch.QuantizedLinear(input, packed, output, roundBFloat16: true,
                     chunkedReference: UseChunkedReference);
+                if (scatter is { } destination)
+                {
+                    batch.Scatter(output, destination.Tensor, destination.Row);
+                }
                 long start = Stopwatch.GetTimestamp();
                 ComputeMathResult result = pendingUpload.IsEmpty
                     ? compute.Execute(batch)
@@ -182,6 +224,9 @@ public sealed class VulkanQuantizedLayers : IDisposable
         disposed = true;
         foreach (var tensor in resident.Values) { tensor.Dispose(); }
         resident.Clear();
+        foreach (var tensor in streamedBuffers.Values) { tensor.Dispose(); }
+        streamedBuffers.Clear();
+        StreamedBufferBytes = 0;
         hostCache.Clear();
         HostCacheBytes = 0;
         uploadScratch = [];

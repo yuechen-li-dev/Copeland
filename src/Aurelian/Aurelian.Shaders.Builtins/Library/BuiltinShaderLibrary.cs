@@ -178,6 +178,7 @@ public static class BuiltinShaderLibrary
         new("Q6Rows1.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Module),
         new("Q6Rows8.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Module),
         new("ArgMax.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
+        new("BFloat16Lookup.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
         new("FusedGroupedAttention.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
         new("AttentionSplitDecode.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Module),
         new("MergeAttentionPartials.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),

@@ -188,7 +188,106 @@ host scratch consumption, disposal before harvest, physical retirement after
 read, resident staging reuse, forecast/nesting rejection, failure cleanup,
 owner recovery and composite streamed-linear/tiled-attention boundaries.
 
+## Full-model streaming rebase
+
+The rebase uses the existing Q4B32 checkpoint and its BF16 activation
+contract. The 48-layer body submits streamed projections through the
+bounded Vulkan queue. `--push-parameters` selects the same push-constant
+ABI used by queued E2B. `--gpu-argmax` queues the vocabulary slices and
+returns one eight-byte token and score pair. Its lookup table applies the
+original BF16 softcap to each score before argmax, including ties created
+by rounding. The CPU head provides the control.
+
+`--reuse-streamed-buffers` gives the layer adapter a separate 192 MiB
+budget for reusable packed destinations. Each shape admitted to that
+budget shares a destination across uploads on the ordered Vulkan queue.
+The upload barrier orders overwrites after earlier shader reads. Weights
+outside the resident budget still cross PCIe on every evaluation.
+`--resident-mib` sets the independent resident weight budget.
+
+The arithmetic prompt below produces six tokens including the turn
+marker. The first run fills resident and host caches. Warm throughput
+uses the median decode time of the next two generations and excludes the
+first emitted token. The 6 GiB host cache budget is fixed in this sweep.
+Dedicated VRAM is the sampled Windows process peak on the RTX 3070.
+
+| Resident weights | Submission and head | Warm tok/s | Packed upload GiB/token | Peak dedicated VRAM |
+|---:|---|---:|---:|---:|
+| 1,536 MiB | Storage parameters, CPU head | 1.41 | 5.43 | 1,803 MiB |
+| 1,536 MiB | Push parameters, CPU head | 1.29 | 5.43 | 1,772 MiB |
+| 1,536 MiB | Push parameters, GPU head | 1.43 | 5.43 | 1,809 MiB |
+| 1,536 MiB | Push parameters, GPU head, reusable destinations | 1.54 | 5.43 | 1,871 MiB |
+| 2,816 MiB | Push parameters, GPU head, reusable destinations | 1.88 | 4.18 | 3,154 MiB |
+
+Every arm produced `4` with the same generated IDs and BF16 scores. The
+GPU head trimmed output readback from 1 MiB to 8 bytes per token. Its
+median decode-stage head time fell from 109 to 72 ms relative to the
+push-parameter CPU head. Reused packed destinations held 132 MiB and
+reduced measured packed-buffer allocation work from about 23 ms to
+under 0.1 ms per token at the same residency. The storage and push ABI
+controls varied between runs. The current sweep gives no consistent
+throughput advantage to push constants by themselves.
+
+The resident E2B replay fixes a sequence of device bindings and uploads
+the token inputs. 12B's projections currently submit through the
+streaming queue, which also owns weight uploads and buffer lifetimes.
+At 2,816 MiB of resident weights, the arithmetic fixture still reported
+817 transformer submissions per decode step. Median GPU copy and compute
+intervals were 146 and 48 ms, and CPU recording including staging writes
+took 204 ms. These measured intervals can overlap.
+
+The 68-token documentary checklist prompt measures the same two warm
+trials with an eight-token generation cap. Both arms use the expanded
+built-in shader pack and produce identical token IDs and scores.
+
+| Profile | Warm decode | Warm prefill | Peak dedicated VRAM |
+|---|---:|---:|---:|
+| Queued storage control, 1,536 MiB resident | 1.40 tok/s | 3.10 s | 1,825 MiB |
+| Rebased queue, 2,816 MiB resident | 1.94 tok/s | 2.92 s | 3,162 MiB |
+
+The rebased profile uses 2,816 MiB of resident weights and a 6 GiB host
+cache budget for the throughput baseline. On the long prompt, median
+transformer copy time was 145 ms and CPU recording was 195 ms per decode
+token. Measured GPU compute was 48 ms.
+
+The fully streamed arithmetic diagnostic uses `--resident-mib 0` and
+`--host-mib 7168`. One warm generation reached 1.39 tok/s, transferred
+6.93 GiB per token, and sampled a dedicated VRAM peak of 332 MiB. It
+preserved the arithmetic IDs and scores with zero resident packed weights.
+
+The shared pack adds both ABIs of `QuantizedGemv.v.ts` and
+`DecoderNormalize.v.ts` (526 KiB total). On the 68-token prompt, those
+pipelines together took 1.49 s to create from source and 3.2 ms from baked
+SPIR-V. The source-only arm also compiles the already-baked row reduction
+and argmax shaders. For the rebased profile, cold time to first token
+from generation entry fell from 8.10 s to 5.91 s. From command entry it
+fell from 27.22 s to 24.96 s, including the checkpoint fingerprint check.
+These cold numbers come from one fresh process per mode.
+
+```powershell
+dotnet build tools/Aurelian.GemmaProof -c Release -m:1
+$proof = 'tools/Aurelian.GemmaProof/bin/Release/net10.0/Aurelian.GemmaProof.dll'
+$model = 'artifacts/local/models/gemma4-12b'
+$out = 'artifacts/local/gemma4/streaming-rebase'
+$prompt = 'What is 2 + 2? Answer with only the number.'
+dotnet $proof --generate $model $prompt 16 --queued --no-validation --host-mib 6144 `
+    --generation-runs 3 --evidence "$out/control.json"
+dotnet $proof --generate $model $prompt 16 --queued --no-validation --host-mib 6144 `
+    --push-parameters --gpu-argmax --reuse-streamed-buffers --resident-mib 2816 `
+    --generation-runs 3 --evidence "$out/rebase.json"
+```
+
+Use `--compile-shaders-at-runtime` for the source-only startup control.
+`--compile-inference-shaders` builds the shared built-in pack and
+`--verify-inference-shaders` compares the embedded binaries with their
+Visual TypeScript sources. Raw generation, queue and WDDM memory samples
+are under `artifacts/local/gemma4/streaming-rebase`.
+
 ## Resident-weight diagnostic
+
+The end-to-end streaming rebase above exercises all 48 transformer layers
+and the vocabulary head. This earlier diagnostic isolates a smaller
+transformer prefix with controlled placement.
 
 The proof runner can measure the first six real 12B Unified layers, including
 the first global-attention layer. It runs a 64-token prefill and 16 fixed

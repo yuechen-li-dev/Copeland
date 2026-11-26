@@ -15,6 +15,7 @@ public sealed class BuiltinComputeShaderCache
         "FusedGroupedAttention.SplitDecode", "MergeAttentionPartials.v.ts",
         "ResidentSgemm.v.ts", "FusedGroupedAttention.Keys8", "FusedGroupedAttention.v.ts", "ArgMax.v.ts",
         "RowReduction.v.ts",
+        "QuantizedGemv.v.ts", "DecoderNormalize.v.ts",
     ];
 
     public bool UsePrecompiledShaders { get; init; }

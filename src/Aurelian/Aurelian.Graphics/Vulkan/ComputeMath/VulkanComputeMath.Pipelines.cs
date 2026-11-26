@@ -27,6 +27,7 @@ public sealed unsafe partial class VulkanComputeMath
         ["QuantizedQ6KWord.v.ts"] = "QuantizedQ6KWordMain",
         ["QuantizedQ6KWord.Interleaved8"] = "QuantizedQ6KWordMain",
         ["ArgMax.v.ts"] = "ArgMaxMain",
+        ["BFloat16Lookup.v.ts"] = "BFloat16LookupMain",
         ["FusedGroupedAttention.v.ts"] = "FusedGroupedAttentionMain",
         ["FusedGroupedAttention.Keys8"] = "FusedGroupedAttentionMain",
         ["FusedGroupedAttention.SplitDecode"] = "FusedGroupedAttentionMain",
