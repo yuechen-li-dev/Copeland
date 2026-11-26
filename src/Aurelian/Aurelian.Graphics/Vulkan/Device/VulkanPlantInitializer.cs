@@ -158,6 +158,10 @@ public static unsafe partial class VulkanPlantInitializer
             }
 
             List<string> enabledDeviceExtensions = [];
+            if (options.EnableCalibratedTimestamps && IsDeviceExtensionAvailable(vk, selected.PhysicalDevice, "VK_EXT_calibrated_timestamps"))
+            {
+                enabledDeviceExtensions.Add("VK_EXT_calibrated_timestamps");
+            }
             string cooperativeDiagnostic = "NotRequested";
             bool cooperativeEnabled = options.EnableCooperativeMatrices
                 && QueryCooperativeMatrices(vk, instance, selected.PhysicalDevice, selected.ApiVersion, out cooperativeDiagnostic);

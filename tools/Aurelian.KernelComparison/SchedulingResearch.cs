@@ -1,3 +1,4 @@
+using Aurelian.Inference.Benchmarks;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -242,7 +243,7 @@ internal static class SchedulingResearch
                 string[] modes = ["fixed1", "fixed2", "fixed4", "adaptive"];
                 foreach (string mode in sample % 2 == 0 ? modes : modes.Reverse())
                 {
-                    var controller = new QueueController(mode);
+                    var controller = new BenchmarkAdmissionController(mode);
                     long start = Stopwatch.GetTimestamp();
                     ComputeQueueMetrics metrics;
                     using (var scope = state.Math.BeginQueuedScope(controller, new(submissions, 1, 0)))
@@ -273,47 +274,6 @@ internal static class SchedulingResearch
             }
         }
         Console.WriteLine("Queued admission: fixed 1/2/4 and bounded feedforward controls completed");
-    }
-
-    private sealed class QueueController(string mode) : IComputeStreamController
-    {
-        private double serviceMicroseconds;
-        private int lastLimit;
-        public double PreparationMicroseconds { get; set; }
-        public int LimitChanges { get; private set; }
-        public int MinimumLimit { get; private set; } = 4;
-        public int MaximumLimit { get; private set; }
-
-        public int Plan(ComputeStreamForecast forecast) => mode == "adaptive" ? 4 : int.Parse(mode[5..]);
-
-        public int AdmissionLimit(int capacity)
-        {
-            // First bounded experiment: cover an explicitly modeled 50-us host
-            // feedback/submission floor, plus preparation, using GPU service costs.
-            // This is a feedforward heuristic, not a qualified Smith controller.
-            int limit = capacity;
-            if (mode == "adaptive" && serviceMicroseconds > 0)
-            {
-                limit = Math.Clamp(1 + (int)Math.Ceiling((50 + PreparationMicroseconds) / serviceMicroseconds), 1, capacity);
-            }
-            if (lastLimit != 0 && limit != lastLimit)
-            {
-                LimitChanges++;
-            }
-            lastLimit = limit;
-            MinimumLimit = Math.Min(MinimumLimit, limit);
-            MaximumLimit = Math.Max(MaximumLimit, limit);
-            return limit;
-        }
-
-        public void Observe(ComputeStreamObservation observation)
-        {
-            if (observation.Completed && observation.GpuMilliseconds is { } cost)
-            {
-                double measured = cost * 1000;
-                serviceMicroseconds = serviceMicroseconds == 0 ? measured : serviceMicroseconds * .8 + measured * .2;
-            }
-        }
     }
 
     private sealed record Plan(string Name, int Repetitions,

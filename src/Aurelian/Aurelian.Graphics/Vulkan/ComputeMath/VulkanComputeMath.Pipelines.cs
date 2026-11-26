@@ -25,6 +25,7 @@ public sealed unsafe partial class VulkanComputeMath
         ["ResidentSgemm.v.ts"] = "ResidentSgemmMain",
         ["BiasSilu.v.ts"] = "BiasSiluMain",
         ["TensorMap.v.ts"] = "TensorMapMain",
+        ["GatherPackedHalf.v.ts"] = "GatherPackedHalfMain",
         ["VolumeMap.v.ts"] = "VolumeMapMain",
         ["CoordinateRope.v.ts"] = "CoordinateRopeMain",
         ["SparseColumns.v.ts"] = "SparseColumnsMain",

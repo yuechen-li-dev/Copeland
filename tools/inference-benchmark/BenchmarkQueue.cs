@@ -6,6 +6,8 @@ namespace Aurelian.Inference.Benchmarks;
 internal sealed record QueueSample(int Depth, int Submissions, int Dispatches, int CompletionWaits,
     int PeakOutstandingSincePlan, int PeakInFlightSincePlan, double GpuMs)
 {
+    public long PrefetchSubmissions { get; init; }
+    public long UploadedBytes { get; init; }
     public double CpuRecordingMs { get; init; }
     public double CpuSubmissionMs { get; init; }
     public double CpuCompletionWaitMs { get; init; }
@@ -21,6 +23,8 @@ internal sealed record QueueSample(int Depth, int Submissions, int Dispatches, i
         return new(end.Depth, end.Submissions - start.Submissions, end.Dispatches - start.Dispatches,
             end.CompletionWaits - start.CompletionWaits, end.MaximumOutstanding, end.MaximumInFlight, gpuMs)
         {
+            PrefetchSubmissions = end.PrefetchSubmissions - start.PrefetchSubmissions,
+            UploadedBytes = end.UploadedBytes - start.UploadedBytes,
             CpuRecordingMs = end.CpuRecordingMilliseconds - start.CpuRecordingMilliseconds,
             CpuSubmissionMs = end.CpuSubmissionMilliseconds - start.CpuSubmissionMilliseconds,
             CpuCompletionWaitMs = end.CpuCompletionWaitMilliseconds - start.CpuCompletionWaitMilliseconds,
@@ -39,16 +43,22 @@ internal sealed class BenchmarkQueue : IDisposable
     private readonly int requestsPerPlan;
     private int requestsInPlan;
     public VulkanComputeMath.QueuedComputeScope? Retained { get; private set; }
-    public object? Evidence => dominatus?.Evidence;
+    public object? Evidence => controller is BenchmarkAdmissionController admission
+        ? new { admission.MinimumLimit, admission.MaximumLimit, admission.LimitChanges, admission.PreparationMicroseconds }
+        : dominatus?.Evidence;
 
-    public BenchmarkQueue(VulkanComputeMath math, string policy, int batchesPerRequest, int requests)
+    public BenchmarkQueue(VulkanComputeMath math, string policy, int batchesPerRequest, int requests, ulong uploadBytes = 0)
     {
         this.math = math;
-        forecast = new(batchesPerRequest, math.MaximumDispatches, 0);
+        forecast = new(batchesPerRequest, math.MaximumDispatches, uploadBytes);
         requestsPerPlan = Math.Min(requests, 65536 / batchesPerRequest);
         if (policy is "fixed-one" or "fixed-two")
         {
             controller = new FixedDepth(policy == "fixed-one" ? 1 : 2);
+        }
+        else if (policy == "adaptive")
+        {
+            controller = new BenchmarkAdmissionController("adaptive");
         }
         else if (policy is "dominatus" or "dominatus-per-request")
         {

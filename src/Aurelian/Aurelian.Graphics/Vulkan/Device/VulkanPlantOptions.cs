@@ -8,4 +8,5 @@ public sealed record VulkanPlantOptions(
     bool EnablePresentation = false,
     IReadOnlyList<string>? RequiredPresentationInstanceExtensions = null,
     bool EnableRayQueries = false,
-    bool EnableCooperativeMatrices = false);
+    bool EnableCooperativeMatrices = false,
+    bool EnableCalibratedTimestamps = false);

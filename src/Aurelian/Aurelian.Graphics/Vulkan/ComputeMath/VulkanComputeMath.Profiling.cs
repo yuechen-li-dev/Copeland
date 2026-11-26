@@ -10,11 +10,20 @@ public sealed record ComputeDispatchProfile(ComputeMathResult Execution, IReadOn
 public sealed class QueuedDispatchProfile
 {
     public IReadOnlyList<string> ShaderNames { get; }
+    public Native3D.Native3DCompletedGpuFrame? ComputeInterval { get; internal set; }
+    public Native3D.Native3DCompletedGpuFrame? TransferInterval { get; internal set; }
+    public ulong UploadBytes { get; internal set; }
+    public double StagingMs { get; internal set; }
+    public double? CopyMs { get; internal set; }
+    public double? PreComputeGapMs { get; internal set; }
+    public double? CopyInGapMs { get; internal set; }
     internal int Count => ShaderNames.Count;
     internal double[]? CompletedIntervals { get; set; }
 
-    internal QueuedDispatchProfile(ComputeMathBatch batch)
-        => ShaderNames = Array.AsReadOnly(batch.Dispatches.Select(dispatch => dispatch.Shader).ToArray());
+    internal QueuedDispatchProfile(ComputeMathBatch batch, bool timeDispatches)
+    {
+        ShaderNames = timeDispatches ? Array.AsReadOnly(batch.Dispatches.Select(dispatch => dispatch.Shader).ToArray()) : [];
+    }
 
     public IReadOnlyList<double> DispatchMilliseconds => CompletedIntervals
         ?? throw new InvalidOperationException("Collect the queued dispatch timings after a readback or queue flush.");
@@ -34,12 +43,13 @@ public sealed unsafe partial class VulkanComputeMath
     }
 
     /// <summary>Time one batch on the active queue without changing its submission or wait boundaries.</summary>
-    public QueuedDispatchProfile EnqueueWithDispatchTimings(ComputeMathBatch batch)
+    public QueuedDispatchProfile EnqueueWithDispatchTimings(ComputeMathBatch batch, ComputeBatchUpload? upload = null,
+        bool timeDispatches = true)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         var scope = queuedScope ?? throw new InvalidOperationException("Queued dispatch timing requires an active scope.");
-        var profile = new QueuedDispatchProfile(batch);
-        scope.Submit(batch, null, default, profile);
+        var profile = new QueuedDispatchProfile(batch, timeDispatches);
+        scope.Submit(batch, null, upload?.Payload ?? default, profile, upload);
         return profile;
     }
 

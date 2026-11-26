@@ -1,11 +1,12 @@
 using System.Runtime.InteropServices;
 using System.Text;
+using Aurelian.Assets.Tensors;
 
 namespace Aurelian.WhisperBenchmark;
 
 // The legacy ggml Tiny.en F16 profile is shared with the reference executable.
 // Shapes below are in ggml order (fastest axis first).
-internal sealed class TinyEnglishCheckpoint : IDisposable
+internal sealed class TinyEnglishCheckpoint : ICheckpointWeights, IDisposable
 {
     public const int Vocabulary = 51864;
     public const int EndOfText = 50256;
@@ -23,6 +24,7 @@ internal sealed class TinyEnglishCheckpoint : IDisposable
     private readonly Dictionary<string, Tensor> tensors = new(StringComparer.Ordinal);
     private readonly byte[][] vocabulary = new byte[EndOfText + 1][];
     private readonly BinaryReader reader;
+    public IReadOnlyDictionary<string, CheckpointTensorInfo> Tensors { get; }
 
     public TinyEnglishCheckpoint(string path)
     {
@@ -30,6 +32,8 @@ internal sealed class TinyEnglishCheckpoint : IDisposable
         try
         {
             ReadIndex();
+            Tensors = tensors.ToDictionary(entry => entry.Key, entry => new CheckpointTensorInfo(
+                entry.Key, entry.Value.Type == 0 ? "F32" : "F16", entry.Value.Shape.Reverse().ToArray()));
         }
         catch
         {
@@ -103,16 +107,58 @@ internal sealed class TinyEnglishCheckpoint : IDisposable
         {
             throw new InvalidDataException($"Tiny.en tensor {name} is missing or has an unexpected shape.");
         }
+        return ReadElements(tensor, 0, tensor.Elements);
+    }
+
+    public float[] ReadVector(string name)
+    {
+        var tensor = tensors[name];
+        if (tensor.Shape.Length != 1)
+        {
+            throw new InvalidDataException($"Expected a vector for {name}.");
+        }
+        return ReadSlices(name, 0, tensor.Elements);
+    }
+
+    public float[] ReadRows(string name, int firstRow, int rowCount)
+    {
+        if (tensors[name].Shape.Length != 2)
+        {
+            throw new InvalidDataException($"Expected a matrix for {name}.");
+        }
+        return ReadSlices(name, firstRow, rowCount);
+    }
+
+    public float[] ReadSlices(string name, int firstSlice, int sliceCount)
+    {
+        var tensor = tensors[name];
+        int slices = tensor.Shape[^1];
+        int stride = tensor.Elements / slices;
+        if (firstSlice < 0 || sliceCount < 1 || (long)firstSlice + sliceCount > slices
+            || (long)stride * sliceCount > 1048576)
+        {
+            throw new ArgumentOutOfRangeException(nameof(sliceCount), "Checkpoint slice exceeds the indexed tensor or tile budget.");
+        }
+        float[] values = ReadElements(tensor, firstSlice * stride, sliceCount * stride);
+        if (!Array.TrueForAll(values, float.IsFinite))
+        {
+            throw new InvalidDataException($"Nonfinite checkpoint values in {name}.");
+        }
+        return values;
+    }
+
+    private float[] ReadElements(Tensor tensor, int first, int count)
+    {
         Stream stream = reader.BaseStream;
-        stream.Position = tensor.Offset;
-        var values = new float[tensor.Elements];
+        stream.Position = tensor.Offset + (long)first * (tensor.Type == 0 ? sizeof(float) : sizeof(ushort));
+        var values = new float[count];
         if (tensor.Type == 0)
         {
             stream.ReadExactly(MemoryMarshal.AsBytes(values.AsSpan()));
         }
         else
         {
-            var halves = new Half[tensor.Elements];
+            var halves = new Half[count];
             stream.ReadExactly(MemoryMarshal.AsBytes(halves.AsSpan()));
             for (int index = 0; index < values.Length; index++)
             {

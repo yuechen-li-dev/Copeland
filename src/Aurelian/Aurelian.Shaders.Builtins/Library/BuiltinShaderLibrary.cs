@@ -180,6 +180,7 @@ public static class BuiltinShaderLibrary
         new("SparseColumns.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
         new("SparseChannelToSpatial.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
         new("TensorMap.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
+        new("GatherPackedHalf.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
         new("HeadNormalize.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
         new("Sgemm.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
         new("ResidentSgemm.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),

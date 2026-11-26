@@ -6,5 +6,6 @@
     <ProjectReference Include="../../src/Aurelian/Aurelian.Inference/Aurelian.Inference.csproj" />
     <ProjectReference Include="../../src/Integrations/Aurelian.Inference.Dominatus/Aurelian.Inference.Dominatus.csproj" />
     <Compile Include="../inference-benchmark/BenchmarkQueue.cs" Link="BenchmarkQueue.cs" />
+    <Compile Include="../inference-benchmark/BenchmarkAdmissionController.cs" Link="BenchmarkAdmissionController.cs" />
   </ItemGroup>
 </Project>

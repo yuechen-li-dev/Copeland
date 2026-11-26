@@ -44,6 +44,8 @@ public sealed unsafe partial class VulkanComputeMath
         private readonly IComputeStreamController controller;
         private readonly DescriptorPool pool;
         private readonly List<Slot> slots = [];
+        private ulong? previousEndTicks;
+        private long previousSequence;
         private int outstanding;
         private int next;
         private double milliseconds;
@@ -120,7 +122,8 @@ public sealed unsafe partial class VulkanComputeMath
         }
 
         public void Submit(ComputeMathBatch batch, double preparationMilliseconds = 0,
-            GpuTensor? upload = null, ReadOnlyMemory<byte> bytes = default, QueuedDispatchProfile? profile = null)
+            GpuTensor? upload = null, ReadOnlyMemory<byte> bytes = default, QueuedDispatchProfile? profile = null,
+            ComputeBatchUpload? plan = null, IReadOnlyList<Commanding.Submit.VulkanTimelineWait>? waits = null)
         {
             ComputeMathBatch.Require(ReferenceEquals(batch.Owner, owner) && batch.DispatchCount is > 0
                 && batch.DispatchCount <= owner.MaximumDispatches, "Stream needs a nonempty bounded batch from its owner.");
@@ -131,6 +134,16 @@ public sealed unsafe partial class VulkanComputeMath
                 owner.Validate(upload, GpuTensorFormat.UInt32);
                 ComputeMathBatch.Require(bytes.Length == (long)upload.Elements * sizeof(uint),
                     "Stream upload must match the complete packed tensor.");
+            }
+            if (plan is not null)
+            {
+                foreach (var destination in plan.Destinations)
+                {
+                    owner.Validate(destination, destination.Format);
+                }
+            }
+            if (upload is not null || plan is not null)
+            {
                 if (slot.Staging is null || slot.Staging.SizeBytes < (ulong)bytes.Length)
                 {
                     slot.Staging?.Dispose();
@@ -138,7 +151,12 @@ public sealed unsafe partial class VulkanComputeMath
                     slot.Staging = owner.Buffer((ulong)bytes.Length,
                         VulkanBufferUsage.TransferSource, VulkanMemoryUsage.CpuToGpu);
                 }
+                long stagingStart = System.Diagnostics.Stopwatch.GetTimestamp();
                 Require(slot.Staging.Write(bytes.Span).Success, "Stream packed staging write failed.");
+                if (profile is not null)
+                {
+                    profile.StagingMs = System.Diagnostics.Stopwatch.GetElapsedTime(stagingStart).TotalMilliseconds;
+                }
             }
             foreach (var dispatch in batch.Dispatches)
             {
@@ -156,7 +174,7 @@ public sealed unsafe partial class VulkanComputeMath
                 owner.Configure(slot.Descriptors[index], batch.Dispatches[index]);
             }
             DispatchTimestamps? queries = null;
-            if (profile is not null)
+            if (profile is { Count: > 0 })
             {
                 queries = slot.DispatchQueries ??= new(owner.plant, owner.MaximumDispatches + 1);
             }
@@ -171,15 +189,26 @@ public sealed unsafe partial class VulkanComputeMath
             {
                 slot.UploadBytes = upload is not null ? (ulong)bytes.Length : slot.Staging!.SizeBytes;
             }
-            if (copyDestination is not null && slot.Staging is { } staging)
+            if (plan is not null)
+            {
+                slot.UploadBytes = (ulong)bytes.Length;
+            }
+            if ((copyDestination is not null || plan is not null) && slot.Staging is { } staging)
             {
                 owner.Barrier(command, AccessFlags.HostWriteBit | AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
                     AccessFlags.TransferReadBit | AccessFlags.TransferWriteBit,
                     PipelineStageFlags.HostBit | PipelineStageFlags.ComputeShaderBit, PipelineStageFlags.TransferBit);
                 slot.Timings.Mark(command, 2, PipelineStageFlags.TransferBit);
-                ulong copyBytes = upload is not null ? (ulong)bytes.Length : staging.SizeBytes;
-                var copy = new BufferCopy(0, 0, copyBytes);
-                owner.plant.Vk.CmdCopyBuffer(command.CommandBuffer, staging.NativeBuffer, copyDestination.Buffer.NativeBuffer, 1, &copy);
+                if (plan is not null)
+                {
+                    owner.RecordCopies(command, staging, plan);
+                }
+                else
+                {
+                    ulong size = upload is null ? staging.SizeBytes : (ulong)bytes.Length;
+                    var copy = new BufferCopy(0, 0, size);
+                    owner.plant.Vk.CmdCopyBuffer(command.CommandBuffer, staging.NativeBuffer, copyDestination!.Buffer.NativeBuffer, 1, &copy);
+                }
             }
             else
             {
@@ -209,7 +238,7 @@ public sealed unsafe partial class VulkanComputeMath
             Require(command.End().Success, "Stream command end failed.");
             slot.CpuRecordingMilliseconds = System.Diagnostics.Stopwatch.GetElapsedTime(recordingStart).TotalMilliseconds;
             long submissionStart = System.Diagnostics.Stopwatch.GetTimestamp();
-            var submission = owner.submitter.Submit(new(command, WaitForCompletion: false, DebugName: "compute-math.stream"));
+            var submission = owner.submitter.Submit(new(command, WaitForCompletion: false, DebugName: "compute-math.stream") { TimelineWaits = waits ?? [] });
             slot.CpuSubmissionMilliseconds = System.Diagnostics.Stopwatch.GetElapsedTime(submissionStart).TotalMilliseconds;
             // A submitted fence survives a possible command-retirement failure.
             slot.FenceValue = submission.SignalFenceValue ?? 0;
@@ -258,16 +287,34 @@ public sealed unsafe partial class VulkanComputeMath
                     "Stream completion wait failed.");
                 waitMilliseconds = System.Diagnostics.Stopwatch.GetElapsedTime(waitStart).TotalMilliseconds;
             }
-            if (slot.PendingProfile is { } profile)
-            {
-                profile.CompletedIntervals = slot.DispatchQueries!.Read(profile.Count);
-                slot.PendingProfile = null;
-            }
             var timings = slot.Timings.Read();
             var computeInterval = slot.Timings.ReadInterval(0);
             var transferInterval = slot.Timings.ReadInterval(1);
             double? cost = timings.FirstOrDefault()?.Milliseconds;
             double? transferCost = timings.Skip(1).FirstOrDefault()?.Milliseconds;
+            if (slot.PendingProfile is { } profile)
+            {
+                profile.CompletedIntervals = profile.Count > 0 ? slot.DispatchQueries!.Read(profile.Count) : [];
+                profile.ComputeInterval = computeInterval;
+                profile.TransferInterval = slot.UploadBytes > 0 ? transferInterval : null;
+                profile.UploadBytes = slot.UploadBytes;
+                profile.CopyMs = slot.UploadBytes == 0 ? 0 : transferCost;
+                if (computeInterval is { } current && previousEndTicks is { } end
+                    && previousSequence + 1 == slot.Sequence && end <= current.StartTicks)
+                {
+                    double msPerTick = current.NanosecondsPerTick / 1_000_000d;
+                    profile.PreComputeGapMs = (current.StartTicks - end) * msPerTick;
+                    if (transferInterval is { } copy)
+                    {
+                        ulong start = Math.Max(end, copy.StartTicks);
+                        ulong stop = Math.Min(current.StartTicks, copy.EndTicks);
+                        profile.CopyInGapMs = stop > start && slot.UploadBytes > 0 ? (stop - start) * msPerTick : 0;
+                    }
+                }
+                slot.PendingProfile = null;
+            }
+            previousEndTicks = computeInterval?.EndTicks;
+            previousSequence = slot.Sequence;
             if (transferCost is { } transfer)
             {
                 transferMilliseconds += transfer;

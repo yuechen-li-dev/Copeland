@@ -7,6 +7,7 @@ public sealed record ComputeQueueMetrics(int Submissions, int Dispatches, int De
     long UploadedBytes, double? GpuMilliseconds, int MaximumRetiredBuffers,
     double? TransferGpuMilliseconds)
 {
+    public long PrefetchSubmissions { get; init; }
     public double CpuRecordingMilliseconds { get; init; }
     public double CpuSubmissionMilliseconds { get; init; }
     public double CpuCompletionWaitMilliseconds { get; init; }
@@ -33,6 +34,12 @@ public sealed unsafe partial class VulkanComputeMath
         return queuedScope;
     }
 
+    public ComputeMathResult EnqueueWithUpload(ComputeMathBatch batch, ComputeBatchUpload upload)
+    {
+        var scope = queuedScope ?? throw new InvalidOperationException("Batch upload requires an active queue.");
+        return scope.Submit(batch, null, upload.Payload, plan: upload);
+    }
+
     public sealed class QueuedComputeScope : IDisposable
     {
         private readonly VulkanComputeMath owner;
@@ -41,6 +48,29 @@ public sealed unsafe partial class VulkanComputeMath
         private readonly List<(AurelianVulkanBuffer Buffer, ulong Fence)> retired = [];
         private bool disposed;
         private int maximumRetiredBuffers;
+        private PrefetchQueue? prefetch;
+        private IReadOnlyList<Commanding.Submit.VulkanTimelineWait>? consumerWait;
+
+        /// <summary>Submit a copy on queue 1 after all previously submitted queue-0 work.
+        /// Each slot keeps a fixed set of disjoint device buffers. Join immediately before
+        /// the first consumer. Submit all readers before scheduling an overwrite. The
+        /// caller must have exclusive host access to the plant's secondary queue.</summary>
+        public PrefetchTiming? Prefetch(ComputeBatchUpload plan, int slot, bool profile = false)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            ComputeMathBatch.Require(consumerWait is null && slot is 0 or 1 && (ulong)plan.Payload.Length <= forecast.UploadBytes,
+                "Prefetch needs a bounded slot and payload.");
+            prefetch ??= new(owner);
+            return prefetch.Stage(plan, slot, ring.LastSubmittedFenceValue, profile);
+        }
+
+        public void JoinPrefetch(int slot)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            ComputeMathBatch.Require(consumerWait is null && prefetch is not null && slot is 0 or 1,
+                "Join one staged upload immediately before its first consuming batch.");
+            consumerWait = prefetch!.Join(slot);
+        }
 
         internal QueuedComputeScope(VulkanComputeMath owner, IComputeStreamController controller,
             ComputeStreamForecast forecast)
@@ -52,21 +82,23 @@ public sealed unsafe partial class VulkanComputeMath
 
         public ComputeQueueMetrics Metrics => new(ring.Submissions, ring.Dispatches, ring.Depth,
             ring.CompletionWaits, ring.MaximumOutstanding, ring.MaximumInFlight,
-            ring.UploadedBytes, ring.GpuMilliseconds, maximumRetiredBuffers, ring.TransferGpuMilliseconds)
+            ring.UploadedBytes + (prefetch?.UploadedBytes ?? 0), ring.GpuMilliseconds, maximumRetiredBuffers, ring.TransferGpuMilliseconds)
         {
+            PrefetchSubmissions = prefetch?.Submissions ?? 0,
             CpuRecordingMilliseconds = ring.CpuRecordingMilliseconds,
             CpuSubmissionMilliseconds = ring.CpuSubmissionMilliseconds,
             CpuCompletionWaitMilliseconds = ring.CpuCompletionWaitMilliseconds,
         };
 
         internal ComputeMathResult Submit(ComputeMathBatch batch, GpuTensor? upload, ReadOnlyMemory<byte> bytes,
-            QueuedDispatchProfile? profile = null)
+            QueuedDispatchProfile? profile = null, ComputeBatchUpload? plan = null)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             ComputeMathBatch.Require(ring.Submissions < forecast.BatchCount
                 && batch.DispatchCount <= forecast.DispatchesPerBatch && (ulong)bytes.Length <= forecast.UploadBytes,
                 "Queued work exceeds its authored submission, dispatch or transfer forecast.");
-            ring.Submit(batch, upload: upload, bytes: bytes, profile: profile);
+            ring.Submit(batch, upload: upload, bytes: bytes, profile: profile, plan: plan, waits: consumerWait);
+            consumerWait = null;
             CollectCompleted();
             // GPU cost is available only after harvest, through Metrics.
             return new(batch.DispatchCount, null);
@@ -74,6 +106,7 @@ public sealed unsafe partial class VulkanComputeMath
 
         internal void Retire(AurelianVulkanBuffer buffer)
         {
+            prefetch?.FinishWriting(buffer);
             ulong fence = ring.LastSubmittedFenceValue;
             if (fence <= owner.fences.CommandListFence.LastKnownCompletedValue)
             {
@@ -88,6 +121,7 @@ public sealed unsafe partial class VulkanComputeMath
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             ring.Drain();
+            prefetch?.Drain();
             CollectCompleted();
         }
 
@@ -118,6 +152,7 @@ public sealed unsafe partial class VulkanComputeMath
             {
                 // On failure, the ring establishes device idle before freeing
                 // descriptors/staging; no advisory prediction authorizes release.
+                prefetch?.Dispose();
                 ring.Dispose();
                 foreach (var item in retired)
                 {

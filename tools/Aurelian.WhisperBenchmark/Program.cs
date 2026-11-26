@@ -11,19 +11,28 @@ using static Aurelian.WhisperBenchmark.TinyEnglishCheckpoint;
 string[] options = args.Skip(5).ToArray();
 string? queueOption = options.FirstOrDefault(option => option.StartsWith("queue=", StringComparison.Ordinal));
 string? queuePolicy = queueOption?["queue=".Length..];
+const string budgetPrefix = "encoder-budget-mib=";
+string? budgetOption = options.SingleOrDefault(option => option.StartsWith(budgetPrefix, StringComparison.Ordinal));
+int? encoderBudgetMiB = budgetOption is null ? null : int.Parse(budgetOption[budgetPrefix.Length..], CultureInfo.InvariantCulture);
 if (args.Length < 4)
 {
-    throw new ArgumentException("Usage: Aurelian.WhisperBenchmark CHECKPOINT MEL_F32 OUTPUT_JSON SAMPLES [per-head|batched|reuse|direct|gemv|gemv-scratch|fused] [persistent-read] [persistent-upload] [host-logits] [batch-cross] [join-logits] [half-projections] [half-attention] [cooperative-attention|attention-32|attention-64] [packed-vocab] [cooperative-convolution] [direct-projections|reuse-projections] [profile-attention] [profile-gpu] [general-norm] [rewrite-bindings] [projection-epilogues] [capture] [queue=fixed-one|fixed-two|dominatus|dominatus-per-request] [step] [validate]");
+    throw new ArgumentException("Usage: Aurelian.WhisperBenchmark CHECKPOINT MEL_F32 OUTPUT_JSON SAMPLES [per-head|batched|reuse|direct|gemv|gemv-scratch|fused] [persistent-read] [persistent-upload] [host-logits] [batch-cross] [join-logits] [half-projections] [half-attention] [cooperative-attention|attention-32|attention-64] [packed-vocab|packed-lookup] [encoder-budget-mib=N] [prefetch-encoder|copy-at-use|checkpoint-tiles] [cooperative-convolution] [direct-projections|reuse-projections] [profile-attention] [profile-gpu|profile-stream] [general-norm] [rewrite-bindings] [projection-epilogues] [capture] [queue=fixed-one|fixed-two|adaptive|dominatus|dominatus-per-request] [step] [validate]");
 }
 int sampleCount = int.Parse(args[3], CultureInfo.InvariantCulture);
 string mode = args.Length >= 5 ? args[4] : "per-head";
 if (sampleCount is < 1 or > 100 || mode is not ("per-head" or "batched" or "reuse" or "direct" or "gemv" or "gemv-scratch" or "fused")
-    || options.Any(option => option != queueOption && option is not ("validate" or "persistent-read" or "persistent-upload" or "host-logits" or "batch-cross" or "step" or "capture" or "half-attention" or "cooperative-attention" or "attention-32" or "attention-64" or "packed-vocab" or "cooperative-convolution" or "direct-projections" or "reuse-projections" or "half-projections" or "join-logits" or "profile-attention" or "profile-gpu" or "general-norm" or "rewrite-bindings" or "projection-epilogues"))
+    || options.Any(option => option != queueOption && option != budgetOption && option is not ("checkpoint-tiles" or "copy-at-use" or "prefetch-encoder" or "validate" or "persistent-read" or "persistent-upload" or "host-logits" or "batch-cross" or "step" or "capture" or "half-attention" or "cooperative-attention" or "attention-32" or "attention-64" or "packed-vocab" or "packed-lookup" or "cooperative-convolution" or "direct-projections" or "reuse-projections" or "half-projections" or "join-logits" or "profile-attention" or "profile-gpu" or "profile-stream" or "general-norm" or "rewrite-bindings" or "projection-epilogues"))
+    || (options.Contains("checkpoint-tiles") && (encoderBudgetMiB.HasValue || queuePolicy is null
+        || !options.Contains("reuse-projections") || !options.Contains("cooperative-convolution")))
+    || (options.Any(option => option is "copy-at-use" or "prefetch-encoder") && !encoderBudgetMiB.HasValue)
+    || (options.Contains("copy-at-use") && options.Contains("prefetch-encoder"))
+    || (encoderBudgetMiB.HasValue && (encoderBudgetMiB <= 0 || queuePolicy is null))
     || (options.Contains("host-logits") && !options.Contains("persistent-read"))
     || (options.Contains("batch-cross") && mode is not ("direct" or "gemv" or "gemv-scratch" or "fused"))
+    || (options.Contains("profile-stream") && (queuePolicy is null || options.Contains("profile-gpu") || options.Contains("profile-attention")))
     || ((options.Contains("profile-gpu") || options.Contains("profile-attention")) && queuePolicy is null)
     || (options.Contains("profile-gpu") && (!options.Contains("batch-cross") || options.Contains("profile-attention")))
-    || (options.Any(option => option is "half-attention" or "cooperative-attention" or "attention-32" or "attention-64" or "packed-vocab" or "cooperative-convolution" or "direct-projections" or "reuse-projections") && mode != "fused")
+    || (options.Any(option => option is "half-attention" or "cooperative-attention" or "attention-32" or "attention-64" or "packed-vocab" or "packed-lookup" or "cooperative-convolution" or "direct-projections" or "reuse-projections") && mode != "fused")
     || options.Count(option => option is "attention-32" or "attention-64" or "cooperative-attention") > 1
     || (options.Contains("direct-projections") && options.Contains("reuse-projections"))
     || (queuePolicy is not null && mode != "fused")
@@ -57,6 +66,7 @@ using var session = VulkanInferenceSession.Create(new()
     ApplicationName = "Aurelian Whisper benchmark",
     MaximumTensorElements = 32 * 1024 * 1024,
     UseCooperativeLinear = packedProjections || cooperativeAttention || cooperativeConvolution,
+    EnableCalibratedTimestamps = options.Contains("profile-gpu") || options.Contains("profile-stream"),
     EnableValidation = options.Contains("validate"),
 });
 session.Compute.ReuseDispatchBindings = !options.Contains("rewrite-bindings");
@@ -69,13 +79,17 @@ using var model = new TinyEnglishModel(session.Compute, checkpoint, batchAcrossH
     hostLogits: options.Contains("host-logits"), batchCross: options.Contains("batch-cross"),
     halfProjections: packedProjections, halfAttention: cooperativeAttention || options.Contains("half-attention"),
     joinLogits: options.Contains("join-logits"), packVocabulary: options.Contains("packed-vocab"),
-    cooperativeConvolution: cooperativeConvolution)
+    cooperativeConvolution: cooperativeConvolution, packedLookup: options.Contains("packed-lookup"),
+    encoderBudgetMiB: encoderBudgetMiB, prefetchEncoder: options.Contains("prefetch-encoder") || options.Contains("copy-at-use"),
+    checkpointTiles: options.Contains("checkpoint-tiles"))
 {
+    CopyAtUse = options.Contains("copy-at-use"),
     FuseProjectionEpilogues = options.Contains("projection-epilogues"),
     CooperativeAttention = cooperativeAttention,
     AttentionKeyTile = attentionKeyTile,
     DirectProjectionTiles = options.Contains("direct-projections") || options.Contains("reuse-projections"),
     ReuseProjectionTiles = options.Contains("reuse-projections"),
+    ProfileStream = options.Contains("profile-stream"),
     ProfileGpu = options.Contains("profile-gpu"),
     ProfileAttention = options.Contains("profile-attention"),
 };
@@ -85,9 +99,9 @@ if (options.Contains("join-logits"))
 {
     decoderBatches--;
 }
-int encoderBatches = 2 + 3 * Layers;
+int encoderBatches = 2 + (options.Contains("checkpoint-tiles") ? 11 : 3) * Layers;
 using var queue = queuePolicy is null ? null : new BenchmarkQueue(session.Compute, queuePolicy,
-    encoderBatches + (maximumTokens + 1) * decoderBatches, sampleCount + 2);
+    encoderBatches + (maximumTokens + 1) * decoderBatches, sampleCount + 2, model.MaximumUploadBytes);
 double initializationMs = initialization.Elapsed.TotalMilliseconds;
 Console.WriteLine(session.Plant.Facts.PhysicalDeviceName);
 var samples = new List<InferenceSample>(sampleCount);
@@ -127,7 +141,11 @@ File.WriteAllText(args[2], JsonSerializer.Serialize(new
     Options = options,
     QueuePolicy = queuePolicy,
     Controller = queue?.Evidence,
+    EncoderResidency = new { BudgetMiB = encoderBudgetMiB, model.EncoderWeightBytes, model.PinnedBlocks, model.MaximumUploadBytes },
     Device = session.Plant.Facts.PhysicalDeviceName,
+    session.Plant.Facts.QueueFamilyIndex,
+    session.Plant.Facts.CreatedQueueCount,
+    session.Plant.Facts.EnabledDeviceExtensions,
     Validation = session.Plant.Facts.EnabledValidationLayers,
     InitializationMs = initializationMs,
     WarmupMs = warmupMs,
@@ -142,7 +160,16 @@ namespace Aurelian.WhisperBenchmark
         double DecodeMs, List<int> Tokens, int Readbacks, ulong Allocations, long ManagedBytes,
         IReadOnlyDictionary<string, OperationTiming> Operations, QueueSample? Queue,
         IReadOnlyList<EncoderAttentionGpuTiming>? EncoderAttentionProfile,
-        Dictionary<string, Dictionary<string, KernelTime>>? KernelProfile);
+        Dictionary<string, Dictionary<string, KernelTime>>? KernelProfile,
+        EncoderUploadTiming[]? EncoderUploads, List<PrefetchTiming>? PrefetchCopies, EncoderBatchInterval[]? EncoderBatches,
+        CheckpointTileSample? CheckpointTiles);
+
+    internal sealed record EncoderBatchInterval(string Operation,
+        Aurelian.Graphics.Vulkan.Native3D.Native3DCompletedGpuFrame? Compute,
+        Aurelian.Graphics.Vulkan.Native3D.Native3DCompletedGpuFrame? Transfer);
+
+    internal sealed record EncoderUploadTiming(ulong Bytes, double StagingMs, double? CopyMs,
+        double? PreComputeGapMs, double? CopyInGapMs);
 
     internal sealed record EncoderAttentionGpuTiming(double KeyScatterMs, double ValueScatterMs,
         double QueryPackMs, double KeyValuePackMs, double AttentionMs)

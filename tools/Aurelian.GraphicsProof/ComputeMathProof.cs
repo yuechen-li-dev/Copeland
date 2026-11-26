@@ -453,6 +453,20 @@ internal static class ComputeMathProof
         var qkv = Tensor(1, 3 * qkvWidth, qkvValues);
         var kv = Tensor(6, qkvWidth, new float[6 * qkvWidth]);
         var scaledQuery = Tensor(1, qkvWidth);
+        float[] gatherSource = Enumerable.Range(0, 15).Select(i => (i - 6) / 7f).ToArray();
+        using var gatherPacked = Tensor(3, 5, gatherSource, GpuTensorFormat.PackedFloat16);
+        using var gathered = Tensor(2, 3);
+        var gatherBatch = math.CreateBatch();
+        gatherBatch.Gather(gatherPacked, gathered, firstRow: 1, firstColumn: 1);
+        Check("packed-half-gather", gatherBatch, gathered,
+            new[] { 6, 7, 8, 11, 12, 13 }.Select(i => (float)(Half)gatherSource[i]).ToArray(), 0);
+
+        if (plant.ComputeQueue.HasValue)
+        {
+            CheckPrefetchSlots(math);
+            measurements.Add(new("cross-queue-prefetch-overwrite", 4, 0, 4, null));
+        }
+
         var cacheCopy = Tensor(6, qkvWidth);
         batch = math.CreateBatch();
         batch.DecodeQkv(qkv, kv, scaledQuery, 1, 0.125f);
@@ -742,6 +756,40 @@ internal static class ComputeMathProof
             }
         }
         return Multiply(Softmax(scores, queries, keys), value, queries, outputWidth, keys);
+    }
+
+    private sealed class TwoSlots : IComputeStreamController
+    {
+        public int Plan(ComputeStreamForecast forecast) => 2;
+        public void Observe(ComputeStreamObservation observation) { }
+    }
+
+    private static void CheckPrefetchSlots(VulkanComputeMath math)
+    {
+        using var first = math.CreateTensor(1, 1);
+        using var second = math.CreateTensor(1, 1);
+        using var output = math.CreateTensor(1, 4);
+        using var queue = math.BeginQueuedScope(new TwoSlots(), new(4, 1, sizeof(float)));
+        for (int i = 0; i < 4; i++)
+        {
+            int slot = i % 2;
+            var destination = slot == 0 ? first : second;
+            var upload = new ComputeBatchUpload([destination], BitConverter.GetBytes((float)(i + 1)));
+            queue.Prefetch(upload, slot);
+            if (i == 0)
+            {
+                ExpectRejected(() => queue.Prefetch(upload, slot));
+                ExpectRejected(() => queue.Prefetch(upload, 1));
+            }
+            queue.JoinPrefetch(slot);
+            var batch = math.CreateBatch();
+            batch.Scatter(destination, output, firstColumn: i);
+            math.Execute(batch);
+        }
+        Require(math.Read(output).SequenceEqual(new float[] { 1, 2, 3, 4 }),
+            "Prefetch consumer observed an old or prematurely overwritten slot.");
+        Require(queue.Metrics.PrefetchSubmissions == 4 && queue.Metrics.UploadedBytes == 16,
+            "Prefetch copies are missing from queue telemetry.");
     }
 
     private static void ExpectRejected(Action action)

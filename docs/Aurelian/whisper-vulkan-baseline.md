@@ -1,6 +1,6 @@
 # Whisper Tiny.en on Vulkan
 
-On JFK, the 32-key attention, cooperative convolution and packed vocabulary path took **33.23 ms** versus **36.99 ms** for the previous combined Aurelian path and **29.31 ms** for whisper.cpp flash. [Final comparison and numerical agreement](#wider-attention-packed-vocabulary-and-cooperative-convolution)
+The packed embedding lookup reduced measured dedicated GPU memory from **284.31 to 208.32 MiB** with identical encoder output and logits on JFK. Streaming the encoder at a **7 MiB weight budget** brought the process to **196.50 MiB** and retained **97.6%** of packed-resident throughput. [Measurements and execution policy](#packed-embedding-lookup-and-encoder-residency)
 
 Copeland commit `64cba528` plus the benchmark changes was measured against
 [whisper.cpp v1.9.6](https://github.com/ggml-org/whisper.cpp/releases/tag/v1.9.6)
@@ -29,6 +29,84 @@ independently. Aurelian expands the shared F16 checkpoint weights to resident
 FP32 storage and uses its existing BF16-rounded grouped self-attention kernel
 in the decoder. The two runtimes can choose different arithmetic and kernel
 layouts even with the same checkpoint and token sequence.
+
+## Double-buffered encoder and checkpoint streaming
+
+Whisper Tiny.en on JFK used the same packed vocabulary, two-slot compute queue and resident decoder as the encoder-budget experiment. One encoder block occupies 3.39 MiB. The fixed frontend plus two device slots occupy 10.01 MiB, so the double-buffered policy uses the 11 MiB cap. The single-slot 11 MiB policy spends the second slot on a pinned block. Both policies have the same logical device weight footprint.
+
+| Weight and scheduling policy | Packed weight upload per request | Dedicated peak | Paired median | GPU copy time overlapping encoder compute |
+| --- | ---: | ---: | ---: | ---: |
+| Packed resident | 0 | 208.32 MiB | 29.71 ms | 0 |
+| 7 MiB, single slot | 13.57 MiB | 196.50 MiB | 30.36 ms | 0 of 0.648 ms |
+| 11 MiB, one pinned block and one streaming slot | 10.18 MiB | 200.44 MiB | 30.26 ms | 0 of 0.519 ms |
+| Two device slots, secondary queue, copy at use | 13.57 MiB | 200.45 MiB | 31.37 ms | 0 of 0.652 ms |
+| Two device slots, secondary queue, one block ahead | 13.57 MiB | 200.45 MiB | 31.54 ms | 0.489 of 0.656 ms |
+| 7 MiB, Dominatus admission | 13.57 MiB | 196.50 MiB | 30.45 ms | 0 of 0.653 ms |
+| 7 MiB, adaptive research admission | 13.57 MiB | 196.52 MiB | 31.59 ms | 0 of 0.653 ms |
+
+The table uses 84 warmed requests per policy across three interleaved process groups. The median paired difference for prefetch was +1.18 ms against the 7 MiB control, with 4 of 84 requests faster. Against secondary-queue copy at use the paired difference was +0.13 ms, with 37 of 84 faster. All seven captures matched the resident encoder and all 26 complete logits buffers byte for byte. WDDM process counters reproduced each dedicated peak in two forward/reverse standalone runs. Shared peaks were 20.11 MiB resident, 26.90 MiB for fixed-depth streaming and Dominatus, and 34.23 MiB for adaptive admission.
+
+Across 27 standalone requests per policy, the resident, 7 MiB and double-buffered medians were 32.83, 33.16 and 33.79 ms respectively. Copy at use took 35.18 ms. Both timing designs favored the 7 MiB single-slot control over double buffering.
+
+The prefetch path uses queue 1 of the same Vulkan queue family as inference on queue 0. A compute timeline value protects the previous readers before a slot is overwritten. The first consuming batch waits on the independent copy timeline. Each request submits 66 compute batches plus four copy submissions. The measured duration of the three later copies was fully covered by encoder compute. The first copy preceded convolution. Across nine batch-profiled requests, 74.7% of copy time overlapped compute. Median copy time in the gap immediately before a consuming QKV batch fell from 0.648 ms at 7 MiB to zero. The measured encoder compute intervals summed to 8.71 ms with prefetch and 7.73 ms at 7 MiB. That difference absorbs the measured overlap. The trace does not isolate a hardware contention mechanism. Host work to enqueue all four prefetched copies took 0.74 ms, including 0.63 ms writing staging and 0.06 ms in queue submission.
+
+The two extra scheduling policies use the existing implementations. Dominatus selected depth two for the 3.39 MiB payload and kept its transfer-aware completion predictions advisory. The adaptive controller from the kernel-comparison harness provisioned four physical slots and used admission limits of two through four. Its explicit preparation input was zero; its 50 microsecond host floor and measured GPU service times drove admission. Both used the same upload-at-consumption block layout as the fixed 7 MiB control.
+
+### On-demand reads through the existing checkpoint runtime
+
+The ggml Tiny.en adapter now exposes indexed row reads to `CheckpointLinearLayer.TileLoader`. The `checkpoint-tiles` variant calls the existing `VulkanComputeMath.LinearStreamed` cooperative path for Q, K, V, attention output and both MLP projections in every encoder block. It keeps the decoder resident and reads at most 256 output rows per tile from the checkpoint. The two-slot linear ring prepares FP32 weight rows with appended bias, uploads them and packs the cooperative weights on the GPU. The largest projection requires 7,337,984 logical encoder weight bytes including the fixed weights and resident block norms. This experiment includes warm filesystem-cache reads.
+
+In a separate matched campaign of 48 warmed requests per mode, checkpoint streaming took **137.14 ms**, compared with **30.20 ms** packed resident, **30.72 ms** for the 7 MiB block policy, and **31.74 ms** with prefetch. The encoder took 113.74 ms with checkpoint reads and 7.21 ms at 7 MiB. Each checkpoint request transferred 33.06 MiB in 64 tile submissions and allocated 312 Vulkan buffers on the median warm request. The tile preparation callback plus validation and mapped staging writes consumed 43.00 ms per profiled request. GPU tile copies totaled 1.71 ms with zero measured compute overlap. Inner tile compute intervals totaled 15.16 ms. Each projection creates and drains a tile ring, and the host expanded and repacked weights on every request. Those phase timings have different boundaries and cannot be summed to partition wall time.
+
+Dedicated memory peaked at **189.61 MiB** in both checkpoint runs, with **23.14 MiB** shared. The 7 MiB block control peaked at 196.50 MiB dedicated in the same campaign. Checkpoint streaming saved another 6.89 MiB and cost 106.15 ms in the median matched pair. Its encoder and all 26 logits buffers were byte-identical to packed resident. All eight policies preserved the same 25 tokens on JFK.
+
+Run the packed resident command with `checkpoint-tiles` to use the checkpoint loader for encoder projections. The secondary-queue and checkpoint policies are opt-in. The separate tile campaign is under `artifacts/local/whisper-baseline/acceleration/encoder-checkpoint-tiles/`.
+
+For reproduction, add `prefetch-encoder encoder-budget-mib=11` or `copy-at-use encoder-budget-mib=11` to the packed resident command. Use `queue=adaptive` or `queue=dominatus` with `encoder-budget-mib=7` to switch admission. Use `profile-stream` to read batch and copy timestamps without inserting per-dispatch queries. Run `python tools/whisper-benchmark/summarize_stream_overlap.py PROFILE.json` to intersect the copy intervals with the disjoint compute intervals on the device clock. The RTX 3070 run enabled `VK_EXT_calibrated_timestamps` for this comparison. [Vulkan timestamp ordering](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdWriteTimestamp.html)
+
+Raw request timings, profiles, precision captures, randomized orders, hardware memory counters and the campaign driver are in `artifacts/local/whisper-baseline/acceleration/encoder-prefetch-final/`.
+
+## Packed embedding lookup and encoder residency
+
+The reference Aurelian path keeps the FP32 token embedding for lookup and the same matrix packed to FP16 for the output projection. The new `packed-lookup` option shares the packed table across both operations. Its gather shader reads the requested half values and writes an FP32 activation row. The checkpoint already stores these values in FP16.
+
+| Vocabulary and encoder policy | Device encoder weight payload | Weight upload per request | Peak dedicated GPU memory | Paired request median | Throughput vs packed resident |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Dual tables, resident | 16.79 MiB | 0 | 284.31 MiB | 30.03 ms | 99.7% |
+| Packed table, resident | 16.79 MiB | 0 | 208.32 MiB | 29.93 ms | 100% |
+| Packed, 14 MiB budget | 13.40 MiB | 6.79 MiB | 204.39 MiB | 30.36 ms | 98.6% |
+| Packed, 11 MiB budget | 10.01 MiB | 10.18 MiB | 200.44 MiB | 30.42 ms | 98.4% |
+| Packed, 7 MiB budget | 6.62 MiB | 13.57 MiB | 196.50 MiB | 30.67 ms | 97.6% |
+
+Three fresh process groups ran 20 warmed requests each in rotating order, with one request active at a time. Throughput is the ratio of median request times. Taking the difference within each pair gives 0.02 ms for dual tables relative to packed resident and penalties of 0.50, 0.57 and 0.72 ms for the 14, 11 and 7 MiB budgets. Each Aurelian request used 66 submissions, 3,100 dispatches, 26 host logits reads and zero warm Vulkan allocations.
+
+Standalone runs on commit `3f6011a6` plus these changes measured 27 timed requests per policy across three fresh launches. Median end-to-end latency was 32.74 ms for dual tables, 34.00 ms for packed resident, 33.91 ms at 14 MiB, 34.22 ms at 11 MiB and 34.56 ms at 7 MiB. The same whisper.cpp flash build measured 29.99 ms and 236.56 MiB dedicated. Packed resident was 4.00 ms slower end to end and used 28.24 MiB less dedicated memory. The standalone and interleaved results support a clear memory saving with uncertain small latency differences between the embedding implementations.
+
+The budget covers the logical device payload for encoder weights. Convolutions, audio positions and the final encoder norm occupy 3.22 MiB. Each transformer block adds 3.39 MiB. The 14, 11 and 7 MiB policies pin the first two, one and zero blocks respectively, then reuse one device slot for the other layers in forward order. The decoder, its cross-attention projections and its KV caches stay resident in every run. Each streamed block has one prepacked host image. The queue copies it from a fence-protected staging buffer at the start of the existing encoder QKV submission. Packing happens at initialization.
+
+| Encoder policy | CPU write to staging | GPU copy | Copy inside compute gaps | Total gap before four QKV batches |
+| --- | ---: | ---: | ---: | ---: |
+| Packed resident | 0 | 0 | 0 | 0.049 ms |
+| 14 MiB | 0.295 ms | 0.328 ms | 0.328 ms | 0.381 ms |
+| 11 MiB | 0.463 ms | 0.489 ms | 0.489 ms | 0.542 ms |
+| 7 MiB | 0.589 ms | 0.649 ms | 0.649 ms | 0.704 ms |
+
+Each timing is the median sum per request across nine separately instrumented requests. For each block the gap starts at the previous batch's compute-end timestamp and ends at QKV compute-start. The full GPU copy interval fell inside that gap. The current one-slot strategy serializes transfers with the preceding block on this compute queue. CPU staging can overlap previously queued work, so its duration cannot be added to the GPU copy time to estimate the latency penalty.
+
+Peak memory came from per-process WDDM dedicated and shared usage counters sampled at roughly 40 ms intervals during two standalone process runs, with the mode order reversed. Shared GPU memory rose from 20.11 to 20.70 MiB for packed resident to 26.90 MiB when streaming, consistent with two 3.39 MiB staging buffers. The host also retains the streamed weight images. The 7 MiB cap saved another 11.82 MiB of measured dedicated memory over packed resident. Tiny.en only has 16.79 MiB of encoder weights to begin with.
+
+The optimized dual-table control, packed resident and each streamed capture matched byte for byte on all 576,000 encoder values and 1,348,464 logits across 26 positions. They matched the archived optimized control too. Against the earlier FP32 two-slot control, encoder and logits maximum absolute errors were 0.007075 and 0.028679, and all 26 vocabulary argmaxes agreed. The fixture produced the same 25 tokens including end-of-text.
+
+Reproduce with the JFK command below, using the same checkpoint and mel as the other experiments. Omit the budget for packed resident. From that resident command, substitute `packed-vocab` for `packed-lookup` to reproduce the dual-table control. Add `profile-gpu` for the queue intervals or `capture validate` for the encoder and complete logits.
+
+```powershell
+dotnet tools/Aurelian.WhisperBenchmark/bin/Release/net10.0/Aurelian.WhisperBenchmark.dll `
+  artifacts/local/whisper-baseline/ggml-tiny.en.bin artifacts/local/whisper-baseline/qualified/input.mel.f32 `
+  result.json 9 fused persistent-read persistent-upload host-logits batch-cross queue=fixed-two `
+  projection-epilogues reuse-projections attention-32 cooperative-convolution packed-lookup encoder-budget-mib=7
+```
+
+Local per-request results, capture comparisons, WDDM samples, run order and the campaign driver are in `artifacts/local/whisper-baseline/acceleration/encoder-residency/`.
 
 ## Wider attention, packed vocabulary and cooperative convolution
 

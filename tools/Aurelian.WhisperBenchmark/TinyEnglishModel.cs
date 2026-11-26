@@ -26,6 +26,7 @@ internal sealed class TinyEnglishModel : IDisposable
     private readonly bool joinLogits;
     private readonly Dictionary<(int Rows, int Columns, GpuTensorFormat Format), GpuTensor> projectionScratch = [];
     public bool FuseProjectionEpilogues { get; init; }
+    public bool ProfileStream { get; init; }
     public bool ProfileGpu { get; init; }
     public bool CooperativeAttention { get; init; }
     public bool DirectProjectionTiles { get; init; }
@@ -49,7 +50,16 @@ internal sealed class TinyEnglishModel : IDisposable
     public int AttentionKeyTile { get; init; } = 16;
     private readonly GpuTensor encodedNorm;
     private readonly GpuTensor decodedNorm;
-    private readonly Block[] encoder = new Block[Layers];
+    private readonly ComputeBatchUpload?[] uploads = new ComputeBatchUpload?[Layers];
+    public ulong MaximumUploadBytes { get; }
+    public ulong EncoderWeightBytes { get; }
+    private readonly CheckpointEncoderBlock[]? checkpointBlocks;
+    private readonly CheckpointTileController? tileController;
+    private readonly IComputeStreamController? previousController;
+    private readonly bool prefetchEncoder;
+    public bool CopyAtUse { get; init; }
+    public int PinnedBlocks { get; }
+    private readonly Block?[] encoder = new Block?[Layers];
     private readonly Block[] decoder = new Block[Layers];
     private readonly Cache[] selfCache = new Cache[Layers];
     private readonly Cache[] crossCache = new Cache[Layers];
@@ -57,8 +67,18 @@ internal sealed class TinyEnglishModel : IDisposable
     public TinyEnglishModel(VulkanComputeMath math, TinyEnglishCheckpoint weights, bool batchAcrossHeads,
         bool reuseAttention, bool directAttention, bool vectorProjection, bool reuseScratch,
         bool fusedAttention, bool reuseReadback, bool reuseUpload, bool hostLogits, bool batchCross,
-        bool halfProjections, bool halfAttention, bool joinLogits, bool packVocabulary = false, bool cooperativeConvolution = false)
+        bool halfProjections, bool halfAttention, bool joinLogits, bool packVocabulary = false, bool cooperativeConvolution = false,
+        bool packedLookup = false, int? encoderBudgetMiB = null, bool prefetchEncoder = false,
+        bool checkpointTiles = false)
     {
+        EncoderBlockUpload? stream = null;
+        this.prefetchEncoder = prefetchEncoder;
+        if (checkpointTiles)
+        {
+            checkpointBlocks = new CheckpointEncoderBlock[Layers];
+            tileController = new();
+            previousController = math.StreamController;
+        }
         this.math = math;
         this.batchAcrossHeads = batchAcrossHeads;
         this.vectorProjection = vectorProjection;
@@ -97,21 +117,66 @@ internal sealed class TinyEnglishModel : IDisposable
             audioPositions = Upload(AudioRows, Width, weights.Read("encoder.positional_embedding", Width, AudioRows));
             textPositions = Upload(TextRows, Width, weights.Read("decoder.positional_embedding", Width, TextRows));
             float[] tokenWeights = weights.Read("decoder.token_embedding.weight", Width, Vocabulary);
-            embedding = Upload(Vocabulary, Width, tokenWeights);
-            if (packVocabulary)
+            if (packVocabulary || packedLookup)
             {
                 packedVocabulary = math.CreateSparseTensor(Vocabulary, Width, GpuTensorFormat.PackedFloat16);
                 resident.Add(packedVocabulary);
                 math.Upload(packedVocabulary, tokenWeights);
             }
+            embedding = packedLookup ? packedVocabulary! : Upload(Vocabulary, Width, tokenWeights);
             encodedNorm = Norm("encoder.ln_post");
             decodedNorm = Norm("decoder.ln");
+            ulong fixedBytes = conv1.Weight.Buffer.SizeBytes + conv2.Weight.Buffer.SizeBytes
+                + conv1.Bias!.Buffer.SizeBytes + conv2.Bias!.Buffer.SizeBytes
+                + audioPositions.Buffer.SizeBytes + encodedNorm.Buffer.SizeBytes;
+            // Q/K/V/out and the two MLP matrices have 12 width-squared entries.
+            // Norms and biases add 12 width-sized FP32 vectors.
+            int blockBytes = 12 * Width * Width * (halfProjections ? 2 : 4) + 12 * Width * sizeof(float);
+            int streamingSlots = prefetchEncoder ? 2 : 1;
+            int slots = Layers;
+            if (encoderBudgetMiB is { } budget)
+            {
+                long available = (long)budget * 1024 * 1024 - (long)fixedBytes;
+                if (available < blockBytes * streamingSlots)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(encoderBudgetMiB),
+                        $"Encoder needs at least {fixedBytes + (ulong)(blockBytes * streamingSlots)} weight bytes.");
+                }
+                slots = (int)Math.Min(Layers, available / blockBytes);
+            }
+            PinnedBlocks = slots == Layers ? Layers : slots - streamingSlots;
+            MaximumUploadBytes = slots == Layers ? 0 : (ulong)blockBytes;
+            EncoderWeightBytes = fixedBytes + (ulong)(slots * blockBytes);
+            List<GpuTensor>[] deviceSlots = [[], []];
             for (int layer = 0; layer < Layers; layer++)
             {
-                encoder[layer] = LoadBlock($"encoder.blocks.{layer}", cross: false);
+                string prefix = $"encoder.blocks.{layer}";
+                if (checkpointBlocks is not null)
+                {
+                    checkpointBlocks[layer] = CheckpointEncoderBlock.Bind(weights, prefix, Norm);
+                }
+                else
+                {
+                    if (layer >= PinnedBlocks)
+                    {
+                        stream = new(deviceSlots[layer % streamingSlots], blockBytes);
+                    }
+                    encoder[layer] = LoadBlock(prefix, cross: false);
+                    uploads[layer] = stream?.Finish();
+                    stream = null;
+                }
                 decoder[layer] = LoadBlock($"decoder.blocks.{layer}", cross: true);
                 selfCache[layer] = AllocateCache(TextRows);
                 crossCache[layer] = AllocateCache(AudioRows);
+            }
+            if (checkpointBlocks is not null)
+            {
+                PinnedBlocks = 0;
+                // All norms remain resident. The widest tile is the MLP down matrix.
+                var largest = checkpointBlocks[0].Down.Plan;
+                ulong tileWeights = 2 * largest.WeightBufferBytes + (ulong)(2 * largest.InputWidth * largest.TileRows);
+                EncoderWeightBytes = fixedBytes + (ulong)(Layers * 4 * Width * sizeof(float)) + tileWeights;
+                math.StreamController = tileController;
             }
         }
         catch
@@ -120,18 +185,22 @@ internal sealed class TinyEnglishModel : IDisposable
             throw;
         }
 
-        GpuTensor Upload(int rows, int columns, float[] values)
+        GpuTensor Upload(int rows, int columns, float[] values, GpuTensorFormat format = GpuTensorFormat.Float32)
         {
-            GpuTensor tensor = Allocate(rows, columns);
+            if (stream is not null)
+            {
+                return stream.Add(rows, columns, format, values, Allocate);
+            }
+            GpuTensor tensor = Allocate(rows, columns, format);
             math.Upload(tensor, values);
             return tensor;
         }
 
-        GpuTensor Allocate(int rows, int columns)
+        GpuTensor Allocate(int rows, int columns, GpuTensorFormat format = GpuTensorFormat.Float32)
         {
             GpuTensor tensor = rows == Vocabulary
-                ? math.CreateSparseTensor(rows, columns)
-                : math.CreateTensor(rows, columns);
+                ? math.CreateSparseTensor(rows, columns, format)
+                : math.CreateTensor(rows, columns, format);
             resident.Add(tensor);
             return tensor;
         }
@@ -158,9 +227,7 @@ internal sealed class TinyEnglishModel : IDisposable
                         transposed[col * outputWidth + row] = source[row * inputWidth + col];
                     }
                 }
-                weight = math.CreateTensor(inputWidth, outputWidth, GpuTensorFormat.PackedFloat16);
-                resident.Add(weight);
-                math.Upload(weight, transposed);
+                weight = Upload(inputWidth, outputWidth, transposed, GpuTensorFormat.PackedFloat16);
             }
             else
             {
@@ -207,7 +274,7 @@ internal sealed class TinyEnglishModel : IDisposable
     {
         long managedStart = GC.GetAllocatedBytesForCurrentThread();
         var total = Stopwatch.StartNew();
-        var metrics = new InferenceMetrics(queue is not null, ProfileGpu);
+        var metrics = new InferenceMetrics(queue is not null, ProfileGpu || ProfileStream);
         int readbacks = math.ReadbackCount;
         ulong allocations = math.MemoryTelemetry.AllocationCount;
         using var requestScope = queue?.OpenRequestScope();
@@ -215,7 +282,9 @@ internal sealed class TinyEnglishModel : IDisposable
         var initialMetrics = scope?.Metrics;
         var timer = Stopwatch.StartNew();
         List<QueuedDispatchProfile>? profiles = ProfileAttention ? new(Layers) : null;
-        Encode(mel, metrics, profiles);
+        List<PrefetchTiming>? copyTimings = (ProfileGpu || ProfileStream) && prefetchEncoder ? [] : null;
+        tileController?.Begin(ProfileStream);
+        Encode(mel, metrics, profiles, scope, copyTimings);
         double encode = timer.Elapsed.TotalMilliseconds;
         timer.Restart();
         Evaluate(StartOfText, 0, metrics);
@@ -239,10 +308,15 @@ internal sealed class TinyEnglishModel : IDisposable
             tokens, math.ReadbackCount - readbacks, math.MemoryTelemetry.AllocationCount - allocations,
             GC.GetAllocatedBytesForCurrentThread() - managedStart, metrics.Operations, queueMetrics,
             profiles?.Select(profile => EncoderAttentionGpuTiming.From(profile.DispatchMilliseconds, halfAttention)).ToArray(),
-            metrics.CollectProfiles());
+            ProfileGpu ? metrics.CollectProfiles() : null, metrics.Profiles?.Where(item => item.Operation == "encoder-qkv")
+                .Select(item => new EncoderUploadTiming(item.Profile.UploadBytes, item.Profile.StagingMs,
+                    item.Profile.CopyMs, item.Profile.PreComputeGapMs, item.Profile.CopyInGapMs)).ToArray(),
+            copyTimings, metrics.Profiles?.Where(item => item.Operation.StartsWith("encoder-", StringComparison.Ordinal))
+                .Select(item => new EncoderBatchInterval(item.Operation, item.Profile.ComputeInterval, item.Profile.TransferInterval)).ToArray(), tileController?.Sample);
     }
 
-    private void Encode(float[] mel, InferenceMetrics metrics, List<QueuedDispatchProfile>? profiles)
+    private void Encode(float[] mel, InferenceMetrics metrics, List<QueuedDispatchProfile>? profiles,
+        VulkanComputeMath.QueuedComputeScope? scope, List<PrefetchTiming>? copyTimings)
     {
         using var scratch = new ScratchScope(math, scratchPool);
         var audio = scratch.Create(AudioRows * 2, MelBins);
@@ -256,6 +330,10 @@ internal sealed class TinyEnglishModel : IDisposable
         math.Upload(audio, mel, reuseUpload);
         metrics.RecordTransfer("mel-upload", timer.Elapsed.TotalMilliseconds);
         var batch = math.CreateBatch();
+        if (!CopyAtUse)
+        {
+            Stage(0);
+        }
         Convolve(batch, audio, conv1, firstColumns, first, stride: 1);
         Convolve(batch, first, conv2, secondColumns, second, stride: 2);
         batch.Activate(second, hidden, TensorActivation.Residual, audioPositions);
@@ -263,7 +341,12 @@ internal sealed class TinyEnglishModel : IDisposable
 
         for (int layer = 0; layer < Layers; layer++)
         {
-            EncodeBlock(hidden, encoder[layer], metrics, profiles);
+            Stage(CopyAtUse ? layer : layer + 1);
+            if (prefetchEncoder && uploads[layer] is not null)
+            {
+                scope!.JoinPrefetch(layer % 2);
+            }
+            EncodeBlock(hidden, encoder[layer], checkpointBlocks?[layer], metrics, profiles, prefetchEncoder ? null : uploads[layer]);
         }
         batch = math.CreateBatch();
         batch.Normalize(hidden, encodedNorm, hidden, Normalization.LayerNorm);
@@ -278,9 +361,22 @@ internal sealed class TinyEnglishModel : IDisposable
         {
             Capture("encoder.f32", math.Read(hidden));
         }
+
+        void Stage(int layer)
+        {
+            if (prefetchEncoder && layer < Layers && uploads[layer] is { } plan)
+            {
+                var timing = scope!.Prefetch(plan, layer % 2, copyTimings is not null);
+                if (timing is not null)
+                {
+                    copyTimings!.Add(timing);
+                }
+            }
+        }
     }
 
-    private void EncodeBlock(GpuTensor hidden, Block block, InferenceMetrics metrics, List<QueuedDispatchProfile>? profiles)
+    private void EncodeBlock(GpuTensor hidden, Block? block, CheckpointEncoderBlock? tiles, InferenceMetrics metrics, List<QueuedDispatchProfile>? profiles,
+        ComputeBatchUpload? upload)
     {
         using var scratch = new ScratchScope(math, scratchPool);
         var normalized = scratch.Create(hidden.Rows, Width);
@@ -291,11 +387,21 @@ internal sealed class TinyEnglishModel : IDisposable
         var projected = scratch.Create(hidden.Rows, Width);
         var expanded = scratch.Create(hidden.Rows, 4 * Width);
         var batch = math.CreateBatch();
-        batch.Normalize(hidden, block.Self.Norm, normalized, Normalization.LayerNorm);
-        Project(batch, normalized, block.Self.Query, query);
-        Project(batch, normalized, block.Self.Key, key);
-        Project(batch, normalized, block.Self.Value, value);
-        Execute(batch, metrics, "encoder-qkv");
+        batch.Normalize(hidden, tiles?.AttentionNorm ?? block!.Self.Norm, normalized, Normalization.LayerNorm);
+        if (tiles is not null)
+        {
+            Execute(batch, metrics, "encoder-attention-norm");
+            tiles.Query.Run(math, normalized, query);
+            tiles.Key.Run(math, normalized, key);
+            tiles.Value.Run(math, normalized, value);
+        }
+        else
+        {
+            Project(batch, normalized, block!.Self.Query, query);
+            Project(batch, normalized, block.Self.Key, key);
+            Project(batch, normalized, block.Self.Value, value);
+            Execute(batch, metrics, "encoder-qkv", upload);
+        }
         if (fusedAttention)
         {
             var packedKeyValue = scratch.Create(2 * key.Rows, Width);
@@ -337,7 +443,23 @@ internal sealed class TinyEnglishModel : IDisposable
             Attend(query, new(key, value), attention, metrics, "encoder-attention", encoderWorkspace);
         }
         batch = math.CreateBatch();
-        ProjectResidual(batch, hidden, attention, block.Self.Output, projected);
+        if (tiles is not null)
+        {
+            tiles.Output.Run(math, attention, projected);
+            batch.Activate(hidden, hidden, TensorActivation.Residual, projected);
+            batch.Normalize(hidden, tiles.MlpNorm, normalized, Normalization.LayerNorm);
+            Execute(batch, metrics, "encoder-output-norm");
+            tiles.Up.Run(math, normalized, expanded);
+            batch = math.CreateBatch();
+            batch.Activate(expanded, expanded, TensorActivation.Gelu);
+            Execute(batch, metrics, "encoder-mlp-gelu");
+            tiles.Down.Run(math, expanded, projected);
+            batch = math.CreateBatch();
+            batch.Activate(hidden, hidden, TensorActivation.Residual, projected);
+            Execute(batch, metrics, "encoder-mlp-residual");
+            return;
+        }
+        ProjectResidual(batch, hidden, attention, block!.Self.Output, projected);
         FeedForward(batch, hidden, block.Mlp, normalized, expanded, projected);
         Execute(batch, metrics, "encoder-output-mlp");
     }
@@ -533,16 +655,16 @@ internal sealed class TinyEnglishModel : IDisposable
         ProjectResidual(batch, hidden, expanded, mlp.Down, projected);
     }
 
-    private void Execute(ComputeMathBatch batch, InferenceMetrics metrics, string operation)
+    private void Execute(ComputeMathBatch batch, InferenceMetrics metrics, string operation, ComputeBatchUpload? upload = null)
     {
         var timer = Stopwatch.StartNew();
-        if (metrics.Profiles is { } profiles)
+        if (metrics.Profiles is { } profiles && (ProfileGpu || operation.StartsWith("encoder-", StringComparison.Ordinal)))
         {
-            profiles.Add((operation, math.EnqueueWithDispatchTimings(batch)));
+            profiles.Add((operation, math.EnqueueWithDispatchTimings(batch, upload, timeDispatches: ProfileGpu)));
             metrics.Record(operation, timer.Elapsed.TotalMilliseconds, null, 1, batch.DispatchCount, 0);
             return;
         }
-        ComputeMathResult result = math.Execute(batch);
+        ComputeMathResult result = upload is null ? math.Execute(batch) : math.EnqueueWithUpload(batch, upload);
         metrics.Record(operation, timer.Elapsed.TotalMilliseconds, result.GpuMilliseconds, 1, result.Dispatches, 1);
     }
 
@@ -579,6 +701,10 @@ internal sealed class TinyEnglishModel : IDisposable
 
     public void Dispose()
     {
+        if (tileController is not null && ReferenceEquals(math.StreamController, tileController))
+        {
+            math.StreamController = previousController;
+        }
         if (scratchPool is not null)
         {
             foreach (var available in scratchPool.Values)

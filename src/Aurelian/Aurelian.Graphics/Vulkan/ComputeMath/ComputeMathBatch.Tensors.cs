@@ -11,14 +11,16 @@ public sealed partial class ComputeMathBatch
 
     public void Gather(GpuTensor input, GpuTensor output, int firstRow = 0, int firstColumn = 0)
     {
-        Check(input, output);
+        bool packed = input.Format == GpuTensorFormat.PackedFloat16;
+        Owner.Validate(input, packed ? GpuTensorFormat.PackedFloat16 : GpuTensorFormat.Float32);
+        Owner.Validate(output, GpuTensorFormat.Float32);
         Require(firstRow >= 0 && firstColumn >= 0 && (long)firstRow + output.Rows <= input.Rows
             && (long)firstColumn + output.Columns <= input.Columns && !ReferenceEquals(input, output), "Gather region must fit its input and use separate storage.");
         Map(input, input, output, 1, new()
         {
             Rows = (uint)output.Rows, Columns = (uint)output.Columns, Inner = (uint)input.Columns,
             Offset = (uint)firstRow, Height = (uint)firstColumn,
-        });
+        }, packed ? "GatherPackedHalf.v.ts" : "TensorMap.v.ts");
     }
 
     public void ScatterRounded(GpuTensor input, GpuTensor output, int firstRow = 0, int firstColumn = 0)
@@ -133,12 +135,13 @@ public sealed partial class ComputeMathBatch
         }, groupsX, (heads + groupsX - 1) / groupsX)]);
     }
 
-    private void Map(GpuTensor input, GpuTensor auxiliary, GpuTensor output, uint operation, KernelParameters parameters)
+    private void Map(GpuTensor input, GpuTensor auxiliary, GpuTensor output, uint operation, KernelParameters parameters,
+        string shader = "TensorMap.v.ts")
     {
         parameters.Mode = operation;
         uint groups = Groups((int)(parameters.Rows * parameters.Columns), 64);
         uint groupsX = Math.Min(groups, 65535);
         parameters.Stride = groupsX * 64;
-        Add([new("TensorMap.v.ts", input, auxiliary, output, parameters, groupsX, (groups + 65534) / 65535)]);
+        Add([new(shader, input, auxiliary, output, parameters, groupsX, (groups + 65534) / 65535)]);
     }
 }

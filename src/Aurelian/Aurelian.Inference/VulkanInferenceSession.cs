@@ -12,6 +12,7 @@ public sealed record VulkanInferenceOptions
     public int MaximumDispatches { get; init; } = 512;
     public int AttentionQueryTileRows { get; init; } = 256;
     public bool EnableValidation { get; init; } = true;
+    public bool EnableCalibratedTimestamps { get; init; }
     public bool UseCooperativeLinear { get; init; }
 }
 
@@ -47,7 +48,7 @@ public sealed class VulkanInferenceSession : IDisposable
         options ??= new();
         var initialization = VulkanPlantInitializer.CreatePlant(PlantId.Zero,
             new(EnableValidation: options.EnableValidation, ApplicationName: options.ApplicationName,
-                EnableCooperativeMatrices: options.UseCooperativeLinear));
+                EnableCooperativeMatrices: options.UseCooperativeLinear, EnableCalibratedTimestamps: options.EnableCalibratedTimestamps));
         if (!initialization.Success)
         {
             throw new InvalidOperationException("AUR-INFERENCE-DEVICE-001: "

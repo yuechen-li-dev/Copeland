@@ -6,5 +6,6 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Aurelian/Aurelian.Inference/Aurelian.Inference.csproj" />
     <Content Include="Assets/*.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../inference-benchmark/BenchmarkAdmissionController.cs" Link="BenchmarkAdmissionController.cs" />
   </ItemGroup>
 </Project>
