@@ -48,8 +48,9 @@ internal sealed unsafe class Vulkan3DFrameBindings : IDisposable
         }
     }
 
-    public AurelianVulkanBuffer Uniform => uniforms[frames?.Slot ?? 0];
-    public DescriptorSet Set => sets[frames?.Slot ?? 0];
+    public int Slot => frames?.Slot ?? 0;
+    public AurelianVulkanBuffer Uniform => uniforms[Slot];
+    public DescriptorSet Set => sets[Slot];
     public IReadOnlyList<DescriptorSet> Sets => sets;
 
     public void Dispose()

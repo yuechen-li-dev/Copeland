@@ -26,6 +26,9 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
     private readonly Sampler sampler;
     private readonly AurelianVulkanGraphicsPipeline pipeline;
     private readonly AurelianVulkanGraphicsPipeline? modelPipeline;
+    private readonly (AurelianVulkanTexture? Source, AurelianVulkanTexture? Bloom)[] outputTextures;
+    private VulkanCommandPool? outputCommandPool;
+    private (CommandBuffer Command, bool Recorded)[]? outputCommands;
     private bool disposed;
 
     public Vulkan3DPass(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator, CompiledGraphicsProgram program,
@@ -62,14 +65,17 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
             int bytes = program.Material?.Size ?? throw new ArgumentException("3D pass requires a material uniform.", nameof(program));
             bindings = Own(new Vulkan3DFrameBindings(plant, allocator, layout, bytes,
                 sampled is null ? 0u : (uint)((program.Resources.Count - 1) / 2), frames, exposure is not null));
+            outputTextures = new (AurelianVulkanTexture?, AurelianVulkanTexture?)[bindings.Sets.Count];
             if (sampled is not null)
             {
                 sampler = CreateSampler(plant, Filter.Linear);
-                foreach (DescriptorSet set in bindings.Sets)
+                for (int slot = 0; slot < bindings.Sets.Count; slot++)
                 {
+                    DescriptorSet set = bindings.Sets[slot];
                     WriteImage(plant, set, 1, sampled, sampler);
                     if (program.Resources.Count >= 5) WriteImage(plant, set, 3, sampled, sampler);
                     if (exposure is not null) WriteStorageBuffer(plant, set, 5, exposure);
+                    outputTextures[slot] = (sampled, program.Resources.Count >= 5 ? sampled : null);
                 }
             }
         }
@@ -127,8 +133,69 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
 
     public void SetOutputTextures(AurelianVulkanTexture source, AurelianVulkanTexture? bloom)
     {
-        WriteImage(plant, bindings.Set, 1, source, sampler);
-        if (bloom is not null) WriteImage(plant, bindings.Set, 3, bloom, sampler);
+        int slot = bindings.Slot;
+        var previous = outputTextures[slot];
+        bloom ??= previous.Bloom;
+        if (ReferenceEquals(source, previous.Source) && ReferenceEquals(bloom, previous.Bloom))
+        {
+            return;
+        }
+        if (outputCommands is not null)
+        {
+            outputCommands[slot].Recorded = false;
+        }
+        if (!ReferenceEquals(source, previous.Source)) WriteImage(plant, bindings.Set, 1, source, sampler);
+        if (bloom is not null && !ReferenceEquals(bloom, previous.Bloom)) WriteImage(plant, bindings.Set, 3, bloom, sampler);
+        outputTextures[slot] = (source, bloom);
+    }
+
+    // The renderer waits for this slot before changing its descriptors or uniform contents.
+    public bool DrawPreparedOutput(VulkanCommandBufferLease primary, AurelianVulkanBuffer vertices)
+    {
+        outputCommandPool ??= new(plant);
+        outputCommands ??= new (CommandBuffer, bool)[bindings.Sets.Count];
+        ref var slot = ref outputCommands[bindings.Slot];
+        bool replayed = slot.Recorded;
+        CommandBuffer command = slot.Command;
+        if (!replayed)
+        {
+            if (command.Handle == 0)
+            {
+                command = outputCommandPool.AllocateSecondary();
+                slot.Command = command;
+            }
+            else
+            {
+                Require(plant.Vk.ResetCommandBuffer(command, CommandBufferResetFlags.None) == Result.Success,
+                    "Output secondary command reset failed.");
+            }
+            RecordOutputDraw(command, vertices);
+            slot.Recorded = true;
+        }
+        plant.Vk.CmdExecuteCommands(primary.CommandBuffer, 1, &command);
+        return replayed;
+    }
+
+    private void RecordOutputDraw(CommandBuffer command, AurelianVulkanBuffer vertices)
+    {
+        CommandBufferInheritanceInfo inheritance = new()
+        {
+            SType = StructureType.CommandBufferInheritanceInfo,
+            RenderPass = Pass.NativeRenderPass,
+            Framebuffer = Framebuffer.NativeFramebuffer,
+        };
+        CommandBufferBeginInfo begin = new()
+        {
+            SType = StructureType.CommandBufferBeginInfo,
+            Flags = CommandBufferUsageFlags.RenderPassContinueBit,
+            PInheritanceInfo = &inheritance,
+        };
+        Require(plant.Vk.BeginCommandBuffer(command, &begin) == Result.Success, "Output secondary command begin failed.");
+        DescriptorSet descriptor = bindings.Set;
+        plant.Vk.CmdBindDescriptorSets(command, PipelineBindPoint.Graphics, pipeline.NativePipelineLayout, 0, 1, &descriptor, 0, null);
+        VulkanDrawCommandEncoder.RecordDraw(plant, command,
+            new(pipeline, vertices, 3, 0, VulkanViewportScissor.FromFramebuffer(Framebuffer)));
+        Require(plant.Vk.EndCommandBuffer(command) == Result.Success, "Output secondary command end failed.");
     }
 
     public void Upload(ReadOnlySpan<float> values)
@@ -289,6 +356,7 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
             return;
         }
         disposed = true;
+        outputCommandPool?.Dispose();
         if (sampler.Handle != 0)
         {
             plant.Vk.DestroySampler(plant.Device, sampler, null);

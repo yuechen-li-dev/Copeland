@@ -28,55 +28,7 @@ public sealed unsafe class VulkanDrawCommandEncoder
 
         try
         {
-            Viewport viewport = new()
-            {
-                X = request.ViewportScissor.X,
-                Y = request.ViewportScissor.Y,
-                Width = request.ViewportScissor.Width,
-                Height = request.ViewportScissor.Height,
-                MinDepth = request.ViewportScissor.MinDepth,
-                MaxDepth = request.ViewportScissor.MaxDepth,
-            };
-            Rect2D scissor = new(
-                new Offset2D((int)request.ViewportScissor.X, (int)request.ViewportScissor.Y),
-                new Extent2D((uint)request.ViewportScissor.Width, (uint)request.ViewportScissor.Height));
-            NativeBuffer vertexBuffer = request.VertexBuffer.NativeBuffer;
-            ulong offset = 0;
-
-            plant.Vk.CmdSetViewport(commandBuffer.CommandBuffer, 0, 1, &viewport);
-            plant.Vk.CmdSetScissor(commandBuffer.CommandBuffer, 0, 1, &scissor);
-            plant.Vk.CmdBindPipeline(commandBuffer.CommandBuffer, PipelineBindPoint.Graphics, request.Pipeline.NativePipeline);
-            plant.Vk.CmdBindVertexBuffers(commandBuffer.CommandBuffer, 0, 1, &vertexBuffer, &offset);
-            if (request.PreviousVertexBuffer is { } previous)
-            {
-                NativeBuffer previousBuffer = previous.NativeBuffer;
-                plant.Vk.CmdBindVertexBuffers(commandBuffer.CommandBuffer, 1, 1, &previousBuffer, &offset);
-            }
-            if (request.InstanceBuffer is { } instances)
-            {
-                NativeBuffer instanceBuffer = instances.NativeBuffer;
-                plant.Vk.CmdBindVertexBuffers(commandBuffer.CommandBuffer, 1, 1, &instanceBuffer, &offset);
-            }
-            if (request.IndexBuffer is { } indices)
-            {
-                plant.Vk.CmdBindIndexBuffer(commandBuffer.CommandBuffer, indices.NativeBuffer, 0, IndexType.Uint32);
-                if (request.IndirectArguments is { } arguments)
-                {
-                    plant.Vk.CmdDrawIndexedIndirectCount(commandBuffer.CommandBuffer, arguments.NativeBuffer, 0,
-                        request.IndirectCount!.NativeBuffer, 0, request.MaximumIndirectDraws, 20);
-                }
-                else
-                {
-                    plant.Vk.CmdDrawIndexed(commandBuffer.CommandBuffer, request.IndexCount,
-                        request.InstanceCount, 0, (int)request.FirstVertex, request.FirstInstance);
-                }
-            }
-            else
-            {
-                plant.Vk.CmdDraw(commandBuffer.CommandBuffer, request.VertexCount,
-                    request.InstanceCount, request.FirstVertex, request.FirstInstance);
-            }
-
+            RecordDraw(plant, commandBuffer.CommandBuffer, request);
             return VulkanDrawCommandResult.Recorded(diagnostics);
         }
         catch (Exception exception)
@@ -86,6 +38,58 @@ public sealed unsafe class VulkanDrawCommandEncoder
                 $"Vulkan draw command recording failed: {exception.Message}",
                 plant.Context.Id));
             return new VulkanDrawCommandResult(VulkanDrawCommandStatus.Failed, diagnostics);
+        }
+    }
+
+    internal static void RecordDraw(AurelianVulkanPlant plant, CommandBuffer command, VulkanDrawVerticesRequest request)
+    {
+        Viewport viewport = new()
+        {
+            X = request.ViewportScissor.X,
+            Y = request.ViewportScissor.Y,
+            Width = request.ViewportScissor.Width,
+            Height = request.ViewportScissor.Height,
+            MinDepth = request.ViewportScissor.MinDepth,
+            MaxDepth = request.ViewportScissor.MaxDepth,
+        };
+        Rect2D scissor = new(
+            new Offset2D((int)request.ViewportScissor.X, (int)request.ViewportScissor.Y),
+            new Extent2D((uint)request.ViewportScissor.Width, (uint)request.ViewportScissor.Height));
+        NativeBuffer vertexBuffer = request.VertexBuffer.NativeBuffer;
+        ulong offset = 0;
+
+        plant.Vk.CmdSetViewport(command, 0, 1, &viewport);
+        plant.Vk.CmdSetScissor(command, 0, 1, &scissor);
+        plant.Vk.CmdBindPipeline(command, PipelineBindPoint.Graphics, request.Pipeline.NativePipeline);
+        plant.Vk.CmdBindVertexBuffers(command, 0, 1, &vertexBuffer, &offset);
+        if (request.PreviousVertexBuffer is { } previous)
+        {
+            NativeBuffer previousBuffer = previous.NativeBuffer;
+            plant.Vk.CmdBindVertexBuffers(command, 1, 1, &previousBuffer, &offset);
+        }
+        if (request.InstanceBuffer is { } instances)
+        {
+            NativeBuffer instanceBuffer = instances.NativeBuffer;
+            plant.Vk.CmdBindVertexBuffers(command, 1, 1, &instanceBuffer, &offset);
+        }
+        if (request.IndexBuffer is { } indices)
+        {
+            plant.Vk.CmdBindIndexBuffer(command, indices.NativeBuffer, 0, IndexType.Uint32);
+            if (request.IndirectArguments is { } arguments)
+            {
+                plant.Vk.CmdDrawIndexedIndirectCount(command, arguments.NativeBuffer, 0,
+                    request.IndirectCount!.NativeBuffer, 0, request.MaximumIndirectDraws, 20);
+            }
+            else
+            {
+                plant.Vk.CmdDrawIndexed(command, request.IndexCount,
+                    request.InstanceCount, 0, (int)request.FirstVertex, request.FirstInstance);
+            }
+        }
+        else
+        {
+            plant.Vk.CmdDraw(command, request.VertexCount,
+                request.InstanceCount, request.FirstVertex, request.FirstInstance);
         }
     }
 

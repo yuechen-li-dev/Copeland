@@ -119,6 +119,10 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
     public IReadOnlyList<ParticleEmitter3D> ParticleEmitters { get; set; } = [];
 
     public Native3DFrameMode FrameMode { get; set; } = Native3DFrameMode.Capture;
+    public bool ReplayOutputCommands { get; set; }
+    public bool MeasureOutputRecording { get; set; }
+    public double OutputRecordingMilliseconds { get; private set; }
+    public long ReplayedOutputDraws { get; private set; }
 
     public Graphics3DSettings Settings { get; set; } = Graphics3DSettings.Default;
     public float EyeExposureElapsedSeconds { get; set; } = 1f / 60;

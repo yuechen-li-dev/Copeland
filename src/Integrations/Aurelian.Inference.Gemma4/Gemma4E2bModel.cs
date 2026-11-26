@@ -15,7 +15,7 @@ public sealed record Gemma4StageProfile(double WallMs, double GpuMs, double Inpu
 }
 
 /// <summary>Single-sequence text inference for the Gemma 4 E2B GGUF Q4_0/Q6_K profile.</summary>
-public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
+public sealed class Gemma4E2bModel : ICausalTextModel, ICausalGreedyDecode, IDisposable
 {
     public const int VocabularySize = 262144;
     private const int Width = 1536;
@@ -40,6 +40,7 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
     private readonly float[] logitReadback = new float[VocabularySize];
     private Scratch? decodeScratch, promptScratch;
     private VulkanComputeMath.PreparedComputeBatch? tokenReplay;
+    private bool tokenReplayGreedy;
     private bool disposed;
 
     public Gemma4E2bModel(VulkanComputeMath compute, GgufCheckpoint checkpoint, int capacity = 640)
@@ -167,6 +168,7 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
     public Gemma4StageProfile? HeadProfile { get; private set; }
     public double? ReplayPreparationMs { get; private set; }
     public int ReplayedTokens { get; private set; }
+    public bool ReplayGreedyDecode { get; init; }
 
     private void LoadHeadWeights()
     {
@@ -324,6 +326,31 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
     /// <summary>Advance one supplied token and return its full post-softcap logits.</summary>
     public ReadOnlySpan<float> DecodeLogitsWithReplay(int token)
     {
+        ValidateReplayToken(token);
+        if (!UseSplitAttention(1, Position + 1, prune: false))
+        {
+            using var hidden = Evaluate([token]);
+            return Logits(hidden);
+        }
+        ReplayToken(token, logitReadback, greedy: false);
+        return logitReadback;
+    }
+
+    public bool TryDecodeGreedy(int token, out (int Token, float Score) prediction)
+    {
+        prediction = default;
+        if (!ReplayGreedyDecode || !UseSplitAttention(1, Position + 1, prune: false))
+        {
+            return false;
+        }
+        ValidateReplayToken(token);
+        Span<float> pair = stackalloc float[2];
+        prediction = ReplayToken(token, pair, greedy: true);
+        return true;
+    }
+
+    private void ValidateReplayToken(int token)
+    {
         ObjectDisposedException.ThrowIf(disposed, this);
         if (token is < 0 or >= VocabularySize || Position >= ContextCapacity)
         {
@@ -335,12 +362,10 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
         {
             throw new InvalidOperationException("Token replay requires the optimized E2B decode path and batch input upload.");
         }
-        if (!UseSplitAttention(1, Position + 1, prune: false))
-        {
-            using var hidden = Evaluate([token]);
-            return Logits(hidden);
-        }
+    }
 
+    private (int Token, float Score) ReplayToken(int token, Span<float> destination, bool greedy)
+    {
         long start = Stopwatch.GetTimestamp();
         try
         {
@@ -348,6 +373,11 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
             ReadEmbedding(token, work, 0);
             ValidateEmbeddings(work.HostEmbeddings);
             double inputMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+            if (tokenReplay is not null && tokenReplayGreedy != greedy)
+            {
+                tokenReplay.Dispose();
+                tokenReplay = null;
+            }
             if (tokenReplay is null)
             {
                 long prepareStart = Stopwatch.GetTimestamp();
@@ -358,17 +388,23 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
                     RecordLayer(batch, index, work, work.LayerInput, Position, null, null, 0, null);
                 }
                 RecordHead(batch, work.Hidden);
-                tokenReplay = compute.PrepareTokenReplay(batch, work.EmbeddingUpload, logitStorage,
+                if (greedy)
+                {
+                    batch.ArgMax(logitStorage, argmaxPartials, argmaxOutput);
+                }
+                tokenReplay = compute.PrepareTokenReplay(batch, work.EmbeddingUpload, greedy ? argmaxOutput : logitStorage,
                     enableGpuTimings: compute.MeasureBatchCpuTime);
+                tokenReplayGreedy = greedy;
                 ReplayPreparationMs = Stopwatch.GetElapsedTime(prepareStart).TotalMilliseconds;
             }
-            var result = tokenReplay.ExecuteToken(Position, logitReadback);
+            var result = tokenReplay.ExecuteToken(Position, destination);
+            var prediction = greedy ? DecodePrediction(destination) : default;
             Position++;
             ReplayedTokens++;
             BodyProfile = new(Stopwatch.GetElapsedTime(start).TotalMilliseconds, result.GpuMilliseconds.GetValueOrDefault(),
                 inputMs, 1, result.Dispatches);
             HeadProfile = new(0, 0, 0, 0, 0);
-            return logitReadback;
+            return prediction;
         }
         catch
         {
@@ -626,17 +662,13 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
             long readbackStart = compute.MeasureBatchCpuTime ? Stopwatch.GetTimestamp() : 0;
             compute.ReadInto(argmaxOutput, pair);
             double? readbackMs = readbackStart == 0 ? null : Stopwatch.GetElapsedTime(readbackStart).TotalMilliseconds;
-            int token = (int)pair[1];
-            if (token is < 0 or >= VocabularySize || !float.IsFinite(pair[0]))
-            {
-                throw new InvalidDataException("E2B output head did not produce a valid token.");
-            }
+            var prediction = DecodePrediction(pair);
             HeadProfile = new(Stopwatch.GetElapsedTime(start).TotalMilliseconds, timing.GpuMilliseconds.GetValueOrDefault(),
                 0, 2, timing.Dispatches)
             {
                 ShaderMs = shaderMs, BatchCpu = timing.CpuTimings is { } cpu ? [cpu] : null, ReadbackMs = readbackMs,
             };
-            return (token, pair[0]);
+            return prediction;
         }
         ReadOnlySpan<float> logits = Logits(hidden);
         int best = 0;
@@ -645,6 +677,16 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
             if (logits[index] > logits[best]) { best = index; }
         }
         return (best, logits[best]);
+    }
+
+    private static (int Token, float Score) DecodePrediction(ReadOnlySpan<float> pair)
+    {
+        int token = (int)pair[1];
+        if (token is < 0 or >= VocabularySize || pair[1] != token || !float.IsFinite(pair[0]))
+        {
+            throw new InvalidDataException("E2B output head did not produce a valid token.");
+        }
+        return (token, pair[0]);
     }
 
     public ReadOnlySpan<float> Logits(GpuTensor hidden)

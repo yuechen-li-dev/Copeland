@@ -27,6 +27,7 @@ public sealed record GameLaunchOptions
     public bool Visible { get; init; }
     public string? Output { get; init; }
     public string? SaveRoot { get; init; }
+    public string? GraphicsShaderPack { get; init; }
     public bool RayQueries { get; init; }
     public bool EyeExposure { get; init; }
     public bool LowLightVision { get; init; }
@@ -41,7 +42,7 @@ public sealed record GameLaunchOptions
 
     /// <summary>
     /// --headless, --playtest-script PATH, --playtest-stdio, --launch-smoke, --visible, --output DIR, --save-root DIR,
-    /// --gpu-rays, --eye-exposure, --low-light-vision, --ocular-glare, --resolution WxH,
+    /// --graphics-shader-pack DIR, --gpu-rays, --eye-exposure, --low-light-vision, --ocular-glare, --resolution WxH,
     /// --render-scale native|2/3|1/2|dynamic, --gpu-budget-ms MS,
     /// --windowed, --borderless, --fullscreen,
     /// --quality low|medium|high, --basic-graphics.
@@ -113,6 +114,7 @@ public sealed record GameLaunchOptions
             Visible = args.Contains("--visible", StringComparer.Ordinal),
             Output = Option(args, "--output"),
             SaveRoot = Option(args, "--save-root"),
+            GraphicsShaderPack = Option(args, "--graphics-shader-pack"),
             RayQueries = args.Contains("--gpu-rays", StringComparer.Ordinal),
             EyeExposure = args.Contains("--eye-exposure", StringComparer.Ordinal),
             LowLightVision = args.Contains("--low-light-vision", StringComparer.Ordinal),
@@ -233,7 +235,8 @@ public static class GameApp
         using IWindow window = Window.Create(windowOptions);
         window.Initialize();
         using IInputContext input = window.CreateInput();
-        using var graphics = new NativeGameGraphics(window, manifest.Title, visible, session.Context.Assets,
+        var assets = launch.GraphicsShaderPack is { } pack ? new GameAssets(pack) : session.Context.Assets;
+        using var graphics = new NativeGameGraphics(window, manifest.Title, visible, assets,
             enableRayQueries: launch.RayQueries, vSync: initial.VSync, enableFramesInFlight: !launch.Playtest,
             renderScale: launch.RenderScale, dynamicGpuBudgetMilliseconds: launch.DynamicGpuBudgetMilliseconds,
             enableEyeExposure: launch.EyeExposure || launch.LowLightVision || manifest.Graphics.EyeExposure is not null,

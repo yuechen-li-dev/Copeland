@@ -7,8 +7,34 @@ using Aurelian.Graphics.Vulkan.ComputeMath;
 using Aurelian.Inference;
 using Aurelian.Inference.Dominatus;
 using Aurelian.Inference.Gemma4;
+using Aurelian.Shaders.Library;
 
 string command = args.Length > 0 ? args[0] : "--kernels";
+if (args is ["--compile-e2b-shaders", _] or ["--verify-e2b-shaders"])
+{
+    bool verify = command == "--verify-e2b-shaders";
+    var source = new BuiltinComputeShaderCache();
+    var embedded = new BuiltinComputeShaderCache { UsePrecompiledShaders = true };
+    if (!verify) { Directory.CreateDirectory(args[1]); }
+    foreach (string name in BuiltinComputeShaderCache.PrecompiledShaderNames)
+    {
+        foreach (bool push in new[] { false, true })
+        {
+            byte[] spirv = source.Get(name, push);
+            string file = BuiltinComputeShaderCache.PrecompiledFileName(name, push);
+            if (!verify)
+            {
+                File.WriteAllBytes(Path.Combine(args[1], file), spirv);
+            }
+            else if (!spirv.AsSpan().SequenceEqual(embedded.Get(name, push)))
+            {
+                throw new InvalidDataException($"Embedded shader differs from compiled Visual TypeScript: {file}");
+            }
+        }
+    }
+    Console.WriteLine(verify ? "AURELIAN_E2B_SHADER_PACK_VERIFIED" : "AURELIAN_E2B_SHADER_PACK_COMPILED");
+    return;
+}
 if (command is "--e2b" or "--e2b-generate")
 {
     GemmaE2bProof.Run(args);

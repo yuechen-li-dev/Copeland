@@ -7,6 +7,8 @@
   <ItemGroup>
     <ProjectReference Include="../Aurelian.Shaders/Aurelian.Shaders.csproj" />
     <EmbeddedResource Include="../Aurelian.Shaders/Assets/**/*.v.ts" LogicalName="Aurelian.Shaders.Sources.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Precompiled/*.spv" WithCulture="false" LogicalName="Aurelian.Shaders.Precompiled.%(Filename)%(Extension)" />
+    <None Update="Precompiled/*.spv" Pack="true" PackagePath="sources/Precompiled/" />
     <!-- Stable module IDs also serve existing file-based proofs and source overrides. -->
     <Content Include="../Aurelian.Shaders/Assets/**/*.v.ts" Link="Assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Pack="true" PackagePath="sources/Assets/" />
     <Content Include="../Aurelian.Shaders/Assets/Licenses/*" Link="Licenses/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Pack="true" PackagePath="licenses/" />

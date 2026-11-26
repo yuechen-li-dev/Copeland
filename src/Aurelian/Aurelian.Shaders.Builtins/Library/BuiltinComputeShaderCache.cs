@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using Aurelian.Shaders.Compute;
 using Copeland.TS.Gpu;
 
@@ -9,6 +10,15 @@ namespace Aurelian.Shaders.Library;
 public sealed class BuiltinComputeShaderCache
 {
     private readonly Dictionary<(string Name, bool PushParameters), byte[]> programs = [];
+    private static readonly string[] PrecompiledNames =
+    [
+        "FusedGroupedAttention.SplitDecode", "MergeAttentionPartials.v.ts",
+        "ResidentSgemm.v.ts", "FusedGroupedAttention.Keys8", "FusedGroupedAttention.v.ts", "ArgMax.v.ts",
+        "RowReduction.v.ts",
+    ];
+
+    public bool UsePrecompiledShaders { get; init; }
+    public static ReadOnlySpan<string> PrecompiledShaderNames => PrecompiledNames;
 
     // Variants bind a typed implementation of an imported module before compilation.
     // The cache key identifies the closed program. The shared entry retains its own name.
@@ -50,6 +60,12 @@ public sealed class BuiltinComputeShaderCache
         {
             return cached;
         }
+        if (UsePrecompiledShaders && Array.IndexOf(PrecompiledNames, name) >= 0)
+        {
+            byte[] spirv = LoadPrecompiled(name, pushParameters);
+            programs.Add(key, spirv);
+            return spirv;
+        }
         Variants.TryGetValue(name, out var variant);
         string entry = variant?.Entry ?? name;
         BuiltinShaderLibrary.RequireKind(entry, ShaderSourceKind.Compute);
@@ -67,5 +83,26 @@ public sealed class BuiltinComputeShaderCache
         }
         programs.Add(key, compiled.Spirv);
         return compiled.Spirv;
+    }
+
+    public static string PrecompiledFileName(string name, bool pushParameters)
+    {
+        string abi = pushParameters ? "push" : "storage";
+        return $"{name}.{abi}.spv";
+    }
+
+    private static byte[] LoadPrecompiled(string name, bool pushParameters)
+    {
+        string file = PrecompiledFileName(name, pushParameters);
+        using Stream stream = typeof(BuiltinComputeShaderCache).Assembly.GetManifestResourceStream(
+            "Aurelian.Shaders.Precompiled." + file)
+            ?? throw new InvalidDataException($"The built-in shader pack is missing {file}.");
+        byte[] bytes = new byte[checked((int)stream.Length)];
+        stream.ReadExactly(bytes);
+        if (bytes.Length < 20 || bytes.Length % sizeof(uint) != 0 || BinaryPrimitives.ReadUInt32LittleEndian(bytes) != 0x07230203)
+        {
+            throw new InvalidDataException($"The built-in shader {file} has an invalid SPIR-V header.");
+        }
+        return bytes;
     }
 }

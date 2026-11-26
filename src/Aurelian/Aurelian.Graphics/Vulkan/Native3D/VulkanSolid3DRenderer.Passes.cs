@@ -247,10 +247,27 @@ public sealed unsafe partial class VulkanSolid3DRenderer
             {
                 displayPass.Upload([settings.Exposure, toneControl, encodeSrgb ? 1 : 0, bloomIntensity]);
             }
-            var outputBegin = encoder.Begin(plant, command, new(displayPass.Pass, displayPass.Framebuffer, new(0, 0, 0, 1)));
+            long recordStarted = MeasureOutputRecording ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+            var request = new VulkanRenderPassBeginRequest(displayPass.Pass, displayPass.Framebuffer, new(0, 0, 0, 1));
+            var contents = ReplayOutputCommands ? SubpassContents.SecondaryCommandBuffers : SubpassContents.Inline;
+            var outputBegin = encoder.Begin(plant, command, request, contents);
             Require(outputBegin.Success, "Tone mapping pass begin failed.");
-            displayPass.Draw(command, outputBegin.Scope!.Value, outputVertices!, 3);
+            if (ReplayOutputCommands)
+            {
+                if (displayPass.DrawPreparedOutput(command, outputVertices!))
+                {
+                    ReplayedOutputDraws++;
+                }
+            }
+            else
+            {
+                displayPass.Draw(command, outputBegin.Scope!.Value, outputVertices!, 3);
+            }
             Require(encoder.End(plant, command, outputBegin.Scope!.Value).Success, "Tone mapping pass end failed.");
+            if (recordStarted != 0)
+            {
+                OutputRecordingMilliseconds = System.Diagnostics.Stopwatch.GetElapsedTime(recordStarted).TotalMilliseconds;
+            }
         }
         gpuTimings?.Mark(command, 9);
     }

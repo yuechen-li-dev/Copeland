@@ -16,6 +16,7 @@ public sealed record VulkanInferenceOptions
     public bool UseCooperativeLinear { get; init; }
     /// <summary>Use the built-in compute shaders' 64-byte Vulkan push constant ABI.</summary>
     public bool PushDispatchParameters { get; init; }
+    public bool UsePrecompiledShaders { get; init; } = true;
 }
 
 /// <summary>Headless model host over the existing Vulkan plant and compute owner.
@@ -23,7 +24,8 @@ public sealed record VulkanInferenceOptions
 /// resources before an owned plant. This class starts no window or worker.</summary>
 public sealed class VulkanInferenceSession : IDisposable
 {
-    private static readonly BuiltinComputeShaderCache Shaders = new();
+    private static readonly BuiltinComputeShaderCache Shaders = new() { UsePrecompiledShaders = true };
+    private static readonly BuiltinComputeShaderCache SourceShaders = new();
     private readonly bool ownsPlant;
     private bool disposed;
     public AurelianVulkanPlant Plant { get; }
@@ -42,7 +44,8 @@ public sealed class VulkanInferenceSession : IDisposable
         {
             throw new ArgumentException("The supplied shader pack uses the storage-buffer parameter ABI.", nameof(options));
         }
-        byte[] CompileBuiltin(string name) => Shaders.Get(name, options.PushDispatchParameters);
+        var shaders = options.UsePrecompiledShaders ? Shaders : SourceShaders;
+        byte[] CompileBuiltin(string name) => shaders.Get(name, options.PushDispatchParameters);
         Compute = new(plant, shader ?? CompileBuiltin, options.MaximumDispatches, options.MaximumTensorElements,
             options.PushDispatchParameters)
         {

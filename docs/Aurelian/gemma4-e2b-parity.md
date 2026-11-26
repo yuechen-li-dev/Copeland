@@ -615,10 +615,77 @@ compares replay with fresh recording as the tile count changes,
 the KV window slides, and position moves backward. It checks the
 final K/V cache contents as well as the output.
 
-Replay is an opt-in full-logit benchmark path. Prompt evaluation
-uses the ordinary model path before captured single-token decode.
-Use `--optimized --queued-e2b` for the queued control.
-Raw outputs are under `artifacts/local/gemma4/decode-replay`.
+These full-logit benchmark results use the ordinary prompt path before
+captured single-token decode. Use `--optimized --queued-e2b` for the
+queued control. Raw outputs are under `artifacts/local/gemma4/decode-replay`.
+
+### Greedy generation with GPU argmax
+
+`--e2b-generate ... --replay-e2b` enables prepared greedy decode in
+`CausalTextGenerator`. Prefill and short contexts use the ordinary path.
+The replay records GPU argmax after the logit head and reads back the
+winning token ID and FP32 score in eight bytes. Each token then drives the
+next decode step or stops generation with the usual end-token check.
+The same capture can serve repeated requests with different positions
+and live KV lengths.
+
+| Prompt tokens | Generated tokens | Queued warm decode | Replay warm decode | Queued cold first token | Replay cold first token |
+|---:|---:|---:|---:|---:|---:|
+| 64 | 33 | 149.29 tok/s | 172.49 tok/s | 3.78 s | 3.85 s |
+| 512 | 17 | 138.76 tok/s | 163.80 tok/s | 3.88 s | 4.14 s |
+
+Results are from the RTX 3070 with the same Q4_0/Q6_K GGUF. Each cell
+uses two fresh processes, each with three warm generations after the
+cold run. The warm rate uses the median per-generation decode time from
+first to last emitted token. Both arms emitted the same 50 tokens with
+bit-identical FP32 scores across the fixtures. Chat-formatted prompts
+also agreed, including a 24-token prompt that switched to replay during
+generation and a 70-token prompt where replay selected the end token.
+The GPU argmax matched all 50 teacher-forced full-logit winners, and the
+512-token full-logit replay gave bit-identical results to the earlier run.
+
+Queued generation uses push constants by default. The 512-token queued
+storage-parameter control measured 113.96 tok/s warm and 4.17 s to first
+token, with cold samples of 3.78 s and 4.57 s. Replay begins after the
+first token. The cold samples vary enough that they leave the startup
+contribution of the parameter ABI unresolved.
+
+The built-in pack embeds the split-attention and merge shaders, resident
+SGEMM, both grouped prefill attention variants, argmax and row reduction.
+It includes storage-buffer and push-constant variants for a total of
+517 KiB. The first replayed decode step fell from 514 to 114 ms on the
+64-token prompt and from 503 to 103 ms on the 512-token prompt. This step
+includes capture, which took 90–92 ms with the full pack. Cold time to
+first token fell from 4.76 to 3.85 s and from 5.96 to 4.14 s respectively
+against source-only replay. In the long fixture, embedding row reduction
+cut that pipeline's creation time from 684 ms to under 1 ms. Rebuild
+after regenerating the pack, then verify its modules byte-for-byte
+against the current Visual TypeScript sources.
+
+```powershell
+dotnet $proof --compile-e2b-shaders src/Aurelian/Aurelian.Shaders.Builtins/Precompiled
+dotnet build tools/Aurelian.GemmaProof -c Release -m:1
+dotnet $proof --verify-e2b-shaders
+```
+
+To run the generation comparison, take just the prompt row from each
+fixture and generate the continuation from the model's own predictions.
+Use separate processes for cold samples and reverse the arm order for
+the second pass. `--compile-shaders-at-runtime` gives the source-only
+control. Add `--storage-parameters` to the queued arm for the same ABI
+as replay. The JSON reports first token from command entry, per-token
+latency, replay preparation and pipeline creation.
+
+```powershell
+foreach ($fixture in @(@{ Length = 64; Count = 33 }, @{ Length = 512; Count = 17 })) {
+    $prompt = "$out/ids-text$($fixture.Length).txt"
+    foreach ($mode in '--queued-e2b', '--replay-e2b') {
+        dotnet $proof --e2b-generate $model $tokenizer $prompt $fixture.Count --prompt-token-file --generation-runs 4 $mode
+    }
+}
+```
+
+Raw generation outputs are under `artifacts/local/gemma4/generation-replay`.
 
 ## Reproduce
 

@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 using Aurelian.Rendering.Contracts.Shaders;
 using Aurelian.Shaders.Graphics;
 using Aurelian.Shaders.Library;
@@ -29,6 +30,21 @@ public sealed class GameAssets
         Aurelian.Assets.Lighting.StaticDiffuseLightingAsset.Load(path, sceneKey);
     private readonly Dictionary<string, CompiledGraphicsProgram> programs = new(StringComparer.Ordinal);
     private readonly BuiltinComputeShaderCache computePrograms = new();
+    private readonly string? graphicsPackDirectory;
+    private readonly bool bakeGraphicsPack;
+
+    public GameAssets() { }
+
+    /// <summary>Load an explicit graphics shader pack, or populate it from shader sources.</summary>
+    public GameAssets(string graphicsPackDirectory, bool bakeGraphicsPack = false)
+    {
+        this.graphicsPackDirectory = Path.GetFullPath(graphicsPackDirectory);
+        this.bakeGraphicsPack = bakeGraphicsPack;
+        if (bakeGraphicsPack)
+        {
+            Directory.CreateDirectory(this.graphicsPackDirectory);
+        }
+    }
 
     public byte[] ComputeShader(string name)
     {
@@ -41,6 +57,26 @@ public sealed class GameAssets
         if (programs.TryGetValue(name, out CompiledGraphicsProgram? cached))
         {
             return cached;
+        }
+        string? packPath = graphicsPackDirectory is null ? null : Path.Combine(graphicsPackDirectory, name + ".json");
+        if (packPath is not null && !bakeGraphicsPack)
+        {
+            using FileStream stream = File.OpenRead(packPath);
+            var packed = JsonSerializer.Deserialize<CompiledGraphicsProgram>(stream);
+            if (packed?.FormatVersion != CompiledGraphicsProgram.CurrentFormatVersion || packed.Shaders?.Stages is not { Count: 2 } stages)
+            {
+                throw new InvalidDataException($"Unsupported compiled graphics program in '{packPath}'.");
+            }
+            foreach (CompiledShaderStage stage in stages)
+            {
+                if (stage.SpirvBytes is not { Length: > 0 } bytes
+                    || !string.Equals(Convert.ToHexString(SHA256.HashData(bytes)), stage.SpirvSha256, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidDataException($"SPIR-V content hash does not match '{packPath}' ({stage.Stage}).");
+                }
+            }
+            programs.Add(name, packed);
+            return packed;
         }
         IReadOnlyList<GpuSourceFile> sources = BuiltinShaderLibrary.LoadSources(name);
         var module = GpuGraphicsBinder.Compile(new GpuCompilationRequest(sources));
@@ -57,6 +93,22 @@ public sealed class GameAssets
                 + backend.Pixel.DxcOutput + backend.Pixel.SpirvValidationOutput);
         }
         CompiledGraphicsProgram program = CompiledGraphicsProgramExporter.Export(module, backend);
+        if (packPath is not null)
+        {
+            string temporary = packPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
+            {
+                using (FileStream stream = File.Create(temporary))
+                {
+                    JsonSerializer.Serialize(stream, program);
+                }
+                File.Move(temporary, packPath, overwrite: true);
+            }
+            finally
+            {
+                File.Delete(temporary);
+            }
+        }
         programs.Add(name, program);
         return program;
     }

@@ -28,6 +28,12 @@ using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using SkiaSharp;
 
+if (args is ["--graphics-benchmark", .. var graphicsBenchmarkArguments])
+{
+    BeaconGraphicsBenchmark.Run(graphicsBenchmarkArguments, Stopwatch.GetTimestamp());
+    return;
+}
+
 const int Width = 960;
 const int Height = 600;
 const float StepSeconds = 1f / 60;

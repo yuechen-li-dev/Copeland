@@ -41,7 +41,11 @@ public sealed class VulkanCommandPool : IDisposable
 
     public CommandPool NativeCommandPool => commandPool;
 
-    public unsafe CommandBuffer AllocatePrimary()
+    public CommandBuffer AllocatePrimary() => Allocate(CommandBufferLevel.Primary);
+
+    internal CommandBuffer AllocateSecondary() => Allocate(CommandBufferLevel.Secondary);
+
+    private unsafe CommandBuffer Allocate(CommandBufferLevel level)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
 
@@ -49,7 +53,7 @@ public sealed class VulkanCommandPool : IDisposable
         {
             SType = StructureType.CommandBufferAllocateInfo,
             CommandPool = commandPool,
-            Level = CommandBufferLevel.Primary,
+            Level = level,
             CommandBufferCount = 1,
         };
 
@@ -57,7 +61,7 @@ public sealed class VulkanCommandPool : IDisposable
         if (result != Result.Success)
         {
             throw new InvalidOperationException(
-                $"{VulkanCommandBufferDiagnosticCodes.CommandBufferAllocationFailed}: Vulkan primary command buffer allocation failed with result {result} for plant {PlantId}.");
+                $"{VulkanCommandBufferDiagnosticCodes.CommandBufferAllocationFailed}: Vulkan {level} command buffer allocation failed with result {result} for plant {PlantId}.");
         }
 
         return commandBuffer;

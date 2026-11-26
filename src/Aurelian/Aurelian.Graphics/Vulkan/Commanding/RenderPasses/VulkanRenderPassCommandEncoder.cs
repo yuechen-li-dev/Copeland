@@ -15,6 +15,13 @@ public sealed unsafe class VulkanRenderPassCommandEncoder
         AurelianVulkanPlant plant,
         VulkanCommandBufferLease commandBuffer,
         VulkanRenderPassBeginRequest request)
+        => Begin(plant, commandBuffer, request, SubpassContents.Inline);
+
+    internal VulkanRenderPassBeginResult Begin(
+        AurelianVulkanPlant plant,
+        VulkanCommandBufferLease commandBuffer,
+        VulkanRenderPassBeginRequest request,
+        SubpassContents contents)
     {
         ArgumentNullException.ThrowIfNull(plant);
         ArgumentNullException.ThrowIfNull(commandBuffer);
@@ -53,7 +60,7 @@ public sealed unsafe class VulkanRenderPassCommandEncoder
                 PClearValues = clearValues,
             };
 
-            plant.Vk.CmdBeginRenderPass(commandBuffer.CommandBuffer, &beginInfo, SubpassContents.Inline);
+            plant.Vk.CmdBeginRenderPass(commandBuffer.CommandBuffer, &beginInfo, contents);
             VulkanRenderPassScope scope = commandBuffer.MarkRenderPassActive(plant.Context.Id);
             activeRenderPasses[scope] = new ActiveRenderPassAttachments(request.RenderPass, request.Framebuffer);
             return VulkanRenderPassBeginResult.Recorded(scope, diagnostics);

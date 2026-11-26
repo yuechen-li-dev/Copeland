@@ -11,6 +11,13 @@ public interface ICausalTextModel
     (int Token, float Score) GreedyToken(GpuTensor hidden);
 }
 
+/// <summary>Optional single-token evaluation and greedy selection in one operation.</summary>
+public interface ICausalGreedyDecode
+{
+    /// <summary>Returns false without advancing the model when this step uses separate evaluation and selection.</summary>
+    bool TryDecodeGreedy(int token, out (int Token, float Score) prediction);
+}
+
 public sealed record GeneratedToken(int Id, float Score, double ElapsedMilliseconds);
 public sealed record TextGenerationResult(IReadOnlyList<GeneratedToken> Tokens, bool EndTokenReached,
     double PrefillMilliseconds, double TimeToFirstTokenMilliseconds, double TotalMilliseconds);
@@ -53,6 +60,7 @@ public sealed class CausalTextGenerator(ICausalTextModel model, IComputeSchedule
         IEnumerable<ComputeStage> Stages()
         {
             GpuTensor? hidden = null;
+            (int Token, float Score)? decodedPrediction = null;
             try
             {
                 yield return new("prefill", () =>
@@ -64,16 +72,28 @@ public sealed class CausalTextGenerator(ICausalTextModel model, IComputeSchedule
                 {
                     yield return new("predict." + step, () =>
                     {
-                        var prediction = model.GreedyToken(hidden!);
-                        hidden!.Dispose();
+                        var prediction = decodedPrediction ?? model.GreedyToken(hidden!);
+                        hidden?.Dispose();
                         hidden = null;
+                        decodedPrediction = null;
                         var token = new GeneratedToken(prediction.Token, prediction.Score, timer.Elapsed.TotalMilliseconds);
                         tokens.Add(token);
                         stopped = endTokens.Contains(token.Id);
                         observe?.Invoke(token);
                     });
                     if (stopped || tokens.Count == maximumTokens) { break; }
-                    yield return new("decode." + step, () => hidden = model.Evaluate([tokens[^1].Id]));
+                    yield return new("decode." + step, () =>
+                    {
+                        int token = tokens[^1].Id;
+                        if (model is ICausalGreedyDecode decoder && decoder.TryDecodeGreedy(token, out var prediction))
+                        {
+                            decodedPrediction = prediction;
+                        }
+                        else
+                        {
+                            hidden = model.Evaluate([token]);
+                        }
+                    });
                 }
             }
             finally

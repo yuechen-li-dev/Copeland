@@ -10,6 +10,7 @@ internal static class GemmaE2bProof
 {
     public static void Run(string[] args)
     {
+        long invocationStart = Stopwatch.GetTimestamp();
         if (args.Length < 4)
         {
             throw new ArgumentException("Expected --e2b CHECKPOINT TOKENS_FILE OUTPUT_PREFIX [--optimized], "
@@ -25,10 +26,11 @@ internal static class GemmaE2bProof
         bool cooperative = optimized || requireCooperative;
         bool queued = args.Contains("--queued-e2b", StringComparer.Ordinal);
         bool replay = args.Contains("--replay-e2b", StringComparer.Ordinal);
-        if (replay && (!tunedDecode || generate || queued || args.Contains("--greedy", StringComparer.Ordinal)
-            || args.Contains("--profile", StringComparer.Ordinal)))
+        bool greedy = args.Contains("--greedy", StringComparer.Ordinal);
+        bool precompiled = !args.Contains("--compile-shaders-at-runtime", StringComparer.Ordinal);
+        if (replay && (!tunedDecode || queued || args.Contains("--profile", StringComparer.Ordinal)))
         {
-            throw new ArgumentException("--replay-e2b requires an optimized full-logit benchmark without queued or per-shader profiling.");
+            throw new ArgumentException("--replay-e2b requires optimized decode without queued execution or per-shader profiling.");
         }
         if (queued && args.Contains("--profile", StringComparer.Ordinal))
         {
@@ -69,6 +71,7 @@ internal static class GemmaE2bProof
             EnableValidation = false,
             UseCooperativeLinear = cooperative,
             PushDispatchParameters = optimized && !replay && !args.Contains("--storage-parameters", StringComparer.Ordinal),
+            UsePrecompiledShaders = precompiled,
         });
         if (requireCooperative && !session.Compute.CooperativeMatrixEnabled)
         {
@@ -76,7 +79,7 @@ internal static class GemmaE2bProof
         }
         session.Compute.MeasureBatchCpuTime = args.Contains("--profile-cpu", StringComparer.Ordinal);
         var pipelineCreationMs = new Dictionary<string, double>(StringComparer.Ordinal);
-        if (replay)
+        if (replay || generate)
         {
             session.Compute.PipelineCreated = (shader, milliseconds) => pipelineCreationMs.Add(shader, milliseconds);
         }
@@ -122,19 +125,54 @@ internal static class GemmaE2bProof
             BoundedNorm = optimized || args.Contains("--bounded-norm", StringComparer.Ordinal),
             SpecializeDecodeNorm = tunedDecode || args.Contains("--specialize-decode-norm", StringComparer.Ordinal),
             DeviceHead = optimized || args.Contains("--device-head", StringComparer.Ordinal),
+            ReplayGreedyDecode = replay && (generate || greedy),
         };
         double loadMs = timer.Elapsed.TotalMilliseconds;
         Console.WriteLine($"{session.Plant.Facts.PhysicalDeviceName}, loaded in {loadMs:F1} ms");
         if (generate)
         {
             var tokenizer = new HuggingFaceBpeTokenizer(args[2]);
-            int[] tokens = tokenizer.Encode(Gemma4Chat.FormatUser(args[3]));
-            int count = args.Length > 4 ? int.Parse(args[4]) : 32;
-            using var queue = queued ? BeginQueue(session.Compute, model, capacity, Math.Min(tokens.Length, capacity)) : null;
+            int[] tokens = args.Contains("--prompt-token-file", StringComparer.Ordinal)
+                ? ReadSequence(args[3])[0]
+                : tokenizer.Encode(Gemma4Chat.FormatUser(args[3]));
+            int count = args.Length > 4 && !args[4].StartsWith("--", StringComparison.Ordinal) ? int.Parse(args[4]) : 32;
+            int runsOption = Array.IndexOf(args, "--generation-runs");
+            int repeatCount = 1;
+            if (runsOption >= 0 && (runsOption + 1 >= args.Length
+                || !int.TryParse(args[runsOption + 1], out repeatCount) || repeatCount < 1))
+            {
+                throw new ArgumentException("--generation-runs requires a positive count.");
+            }
             var generator = new CausalTextGenerator(model, new DominatusComputeSchedule("gemma.e2b.generate"));
-            var result = generator.Generate(tokens, count, new HashSet<int> { 1, 106 });
+            var stops = new HashSet<int> { 1, 106 };
+            var passes = new List<GenerationPass>();
+            for (int run = 0; run < repeatCount; run++)
+            {
+                using var queue = queued ? BeginQueue(session.Compute, model, capacity, Math.Min(tokens.Length, capacity)) : null;
+                int firstReplay = model.ReplayedTokens;
+                double startMs = Stopwatch.GetElapsedTime(invocationStart).TotalMilliseconds;
+                var generated = generator.Generate(tokens, count, stops);
+                passes.Add(new(generated, startMs, model.ReplayedTokens - firstReplay));
+            }
+            var result = passes[0].Result;
             string raw = tokenizer.Decode(result.Tokens.Select(token => token.Id), skipSpecial: false);
-            Console.WriteLine(JsonSerializer.Serialize(new { Result = result, Text = Gemma4Chat.ParseResponse(raw), Raw = raw }));
+            Console.WriteLine(JsonSerializer.Serialize(new
+            {
+                Result = result,
+                Text = Gemma4Chat.ParseResponse(raw),
+                Raw = raw,
+                PromptTokens = tokens.Length,
+                LoadMs = loadMs,
+                ColdFirstTokenMs = passes[0].StartedMs + result.TimeToFirstTokenMilliseconds,
+                Queued = queued,
+                Replay = replay,
+                session.Compute.PushDispatchParameters,
+                PrecompiledShaders = precompiled,
+                model.ReplayPreparationMs,
+                PipelineCreationMs = pipelineCreationMs,
+                Runs = passes,
+                Memory = session.Compute.MemoryTelemetry,
+            }));
             return;
         }
 
@@ -143,7 +181,6 @@ internal static class GemmaE2bProof
         var runs = new List<object>();
         var queueRuns = new List<ComputeQueueMetrics>();
         var predictions = new List<int>();
-        bool greedy = args.Contains("--greedy", StringComparer.Ordinal);
         for (int run = 0; run < 4; run++)
         {
             model.Reset();
@@ -155,7 +192,12 @@ internal static class GemmaE2bProof
                 long start = Stopwatch.GetTimestamp();
                 long allocated = session.Compute.MeasureBatchCpuTime ? GC.GetAllocatedBytesForCurrentThread() : 0;
                 double elapsed;
-                if (replay && tokens.Length == 1)
+                if (replay && tokens.Length == 1 && greedy && model.TryDecodeGreedy(tokens[0], out var replayPrediction))
+                {
+                    elapsed = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+                    if (run == 1) { predictions.Add(replayPrediction.Token); }
+                }
+                else if (replay && tokens.Length == 1 && !greedy)
                 {
                     ReadOnlySpan<float> scores = model.DecodeLogitsWithReplay(tokens[0]);
                     elapsed = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
@@ -235,6 +277,8 @@ internal static class GemmaE2bProof
             Runs = runs,
         }, new JsonSerializerOptions { WriteIndented = true }));
     }
+
+    private sealed record GenerationPass(TextGenerationResult Result, double StartedMs, int ReplayedTokens);
 
     private static VulkanComputeMath.QueuedComputeScope BeginQueue(VulkanComputeMath compute,
         Gemma4E2bModel model, int positions, int promptRows)
