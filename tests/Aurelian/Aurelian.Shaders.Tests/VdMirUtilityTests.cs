@@ -1,4 +1,5 @@
 using Aurelian.Shaders.Graphics;
+using Aurelian.Shaders.Compute;
 using Copeland.TS.Gpu;
 using Copeland.TS.Gpu.VdMir;
 using Xunit;
@@ -7,6 +8,32 @@ namespace Aurelian.Shaders.Tests;
 
 public sealed class VdMirUtilityTests
 {
+    [Fact]
+    public void ComputeChoiceCompilesWithLazyStorageReadsAndSharedArrayAccess()
+    {
+        const string source = """
+            @compute @numthreads(8, 1, 1)
+            function Main(@builtin(groupIndex) lane: u32,
+                @workgroup readwrite Shared: WorkgroupArray<f32, 8>,
+                @binding(0) readonly Input: StorageBuffer<f32>,
+                @binding(1) readwrite Output: StorageBuffer<f32>): void {
+                Shared[lane] = Input[lane];
+                WorkgroupBarrier();
+                Output[lane] = when utility {
+                    case Input[lane - 1] when lane > 0 score 3
+                    case Shared[lane] when true score 1
+                    else 0.0
+                };
+            }
+            """;
+        var module = GpuComputeBinder.Compile(new GpuCompilationRequest([new("utility-compute.v.ts", source)]));
+        Assert.True(module.Success, string.Join("; ", module.Diagnostics.Select(d => d.Message)));
+        var helper = Assert.Single(module.Functions, function => function.Name.StartsWith("VtsUtility", StringComparison.Ordinal));
+        Assert.Equal(new[] { "lane", "Input" }, helper.Parameters.Select(parameter => parameter.Name));
+        var result = VdMirComputeBackend.Compile(module);
+        Assert.True(result.SpirvValidated, result.DxcOutput + result.SpirvValidationOutput);
+    }
+
     [Fact]
     public void GuardedUtilityUsesOrdinaryHlslAndValidatesBothShaderStages()
     {

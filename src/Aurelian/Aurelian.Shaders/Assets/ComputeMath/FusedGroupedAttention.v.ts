@@ -1,6 +1,7 @@
 import { KernelParameters } from "./KernelMath";
+import { ScoreLanes } from "./AttentionStripe32";
 
-// One workgroup owns one query head. A 32-lane stripe computes each score.
+// One workgroup owns one query head. Each stripe computes one key score.
 @compute
 @numthreads(128, 1, 1)
 function FusedGroupedAttentionMain(@builtin(groupId) group: uint3,
@@ -17,16 +18,16 @@ function FusedGroupedAttentionMain(@builtin(groupId) group: uint3,
     var firstKey: u32 = 0;
     if (available > p.mode) { firstKey = available - p.mode; }
     let count = available - firstKey;
-    let stripe = lane / 32;
-    let channel = lane % 32;
+    let stripe = lane / ScoreLanes;
+    let channel = lane % ScoreLanes;
     for (let block of BoundedIndices<256>(p.inner)) {
-        let key = block * 4 + stripe;
+        let key = block * (128 / ScoreLanes) + stripe;
         var sum: f32 = 0.0;
         if (key < count) {
             let keyStart = (firstKey + key) * p.width;
-            static for (let part of Indices<16>()) {
-                let index = part * 32 + channel;
-                if (index < p.width) {
+            static for (let part of Indices<32>()) {
+                let index = part * ScoreLanes + channel;
+                if (part < 512 / ScoreLanes && index < p.width) {
                     sum = sum + Query[queryStart + index] * Cache[keyStart + index];
                 }
             }
@@ -36,7 +37,7 @@ function FusedGroupedAttentionMain(@builtin(groupId) group: uint3,
         if (channel == 0 && key < count) {
             var dot: f32 = 0.0;
             static for (let component of Indices<32>()) {
-                dot = dot + Partial[stripe * 32 + component];
+                if (component < ScoreLanes) { dot = dot + Partial[stripe * ScoreLanes + component]; }
             }
             Scores[key] = dot;
         }
@@ -76,9 +77,9 @@ function FusedGroupedAttentionMain(@builtin(groupId) group: uint3,
 
     var result: Array<f32, 4> = [0.0, 0.0, 0.0, 0.0];
     for (let block of BoundedIndices<256>(p.inner)) {
-        static for (let item of Indices<4>()) {
-            let key = block * 4 + item;
-            if (key < count) {
+        static for (let item of Indices<8>()) {
+            let key = block * (128 / ScoreLanes) + item;
+            if (item < 128 / ScoreLanes && key < count) {
                 let valueStart = (p.rows + firstKey + key) * p.width;
                 let weight = Scores[key];
                 static for (let part of Indices<4>()) {

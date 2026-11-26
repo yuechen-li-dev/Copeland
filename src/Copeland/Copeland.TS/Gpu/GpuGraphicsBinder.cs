@@ -980,66 +980,17 @@ public static partial class GpuGraphicsBinder
             Dictionary<string, string> scope, string? expected)
         {
             _usesGraphicsM4 = true;
-            var source = Span(path, syntax);
-            if (syntax.Cases.Count is < 1 or > 16)
-            {
-                Add("COPE-GPU-UTILITY-0001", "SDSL-V4200", "utility", "Utility requires 1 to 16 finite source cases and an else value.", source);
-                return Error(path, syntax);
-            }
             string helperName;
             do { helperName = "UtilityChoice" + _utilitySequence++; }
             while (_functionSources.ContainsKey(helperName) || _functions.ContainsKey(helperName));
-            string Fresh(string stem)
-            {
-                while (scope.ContainsKey(stem)) stem += "_";
-                return stem;
-            }
-            string winner = Fresh("utilityWinner");
-            string best = Fresh("utilityBest");
-            string scoreName = Fresh("utilityScore");
-            VdMirExpression Name(string name, string type) => new("name", type, source, name);
-            VdMirExpression Literal(uint value) => new("literal", "u32", source, value.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            VdMirExpression Binary(string op, VdMirExpression a, VdMirExpression b) => new("binary", "bool", source, op, [a, b]);
-            var fallback = BindExpression(path, syntax.Fallback, scope, expected);
-            string resultType = expected ?? fallback.Type;
-            if (fallback.Type != resultType) TypeMismatch(path, syntax.Fallback, resultType, fallback.Type);
-            var statements = new List<VdMirStatement>
-            {
-                new("local", source, winner, "u32", true, Literal(0)),
-                new("local", source, best, "u32", true, Literal(0)),
-            };
-            var values = new List<VdMirExpression>();
-            for (int index = 0; index < syntax.Cases.Count; index++)
-            {
-                var candidate = syntax.Cases[index];
-                var condition = BindExpression(path, candidate.Condition, scope, "bool");
-                var score = BindExpression(path, candidate.Score, scope, "u32");
-                var value = BindExpression(path, candidate.Value, scope, resultType);
-                if (condition.Type != "bool") TypeMismatch(path, candidate.Condition, "bool", condition.Type);
-                if (score.Type != "u32") TypeMismatch(path, candidate.Score, "u32", score.Type);
-                if (value.Type != resultType) TypeMismatch(path, candidate.Value, resultType, value.Type);
-                values.Add(value);
-                var wins = Binary("||", Binary("==", Name(winner, "u32"), Literal(0)),
-                    Binary(">", Name(scoreName, "u32"), Name(best, "u32")));
-                statements.Add(new("if", Span(path, candidate), Expression: condition, Body: [
-                    new("local", source, scoreName, "u32", false, score),
-                    new("if", source, Expression: wins, Body: [
-                        new("assign", source, best, Expression: Name(scoreName, "u32")),
-                        new("assign", source, winner, Expression: Literal((uint)index + 1)),
-                    ]),
-                ]));
-            }
-            for (int index = 0; index < values.Count; index++)
-            {
-                statements.Add(new("if", source,
-                    Expression: Binary("==", Name(winner, "u32"), Literal((uint)index + 1)),
-                    Body: [new("return", source, Expression: values[index])]));
-            }
-            statements.Add(new("return", source, Expression: fallback));
-            var parameters = scope.Select(item => new VdMirParameter(item.Key, item.Value, null, source)).ToArray();
-            _functions.Add(helperName, new VdMirFunction(helperName, parameters, resultType, statements, source));
-            return new VdMirExpression("call", resultType, source, helperName,
-                parameters.Select(parameter => Name(parameter.Name, parameter.Type)).ToArray());
+            return GpuUtilityChoice.Bind(syntax, helperName, expected, node => Span(path, node),
+                (expression, type) => BindExpression(path, expression, scope, type), scope.ContainsKey,
+                _ => scope.Select(item => new VdMirParameter(item.Key, item.Value, null, Span(path, syntax))).ToArray(),
+                (target, value) => new("assign", target.Source, target.Value, Expression: value),
+                function => _functions.Add(helperName, function),
+                source => Add("COPE-GPU-UTILITY-0001", "SDSL-V4200", "utility",
+                    "Utility requires 1 to 16 finite source cases and an else value.", source),
+                (expression, type, actual) => TypeMismatch(path, expression, type, actual));
         }
 
         private VdMirExpression BindObject(string path, ObjectLiteralExpressionSyntax literal, Dictionary<string, string> scope, VdMirStream stream)

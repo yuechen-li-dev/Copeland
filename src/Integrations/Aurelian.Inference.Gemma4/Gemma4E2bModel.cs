@@ -90,10 +90,13 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
     public bool PruneSharedRows { get; init; } = true;
     public bool PackedPrefill { get; init; } = true;
     public bool PackedDecode { get; init; } = true;
+    public int PackedDecodeLanes { get; init; } = 16;
     public bool CooperativePrefill { get; init; } = true;
+    public bool ReusePrefillInputPacking { get; init; } = true;
     public bool ProfileDispatches { get; init; }
     public int FusedDecodeMaxKeys { get; init; } = 128;
     public bool FusedPrefillAttention { get; init; } = true;
+    public bool WidePrefillKeyTile { get; init; } = true;
     public bool BoundedNorm { get; init; } = true;
     public bool DeviceHead { get; init; } = true;
     public Gemma4StageProfile? BodyProfile { get; private set; }
@@ -226,8 +229,9 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
         {
             GpuTensor key = global ? work.KeyGlobal : work.KeyLocal;
             GpuTensor value = global ? work.ValueGlobal : work.ValueLocal;
-            Project(batch, work.Norm, layer.Key!, key);
-            Project(batch, work.Norm, layer.Value!, value);
+            // Q, K and V read the same normalized activation and use one K tile.
+            Project(batch, work.Norm, layer.Key!, key, reusePacking: ReusePrefillInputPacking);
+            Project(batch, work.Norm, layer.Value!, value, reusePacking: ReusePrefillInputPacking);
             Norm(batch, key, layer.KeyNorm!, key, headWidth);
             Norm(batch, value, global ? onesGlobal : onesLocal, value, headWidth);
             batch.RotateHeads(key, key, headWidth, position, theta, roundBFloat16: false, frequencyFactors: factors);
@@ -241,7 +245,8 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
         int window = global ? 1024 : 512;
         if (UseFusedAttention(work.Rows, position + work.Rows))
         {
-            batch.FusedGroupedAttention(query, cache.Cache!, attention, Heads, headWidth, position, window);
+            batch.FusedGroupedAttention(query, cache.Cache!, attention, Heads, headWidth, position, window,
+                wideKeyTile: WidePrefillKeyTile && work.Rows > 1);
         }
         else
         {
@@ -259,7 +264,8 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
         GpuTensor gate = index < KvLayers ? work.Gate : work.GateWide;
         GpuTensor up = index < KvLayers ? work.Up : work.UpWide;
         Project(batch, work.Norm, layer.Gate, gate);
-        Project(batch, work.Norm, layer.Up, up);
+        // Gate and up also read the same packed input, before GELU mutates gate.
+        Project(batch, work.Norm, layer.Up, up, reusePacking: ReusePrefillInputPacking);
         batch.GeluGate(gate, up, gate);
         Project(batch, gate, layer.Down, work.Branch);
         Norm(batch, work.Branch, layer.FfnPostNorm, work.Branch, Width);
@@ -275,7 +281,8 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
 
     private bool UseFusedAttention(int rows, int keys) => rows == 1 ? keys <= FusedDecodeMaxKeys : FusedPrefillAttention;
 
-    private void Project(ComputeMathBatch batch, GpuTensor input, GpuTensor weights, GpuTensor output)
+    private void Project(ComputeMathBatch batch, GpuTensor input, GpuTensor weights, GpuTensor output,
+        bool reusePacking = false)
     {
         if (CooperativePrefill && compute.CooperativeMatrixEnabled && input.Rows >= 16)
         {
@@ -288,7 +295,7 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
                 var left = scratch.Tile(compute, Workspace.Input, paddedRows, width);
                 var right = scratch.Tile(compute, Workspace.Weight, width, output.Columns);
                 var product = first == 0 && !padded ? output : scratch.Tile(compute, Workspace.Product, paddedRows, output.Columns);
-                batch.PackMatrixHalf(input, left, first);
+                if (!reusePacking || input.Columns > 4096) { batch.PackMatrixHalf(input, left, first); }
                 batch.PackQ4WeightsHalf(weights, right, input.Columns, first);
                 batch.ProjectCooperativeTiles(left, right, product, reuseTiles: paddedRows % 32 == 0);
                 if (padded)
@@ -302,7 +309,7 @@ public sealed class Gemma4E2bModel : ICausalTextModel, IDisposable
         }
         else if (input.Rows > 1 ? PackedPrefill : PackedDecode)
         {
-            batch.ProjectPackedQ4(input, weights, output);
+            batch.ProjectPackedQ4(input, weights, output, PackedDecodeLanes);
         }
         else
         {

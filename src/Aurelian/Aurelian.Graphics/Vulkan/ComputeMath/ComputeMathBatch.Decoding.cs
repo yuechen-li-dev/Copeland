@@ -219,9 +219,9 @@ public sealed partial class ComputeMathBatch
         }
     }
 
-    /// <summary>Reuse a packed projection tile across multiple prompt rows, or group four
-    /// independent output rows per workgroup for a single input token.</summary>
-    public void ProjectPackedQ4(GpuTensor input, GpuTensor weights, GpuTensor output)
+    /// <summary>Reuse a packed projection tile across prompt rows, or select the
+    /// number of lanes assigned to each output row for one token.</summary>
+    public void ProjectPackedQ4(GpuTensor input, GpuTensor weights, GpuTensor output, int decodeLanes = 32)
     {
         Check(input, output);
         Owner.Validate(weights, GpuTensorFormat.UInt32);
@@ -230,10 +230,17 @@ public sealed partial class ComputeMathBatch
             && !ReferenceEquals(input, output), "Packed Q4 projection requires aligned complete matrices.");
         if (input.Rows == 1)
         {
-            Add([new("QuantizedGemv4.v.ts", input, weights, output, new()
+            string shader = decodeLanes switch
             {
-                Columns = (uint)output.Columns, Inner = (uint)input.Columns, Width = Groups(input.Columns, 256),
-            }, Groups(output.Columns, 4))]);
+                32 => "QuantizedGemv4.v.ts",
+                16 => "QuantizedGemv.Lanes16",
+                8 => "QuantizedGemv.Lanes8",
+                _ => throw new ArgumentOutOfRangeException(nameof(decodeLanes)),
+            };
+            Add([new(shader, input, weights, output, new()
+            {
+                Columns = (uint)output.Columns, Inner = (uint)input.Columns, Width = Groups(input.Columns, decodeLanes * 8),
+            }, Groups(output.Columns, 128 / decodeLanes))]);
             return;
         }
         for (int first = 0; first < input.Columns; first += 8192)
@@ -319,7 +326,7 @@ public sealed partial class ComputeMathBatch
     /// <summary>Fused FP32 causal attention. K and V occupy the
     /// two equal row ranges in the cache tensor.</summary>
     public void FusedGroupedAttention(GpuTensor query, GpuTensor keyValue, GpuTensor output,
-        int heads, int headWidth, int position, int window)
+        int heads, int headWidth, int position, int window, bool wideKeyTile = false)
     {
         Check(query, keyValue, output);
         int capacity = keyValue.Rows / 2;
@@ -330,10 +337,10 @@ public sealed partial class ComputeMathBatch
             && !ReferenceEquals(query, output) && !ReferenceEquals(keyValue, output),
             "Fused causal attention requires up to 1024 KV rows and an independent output.");
         int count = Math.Min(position + query.Rows, window);
-        Add([new("FusedGroupedAttention.v.ts", query, keyValue, output, new()
+        Add([new(wideKeyTile ? "FusedGroupedAttention.Keys8" : "FusedGroupedAttention.v.ts", query, keyValue, output, new()
         {
             Width = (uint)headWidth, Offset = (uint)position, Height = (uint)heads, Mode = (uint)window,
-            Rows = (uint)capacity, Inner = Groups(count, 4),
+            Rows = (uint)capacity, Inner = Groups(count, wideKeyTile ? 8 : 4),
         }, (uint)heads, (uint)query.Rows)]);
     }
 

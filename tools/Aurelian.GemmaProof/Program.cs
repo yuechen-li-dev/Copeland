@@ -433,6 +433,20 @@ static void KernelChecks(VulkanComputeMath compute)
                 }
             }
             if (!actual.All(float.IsFinite) || maximum > 2e-5) { throw new InvalidDataException("Q4 kernel failed: " + maximum); }
+            if (rows == 1)
+            {
+                foreach (int lanes in new[] { 8, 16, 32 })
+                {
+                    var packed = compute.CreateBatch();
+                    packed.ProjectPackedQ4(x, w, y, lanes);
+                    compute.Execute(packed);
+                    float[] projected = compute.Read(y);
+                    if (!projected.All(float.IsFinite) || projected.Zip(actual).Any(pair => MathF.Abs(pair.First - pair.Second) > 2e-5f))
+                    {
+                        throw new InvalidDataException($"Packed Q4 GEMV disagrees at {width} columns and {lanes} lanes.");
+                    }
+                }
+            }
             var rounded = compute.CreateBatch();
             rounded.QuantizedLinear(x, w, y, roundBFloat16: true);
             compute.Execute(rounded);
@@ -465,7 +479,39 @@ static void KernelChecks(VulkanComputeMath compute)
     }
     File.WriteAllText("artifacts/local/gemma4/kernels.json", JsonSerializer.Serialize(checks, new JsonSerializerOptions { WriteIndented = true }));
     GroupedAttentionChecks(compute);
+    ArgMaxChecks(compute);
     Console.WriteLine("AURELIAN_GEMMA_KERNELS_PASSED");
+}
+
+static void ArgMaxChecks(VulkanComputeMath compute)
+{
+    const int count = 2049;
+    using var scores = compute.CreateTensor(1, count);
+    using var partials = compute.CreateTensor(3, 2);
+    using var result = compute.CreateTensor(1, 2);
+    var batch = compute.CreateBatch();
+    batch.ArgMax(scores, partials, result);
+    float[] input = Enumerable.Repeat(-10f, count).ToArray();
+    foreach (var (first, firstScore, second, secondScore, expected) in new[]
+    {
+        (17, -3f, 1300, -3f, 17),
+        (17, -3f, 1300, -2f, 1300),
+        (1001, -0f, 1024, 0f, 1001),
+        (1001, -float.Epsilon, 1024, float.Epsilon, 1024),
+        (13, 4f, 2048, 5f, 2048),
+    })
+    {
+        input[first] = firstScore;
+        input[second] = secondScore;
+        compute.Upload(scores, input);
+        compute.Execute(batch);
+        float[] winner = compute.Read(result);
+        if (winner[1] != expected || winner[0] != input[expected])
+        {
+            throw new InvalidDataException($"GPU utility argmax picked {winner[1]}, expected {expected}.");
+        }
+        input[first] = input[second] = -10f;
+    }
 }
 
 static void GroupedAttentionChecks(VulkanComputeMath compute)

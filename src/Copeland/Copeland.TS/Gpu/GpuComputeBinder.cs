@@ -32,6 +32,7 @@ public static partial class GpuComputeBinder
         private GpuValues _values = null!;
         private GpuGenericFunctions _generics = null!;
         private int _matchSequence;
+        private int _utilitySequence;
         private readonly List<VdMirDiagnostic> _diagnostics = [];
         private readonly Dictionary<string, FunctionSource> _functions = new(StringComparer.Ordinal);
         private readonly List<VdMirResource> _resources = [];
@@ -705,6 +706,8 @@ public static partial class GpuComputeBinder
                     }
                     AddDiagnostic("COPE-GPU-NAME-0001", "SDSL-V1501", "name", $"Unknown GPU value '{name.IdentifierToken.Text}'.", Span(path, name.IdentifierToken));
                     return ErrorExpression(path, expression);
+                case WhenUtilityExpressionSyntax utility:
+                    return BindUtility(path, utility, scope, expected);
                 case MatchExpressionSyntax match:
                     string helperName;
                     do

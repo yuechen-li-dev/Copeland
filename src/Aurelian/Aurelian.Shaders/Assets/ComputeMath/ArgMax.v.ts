@@ -1,5 +1,26 @@
 import { KernelParameters } from "./KernelMath";
 
+// IEEE binary32 order for non-NaN values, with a common key for both zeros.
+function FloatRank(bits: u32): u32 {
+    let sign: u32 = 1 << 31;
+    let magnitude = bits & (sign - 1);
+    if (magnitude == 0) { return sign; }
+    if ((bits & sign) == 0) { return bits | sign; }
+    return (sign - 1) - magnitude;
+}
+
+function PreferCandidate(score: f32, index: u32, bestScore: f32, bestIndex: u32): bool {
+    let bits = Bitcast<u32>(score);
+    let key = FloatRank(bits);
+    let bestKey = FloatRank(Bitcast<u32>(bestScore));
+    let eligible = (bits & 2147483647) <= 2139095040;
+    return when utility {
+        case true when eligible && (key != bestKey || index < bestIndex) score key
+        case false when true score bestKey
+        else false
+    };
+}
+
 @compute
 @numthreads(256, 1, 1)
 function ArgMaxMain(@builtin(groupId) group: uint3,
@@ -22,7 +43,7 @@ function ArgMaxMain(@builtin(groupId) group: uint3,
                 score = Input[item * 2];
                 index = U32(Input[item * 2 + 1]);
             }
-            if (score > bestScore || (score == bestScore && index < bestIndex)) {
+            if (PreferCandidate(score, index, bestScore, bestIndex)) {
                 bestScore = score;
                 bestIndex = index;
             }
@@ -37,7 +58,7 @@ function ArgMaxMain(@builtin(groupId) group: uint3,
             let other = lane + stride;
             let score = Scores[other];
             let index = IndicesByLane[other];
-            if (score > Scores[lane] || (score == Scores[lane] && index < IndicesByLane[lane])) {
+            if (PreferCandidate(score, index, Scores[lane], IndicesByLane[lane])) {
                 Scores[lane] = score;
                 IndicesByLane[lane] = index;
             }

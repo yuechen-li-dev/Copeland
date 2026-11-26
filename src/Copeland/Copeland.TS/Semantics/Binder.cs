@@ -7561,7 +7561,7 @@ public static partial class Binder
 
         private BoundExpression BindGpuOnlyUtility(WhenUtilityExpressionSyntax expression)
         {
-            Report("COPE-UTILITY-PROFILE-0001", "One-shot when utility currently requires the graphics GPU profile; host and compute utility are not admitted.", expression.WhenToken);
+            Report("COPE-UTILITY-PROFILE-0001", "One-shot when utility requires a compute or graphics GPU profile.", expression.WhenToken);
             return new BoundErrorExpression();
         }
 

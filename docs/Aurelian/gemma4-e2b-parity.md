@@ -81,6 +81,44 @@ and tiled grouped attention for 256- and 512-wide Gemma heads. The first
 profiling lane should keep the GGUF and 64-/512-token fixtures fixed so that
 kernel changes can be evaluated separately from streaming.
 
+## Packed decode and prefill tuning
+
+The next pass compared eight, 16 and 32 lanes per packed Q4 output on the
+RTX 3070. Sixteen lanes gives eight outputs per 128-thread workgroup and won
+the short-context A/B. The eight-lane case measured 56.1 tok/s on that run.
+Prefill now scores eight keys per iteration and reuses the packed activation
+across Q/K/V and the MLP gate/up pair. The prefill issues 45 fewer dispatches
+on these fixtures. Each kernel family shares a Visual TypeScript source
+across its compiled shape variants.
+
+| Fixture | Previous prefill | Tuned prefill | Previous decode | Tuned decode |
+|---|---:|---:|---:|---:|
+| 64 prompt, 32 decode | 33.00 ms | 31.37 ms | 61.0 tok/s | 69.4 tok/s |
+| 512 prompt, 16 decode | 119.90 ms | 111.76 ms | 60.9 tok/s | 68.9 tok/s |
+
+The final pass ran the 64-token pair in previous/tuned order and the
+512-token pair in tuned/previous order. Earlier trials included substantially
+slower runs. The table uses the final warm medians.
+Peak runtime-owned buffer allocation was identical within each pair,
+at 1,614 MiB and 1,764 MiB respectively. Q4 body projection measured about
+5.3 ms per decode step in the instrumented run. At 512 tokens, fused prompt
+attention measured about 26 ms, with cooperative projection at 46 ms.
+The fresh device-local llama.cpp reference measured 14.37 ms prefill and
+161.7 tok/s decode at 64 tokens, and 41.94 ms and 156.3 tok/s at 512.
+
+Full-logit comparison against llama.cpp retained the top token and top-five
+set at all 50 positions. Maximum relative RMS error was 2.78% at 64 tokens
+and 1.46% at 512. The GPU argmax now uses `when utility` for its local
+selection. Its 33 greedy results agree with both the original reduction
+and the full logit readback. Native kernel checks cover negative scores,
+signed zero, subnormals and ties between workgroups.
+
+With `--optimized`, add `--prior-kernels` for the original kernel choices.
+Starting from that configuration, select individual experiments with
+`--decode-lanes 16`, `--wide-prefill-attention` or `--reuse-prefill-pack`.
+The eight-lane variant remains available with `--decode-lanes 8`.
+Raw results are under `artifacts/local/gemma4/utility-tuning`.
+
 ## Reproduce
 
 Build the C++ reference with the headers and Vulkan binaries from llama.cpp

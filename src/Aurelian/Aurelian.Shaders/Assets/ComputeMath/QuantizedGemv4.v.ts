@@ -1,4 +1,5 @@
 import { KernelParameters } from "./KernelMath";
+import { GemvLanes, GemvStages } from "./GemvLanes32";
 
 @compute
 @numthreads(128, 1, 1)
@@ -10,12 +11,12 @@ function QuantizedGemv4Main(@builtin(groupId) group: uint3,
     @binding(2) readwrite Output: StorageBuffer<f32>,
     @binding(3) readonly Parameters: StorageBuffer<KernelParameters>): void {
     let p = Parameters[0];
-    let row = group.x * 4 + lane / 32;
-    let channel = lane % 32;
+    let row = group.x * (128 / GemvLanes) + lane / GemvLanes;
+    let channel = lane % GemvLanes;
     var sum: f32 = 0.0;
-    for (let tile of BoundedIndices<128>(p.width)) {
+    for (let tile of BoundedIndices<512>(p.width)) {
         if (row < p.columns) {
-            let first = (tile * 32 + channel) * 8;
+            let first = (tile * GemvLanes + channel) * 8;
             if (first < p.inner) {
                 let address = (row * p.inner + first) / 32 * 5;
                 let word = Weights[address + 1 + channel % 4];
@@ -30,8 +31,8 @@ function QuantizedGemv4Main(@builtin(groupId) group: uint3,
     }
     Sums[lane] = sum;
     WorkgroupBarrier();
-    static for (let stage of Indices<5>()) {
-        let stride = 16 >> stage;
+    for (let stage of BoundedIndices<5>(GemvStages)) {
+        let stride = (GemvLanes / 2) >> stage;
         if (channel < stride) { Sums[lane] = Sums[lane] + Sums[lane + stride]; }
         WorkgroupBarrier();
     }

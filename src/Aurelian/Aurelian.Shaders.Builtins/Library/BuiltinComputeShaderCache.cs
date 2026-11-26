@@ -20,6 +20,9 @@ public sealed class BuiltinComputeShaderCache
         ["LayerNorm384"] = new("LayerNorm768.v.ts", "NormWidth768.v.ts", "NormWidth384.v.ts"),
         ["FusedAttention64.Causal"] = new("FusedAttention64.v.ts", "AttentionLayout.v.ts", "CausalAttentionLayout.v.ts"),
         ["DenseGemv.Packed"] = new("DenseGemv.v.ts", "AttentionOperand.v.ts", "PackedAttentionOperand.v.ts"),
+        ["QuantizedGemv.Lanes16"] = new("QuantizedGemv4.v.ts", "GemvLanes32.v.ts", "GemvLanes16.v.ts"),
+        ["QuantizedGemv.Lanes8"] = new("QuantizedGemv4.v.ts", "GemvLanes32.v.ts", "GemvLanes8.v.ts"),
+        ["FusedGroupedAttention.Keys8"] = new("FusedGroupedAttention.v.ts", "AttentionStripe32.v.ts", "AttentionStripe16.v.ts"),
         ["FusedAttention64.Packed"] = new("FusedAttention64.v.ts", "AttentionOperand.v.ts", "PackedAttentionOperand.v.ts"),
     };
 

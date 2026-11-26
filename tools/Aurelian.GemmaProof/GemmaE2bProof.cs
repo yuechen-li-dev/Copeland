@@ -19,8 +19,16 @@ internal static class GemmaE2bProof
         int[][]? sequence = generate ? null : ReadSequence(args[2]);
         int capacity = generate ? 640 : sequence!.Sum(row => row.Length);
         bool optimized = generate || args.Contains("--optimized", StringComparer.Ordinal);
+        bool tuned = optimized && !args.Contains("--prior-kernels", StringComparer.Ordinal);
         bool requireCooperative = args.Contains("--cooperative", StringComparer.Ordinal);
         bool cooperative = optimized || requireCooperative;
+        int decodeLanesOption = Array.IndexOf(args, "--decode-lanes");
+        int decodeLanes = tuned ? 16 : 32;
+        if (decodeLanesOption >= 0 && (decodeLanesOption + 1 >= args.Length
+            || !int.TryParse(args[decodeLanesOption + 1], out decodeLanes) || decodeLanes is not (8 or 16 or 32)))
+        {
+            throw new ArgumentException("--decode-lanes requires 8, 16 or 32.");
+        }
         using var session = VulkanInferenceSession.Create(new()
         {
             ApplicationName = "Aurelian Gemma 4 E2B",
@@ -40,10 +48,13 @@ internal static class GemmaE2bProof
             PruneSharedRows = !args.Contains("--full-prefill", StringComparer.Ordinal),
             PackedPrefill = optimized || args.Contains("--packed-prefill", StringComparer.Ordinal),
             PackedDecode = optimized || args.Contains("--packed-decode", StringComparer.Ordinal),
+            PackedDecodeLanes = decodeLanes,
             CooperativePrefill = cooperative && session.Compute.CooperativeMatrixEnabled,
+            ReusePrefillInputPacking = tuned || args.Contains("--reuse-prefill-pack", StringComparer.Ordinal),
             ProfileDispatches = args.Contains("--profile", StringComparer.Ordinal),
             FusedDecodeMaxKeys = args.Contains("--fused-decode", StringComparer.Ordinal) ? 1024 : optimized ? 128 : 0,
             FusedPrefillAttention = optimized || args.Contains("--fused-prefill", StringComparer.Ordinal),
+            WidePrefillKeyTile = tuned || args.Contains("--wide-prefill-attention", StringComparer.Ordinal),
             BoundedNorm = optimized || args.Contains("--bounded-norm", StringComparer.Ordinal),
             DeviceHead = optimized || args.Contains("--device-head", StringComparer.Ordinal),
         };
@@ -103,10 +114,13 @@ internal static class GemmaE2bProof
             model.PruneSharedRows,
             model.PackedPrefill,
             model.PackedDecode,
+            model.PackedDecodeLanes,
             model.CooperativePrefill,
+            model.ReusePrefillInputPacking,
             model.ProfileDispatches,
             model.FusedDecodeMaxKeys,
             model.FusedPrefillAttention,
+            model.WidePrefillKeyTile,
             model.BoundedNorm,
             model.DeviceHead,
             Greedy = greedy,

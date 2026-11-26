@@ -57,6 +57,32 @@ public sealed class GpuUtilityTests
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "COPE-UTILITY-PROFILE-0001");
     }
 
+    [Theory]
+    [InlineData("case score when true score rank case other when true score rank else 0.0", true)]
+    [InlineData("case score when false score other else 0.0", false)]
+    [InlineData("case score when rank score rank else 0.0", false)]
+    [InlineData("case rank when true score rank else 0.0", false)]
+    [InlineData("else 0.0", false)]
+    public void ComputeUsesTheSameChoiceRules(string cases, bool accepted)
+    {
+        string source = $$"""
+            function Choose(score: f32, other: f32, rank: u32): f32 {
+                return when utility { {{cases}} };
+            }
+            @compute @numthreads(1, 1, 1)
+            function Main(@binding(0) readwrite Output: StorageBuffer<f32>): void {
+                Output[0] = Choose(1.5, 2.5, 0);
+            }
+            """;
+        var module = GpuComputeBinder.Compile(new GpuCompilationRequest([new("choice.v.ts", source)]));
+        Assert.Equal(accepted, module.Success);
+        if (!accepted) { return; }
+        var helper = Assert.Single(module.Functions, function => function.Name.StartsWith("VtsUtility", StringComparison.Ordinal));
+        Assert.Equal(new[] { "score", "other", "rank" }, helper.Parameters.Select(parameter => parameter.Name));
+        var firstChoice = Assert.Single(helper.Statements[2].Body!, statement => statement.Kind == "if");
+        Assert.All(firstChoice.Body!, statement => Assert.Equal("assignment", statement.Expression!.Kind));
+    }
+
     [Fact]
     public void RejectsUnboundedCandidateListsAndExportsCompilerOwnedNames()
     {
