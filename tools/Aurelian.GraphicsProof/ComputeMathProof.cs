@@ -115,11 +115,71 @@ internal static class ComputeMathProof
         Check("resident-maximum-K-8192", batch, maximumProduct,
             Multiply(maximumKLeft, maximumKRight, 1, 1, 8192), .002);
 
+        const int vectorWidth = 131;
+        const int vectorOutputs = 67;
+        float[] vectorInput = Values(vectorWidth, 91);
+        float[] vectorWeights = Values(vectorOutputs * vectorWidth, 93);
+        using (var input = Tensor(1, vectorWidth, vectorInput))
+        using (var weights = Tensor(vectorOutputs, vectorWidth, vectorWeights))
+        using (var result = Tensor(1, vectorOutputs))
+        {
+            float[] expectedVector = new float[vectorOutputs];
+            for (int row = 0; row < vectorOutputs; row++)
+            {
+                double dot = 0;
+                for (int column = 0; column < vectorWidth; column++)
+                {
+                    dot += (double)vectorInput[column] * vectorWeights[row * vectorWidth + column];
+                }
+                expectedVector[row] = (float)dot;
+            }
+            batch = math.CreateBatch();
+            batch.MultiplyVector(input, weights, result);
+            Check("gemv-input-and-output-tails", batch, result, expectedVector);
+        }
+
         var replayInput = Tensor(1, 3, [-2f, 0f, 2f]);
         var replayBias = Tensor(1, 3, [.1f, -.2f, .3f]);
         var replayOutput = Tensor(1, 3);
         var replayBatch = math.CreateBatch();
         replayBatch.Activate(replayInput, replayOutput, TensorActivation.BiasSilu, replayBias);
+        var profiled = math.ExecuteWithDispatchTimings(replayBatch);
+        Require(profiled.DispatchMilliseconds.Count == 1
+            && profiled.DispatchMilliseconds.All(value => double.IsFinite(value) && value >= 0),
+            "Dispatch profiling did not cover the recorded batch.");
+        float[] temporaryRead = math.Read(replayOutput);
+        float[] reusedRead = math.Read(replayOutput, reuseStaging: true);
+        Require(temporaryRead.SequenceEqual(reusedRead), "Reusable staging changed readback data.");
+        math.Upload(replayInput, [3f, 4f, 5f]);
+        math.Execute(replayBatch);
+        ulong allocationsBeforeRead = math.MemoryTelemetry.AllocationCount;
+        float[] changedRead = math.Read(replayOutput, reuseStaging: true);
+        Require(!changedRead.SequenceEqual(reusedRead) && math.MemoryTelemetry.AllocationCount == allocationsBeforeRead,
+            "Reusable staging returned stale output or allocated a replacement.");
+        Require(changedRead.SequenceEqual(math.Read(replayOutput)),
+            "Reusable staging disagrees with temporary staging after a second execution.");
+        _ = math.Read(maximumA, reuseStaging: true);
+        allocationsBeforeRead = math.MemoryTelemetry.AllocationCount;
+        Require(changedRead.SequenceEqual(math.Read(replayOutput, reuseStaging: true))
+            && math.MemoryTelemetry.AllocationCount == allocationsBeforeRead,
+            "Reusable staging did not read the requested prefix of a larger buffer.");
+        var hostValues = new float[3];
+        math.ReadInto(replayOutput, hostValues);
+        Require(hostValues.SequenceEqual(changedRead), "Caller-owned readback produced different values.");
+        var uploadValues = Values(maximumA.Elements, 121);
+        math.Upload(maximumA, uploadValues, reuseStaging: true);
+        var transferAllocations = math.MemoryTelemetry.AllocationCount;
+        float[] uploadSlice = [float.NaN, 7f, 8f, 9f, float.PositiveInfinity];
+        math.Upload(replayInput, uploadSlice.AsSpan(1, 3), reuseStaging: true);
+        uploadSlice[2] = 99f;
+        ExpectRejected(() => math.Upload(replayInput, uploadSlice.AsSpan(0, 3), reuseStaging: true));
+        math.ReadInto(replayInput, hostValues);
+        Require(hostValues.SequenceEqual(new float[] { 7f, 8f, 9f })
+            && transferAllocations == math.MemoryTelemetry.AllocationCount,
+            "Retained transfer buffers returned stale data or allocated on a smaller transfer.");
+        Require(math.Read(maximumA).SequenceEqual(uploadValues), "Persistent upload changed the tensor.");
+        Console.WriteLine("dispatch-timestamps-and-persistent-staging: passed");
+
         using (var untimed = math.Prepare(replayBatch, enableGpuTimings: false))
         {
             Require(!untimed.HasGpuTimings, "Untimed replay allocated timestamp instrumentation.");
@@ -184,7 +244,7 @@ internal static class ComputeMathProof
             }
         }
 
-        foreach (int width in new[] { 7, 65, 1024 })
+        foreach (int width in new[] { 7, 65, 768, 1024 })
         {
             float[] values = Values(3 * width, width).Select(value => value * 10 + 1000).ToArray();
             foreach (var operation in Enum.GetValues<Normalization>())
@@ -201,6 +261,13 @@ internal static class ComputeMathProof
                 batch.Normalize(input, gammaBeta, result, operation);
                 Check(operation + "-width-" + width, batch, result,
                     Normalize(values, 3, width, operation, .1f), .001);
+                if (width == 768 && operation == Normalization.LayerNorm)
+                {
+                    var specialized = math.CreateBatch();
+                    specialized.LayerNorm768(input, gammaBeta, input);
+                    Check("layernorm768-in-place", specialized, input, Normalize(values, 3, width, operation, .1f), .001);
+                    Require(math.Read(input).SequenceEqual(math.Read(result)), "LayerNorm768 changed the generic FP32 result.");
+                }
             }
         }
 
@@ -297,6 +364,30 @@ internal static class ComputeMathProof
             Check("attention-" + (causal ? "causal" : "unmasked"), batch, attentionOutput,
                 Attention(qValues, kValues, vValues, 5, 6, 7, 9, causal, 1));
         }
+
+        // Two interleaved heads, different query/key lengths and partial tiles in both dimensions.
+        const int fusedQueries = 19, fusedKeys = 71, fusedWidth = 128;
+        float[] fusedQ = Values(fusedQueries * fusedWidth, 101);
+        float[] fusedK = Values(fusedKeys * fusedWidth, 103);
+        float[] fusedV = Values(fusedKeys * fusedWidth, 107);
+        var fusedExpected = new float[fusedQ.Length];
+        for (int head = 0; head < 2; head++)
+        {
+            float[] SliceHead(float[] data) => data.Where((_, index) => index % fusedWidth / 64 == head).ToArray();
+            float[] reference = Attention(SliceHead(fusedQ), SliceHead(fusedK), SliceHead(fusedV),
+                fusedQueries, fusedKeys, 64, 64, false, 0);
+            for (int row = 0; row < fusedQueries; row++)
+            {
+                Array.Copy(reference, row * 64, fusedExpected, row * fusedWidth + head * 64, 64);
+            }
+        }
+        var fusedQuery = Tensor(fusedQueries, fusedWidth, fusedQ);
+        var fusedCache = Tensor(2 * fusedKeys, fusedWidth, [.. fusedK, .. fusedV]);
+        var fusedOutput = Tensor(fusedQueries, fusedWidth);
+        batch = math.CreateBatch();
+        batch.FusedAttention64(fusedQuery, fusedCache, fusedOutput);
+        Check("fused-attention64-interleaved-tails", batch, fusedOutput, fusedExpected);
+        ExpectRejected(() => math.CreateBatch().FusedAttention64(fusedQuery, fusedCache, fusedQuery));
 
         // A tiny random-weight transformer-style chain, not a model loader or claim
         // of model inference: RMSNorm -> Q/K/V -> RoPE -> attention -> gated FFN -> residual.

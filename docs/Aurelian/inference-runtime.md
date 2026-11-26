@@ -186,6 +186,15 @@ cleanup and restored memory budgets. Evidence is retained under ignored
 
 ## Current scope
 
+The [Whisper Tiny.en Vulkan baseline](whisper-vulkan-baseline.md) compares the
+complete model graph with whisper.cpp on the same GPU. The benchmark records
+phase wall time, compute timestamps and submission counts, with a controlled
+attention head batching comparison.
+
+The [GPT-2 Vulkan benchmark](gpt2-vulkan-benchmark.md) measures dense
+single-token projections on the same FP32 checkpoint in Aurelian and
+llama.cpp.
+
 The first causal-language-model adapter now executes Gemma 4 12B Unified text
 generation with a bounded cache and local packed Q4 matrices. See
 [Gemma text inference](gemma4-text-inference.md) for the measured path and its

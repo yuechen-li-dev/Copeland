@@ -20,9 +20,9 @@ function Im2ColMain(@builtin(dispatchThreadId) thread: uint3,
     let paddedX = (pixel % p.columns) * p.stride + kernel % p.kernelWidth;
     let paddedY = (pixel / p.columns) * p.stride + kernel / p.kernelWidth;
     var value: f32 = 0.0;
-    if (paddedX >= p.padding && paddedY >= p.padding) {
+    if (paddedX >= p.padding && paddedY >= p.offset) {
         let x = paddedX - p.padding;
-        let y = paddedY - p.padding;
+        let y = paddedY - p.offset;
         if (x < p.width && y < p.height) {
             value = Input[(y * p.width + x) * p.channels + channel];
         }

@@ -17,6 +17,22 @@ public sealed unsafe partial class VulkanComputeMath
     public TiledAttentionResult AttentionTiled(GpuTensor query, GpuTensor key, GpuTensor value,
         GpuTensor output, int headWidth = 128, int queryTileRows = 16, bool roundOutput = true)
     {
+        return AttentionTiled(query, key, value, output, headWidth, queryTileRows, roundOutput, batchAcrossHeads: false);
+    }
+
+    /// <summary>Batch across heads using the same dispatches and scratch, within
+    /// the existing dispatch budget.</summary>
+    public TiledAttentionResult AttentionTiled(GpuTensor query, GpuTensor key, GpuTensor value,
+        GpuTensor output, int headWidth, int queryTileRows, bool roundOutput, bool batchAcrossHeads)
+    {
+        return AttentionTiled(query, key, value, output, headWidth, queryTileRows, roundOutput, batchAcrossHeads, null);
+    }
+
+    /// <summary>The caller can retain shape-matched scratch across serial calls on this owner.</summary>
+    public TiledAttentionResult AttentionTiled(GpuTensor query, GpuTensor key, GpuTensor value,
+        GpuTensor output, int headWidth, int queryTileRows, bool roundOutput, bool batchAcrossHeads,
+        TiledAttentionWorkspace? workspace)
+    {
         Validate(query, GpuTensorFormat.Float32);
         Validate(key, GpuTensorFormat.Float32);
         Validate(value, GpuTensorFormat.Float32);
@@ -30,18 +46,24 @@ public sealed unsafe partial class VulkanComputeMath
         int dispatchesPerQuery = 1 + (headWidth + ComputeMathBatch.MatrixKChunk - 1) / ComputeMathBatch.MatrixKChunk
             + 1 + (key.Rows + ComputeMathBatch.MatrixKChunk - 1) / ComputeMathBatch.MatrixKChunk + 1;
         ComputeMathBatch.Require(dispatchesPerQuery <= MaximumDispatches, "Attention tile exceeds the owner's dispatch budget.");
-        using var k = CreateTensor(key.Rows, headWidth);
-        using var v = CreateTensor(key.Rows, headWidth);
         int fullRows = Math.Min(queryTileRows, query.Rows);
         int tailRows = query.Rows % fullRows;
-        using var q = CreateTensor(fullRows, headWidth);
-        using var scores = CreateTensor(fullRows, key.Rows);
-        using var probabilities = CreateTensor(fullRows, key.Rows);
-        using var result = CreateTensor(fullRows, headWidth);
-        using var tailQuery = tailRows == 0 ? null : CreateTensor(tailRows, headWidth);
-        using var tailScores = tailRows == 0 ? null : CreateTensor(tailRows, key.Rows);
-        using var tailProbabilities = tailRows == 0 ? null : CreateTensor(tailRows, key.Rows);
-        using var tailResult = tailRows == 0 ? null : CreateTensor(tailRows, headWidth);
+        using var temporary = workspace is null ? CreateTiledAttentionWorkspace(query.Rows, key.Rows, headWidth, queryTileRows) : null;
+        var storage = workspace ?? temporary!;
+        Validate(storage.Query, GpuTensorFormat.Float32);
+        ComputeMathBatch.Require(storage.Query.Rows == fullRows && storage.Query.Columns == headWidth
+            && storage.Key.Rows == key.Rows && (storage.TailQuery?.Rows ?? 0) == tailRows,
+            "Attention workspace must match the tile rows, tail, key count and head width.");
+        var k = storage.Key;
+        var v = storage.Value;
+        var q = storage.Query;
+        var scores = storage.Scores;
+        var probabilities = storage.Probabilities;
+        var result = storage.Result;
+        var tailQuery = storage.TailQuery;
+        var tailScores = storage.TailScores;
+        var tailProbabilities = storage.TailProbabilities;
+        var tailResult = storage.TailResult;
         ulong scratch = q.Buffer.SizeBytes + k.Buffer.SizeBytes + v.Buffer.SizeBytes
             + scores.Buffer.SizeBytes + probabilities.Buffer.SizeBytes + result.Buffer.SizeBytes
             + (tailQuery?.Buffer.SizeBytes ?? 0) + (tailScores?.Buffer.SizeBytes ?? 0)
@@ -63,17 +85,20 @@ public sealed unsafe partial class VulkanComputeMath
         using var ring = StreamController is { } controller
             ? new SubmissionRing(this, controller, new(batchesPerHead * (query.Columns / headWidth), MaximumDispatches, 0))
             : null;
+        var batch = CreateBatch();
         for (int head = 0; head < query.Columns / headWidth; head++)
         {
-            var batch = CreateBatch();
+            if (batch.DispatchCount + 2 > MaximumDispatches)
+            {
+                SubmitBatch();
+            }
             batch.Gather(key, k, firstColumn: head * headWidth);
             batch.Gather(value, v, firstColumn: head * headWidth);
             for (int firstRow = 0; firstRow < query.Rows; firstRow += fullRows)
             {
                 if (batch.DispatchCount + dispatchesPerQuery > MaximumDispatches)
                 {
-                    ExecuteBatch(batch);
-                    batch = CreateBatch();
+                    SubmitBatch();
                 }
                 bool tail = query.Rows - firstRow < fullRows;
                 GpuTensor tileQuery = tail ? tailQuery! : q;
@@ -93,10 +118,14 @@ public sealed unsafe partial class VulkanComputeMath
                     batch.Scatter(tileResult, output, firstRow, head * headWidth);
                 }
             }
-            if (batch.DispatchCount > 0)
+            if (!batchAcrossHeads)
             {
-                ExecuteBatch(batch);
+                SubmitBatch();
             }
+        }
+        if (batch.DispatchCount > 0)
+        {
+            SubmitBatch();
         }
         if (ring is not null)
         {
@@ -112,7 +141,7 @@ public sealed unsafe partial class VulkanComputeMath
             CompletionWaits = ring?.CompletionWaits ?? submissions,
         };
 
-        void ExecuteBatch(ComputeMathBatch batch)
+        void SubmitBatch()
         {
             if (ring is not null)
             {
@@ -122,6 +151,7 @@ public sealed unsafe partial class VulkanComputeMath
             {
                 Record(Execute(batch));
             }
+            batch = CreateBatch();
         }
 
         void Record(ComputeMathResult execution)
@@ -136,6 +166,71 @@ public sealed unsafe partial class VulkanComputeMath
             {
                 timed = false;
             }
+        }
+    }
+
+    public TiledAttentionWorkspace CreateTiledAttentionWorkspace(int queryRows, int keyRows, int headWidth, int queryTileRows)
+    {
+        ComputeMathBatch.Require(queryRows > 0 && keyRows is > 0 and <= 8192
+            && headWidth is 64 or 128 && queryTileRows is > 0 and <= 256,
+            "Attention workspace needs positive bounded rows, tile rows and a 64/128-wide head.");
+        int fullRows = Math.Min(queryRows, queryTileRows);
+        return new(this, keyRows, headWidth, fullRows, queryRows % fullRows);
+    }
+
+    public sealed class TiledAttentionWorkspace : IDisposable
+    {
+        private readonly List<GpuTensor> tensors = [];
+        internal GpuTensor Key { get; }
+        internal GpuTensor Value { get; }
+        internal GpuTensor Query { get; }
+        internal GpuTensor Scores { get; }
+        internal GpuTensor Probabilities { get; }
+        internal GpuTensor Result { get; }
+        internal GpuTensor? TailQuery { get; }
+        internal GpuTensor? TailScores { get; }
+        internal GpuTensor? TailProbabilities { get; }
+        internal GpuTensor? TailResult { get; }
+
+        internal TiledAttentionWorkspace(VulkanComputeMath owner, int keys, int width, int rows, int tailRows)
+        {
+            try
+            {
+                Key = Allocate(keys, width);
+                Value = Allocate(keys, width);
+                Query = Allocate(rows, width);
+                Scores = Allocate(rows, keys);
+                Probabilities = Allocate(rows, keys);
+                Result = Allocate(rows, width);
+                if (tailRows > 0)
+                {
+                    TailQuery = Allocate(tailRows, width);
+                    TailScores = Allocate(tailRows, keys);
+                    TailProbabilities = Allocate(tailRows, keys);
+                    TailResult = Allocate(tailRows, width);
+                }
+            }
+            catch
+            {
+                Dispose();
+                throw;
+            }
+
+            GpuTensor Allocate(int tensorRows, int columns)
+            {
+                GpuTensor tensor = owner.CreateTensor(tensorRows, columns);
+                tensors.Add(tensor);
+                return tensor;
+            }
+        }
+
+        public void Dispose()
+        {
+            for (int index = tensors.Count - 1; index >= 0; index--)
+            {
+                tensors[index].Dispose();
+            }
+            tensors.Clear();
         }
     }
 }

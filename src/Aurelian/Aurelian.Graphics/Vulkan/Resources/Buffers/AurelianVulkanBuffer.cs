@@ -89,7 +89,13 @@ public sealed unsafe class AurelianVulkanBuffer : IDisposable
         return VulkanBufferWriteResult.Written;
     }
 
-    public byte[] ReadBytes(int byteCount, ulong sourceOffset = 0)
+    public byte[] ReadBytes(int byteCount, ulong sourceOffset = 0) =>
+        MappedBytes(byteCount, sourceOffset).ToArray();
+
+    internal void ReadInto(Span<byte> destination) =>
+        MappedBytes(destination.Length, 0).CopyTo(destination);
+
+    private ReadOnlySpan<byte> MappedBytes(int byteCount, ulong sourceOffset)
     {
         if (disposed || allocation is null || !allocation.IsMapped)
         {
@@ -101,14 +107,7 @@ public sealed unsafe class AurelianVulkanBuffer : IDisposable
             throw new ArgumentOutOfRangeException(nameof(byteCount), "Buffer read range exceeds the logical buffer size.");
         }
 
-        byte[] bytes = new byte[byteCount];
-        fixed (byte* destination = bytes)
-        {
-            byte* source = (byte*)allocation.MappedPointer + sourceOffset;
-            System.Buffer.MemoryCopy(source, destination, byteCount, byteCount);
-        }
-
-        return bytes;
+        return new ReadOnlySpan<byte>((byte*)allocation.MappedPointer + sourceOffset, byteCount);
     }
 
     public void Dispose()

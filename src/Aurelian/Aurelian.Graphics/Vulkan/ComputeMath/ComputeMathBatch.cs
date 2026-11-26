@@ -105,6 +105,18 @@ public sealed partial class ComputeMathBatch
     public void Normalize(GpuTensor input, GpuTensor gammaBeta, GpuTensor output,
         Normalization operation = Normalization.RmsNorm, float epsilon = 1e-5f)
     {
+        NormalizeCore(input, gammaBeta, output, operation, epsilon, "Normalization.v.ts");
+    }
+
+    public void LayerNorm768(GpuTensor input, GpuTensor gammaBeta, GpuTensor output, float epsilon = 1e-5f)
+    {
+        Require(input.Columns == 768, "LayerNorm768 requires exactly 768 columns.");
+        NormalizeCore(input, gammaBeta, output, Normalization.LayerNorm, epsilon, "LayerNorm768.v.ts");
+    }
+
+    private void NormalizeCore(GpuTensor input, GpuTensor gammaBeta, GpuTensor output,
+        Normalization operation, float epsilon, string shader)
+    {
         Check(input, gammaBeta, output);
         Require(Enum.IsDefined(operation) && input.Columns <= 8192 && SameShape(input, output)
             && gammaBeta.Elements == input.Columns * (operation == Normalization.LayerNorm ? 2 : 1)
@@ -112,7 +124,7 @@ public sealed partial class ComputeMathBatch
             "Normalization needs width <= 8192, matching output, positive epsilon and gamma (plus beta for LayerNorm).");
         Require(!ReferenceEquals(output, gammaBeta), "Normalization output cannot overwrite its weights.");
         uint groupsX = (uint)Math.Min(input.Rows, 4096);
-        Add([new("Normalization.v.ts", input, gammaBeta, output, new()
+        Add([new(shader, input, gammaBeta, output, new()
         {
             Rows = (uint)input.Rows, Columns = (uint)input.Columns, Mode = (uint)operation,
             Epsilon = epsilon, Height = groupsX,
@@ -199,15 +211,29 @@ public sealed partial class ComputeMathBatch
     public void Convolve(GpuTensor image, GpuTensor weights, GpuTensor columns, GpuTensor output,
         int width, int height, int channels, int kernelWidth, int kernelHeight, int padding = 0, int stride = 1)
     {
+        ConvolveImage(image, weights, columns, output, width, height, channels, kernelWidth, kernelHeight,
+            padding, padding, stride);
+    }
+
+    public void Convolve1D(GpuTensor input, GpuTensor weights, GpuTensor columns, GpuTensor output,
+        int kernelWidth, int padding = 0, int stride = 1)
+    {
+        ConvolveImage(input, weights, columns, output, input.Rows, 1, input.Columns, kernelWidth, 1,
+            padding, 0, stride);
+    }
+
+    private void ConvolveImage(GpuTensor image, GpuTensor weights, GpuTensor columns, GpuTensor output,
+        int width, int height, int channels, int kernelWidth, int kernelHeight, int paddingX, int paddingY, int stride)
+    {
         Check(image, weights, columns, output);
         Require(width is > 0 and <= 4096 && height is > 0 and <= 4096 && channels is > 0 and <= 1024
             && kernelWidth is > 0 and <= 15 && kernelHeight is > 0 and <= 15
-            && padding is >= 0 and <= 32 && stride is > 0 and <= 16,
-            "Convolution dimensions, kernel, symmetric padding or stride are outside the bounded NHWC profile.");
-        int outputWidth = (width + 2 * padding - kernelWidth) / stride + 1;
-        int outputHeight = (height + 2 * padding - kernelHeight) / stride + 1;
+            && paddingX is >= 0 and <= 32 && paddingY is >= 0 and <= 32 && stride is > 0 and <= 16,
+            "Convolution dimensions, kernel, padding or stride are outside the bounded NHWC profile.");
+        int outputWidth = (width + 2 * paddingX - kernelWidth) / stride + 1;
+        int outputHeight = (height + 2 * paddingY - kernelHeight) / stride + 1;
         int inner = kernelWidth * kernelHeight * channels;
-        Require(width + 2 * padding >= kernelWidth && height + 2 * padding >= kernelHeight
+        Require(width + 2 * paddingX >= kernelWidth && height + 2 * paddingY >= kernelHeight
             && image.Elements == width * height * channels
             && columns.Rows == outputWidth * outputHeight && columns.Columns == inner,
             "Convolution needs NHWC input and correctly sized [outputPixels,kernelElements] im2col scratch.");
@@ -218,7 +244,7 @@ public sealed partial class ComputeMathBatch
             Rows = (uint)columns.Rows, Columns = (uint)outputWidth, Inner = (uint)inner,
             Width = (uint)width, Height = (uint)height, Channels = (uint)channels,
             KernelWidth = (uint)kernelWidth, KernelHeight = (uint)kernelHeight,
-            Padding = (uint)padding, Stride = (uint)stride,
+            Padding = (uint)paddingX, Offset = (uint)paddingY, Stride = (uint)stride,
         }, Groups(columns.Elements, 64)), .. matrix]);
     }
 

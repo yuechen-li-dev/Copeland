@@ -16,6 +16,9 @@ public sealed unsafe partial class VulkanComputeMath
         ["DecoderRope.v.ts"] = "DecoderRopeMain",
         ["DecoderScale.v.ts"] = "DecoderScaleMain",
         ["GroupedAttention.v.ts"] = "GroupedAttentionMain",
+        ["CrossAttentionScores.v.ts"] = "CrossAttentionScoresMain",
+        ["CrossAttentionValues.v.ts"] = "CrossAttentionValuesMain",
+        ["DenseGemv.v.ts"] = "DenseGemvMain",
         ["Sgemm.v.ts"] = "SgemmMain",
         ["ResidentSgemm.v.ts"] = "ResidentSgemmMain",
         ["BiasSilu.v.ts"] = "BiasSiluMain",
@@ -30,6 +33,8 @@ public sealed unsafe partial class VulkanComputeMath
         ["PackMatrixHalf.v.ts"] = "PackMatrixHalfMain",
         ["LinearEpilogue.v.ts"] = "LinearEpilogueMain",
         ["RowReduction.v.ts"] = "ReductionMain",
+        ["LayerNorm768.v.ts"] = "LayerNorm768Main",
+        ["FusedAttention64.v.ts"] = "FusedAttention64Main",
         ["Normalization.v.ts"] = "NormalizationMain",
         ["Activation.v.ts"] = "ActivationMain",
         ["Rope.v.ts"] = "RopeMain",
@@ -92,8 +97,8 @@ public sealed unsafe partial class VulkanComputeMath
 
     private void Configure(DispatchSlot slot, ComputeMathDispatch dispatch)
     {
-        KernelParameters[] parameters = [dispatch.Parameters];
-        var parameterBytes = MemoryMarshal.AsBytes(parameters.AsSpan());
+        KernelParameters parameters = dispatch.Parameters;
+        var parameterBytes = MemoryMarshal.AsBytes(new ReadOnlySpan<KernelParameters>(in parameters));
         if (slot.Parameters.MemoryUsage == VulkanMemoryUsage.GpuOnly)
         {
             var upload = uploader.Upload(new(slot.Parameters, parameterBytes.ToArray(), DebugName: "compute-math.prepared-parameters"));

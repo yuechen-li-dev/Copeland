@@ -194,12 +194,48 @@ internal static class Trellis2SparseProof
                 }
             }
             int before = math.ReadbackCount;
-            math.AttentionTiled(query, key, value, result, headWidth: 64, queryTileRows: 2, roundOutput: false);
+            var perHead = math.AttentionTiled(query, key, value, result, headWidth: 64,
+                queryTileRows: 2, roundOutput: false);
             if (math.ReadbackCount != before)
             {
                 throw new InvalidDataException("Attention read back intermediate activations.");
             }
-            Compare("5870-key-attention-query-tail", math.Read(result), expected, 2e-6);
+            float[] perHeadOutput = math.Read(result);
+            Compare("5870-key-attention-query-tail", perHeadOutput, expected, 2e-6);
+            var batched = math.AttentionTiled(query, key, value, result, headWidth: 64,
+                queryTileRows: 2, roundOutput: false, batchAcrossHeads: true);
+            if (math.ReadbackCount != before + 1 || batched.Dispatches != perHead.Dispatches
+                || batched.ScratchBytes != perHead.ScratchBytes || batched.Submissions >= perHead.Submissions)
+            {
+                throw new InvalidDataException("Head batching changed work or failed to reduce submissions.");
+            }
+            Compare("attention-batching-bit-exact", math.Read(result), perHeadOutput, 0);
+            using var workspace = math.CreateTiledAttentionWorkspace(3, keys, 64, 2);
+            var reused = math.AttentionTiled(query, key, value, result, headWidth: 64, queryTileRows: 2,
+                roundOutput: false, batchAcrossHeads: true, workspace: workspace);
+            if (reused.Dispatches != batched.Dispatches || reused.Submissions != batched.Submissions)
+            {
+                throw new InvalidDataException("Reused attention workspace changed dispatches or submissions.");
+            }
+            Compare("attention-workspace-bit-exact", math.Read(result), perHeadOutput, 0);
+        }
+
+        const int directKeys = 1501;
+        foreach (int headWidth in new[] { 64, 128 })
+        {
+            int columns = 2 * headWidth;
+            using var query = Tensor(1, columns, q[..columns]);
+            using var key = Tensor(directKeys, columns, k[..(directKeys * columns)]);
+            using var value = Tensor(directKeys, columns, v[..(directKeys * columns)]);
+            using var result = math.CreateTensor(1, columns);
+            using var scores = math.CreateTensor(2, directKeys);
+            using var probabilities = math.CreateTensor(2, directKeys);
+            math.AttentionTiled(query, key, value, result, headWidth, queryTileRows: 1, roundOutput: false);
+            float[] expected = math.Read(result);
+            var batch = math.CreateBatch();
+            batch.AttendToCache(query, key, value, scores, probabilities, result, headWidth);
+            math.Execute(batch);
+            Compare($"direct-cross-attention-tail-head-{headWidth}", math.Read(result), expected, 2e-6);
         }
 
         const int queries = 257;

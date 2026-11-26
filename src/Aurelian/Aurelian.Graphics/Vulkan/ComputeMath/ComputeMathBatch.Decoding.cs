@@ -2,6 +2,74 @@ namespace Aurelian.Graphics.Vulkan.ComputeMath;
 
 public sealed partial class ComputeMathBatch
 {
+    /// <summary>Single-row projection with contiguous input weights for each output.</summary>
+    public void MultiplyVector(GpuTensor input, GpuTensor weights, GpuTensor output)
+    {
+        Check(input, weights, output);
+        Require(input.Rows == 1 && output.Rows == 1 && input.Columns <= 8192
+            && weights.Columns == input.Columns && output.Columns == weights.Rows
+            && !ReferenceEquals(output, input) && !ReferenceEquals(output, weights),
+            "GEMV requires independent output, a single input row and weights shaped [output, input].");
+        Add([new("DenseGemv.v.ts", input, weights, output, new()
+        {
+            Columns = (uint)output.Columns,
+            Inner = (uint)input.Columns,
+            Width = Groups(input.Columns, 32),
+        }, Groups(output.Columns, 4))]);
+    }
+
+    /// <summary>Noncausal FP32 attention with 64-channel heads. The first half
+    /// of packedKeyValue contains key rows, the second half contains value rows.</summary>
+    public void FusedAttention64(GpuTensor query, GpuTensor packedKeyValue, GpuTensor output)
+    {
+        Check(query, packedKeyValue, output);
+        int keys = packedKeyValue.Rows / 2;
+        int heads = query.Columns / 64;
+        Require(SameShape(query, output) && query.Columns == packedKeyValue.Columns
+            && query.Columns % 64 == 0 && keys is > 0 and <= 2048 && packedKeyValue.Rows == 2 * keys
+            && Groups(query.Rows, 16) <= 65535 && heads <= 65535
+            && !ReferenceEquals(output, query) && !ReferenceEquals(output, packedKeyValue),
+            "Fused attention needs 64-wide heads, matching output and paired key/value rows for up to 2048 keys.");
+        Add([new("FusedAttention64.v.ts", query, packedKeyValue, output, new()
+        {
+            Rows = (uint)query.Rows, Columns = (uint)keys, Width = (uint)query.Columns, Inner = Groups(keys, 32),
+        }, Groups(query.Rows, 16), (uint)heads)]);
+    }
+
+    /// <summary>Single-query cross-attention over a resident token-major FP32 cache.</summary>
+    public void AttendToCache(GpuTensor query, GpuTensor keys, GpuTensor values,
+        GpuTensor scores, GpuTensor probabilities, GpuTensor output, int headWidth)
+    {
+        Check(query, keys, values, scores, probabilities, output);
+        int heads = query.Columns / Math.Max(1, headWidth);
+        Require(query.Rows == 1 && SameShape(query, output) && SameShape(keys, values)
+            && query.Columns == keys.Columns && headWidth is 64 or 128 && query.Columns % headWidth == 0
+            && keys.Rows <= 2048 && scores.Rows == heads && scores.Columns == keys.Rows
+            && SameShape(scores, probabilities) && !ReferenceEquals(scores, probabilities)
+            && Independent(scores) && Independent(probabilities) && Independent(output)
+            && !ReferenceEquals(output, scores) && !ReferenceEquals(output, probabilities),
+            "Cross-attention needs one query, independent output and scratch, 64/128-wide heads and at most 2048 keys.");
+        KernelParameters parameters = new()
+        {
+            Columns = (uint)keys.Rows,
+            Inner = Groups(keys.Rows, 8),
+            Width = (uint)headWidth,
+            Height = (uint)heads,
+            Alpha = 1f / MathF.Sqrt(headWidth),
+        };
+        Add([
+            new("CrossAttentionScores.v.ts", query, keys, scores, parameters, Groups(keys.Rows, 4), (uint)heads),
+            new("RowReduction.v.ts", scores, scores, probabilities, new()
+            {
+                Rows = (uint)heads, Columns = (uint)keys.Rows, Mode = (uint)RowReduction.Softmax,
+            }, (uint)heads),
+            new("CrossAttentionValues.v.ts", probabilities, values, output, parameters, (uint)headWidth / 16, (uint)heads),
+        ]);
+
+        bool Independent(GpuTensor tensor) => !ReferenceEquals(tensor, query)
+            && !ReferenceEquals(tensor, keys) && !ReferenceEquals(tensor, values);
+    }
+
     public void QuantizedLinear(GpuTensor input, GpuTensor weights, GpuTensor output,
         bool roundBFloat16 = false, bool chunkedReference = false)
     {
@@ -68,6 +136,13 @@ public sealed partial class ComputeMathBatch
     public void GroupedAttentionScores(GpuTensor query, GpuTensor keys, GpuTensor scores,
         int heads, int kvHeads, int headWidth, int positionOffset, int keyCount, int window = 1024)
     {
+        GroupedAttentionScores(query, keys, scores, heads, kvHeads, headWidth, positionOffset, keyCount, window,
+            roundBFloat16: true);
+    }
+
+    public void GroupedAttentionScores(GpuTensor query, GpuTensor keys, GpuTensor scores,
+        int heads, int kvHeads, int headWidth, int positionOffset, int keyCount, int window, bool roundBFloat16)
+    {
         Check(query, keys, scores);
         Require(heads is > 0 and <= 64 && kvHeads > 0 && heads % kvHeads == 0
             && headWidth is > 0 and <= 512 && query.Columns == heads * headWidth
@@ -80,12 +155,18 @@ public sealed partial class ComputeMathBatch
         {
             Rows = (uint)query.Rows, Columns = (uint)keyCount, Width = (uint)headWidth,
             Height = (uint)heads, Channels = (uint)kvHeads, Offset = (uint)positionOffset,
-            Stride = (uint)window, Mode = 0,
+            Stride = (uint)window, Mode = roundBFloat16 ? 0u : 2u,
         }, (uint)keyCount, (uint)(query.Rows * heads))]);
     }
 
     public void GroupedAttentionValues(GpuTensor probabilities, GpuTensor values, GpuTensor output,
         int heads, int kvHeads, int headWidth)
+    {
+        GroupedAttentionValues(probabilities, values, output, heads, kvHeads, headWidth, roundBFloat16: true);
+    }
+
+    public void GroupedAttentionValues(GpuTensor probabilities, GpuTensor values, GpuTensor output,
+        int heads, int kvHeads, int headWidth, bool roundBFloat16)
     {
         Check(probabilities, values, output);
         Require(heads is > 0 and <= 64 && kvHeads > 0 && heads % kvHeads == 0
@@ -97,7 +178,7 @@ public sealed partial class ComputeMathBatch
         Add([new("GroupedAttention.v.ts", probabilities, values, output, new()
         {
             Rows = (uint)output.Rows, Columns = (uint)probabilities.Columns, Width = (uint)headWidth,
-            Height = (uint)heads, Channels = (uint)kvHeads, Mode = 1,
+            Height = (uint)heads, Channels = (uint)kvHeads, Mode = roundBFloat16 ? 1u : 3u,
         }, (uint)headWidth, (uint)(output.Rows * heads))]);
     }
 

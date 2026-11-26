@@ -15,7 +15,7 @@ function GroupedAttentionMain(@builtin(groupId) group: uint3,
     let head = group.y % p.height;
     let kvHead = head / (p.height / p.channels);
     var sum: f32 = 0.0;
-    if (p.mode == 0) {
+    if (p.mode % 2 == 0) {
         static for (let tile of Indices<8>()) {
             let channel = lane + tile * 64;
             if (channel < p.width) {
@@ -40,13 +40,16 @@ function GroupedAttentionMain(@builtin(groupId) group: uint3,
         WorkgroupBarrier();
     }
     if (lane == 0) {
-        if (p.mode == 0) {
-            var result: f32 = BFloat16(Sums[0]);
+        var result = Sums[0];
+        if (p.mode < 2) {
+            result = BFloat16(result);
+        }
+        if (p.mode % 2 == 0) {
             let position = token + p.offset;
             if (group.x > position || group.x + p.stride <= position) { result = -3.402823466e38; }
             Output[group.y * p.columns + group.x] = result;
         } else {
-            Output[group.y * p.width + group.x] = BFloat16(Sums[0]);
+            Output[group.y * p.width + group.x] = result;
         }
     }
 }

@@ -1,0 +1,491 @@
+using System.Diagnostics;
+using Aurelian.Inference.Benchmarks;
+using Aurelian.Graphics.Vulkan.ComputeMath;
+using static Aurelian.WhisperBenchmark.TinyEnglishCheckpoint;
+
+namespace Aurelian.WhisperBenchmark;
+
+// A single 30-second encoder window and bounded greedy no-timestamp decoding.
+// The graph uses existing kernels and owns its resident weights for the run.
+internal sealed class TinyEnglishModel : IDisposable
+{
+    private sealed record Linear(GpuTensor Weight, GpuTensor? Bias);
+    private sealed record Attention(GpuTensor Norm, Linear Query, Linear Key, Linear Value, Linear Output);
+    private sealed record Mlp(GpuTensor Norm, Linear Up, Linear Down);
+    private sealed record Block(Attention Self, Mlp Mlp, Attention? Cross);
+    private sealed record Cache(GpuTensor Key, GpuTensor Value);
+
+    private readonly VulkanComputeMath math;
+    private readonly bool batchAcrossHeads;
+    private readonly bool vectorProjection;
+    private readonly float[]? hostLogits;
+    private readonly bool fusedAttention;
+    private readonly bool batchCross;
+    private readonly bool reuseReadback;
+    private readonly bool reuseUpload;
+    private readonly VulkanComputeMath.TiledAttentionWorkspace? crossWorkspace;
+    private readonly VulkanComputeMath.TiledAttentionWorkspace? encoderWorkspace;
+    private readonly Dictionary<(int Rows, int Columns), Stack<GpuTensor>>? scratchPool;
+    private readonly GpuTensor? crossScores;
+    private readonly GpuTensor? crossProbabilities;
+    private readonly List<GpuTensor> resident = [];
+    private readonly Linear conv1;
+    private readonly Linear conv2;
+    private readonly GpuTensor audioPositions;
+    private readonly GpuTensor textPositions;
+    private readonly GpuTensor embedding;
+    private readonly GpuTensor encodedNorm;
+    private readonly GpuTensor decodedNorm;
+    private readonly Block[] encoder = new Block[Layers];
+    private readonly Block[] decoder = new Block[Layers];
+    private readonly Cache[] selfCache = new Cache[Layers];
+    private readonly Cache[] crossCache = new Cache[Layers];
+
+    public TinyEnglishModel(VulkanComputeMath math, TinyEnglishCheckpoint weights, bool batchAcrossHeads,
+        bool reuseAttention, bool directAttention, bool vectorProjection, bool reuseScratch,
+        bool fusedAttention, bool reuseReadback, bool reuseUpload, bool hostLogits, bool batchCross)
+    {
+        this.math = math;
+        this.batchAcrossHeads = batchAcrossHeads;
+        this.vectorProjection = vectorProjection;
+        this.hostLogits = hostLogits ? new float[Vocabulary] : null;
+        this.fusedAttention = fusedAttention;
+        this.batchCross = batchCross;
+        this.reuseReadback = reuseReadback;
+        this.reuseUpload = reuseUpload;
+        try
+        {
+            if (reuseScratch)
+            {
+                scratchPool = new();
+                if (!fusedAttention)
+                {
+                    encoderWorkspace = math.CreateTiledAttentionWorkspace(AudioRows, AudioRows, HeadWidth, math.AttentionQueryTileRows);
+                }
+            }
+            if (reuseAttention)
+            {
+                crossWorkspace = math.CreateTiledAttentionWorkspace(1, AudioRows, HeadWidth, math.AttentionQueryTileRows);
+            }
+            if (directAttention)
+            {
+                crossScores = Allocate(Heads, AudioRows);
+                crossProbabilities = Allocate(Heads, AudioRows);
+            }
+            conv1 = Convolution("encoder.conv1", MelBins);
+            conv2 = Convolution("encoder.conv2", Width);
+            audioPositions = Upload(AudioRows, Width, weights.Read("encoder.positional_embedding", Width, AudioRows));
+            textPositions = Upload(TextRows, Width, weights.Read("decoder.positional_embedding", Width, TextRows));
+            embedding = Upload(Vocabulary, Width, weights.Read("decoder.token_embedding.weight", Width, Vocabulary));
+            encodedNorm = Norm("encoder.ln_post");
+            decodedNorm = Norm("decoder.ln");
+            for (int layer = 0; layer < Layers; layer++)
+            {
+                encoder[layer] = LoadBlock($"encoder.blocks.{layer}", cross: false);
+                decoder[layer] = LoadBlock($"decoder.blocks.{layer}", cross: true);
+                selfCache[layer] = AllocateCache(TextRows);
+                crossCache[layer] = AllocateCache(AudioRows);
+            }
+        }
+        catch
+        {
+            Dispose();
+            throw;
+        }
+
+        GpuTensor Upload(int rows, int columns, float[] values)
+        {
+            GpuTensor tensor = Allocate(rows, columns);
+            math.Upload(tensor, values);
+            return tensor;
+        }
+
+        GpuTensor Allocate(int rows, int columns)
+        {
+            GpuTensor tensor = rows == Vocabulary
+                ? math.CreateSparseTensor(rows, columns)
+                : math.CreateTensor(rows, columns);
+            resident.Add(tensor);
+            return tensor;
+        }
+
+        Cache AllocateCache(int rows) => new(Allocate(rows, Width), Allocate(rows, Width));
+
+        GpuTensor Norm(string name) => Upload(1, 2 * Width,
+            [.. weights.Read(name + ".weight", Width), .. weights.Read(name + ".bias", Width)]);
+
+        Linear Affine(string name, int inputWidth, int outputWidth, bool bias = true) => new(
+            Upload(outputWidth, inputWidth, weights.Read(name + ".weight", inputWidth, outputWidth)),
+            bias ? Upload(1, outputWidth, weights.Read(name + ".bias", outputWidth)) : null);
+
+        Attention LoadAttention(string name) => new(Norm(name + "_ln"),
+            Affine(name + ".query", Width, Width),
+            Affine(name + ".key", Width, Width, bias: false),
+            Affine(name + ".value", Width, Width),
+            Affine(name + ".out", Width, Width));
+
+        Block LoadBlock(string name, bool cross) => new(LoadAttention(name + ".attn"),
+            new(Norm(name + ".mlp_ln"), Affine(name + ".mlp.0", Width, Width * 4),
+                Affine(name + ".mlp.2", Width * 4, Width)),
+            cross ? LoadAttention(name + ".cross_attn") : null);
+
+        Linear Convolution(string name, int channels)
+        {
+            float[] source = weights.Read(name + ".weight", 3, channels, Width);
+            var kernel = new float[source.Length];
+            for (int output = 0; output < Width; output++)
+            {
+                for (int input = 0; input < channels; input++)
+                {
+                    for (int tap = 0; tap < 3; tap++)
+                    {
+                        kernel[(tap * channels + input) * Width + output] =
+                            source[(output * channels + input) * 3 + tap];
+                    }
+                }
+            }
+            return new(Upload(3 * channels, Width, kernel),
+                Upload(1, Width, weights.Read(name + ".bias", 1, Width)));
+        }
+    }
+
+    public InferenceSample Transcribe(float[] mel, int maximumTokens, BenchmarkQueue? queue)
+    {
+        long managedStart = GC.GetAllocatedBytesForCurrentThread();
+        var total = Stopwatch.StartNew();
+        var metrics = new InferenceMetrics(queue is not null);
+        int readbacks = math.ReadbackCount;
+        ulong allocations = math.MemoryTelemetry.AllocationCount;
+        using var requestScope = queue?.OpenRequestScope();
+        var scope = requestScope ?? queue?.Retained;
+        var initialMetrics = scope?.Metrics;
+        var timer = Stopwatch.StartNew();
+        Encode(mel, metrics);
+        double encode = timer.Elapsed.TotalMilliseconds;
+        timer.Restart();
+        Evaluate(StartOfText, 0, metrics);
+        int next = Evaluate(NoTimestamps, 1, metrics);
+        double prefill = timer.Elapsed.TotalMilliseconds;
+        timer.Restart();
+        var tokens = new List<int>(maximumTokens);
+        while (true)
+        {
+            tokens.Add(next);
+            if (next == EndOfText || tokens.Count == maximumTokens)
+            {
+                break;
+            }
+            next = Evaluate(next, tokens.Count + 1, metrics);
+        }
+        double decode = timer.Elapsed.TotalMilliseconds;
+        requestScope?.Dispose();
+        var queueMetrics = QueueSample.Between(initialMetrics, scope?.Metrics);
+        return new(total.Elapsed.TotalMilliseconds, encode, prefill, decode,
+            tokens, math.ReadbackCount - readbacks, math.MemoryTelemetry.AllocationCount - allocations,
+            GC.GetAllocatedBytesForCurrentThread() - managedStart, metrics.Operations, queueMetrics);
+    }
+
+    private void Encode(float[] mel, InferenceMetrics metrics)
+    {
+        using var scratch = new ScratchScope(math, scratchPool);
+        var audio = scratch.Create(AudioRows * 2, MelBins);
+        var first = scratch.Create(AudioRows * 2, Width);
+        var firstColumns = scratch.Create(first.Rows, MelBins * 3);
+        var second = scratch.Create(AudioRows, Width);
+        var secondColumns = scratch.Create(second.Rows, Width * 3);
+        var hidden = scratch.Create(AudioRows, Width);
+
+        var timer = Stopwatch.StartNew();
+        math.Upload(audio, mel, reuseUpload);
+        metrics.RecordTransfer("mel-upload", timer.Elapsed.TotalMilliseconds);
+        var batch = math.CreateBatch();
+        Convolve(batch, audio, conv1, firstColumns, first, stride: 1);
+        Convolve(batch, first, conv2, secondColumns, second, stride: 2);
+        batch.Activate(second, hidden, TensorActivation.Residual, audioPositions);
+        Execute(batch, metrics, "encoder-convolution");
+
+        for (int layer = 0; layer < Layers; layer++)
+        {
+            EncodeBlock(hidden, encoder[layer], metrics);
+        }
+        batch = math.CreateBatch();
+        batch.Normalize(hidden, encodedNorm, hidden, Normalization.LayerNorm);
+        for (int layer = 0; layer < Layers; layer++)
+        {
+            Attention cross = decoder[layer].Cross!;
+            Project(batch, hidden, cross.Key, crossCache[layer].Key);
+            Project(batch, hidden, cross.Value, crossCache[layer].Value);
+        }
+        Execute(batch, metrics, "encoder-cross-cache");
+    }
+
+    private void EncodeBlock(GpuTensor hidden, Block block, InferenceMetrics metrics)
+    {
+        using var scratch = new ScratchScope(math, scratchPool);
+        var normalized = scratch.Create(hidden.Rows, Width);
+        var query = scratch.Create(hidden.Rows, Width);
+        var key = scratch.Create(hidden.Rows, Width);
+        var value = scratch.Create(hidden.Rows, Width);
+        var attention = scratch.Create(hidden.Rows, Width);
+        var projected = scratch.Create(hidden.Rows, Width);
+        var expanded = scratch.Create(hidden.Rows, 4 * Width);
+        var batch = math.CreateBatch();
+        batch.Normalize(hidden, block.Self.Norm, normalized, Normalization.LayerNorm);
+        Project(batch, normalized, block.Self.Query, query);
+        Project(batch, normalized, block.Self.Key, key);
+        Project(batch, normalized, block.Self.Value, value);
+        Execute(batch, metrics, "encoder-qkv");
+        if (fusedAttention)
+        {
+            var packedKeyValue = scratch.Create(2 * key.Rows, Width);
+            batch = math.CreateBatch();
+            batch.Scatter(key, packedKeyValue);
+            batch.Scatter(value, packedKeyValue, firstRow: key.Rows);
+            batch.FusedAttention64(query, packedKeyValue, attention);
+            Execute(batch, metrics, "encoder-attention");
+        }
+        else
+        {
+            Attend(query, new(key, value), attention, metrics, "encoder-attention", encoderWorkspace);
+        }
+        batch = math.CreateBatch();
+        ProjectResidual(batch, hidden, attention, block.Self.Output, projected);
+        FeedForward(batch, hidden, block.Mlp, normalized, expanded, projected);
+        Execute(batch, metrics, "encoder-output-mlp");
+    }
+
+    private int Evaluate(int token, int position, InferenceMetrics metrics)
+    {
+        using var allocations = new ScratchScope(math, scratchPool);
+        var hidden = allocations.Create(1, Width);
+        var scratch = new DecoderScratch(allocations, position + 1);
+        var batch = math.CreateBatch();
+        batch.Gather(embedding, hidden, firstRow: token);
+        batch.Gather(textPositions, scratch.Normalized, firstRow: position);
+        batch.Activate(hidden, hidden, TensorActivation.Residual, scratch.Normalized);
+        for (int layer = 0; layer < Layers; layer++)
+        {
+            Block block = decoder[layer];
+            Cache cache = selfCache[layer];
+            batch.Normalize(hidden, block.Self.Norm, scratch.Normalized, Normalization.LayerNorm);
+            Project(batch, scratch.Normalized, block.Self.Query, scratch.Query);
+            Project(batch, scratch.Normalized, block.Self.Key, scratch.Key);
+            Project(batch, scratch.Normalized, block.Self.Value, scratch.Value);
+            batch.Scatter(scratch.Key, cache.Key, firstRow: position);
+            batch.Scatter(scratch.Value, cache.Value, firstRow: position);
+            batch.Scale(scratch.Query, scratch.Query, 1f / MathF.Sqrt(HeadWidth));
+            batch.GroupedAttentionScores(scratch.Query, cache.Key, scratch.Scores,
+                Heads, Heads, HeadWidth, position, position + 1);
+            batch.ReduceRows(scratch.Scores, scratch.Probabilities);
+            batch.GroupedAttentionValues(scratch.Probabilities, cache.Value, scratch.Attended,
+                Heads, Heads, HeadWidth);
+            ProjectResidual(batch, hidden, scratch.Attended, block.Self.Output, scratch.Projected);
+
+            Attention cross = block.Cross!;
+            batch.Normalize(hidden, cross.Norm, scratch.Normalized, Normalization.LayerNorm);
+            Project(batch, scratch.Normalized, cross.Query, scratch.Query);
+            if (batchCross)
+            {
+                RecordCrossAttention(batch, scratch.Query, crossCache[layer], scratch.Attended);
+            }
+            else
+            {
+                Execute(batch, metrics, "decoder-blocks");
+                AttendToCrossCache(scratch.Query, crossCache[layer], scratch.Attended, metrics);
+                batch = math.CreateBatch();
+            }
+            ProjectResidual(batch, hidden, scratch.Attended, cross.Output, scratch.Projected);
+            FeedForward(batch, hidden, block.Mlp, scratch.Normalized, scratch.Expanded, scratch.Projected);
+        }
+        Execute(batch, metrics, "decoder-blocks");
+        var logits = allocations.Create(1, Vocabulary);
+        batch = math.CreateBatch();
+        batch.Normalize(hidden, decodedNorm, scratch.Normalized, Normalization.LayerNorm);
+        MultiplyProjection(batch, scratch.Normalized, embedding, logits);
+        Execute(batch, metrics, "decoder-logits");
+        var timer = Stopwatch.StartNew();
+        float[] values;
+        if (hostLogits is { } destination)
+        {
+            math.ReadInto(logits, destination);
+            values = destination;
+        }
+        else
+        {
+            values = math.Read(logits, reuseReadback);
+        }
+        metrics.RecordTransfer("decoder-logits-readback", timer.Elapsed.TotalMilliseconds);
+        int next = 0;
+        for (int index = 0; index <= EndOfText; index++)
+        {
+            if (!float.IsFinite(values[index]))
+            {
+                throw new InvalidDataException("Whisper decoder produced non-finite logits.");
+            }
+            if (values[index] > values[next])
+            {
+                next = index;
+            }
+        }
+        return next;
+    }
+
+    private static void Convolve(ComputeMathBatch batch, GpuTensor input, Linear weights,
+        GpuTensor columns, GpuTensor output, int stride)
+    {
+        batch.Convolve1D(input, weights.Weight, columns, output, kernelWidth: 3, padding: 1, stride: stride);
+        batch.Activate(output, output, TensorActivation.Bias, weights.Bias);
+        batch.Activate(output, output, TensorActivation.Gelu);
+    }
+
+    private void MultiplyProjection(ComputeMathBatch batch, GpuTensor input, GpuTensor weight, GpuTensor output)
+    {
+        if (vectorProjection && input.Rows == 1)
+        {
+            batch.MultiplyVector(input, weight, output);
+        }
+        else
+        {
+            batch.Multiply(input, weight, output, MatrixKernel.Resident64, transposeB: true);
+        }
+    }
+
+    private void Project(ComputeMathBatch batch, GpuTensor input, Linear layer, GpuTensor output)
+    {
+        MultiplyProjection(batch, input, layer.Weight, output);
+        if (layer.Bias is { } bias)
+        {
+            batch.Activate(output, output, TensorActivation.Bias, bias);
+        }
+    }
+
+    private void ProjectResidual(ComputeMathBatch batch, GpuTensor hidden, GpuTensor input,
+        Linear layer, GpuTensor projected)
+    {
+        Project(batch, input, layer, projected);
+        batch.Activate(hidden, hidden, TensorActivation.Residual, projected);
+    }
+
+    private void FeedForward(ComputeMathBatch batch, GpuTensor hidden, Mlp mlp,
+        GpuTensor normalized, GpuTensor expanded, GpuTensor projected)
+    {
+        batch.Normalize(hidden, mlp.Norm, normalized, Normalization.LayerNorm);
+        Project(batch, normalized, mlp.Up, expanded);
+        batch.Activate(expanded, expanded, TensorActivation.Gelu);
+        ProjectResidual(batch, hidden, expanded, mlp.Down, projected);
+    }
+
+    private void Execute(ComputeMathBatch batch, InferenceMetrics metrics, string operation)
+    {
+        var timer = Stopwatch.StartNew();
+        ComputeMathResult result = math.Execute(batch);
+        metrics.Record(operation, timer.Elapsed.TotalMilliseconds, result.GpuMilliseconds, 1, result.Dispatches, 1);
+    }
+
+    private void AttendToCrossCache(GpuTensor query, Cache cache, GpuTensor output, InferenceMetrics metrics)
+    {
+        const string operation = "decoder-cross-attention";
+        if (crossScores is not null)
+        {
+            var batch = math.CreateBatch();
+            RecordCrossAttention(batch, query, cache, output);
+            Execute(batch, metrics, operation);
+        }
+        else
+        {
+            Attend(query, cache, output, metrics, operation, crossWorkspace);
+        }
+    }
+
+    private void RecordCrossAttention(ComputeMathBatch batch, GpuTensor query, Cache cache, GpuTensor output)
+    {
+        batch.AttendToCache(query, cache.Key, cache.Value, crossScores!, crossProbabilities!, output, HeadWidth);
+    }
+
+    private void Attend(GpuTensor query, Cache cache, GpuTensor output, InferenceMetrics metrics, string operation,
+        VulkanComputeMath.TiledAttentionWorkspace? workspace = null)
+    {
+        var timer = Stopwatch.StartNew();
+        TiledAttentionResult result = math.AttentionTiled(query, cache.Key, cache.Value, output,
+            headWidth: HeadWidth, queryTileRows: math.AttentionQueryTileRows, roundOutput: false,
+            batchAcrossHeads: batchAcrossHeads, workspace: workspace);
+        metrics.Record(operation, timer.Elapsed.TotalMilliseconds, result.GpuMilliseconds,
+            result.Submissions, result.Dispatches, result.CompletionWaits);
+    }
+
+    public void Dispose()
+    {
+        if (scratchPool is not null)
+        {
+            foreach (var available in scratchPool.Values)
+            {
+                foreach (var tensor in available)
+                {
+                    tensor.Dispose();
+                }
+            }
+            scratchPool.Clear();
+        }
+        encoderWorkspace?.Dispose();
+        crossWorkspace?.Dispose();
+        foreach (GpuTensor tensor in resident)
+        {
+            tensor.Dispose();
+        }
+        resident.Clear();
+    }
+
+    private sealed class DecoderScratch(ScratchScope scope, int cacheRows)
+    {
+        public GpuTensor Normalized { get; } = scope.Create(1, Width);
+        public GpuTensor Query { get; } = scope.Create(1, Width);
+        public GpuTensor Key { get; } = scope.Create(1, Width);
+        public GpuTensor Value { get; } = scope.Create(1, Width);
+        public GpuTensor Attended { get; } = scope.Create(1, Width);
+        public GpuTensor Projected { get; } = scope.Create(1, Width);
+        public GpuTensor Expanded { get; } = scope.Create(1, Width * 4);
+        public GpuTensor Scores { get; } = scope.Create(Heads, cacheRows);
+        public GpuTensor Probabilities { get; } = scope.Create(Heads, cacheRows);
+    }
+
+    // This benchmark executes synchronously. Each scope exclusively holds its
+    // tensors until its final submission completes, including nested scopes.
+    private sealed class ScratchScope(VulkanComputeMath math,
+        Dictionary<(int Rows, int Columns), Stack<GpuTensor>>? pool) : IDisposable
+    {
+        private readonly List<GpuTensor> tensors = [];
+
+        public GpuTensor Create(int rows, int columns)
+        {
+            if (pool is null || !pool.TryGetValue((rows, columns), out var available) || !available.TryPop(out var tensor))
+            {
+                tensor = math.CreateTensor(rows, columns);
+            }
+            tensors.Add(tensor);
+            return tensor;
+        }
+
+        public void Dispose()
+        {
+            for (int index = tensors.Count - 1; index >= 0; index--)
+            {
+                GpuTensor tensor = tensors[index];
+                if (pool is null)
+                {
+                    tensor.Dispose();
+                }
+                else
+                {
+                    var shape = (tensor.Rows, tensor.Columns);
+                    if (!pool.TryGetValue(shape, out var available))
+                    {
+                        available = new();
+                        pool.Add(shape, available);
+                    }
+                    available.Push(tensor);
+                }
+            }
+            tensors.Clear();
+        }
+    }
+}

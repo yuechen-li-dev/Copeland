@@ -55,24 +55,40 @@ public sealed unsafe class VulkanBufferUploader : IDisposable
     // Timeline completion (or queue idle on failure) precedes reuse by the caller.
     internal VulkanBufferUploadResult Upload(VulkanBufferUploadRequest request, AurelianVulkanBuffer? reusableStaging)
     {
+        return Upload(request?.Destination, (request?.Data ?? default).Span,
+            request?.DestinationOffset ?? 0, request?.DebugName, reusableStaging);
+    }
+
+    internal VulkanBufferUploadResult Upload(AurelianVulkanBuffer? destination, ReadOnlySpan<byte> data,
+        ulong destinationOffset, string? debugName, AurelianVulkanBuffer? reusableStaging)
+    {
         List<VulkanBufferUploadDiagnostic> diagnostics = [];
         if (disposed)
         {
             diagnostics.Add(Diagnostic(
                 VulkanBufferUploadDiagnosticCodes.UploaderDisposed,
                 "Cannot upload through a disposed Vulkan buffer uploader.",
-                request?.DebugName));
+                debugName));
             return new VulkanBufferUploadResult(VulkanBufferUploadStatus.Rejected, null, diagnostics);
         }
 
-        Validate(request, diagnostics);
+        if (destination is null)
+        {
+            diagnostics.Add(Diagnostic(
+                VulkanBufferUploadDiagnosticCodes.PlantMismatch,
+                "Upload destination buffer is required.",
+                debugName));
+            return new VulkanBufferUploadResult(VulkanBufferUploadStatus.Rejected, null, diagnostics);
+        }
+
+        Validate(destination, data.Length, destinationOffset, debugName, diagnostics);
         if (diagnostics.Count == 0 && reusableStaging is not null && (reusableStaging.IsDisposed
             || reusableStaging.PlantId != PlantId || !reusableStaging.CanWrite
             || (reusableStaging.Usage & VulkanBufferUsage.TransferSource) == 0
-            || reusableStaging.SizeBytes < (ulong)request.Data.Length))
+            || reusableStaging.SizeBytes < (ulong)data.Length))
         {
             diagnostics.Add(Diagnostic(VulkanBufferUploadDiagnosticCodes.StagingBufferCreationFailed,
-                "Reusable staging must be writable, live, large enough and owned by this plant.", request.DebugName));
+                "Reusable staging must be writable, live, large enough and owned by this plant.", debugName));
         }
         if (diagnostics.Count != 0)
         {
@@ -97,10 +113,10 @@ public sealed unsafe class VulkanBufferUploader : IDisposable
                     allocator,
                     new VulkanBufferCreatePlan(
                         PlantId,
-                        (ulong)request.Data.Length,
+                        (ulong)data.Length,
                         VulkanBufferUsage.TransferSource,
                         VulkanMemoryUsage.CpuToGpu,
-                        string.IsNullOrWhiteSpace(request.DebugName) ? "upload.staging" : $"{request.DebugName}.staging",
+                        string.IsNullOrWhiteSpace(debugName) ? "upload.staging" : $"{debugName}.staging",
                         MapOnCreate: true));
 
                 if (!stagingResult.Success)
@@ -108,19 +124,19 @@ public sealed unsafe class VulkanBufferUploader : IDisposable
                     diagnostics.Add(Diagnostic(
                         VulkanBufferUploadDiagnosticCodes.StagingBufferCreationFailed,
                         FormatStagingCreationFailure(stagingResult),
-                        request.DebugName));
+                        debugName));
                     return new VulkanBufferUploadResult(MapFailedStatus(stagingResult.Status), null, diagnostics);
                 }
 
                 staging = stagingResult.Buffer!;
             }
-            VulkanBufferWriteResult writeResult = staging.Write(request.Data.Span);
+            VulkanBufferWriteResult writeResult = staging.Write(data);
             if (!writeResult.Success)
             {
                 diagnostics.Add(Diagnostic(
                     VulkanBufferUploadDiagnosticCodes.StagingBufferWriteFailed,
                     FormatStagingWriteFailure(writeResult),
-                    request.DebugName));
+                    debugName));
                 return new VulkanBufferUploadResult(VulkanBufferUploadStatus.Failed, null, diagnostics);
             }
 
@@ -130,7 +146,7 @@ public sealed unsafe class VulkanBufferUploader : IDisposable
                 diagnostics.Add(Diagnostic(
                     VulkanBufferUploadDiagnosticCodes.FenceSignalValueUnavailable,
                     FormatFenceFailure("Command-list fence completed value query failed", completedResult),
-                    request.DebugName));
+                    debugName));
                 return new VulkanBufferUploadResult(VulkanBufferUploadStatus.Failed, null, diagnostics);
             }
 
@@ -141,12 +157,12 @@ public sealed unsafe class VulkanBufferUploader : IDisposable
                 diagnostics.Add(Diagnostic(
                     VulkanBufferUploadDiagnosticCodes.CommandBufferBeginFailed,
                     FormatCommandBufferFailure("Vulkan command buffer begin failed", beginResult),
-                    request.DebugName));
+                    debugName));
                 _ = lease.Reset();
                 return new VulkanBufferUploadResult(VulkanBufferUploadStatus.Failed, null, diagnostics);
             }
 
-            RecordCopy(lease.CommandBuffer, staging.NativeBuffer, request.Destination.NativeBuffer, request.DestinationOffset, (ulong)request.Data.Length);
+            RecordCopy(lease.CommandBuffer, staging.NativeBuffer, destination.NativeBuffer, destinationOffset, (ulong)data.Length);
 
             VulkanCommandBufferOperationResult endResult = lease.End();
             if (!endResult.Success)
@@ -154,7 +170,7 @@ public sealed unsafe class VulkanBufferUploader : IDisposable
                 diagnostics.Add(Diagnostic(
                     VulkanBufferUploadDiagnosticCodes.CommandBufferEndFailed,
                     FormatCommandBufferFailure("Vulkan command buffer end failed", endResult),
-                    request.DebugName));
+                    debugName));
                 _ = lease.Reset();
                 return new VulkanBufferUploadResult(VulkanBufferUploadStatus.Failed, null, diagnostics);
             }
@@ -166,7 +182,7 @@ public sealed unsafe class VulkanBufferUploader : IDisposable
                 diagnostics.Add(Diagnostic(
                     VulkanBufferUploadDiagnosticCodes.QueueSubmitFailed,
                     $"vkQueueSubmit failed with result {submitResult}.",
-                    request.DebugName));
+                    debugName));
                 _ = lease.Reset();
                 signalValue = null;
                 return new VulkanBufferUploadResult(VulkanBufferUploadStatus.Failed, null, diagnostics);
@@ -179,7 +195,7 @@ public sealed unsafe class VulkanBufferUploader : IDisposable
                 diagnostics.Add(Diagnostic(
                     VulkanBufferUploadDiagnosticCodes.QueueSubmitFailed,
                     FormatFenceFailure($"Timed out or failed waiting for command-list fence value {signalValue.Value}", waitResult),
-                    request.DebugName));
+                    debugName));
                 _ = plant.Vk.QueueWaitIdle(plant.GraphicsQueue);
                 return new VulkanBufferUploadResult(VulkanBufferUploadStatus.Failed, signalValue, diagnostics);
             }
@@ -193,7 +209,7 @@ public sealed unsafe class VulkanBufferUploader : IDisposable
             diagnostics.Add(Diagnostic(
                 VulkanBufferUploadDiagnosticCodes.UploaderDisposed,
                 $"Upload encountered disposed Vulkan upload dependency: {ex.Message}",
-                request.DebugName));
+                debugName));
             return new VulkanBufferUploadResult(VulkanBufferUploadStatus.Rejected, signalValue, diagnostics);
         }
         catch (Exception ex)
@@ -201,7 +217,7 @@ public sealed unsafe class VulkanBufferUploader : IDisposable
             diagnostics.Add(Diagnostic(
                 VulkanBufferUploadDiagnosticCodes.QueueSubmitFailed,
                 $"Unexpected Vulkan buffer upload failure: {ex.Message}",
-                request.DebugName));
+                debugName));
             if (submitted)
             {
                 _ = plant.Vk.QueueWaitIdle(plant.GraphicsQueue);
@@ -228,48 +244,40 @@ public sealed unsafe class VulkanBufferUploader : IDisposable
         disposed = true;
     }
 
-    private void Validate(VulkanBufferUploadRequest request, List<VulkanBufferUploadDiagnostic> diagnostics)
+    private void Validate(AurelianVulkanBuffer destination, int length, ulong destinationOffset, string? debugName,
+        List<VulkanBufferUploadDiagnostic> diagnostics)
     {
-        if (request is null || request.Destination is null)
-        {
-            diagnostics.Add(Diagnostic(
-                VulkanBufferUploadDiagnosticCodes.PlantMismatch,
-                "Upload destination buffer is required.",
-                request?.DebugName));
-            return;
-        }
-
-        if (request.Data.IsEmpty)
+        if (length == 0)
         {
             diagnostics.Add(Diagnostic(
                 VulkanBufferUploadDiagnosticCodes.EmptyUpload,
                 "Upload data must contain at least one byte.",
-                request.DebugName));
+                debugName));
         }
 
-        if (request.Destination.PlantId != PlantId)
+        if (destination.PlantId != PlantId)
         {
             diagnostics.Add(Diagnostic(
                 VulkanBufferUploadDiagnosticCodes.PlantMismatch,
-                $"Upload destination belongs to plant {request.Destination.PlantId}, not uploader plant {PlantId}.",
-                request.DebugName));
+                $"Upload destination belongs to plant {destination.PlantId}, not uploader plant {PlantId}.",
+                debugName));
         }
 
-        if ((request.Destination.Usage & VulkanBufferUsage.TransferDestination) == 0)
+        if ((destination.Usage & VulkanBufferUsage.TransferDestination) == 0)
         {
             diagnostics.Add(Diagnostic(
                 VulkanBufferUploadDiagnosticCodes.DestinationMissingTransferDestinationUsage,
                 "Upload destination buffer must include TransferDestination usage.",
-                request.DebugName));
+                debugName));
         }
 
-        ulong byteCount = (ulong)request.Data.Length;
-        if (request.DestinationOffset > request.Destination.SizeBytes || byteCount > request.Destination.SizeBytes - request.DestinationOffset)
+        ulong byteCount = (ulong)length;
+        if (destinationOffset > destination.SizeBytes || byteCount > destination.SizeBytes - destinationOffset)
         {
             diagnostics.Add(Diagnostic(
                 VulkanBufferUploadDiagnosticCodes.UploadOutOfBounds,
                 "Upload range exceeds the destination buffer size.",
-                request.DebugName));
+                debugName));
         }
     }
 

@@ -9,6 +9,8 @@
     <Project Path="tools/Aurelian.KernelComparison/Aurelian.KernelComparison.csproj" />
     <Project Path="tools/Aurelian.GemmaProof/Aurelian.GemmaProof.csproj" />
     <Project Path="tools/Aurelian.InferenceProof/Aurelian.InferenceProof.csproj" />
+    <Project Path="tools/Aurelian.WhisperBenchmark/Aurelian.WhisperBenchmark.csproj" />
+    <Project Path="tools/Aurelian.Gpt2Benchmark/Aurelian.Gpt2Benchmark.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Aurelian/Aurelian.Inference.Tests/Aurelian.Inference.Tests.csproj" />
