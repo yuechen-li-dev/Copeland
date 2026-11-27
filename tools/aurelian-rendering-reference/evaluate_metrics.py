@@ -171,6 +171,11 @@ def evaluate(manifest_path):
                 raise ValueError(f"Spatial/temporal reuse failed final-frame FLIP: {scene}")
         if means["camera-pan-ReprojectedReservoir"] >= means["camera-pan-TemporalReservoir"]:
             raise ValueError("Motion reprojection did not improve camera-pan FLIP")
+    elif manifest.get("Qualification") == "sampled-light-denoising":
+        for scene in ["static", "camera-pan", "moving-receiver", "moving-shadow"]:
+            for variant in ["taa", "taa-50", "denoised"]:
+                if len(groups.get(f"{scene}-{variant}", [])) != 3:
+                    raise ValueError(f"Missing sampled-light denoising captures for {scene}-{variant}")
     elif manifest.get("Qualification") == "local-light-sampling":
         for scene in ["hall", "key-fill"]:
             if means[scene + "-Importance"] >= means[scene + "-Uniform"]:

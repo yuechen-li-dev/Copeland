@@ -54,6 +54,7 @@ function PixelMain(input: Varyings, resources: Resources): Output {
         resources.material.inverseZ, resources.material.inverseW);
     var sum: float3 = float3(0.0, 0.0, 0.0);
     var total: f32 = 0.0;
+    var preserveCenter: bool = false;
     static for (let y of [-1.0, 0.0, 1.0]) {
         static for (let x of [-1.0, 0.0, 1.0]) {
             let uv: float2 = float2(input.uv.x + x * resources.material.settings.x * resources.material.control.y,
@@ -67,6 +68,7 @@ function PixelMain(input: Varyings, resources: Resources): Output {
                 let delta: float3 = Sub3(tapPoint, point);
                 let materialDelta: float3 = float3(surface.x - tapSurface.x, surface.y - tapSurface.y, surface.z - tapSurface.z);
                 let alignment: f32 = Dot3(float3(normal.x, normal.y, normal.z), float3(tapNormal.x, tapNormal.y, tapNormal.z));
+                let adjacent: bool = Abs(x) + Abs(y) == 1.0;
                 if (tapDepth < 1.0 && alignment > 0.95 && Abs(normal.w - tapNormal.w) < 0.05
                     && Abs(Dot3(delta, float3(normal.x, normal.y, normal.z))) < resources.material.control.x
                     && Dot3(materialDelta, materialDelta) < 0.01) {
@@ -74,12 +76,28 @@ function PixelMain(input: Varyings, resources: Resources): Output {
                     let difference: f32 = Abs(tap.x - center.x) + Abs(tap.y - center.y) + Abs(tap.z - center.z);
                     let scale: f32 = 0.25 + (center.x + center.y + center.z + tap.x + tap.y + tap.z) * 0.25;
                     let kernel: f32 = (2.0 - Abs(x)) * (2.0 - Abs(y));
-                    let weight: f32 = kernel * Pow(alignment, 32.0) / (1.0 + difference / scale);
+                    var weight: f32 = kernel * Pow(alignment, 32.0) / (1.0 + difference / scale);
+                    if (resources.material.control.z > 0.5) {
+                        // Visibility differences are common at low sample counts. Only
+                        // reject strongly when they coincide with a radiance discontinuity.
+                        let darker: f32 = Min(center.x + center.y + center.z, tap.x + tap.y + tap.z);
+                        let visibilityDelta: f32 = Abs(center.w - tap.w);
+                        let shadowEdge: f32 = visibilityDelta * difference / (0.075 + 0.25 * darker);
+                        weight = weight / (1.0 + shadowEdge * shadowEdge);
+                        if (adjacent && visibilityDelta > 0.99 && shadowEdge > 1.5) {
+                            preserveCenter = true;
+                        }
+                    }
                     sum = Add3(sum, Scale3(float3(tap.x, tap.y, tap.z), weight));
                     total = total + weight;
+                } else if (resources.material.control.z > 0.5 && adjacent) {
+                    preserveCenter = true;
                 }
             }
         }
+    }
+    if (preserveCenter) {
+        return { color: center };
     }
     let result: float3 = Scale3(sum, 1.0 / Max(total, 0.00001));
     return { color: float4(result.x, result.y, result.z, center.w) };

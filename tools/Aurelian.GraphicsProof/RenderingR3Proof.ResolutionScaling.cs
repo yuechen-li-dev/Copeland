@@ -185,7 +185,8 @@ internal static partial class RenderingR3Proof
 
     private sealed record ScalingMetrics(double LinearDisplayRmse, double GhostEnergy, double? ExcessHistoryGhostEnergy, int VacatedPixels);
 
-    private static ScalingMetrics ScalingError(byte[] pixels, byte[] reference, byte[] previous, byte[]? cold)
+    private static ScalingMetrics ScalingError(byte[] pixels, byte[] reference, byte[] previous, byte[]? cold,
+        ReadOnlySpan<bool> ghostMask = default)
     {
         double squared = 0, ghost = 0, historyGhost = 0;
         int vacated = 0;
@@ -196,6 +197,7 @@ internal static partial class RenderingR3Proof
                 double difference = ScalingSrgb[pixels[offset + channel]] - ScalingSrgb[reference[offset + channel]];
                 squared += difference * difference;
             }
+            if (!ghostMask.IsEmpty && !ghostMask[offset / 4]) continue;
             float expected = Luminance(reference, offset);
             if (Luminance(previous, offset) - expected < .07f) continue;
             ghost += Math.Max(0, Luminance(pixels, offset) - expected);

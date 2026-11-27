@@ -157,6 +157,11 @@ if (args.Contains("--rendering-area", StringComparer.Ordinal))
     RenderingR3Proof.RunArea(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-area"));
     return;
 }
+if (args.Contains("--rendering-light-denoising", StringComparer.Ordinal))
+{
+    RenderingR3Proof.RunLightDenoising(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-light-denoising"));
+    return;
+}
 if (args.Contains("--rendering-raster-motion", StringComparer.Ordinal))
 {
     RenderingR3Proof.RunRasterMotion(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-raster-motion"));

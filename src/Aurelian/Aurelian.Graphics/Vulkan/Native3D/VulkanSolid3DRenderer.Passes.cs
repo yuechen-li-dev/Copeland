@@ -191,8 +191,17 @@ public sealed unsafe partial class VulkanSolid3DRenderer
         bool useTemporal = state.UseTemporal;
         gpuTimings?.Mark(command, 4);
         if (useTemporal || ScaledOutput)
-            state.Resolved = temporal!.Resolve(command, outputVertices!, state.Resolved!, motion!, settings.TemporalHistoryWeight,
+        {
+            float historyWeight = settings.TemporalHistoryWeight;
+            // The spatial filter removes sampling noise before TAA. A shorter color
+            // history lets current visibility take over when lighting changes.
+            if (surfaceLighting?.DenoisesSampledLighting == true)
+            {
+                historyWeight = Math.Min(historyWeight, .5f);
+            }
+            state.Resolved = temporal!.Resolve(command, outputVertices!, state.Resolved!, motion!, historyWeight,
                 surfaceLighting?.ReflectionOutput, accumulate: useTemporal);
+        }
         gpuTimings?.Mark(command, 5);
     }
 

@@ -507,11 +507,12 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
                 (float)settings.DirectDiffuseModel, emissionIntensity, rayShadows.Motion, rayShadows.Normals, materialTable,
                 settings, environmentSource, decalsChanged);
         }
-        if (options.ReconstructTail)
+        if (FiltersSampledLighting)
         {
             if (options.Mode == LocalLightSamplingMode3D.Exact || instances.HasSubsurface)
                 throw new NotSupportedException("AUR-TAIL-002: Tail reconstruction requires sampled opaque lighting without subsurface scattering.");
             localTail ??= Own(new VulkanLocalTail3D(plant, allocator, commands, fences, frames!, localPrograms, Output.Width, Output.Height));
+            localTail.Prepare(options);
         }
         if (tailRevision != rayShadows.SamplingRevision)
         {
@@ -617,6 +618,11 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
         tilePass.Record(command, triangle);
     }
 
+    private bool FiltersSampledLighting => localSampling.ReconstructTail || localSampling.DenoiseSampledLighting;
+
+    internal bool DenoisesSampledLighting => RayShadowsActive && localSampling.DenoiseSampledLighting
+        && current.settings.SurfaceDebugView == SurfaceDebugView3D.Shaded;
+
     public void RecordSurfaceResolve(VulkanCommandBufferLease command, AurelianVulkanBuffer triangle)
     {
         var surface = current.surface;
@@ -639,7 +645,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
             1f / rawAo.Width, 1f / rawAo.Height, settings.AmbientOcclusionStrength > 0 ? settings.AmbientOcclusionRadius : 0,
             settings.LocalLightCulling ? 0 : 1,
             1f / surface.Width, 1f / surface.Height, (float)settings.SurfaceDebugView, RayShadowsActive ? (localSampling.Mode == LocalLightSamplingMode3D.Exact ? 1
-                : (localSampling.Mode == LocalLightSamplingMode3D.Hybrid ? 3 : 2) + (localSampling.ReconstructTail ? 4 : 0)) : 0,
+                : (localSampling.Mode == LocalLightSamplingMode3D.Hybrid ? 3 : 2) + (FiltersSampledLighting ? 4 : 0)) : 0,
             probe?.Position.X ?? 0, probe?.Position.Y ?? 0, probe?.Position.Z ?? 0, diffuseSettings.Mode != DynamicDiffuseMode3D.Off ? 1 : 0,
             probe?.HalfSize.X ?? 1, probe?.HalfSize.Y ?? 1, probe?.HalfSize.Z ?? 1, probe is null ? 0 : 1,
             .. Lighting3DUniforms.Rows(spotCameras[0]), .. Lighting3DUniforms.Rows(spotCameras[1]), .. CascadeUniforms(cascades),
@@ -656,7 +662,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
             resolvePass.SetStorageInput(RayShadowsActive ? rayShadows!.Visibility : emptyRayVisibility);
         resolvePass.Record(command, triangle);
         Resolved = Output;
-        if (RayShadowsActive && localSampling.ReconstructTail && settings.SurfaceDebugView == SurfaceDebugView3D.Shaded)
+        if (RayShadowsActive && FiltersSampledLighting && settings.SurfaceDebugView == SurfaceDebugView3D.Shaded)
         {
             Resolved = localTail!.Record(command, triangle, Output, rawTail, Normal, motion, surface, inverse, localSampling);
         }

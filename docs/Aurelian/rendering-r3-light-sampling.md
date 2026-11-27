@@ -91,7 +91,8 @@ their own documented allocation requirements.
 motion and TAA jitter commonly reject its history. The subsequent
 [spatial ReSTIR and motion reprojection milestone](rendering-r3-restir.md) adds
 separate modes with validated previous-UV lookup and immutable neighbor reuse.
-Area-source samples and a dedicated denoiser remain outside both milestones.
+Later work adds [area-source sampling](rendering-r3-area-tail.md) and
+[dedicated sampled-light denoising](rendering-r3-light-denoising.md).
 
 ## Qualification
 

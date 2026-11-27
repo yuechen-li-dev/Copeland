@@ -40,6 +40,7 @@ The docs above describe current code paths and contracts. For exact signatures a
 - [R3 retained TLAS updates](rendering-r3-tlas-updates.md): frame-ordered rigid-motion refits, retained scratch and input slots, rebuild controls, queued-frame correctness and moving-frame cost comparisons.
 - [R3 raster motion admission](rendering-r3-raster-motion.md): retained material/visibility resources, frame-slot transform and bounds streams, and moving-frame cost comparisons.
 - [R3 area lights and tail reconstruction](rendering-r3-area-tail.md): spherical solid-angle sampling, preserved exact punctual heads, tail-only temporal/spatial reconstruction and native reference/FLIP controls.
+- [R3 sampled-light denoising](rendering-r3-light-denoising.md) compares the dedicated spatial filter with TAA alone and measures R6 ghost energy on changing lighting and geometry.
 - [R3 visibility transport](rendering-r3-visibility-transport.md) records the direct-buffer allocation reduction and matched Vulkan controls.
 - [R3 compact ReSTIR history](rendering-r3-restir-history.md) records Vulkan allocation, frame cost and motion parity for the packed reservoir layout.
 - [R4 whole-Beacon GI](rendering-r4-beacon.md): resident game-scene projection, authored emissive transport, three-view reference/FLIP controls, native resize/restart and 720p/1080p cost.
