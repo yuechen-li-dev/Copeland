@@ -4,6 +4,8 @@ import { AffineAnalyticIntersection } from "./AffineAnalyticQuery3D";
 import { WorldAt, LocalAttenuation } from "./SurfaceLighting";
 import { Dot3, Unit } from "./Lighting3D";
 import { Read4, ReadSurfaceNormal, LightRandom } from "./LocalLightSamplingMath3D";
+import { ReservoirAddress, ReservoirLight, ReservoirMass, ReservoirQuota, ReservoirPoint, ReservoirNormal,
+    WriteReservoir, WriteReservoirGeometry } from "./LightReservoir3D";
 
 function MinIndex(first: u32, second: u32): u32 {
     if (first < second) { return first; }
@@ -32,8 +34,8 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
     @binding(6) readonly Motion: StorageBuffer<f32>,
     @binding(7) readwrite Visibility: StorageBuffer<f32>,
     @binding(8) readonly Normals: StorageBuffer<u32>,
-    @binding(9) readonly History: StorageBuffer<f32>,
-    @binding(10) readwrite NextHistory: StorageBuffer<f32>): void {
+    @binding(9) readonly History: StorageBuffer<u32>,
+    @binding(10) readwrite NextHistory: StorageBuffer<u32>): void {
     let pixel: u32 = thread.x;
     let width: u32 = U32(Parameters[16]);
     let height: u32 = U32(Parameters[17]);
@@ -62,15 +64,15 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
     Rays[packet + 3] = Parameters[19];
     Rays[packet + 8] = Parameters[20];
     Rays[packet + 9] = Parameters[21];
-    let currentBase: u32 = pixel * 24;
+    let currentBase: u32 = ReservoirAddress(pixel);
     var historyBase: u32 = currentBase;
     var historyValid: bool = false;
     // Keep the resource read behind control flow. Legacy HLSL boolean operators
     // may evaluate both operands; non-temporal modes bind only a small placeholder.
     if (mode == 5 && Parameters[29] > 0.5 && depth < 1.0) {
-        if (History[historyBase + 23] > 0.5) {
-            let difference: float3 = point - float3(History[historyBase + 16], History[historyBase + 17], History[historyBase + 18]);
-            let oldNormal: float3 = float3(History[historyBase + 20], History[historyBase + 21], History[historyBase + 22]);
+        if (ReservoirQuota(History[historyBase]) != 0) {
+            let difference: float3 = point - ReservoirPoint(History, historyBase);
+            let oldNormal: float3 = ReservoirNormal(History, historyBase);
             historyValid = Dot3(difference, difference) < 0.000001 && Dot3(normal, oldNormal) > 0.999;
         }
     }
@@ -94,10 +96,10 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
                 let x: f32 = minimumX + Convert<f32>(tap % 2);
                 let y: f32 = minimumY + Convert<f32>(tap / 2);
                 if (x >= 0.0 && y >= 0.0 && x < Parameters[16] && y < Parameters[17]) {
-                    let candidateBase: u32 = (U32(y) * width + U32(x)) * 24;
-                    if (History[candidateBase + 23] > 0.5) {
-                        let candidatePoint: float3 = float3(History[candidateBase + 16], History[candidateBase + 17], History[candidateBase + 18]);
-                        let candidateNormal: float3 = float3(History[candidateBase + 20], History[candidateBase + 21], History[candidateBase + 22]);
+                    let candidateBase: u32 = ReservoirAddress(U32(y) * width + U32(x));
+                    if (ReservoirQuota(History[candidateBase]) != 0) {
+                        let candidatePoint: float3 = ReservoirPoint(History, candidateBase);
+                        let candidateNormal: float3 = ReservoirNormal(History, candidateBase);
                         let difference: float3 = candidatePoint - expected;
                         let squared: f32 = Dot3(difference, difference);
                         if (Dot3(normal, candidateNormal) >= Parameters[39]
@@ -113,17 +115,13 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
         }
     }
     for (let word of BoundedIndices<16>(16)) { Visibility[pixel * 16 + word] = 0.0; }
-    if (mode == 5 || mode >= 7) {
-        for (let word of BoundedIndices<24>(24)) { NextHistory[currentBase + word] = 0.0; }
-        NextHistory[currentBase + 3] = Convert<f32>(quota);
-        NextHistory[currentBase + 16] = point.x;
-        NextHistory[currentBase + 17] = point.y;
-        NextHistory[currentBase + 18] = point.z;
-        NextHistory[currentBase + 19] = depth;
-        NextHistory[currentBase + 20] = normal.x;
-        NextHistory[currentBase + 21] = normal.y;
-        NextHistory[currentBase + 22] = normal.z;
-        if (depth < 1.0) { NextHistory[currentBase + 23] = 1.0; }
+    let storeReservoir: bool = mode == 5 || mode >= 7;
+    var storedQuota: u32 = 0;
+    if (storeReservoir) {
+        WriteReservoirGeometry(NextHistory, currentBase, point, normal);
+        if (depth < 1.0) {
+            storedQuota = quota;
+        }
     }
     let emitterKey: u32 = (pixel * 0x9e3779b9 + frame * 0x85ebca6b + seed) & 0xffffff;
     var headEligible: u32 = 0;
@@ -224,10 +222,14 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
                         }
                     }
                     if (historyValid) {
-                        if (History[historyBase + sample * 4 + 2] > 0.0) {
-                            let oldLight: u32 = U32(History[historyBase + sample * 4]);
-                            let oldCount: f32 = Min(History[historyBase + sample * 4 + 2], Parameters[27]);
-                            let value: f32 = Target(Parameters, point, normal, oldLight) * History[historyBase + sample * 4 + 1] * oldCount;
+                        let address: u32 = historyBase + sample * 2;
+                        let tag: u32 = History[address];
+                        let storedMass: f32 = ReservoirMass(tag);
+                        if (storedMass > 0.0) {
+                            let oldLight: u32 = ReservoirLight(tag);
+                            let oldCount: f32 = Min(storedMass, Parameters[27]);
+                            let oldWeight: f32 = Bitcast<f32>(History[address + 1]);
+                            let value: f32 = Target(Parameters, point, normal, oldLight) * oldWeight * oldCount;
                             sum = sum + value;
                             if (LightRandom(key + 0x51ed270b) * sum < value) { selected = oldLight; }
                             candidates = candidates + oldCount;
@@ -238,10 +240,8 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
                     weight = reservoirWeight / Convert<f32>(quota);
                 }
             }
-            if (mode == 5 || mode >= 7) {
-                NextHistory[currentBase + sample * 4] = Convert<f32>(selected);
-                NextHistory[currentBase + sample * 4 + 1] = reservoirWeight;
-                NextHistory[currentBase + sample * 4 + 2] = candidates;
+            if (storeReservoir) {
+                WriteReservoir(NextHistory, currentBase, sample, selected, candidates, reservoirWeight, storedQuota);
             }
             let offset: u32 = 64 + selected * 16;
             let sphere: float4 = Read4(Parameters, offset);
@@ -262,6 +262,10 @@ function LocalShadowMain(@builtin(dispatchThreadId) thread: uint3,
             }
             Visibility[pixel * 16 + sample * 2] = Convert<f32>(selected);
             Visibility[pixel * 16 + sample * 2 + 1] = weight;
+        } else {
+            if (storeReservoir) {
+                WriteReservoir(NextHistory, currentBase, sample, 0, 0.0, 0.0, storedQuota);
+            }
         }
     }
     Visibility[pixel * 16 + 14] = Convert<f32>(emitterKey);

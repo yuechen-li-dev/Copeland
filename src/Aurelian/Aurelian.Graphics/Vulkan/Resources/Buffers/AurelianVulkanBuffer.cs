@@ -50,6 +50,7 @@ public sealed unsafe class AurelianVulkanBuffer : IDisposable
     public bool CanWrite => allocation?.CanWrite == true;
 
     internal NativeBuffer NativeBuffer { get; private set; }
+    internal ulong AllocationBytes => allocation?.SizeBytes ?? 0;
 
     public VulkanBufferWriteResult Write(ReadOnlySpan<byte> data, ulong destinationOffset = 0)
     {

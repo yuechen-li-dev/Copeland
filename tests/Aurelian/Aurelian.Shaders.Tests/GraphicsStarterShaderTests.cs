@@ -17,7 +17,7 @@ public sealed class GraphicsStarterShaderTests
     [InlineData("OcularGlare3D.v.ts", 48, 5)]
     [InlineData("SurfaceSolid3D.v.ts", 304, 1)]
     [InlineData("SurfaceModel3D.v.ts", 384, 11)]
-    [InlineData("SurfaceResolve3D.v.ts", 640, 38)]
+    [InlineData("SurfaceResolve3D.v.ts", 640, 37)]
     [InlineData("GlossyReflectionResolve3D.v.ts", 176, 16)]
     [InlineData("LocalTailTemporal3D.v.ts", 160, 15)]
     [InlineData("LocalTailSpatial3D.v.ts", 160, 9)]
@@ -59,6 +59,12 @@ public sealed class GraphicsStarterShaderTests
         var compiled = CompiledGraphicsProgramExporter.Export(module, backend);
         Assert.Equal(uniformBytes, compiled.Material!.Size);
         Assert.Equal(resourceCount, compiled.Resources.Count);
+        if (name == "SurfaceResolve3D.v.ts")
+        {
+            var visibility = Assert.Single(compiled.Resources, resource => resource.Name == "rayVisibility");
+            Assert.Equal(Aurelian.Rendering.Contracts.Shaders.CompiledGraphicsResourceKind.StorageBuffer, visibility.Kind);
+            Assert.Equal(36, visibility.Binding);
+        }
         if (name == "RefractiveModel3D.v.ts")
         {
             Assert.Contains("OpImageFetch", backend.Vertex.SpirvDisassembly);

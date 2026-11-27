@@ -33,6 +33,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer
     public void ResetLightSamplingHistory() => surfaceLighting?.ResetLightSampling();
     public float[] ReadLightMotionForQualification() => surfaceLighting!.ReadMotionForQualification();
     public float[] ReadLightSamplesForQualification() => surfaceLighting!.ReadSamplesForQualification();
+    public NativeRestirStorage3D MeasureReservoirStorageForQualification() => surfaceLighting!.MeasureReservoirStorage();
     public ReferenceImage3D ReadLocalHeadForQualification() => surfaceLighting!.ReadHeadForQualification();
     public ReferenceImage3D ReadLightingForQualification() => surfaceLighting!.ReadLightingForQualification();
     public DiffuseRegionalObservation3D? CompletedDiffuseRegions => surfaceLighting?.CompletedDiffuseRegions;
@@ -92,7 +93,8 @@ public sealed unsafe partial class VulkanSolid3DRenderer
             retainedModels?.VisibilityBufferActive == true, retainedModels?.HierarchicalZActive == true, surfaceLighting?.RayShadowsActive == true,
             preserveColor, surfaceLighting?.ReflectionsActive == true,
             surfaceLighting is { ReflectionsActive: true, ReconstructReflections: true }, surfaceLighting?.ReflectionGuideActive == true,
-            state.Settings.EyeExposure is not null, state.Settings.OcularGlare is { Strength: > 0 });
+            state.Settings.EyeExposure is not null, state.Settings.OcularGlare is { Strength: > 0 },
+            RayVisibilityStorage: surfaceLighting is { RayShadowsActive: true, RayVisibilityStorage: true });
         if (!framePlanCache.TryGetValue(features, out var plan))
         {
             plan = Native3DFrameGraph.Compile(features, (int)RenderWidth, (int)RenderHeight, (int)target.Width, (int)target.Height);

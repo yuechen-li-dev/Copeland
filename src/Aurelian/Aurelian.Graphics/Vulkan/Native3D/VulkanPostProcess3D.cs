@@ -28,6 +28,7 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
     private readonly Sampler linearSampler;
     private readonly AurelianVulkanGraphicsPipeline pipeline;
     private readonly int inputCount;
+    private readonly uint? storageBinding;
     private bool disposed;
 
     public VulkanPostProcess3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
@@ -37,8 +38,10 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
     {
         this.plant = plant;
         this.inputCount = inputCount;
-        pairedInputs = program.Resources.Count - inputCount - 1;
-        Validate(program, inputCount, pairedInputs);
+        var storage = program.Resources.SingleOrDefault(resource => resource.Kind == CompiledGraphicsResourceKind.StorageBuffer);
+        storageBinding = storage is null ? null : (uint)storage.Binding;
+        pairedInputs = program.Resources.Count - inputCount - 1 - (storageBinding.HasValue ? 1 : 0);
+        Validate(program, inputCount, pairedInputs, storageBinding);
         var outputs = new List<AurelianVulkanTexture> { output };
         if (secondOutput is not null)
         {
@@ -75,7 +78,7 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
             Require(created.Success, string.Join("; ", created.Diagnostics.Select(item => item.Message)));
             pipeline = Own(created.Pipeline!);
             bindings = Own(new Vulkan3DFrameBindings(plant, allocator, layout,
-                program.Material!.Size, (uint)inputCount, frames));
+                program.Material!.Size, (uint)inputCount, frames, storage: storageBinding.HasValue));
             sampler = Vulkan3DPass.CreateSampler(plant, filter, address);
             linearSampler = Vulkan3DPass.CreateSampler(plant, Filter.Linear, address);
         }
@@ -133,10 +136,19 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
         Vulkan3DPass.WriteImage(plant, bindings.Set, (uint)(1 + index * 2), texture, linearSampler);
     }
 
-    private static void Validate(CompiledGraphicsProgram program, int count, int pairedInputs)
+    public void SetStorageInput(AurelianVulkanBuffer buffer)
     {
-        int resourceCount = 1 + count + pairedInputs;
+        if (storageBinding is not { } binding)
+            throw new InvalidOperationException("The fullscreen pass does not declare a storage input.");
+        Vulkan3DPass.WriteStorageBuffer(plant, bindings.Set, binding, buffer);
+    }
+
+    private static void Validate(CompiledGraphicsProgram program, int count, int pairedInputs, uint? storageBinding)
+    {
+        int textureResourceCount = 1 + count + pairedInputs;
+        int resourceCount = textureResourceCount + (storageBinding.HasValue ? 1 : 0);
         bool valid = pairedInputs is >= 1 and <= 16 && count - pairedInputs is >= 0 and <= 5
+            && (!storageBinding.HasValue || storageBinding == textureResourceCount)
             && program.Material is { Set: 0, Binding: 0 } material
             && material.Size == material.Fields.Count * 16
             && material.Fields.All(field => field.PhysicalType == "float4")
@@ -147,13 +159,15 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
         {
             var kind = CompiledGraphicsResourceKind.Sampler;
             if (resource.Binding == 0) kind = CompiledGraphicsResourceKind.UniformBuffer;
+            else if (resource.Binding == storageBinding) kind = CompiledGraphicsResourceKind.StorageBuffer;
             else if (resource.Binding % 2 == 1 || resource.Binding > pairedInputs * 2)
                 kind = CompiledGraphicsResourceKind.Texture2D;
             valid &= resource.Set == 0 && resource.Kind == kind
                 && resource.Visibility.SequenceEqual([CompiledGraphicsStage.Fragment]);
         }
         valid &= program.Resources.Select(item => item.Binding).Order().SequenceEqual(Enumerable.Range(0, resourceCount));
-        if (!valid) throw new ArgumentException("Fullscreen shader must expose packed float4 uniforms and numbered image/sampler pairs.");
+        if (!valid)
+            throw new ArgumentException("Fullscreen shaders require packed float4 uniforms, numbered textures and at most one trailing storage input.");
     }
 
     private T Own<T>(T resource) where T : IDisposable

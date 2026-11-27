@@ -198,7 +198,7 @@ function ParticleMain(@builtin(dispatchThreadId) thread: uint3,
     }
 
     // Billboard axes in the camera plane. Flames lean along their velocity; sparks and embers stretch along it,
-    // covering the distance travelled during a 1/60 s shutter (motion blur that conserves the particle's energy).
+    // using a short visual integration interval to give fast particles a readable streak.
     let right = camera.right.xyz;
     let up = camera.up.xyz;
     let screen = float2(Dot(flight.velocity, right), Dot(flight.velocity, up));
@@ -225,11 +225,11 @@ function ParticleMain(@builtin(dispatchThreadId) thread: uint3,
         halfAcross = radius * 1.15;
     }
     if (stretch > 0.5 && screenSpeed > 0.01) {
-        var shutter = (1.0 / 60.0) * 1.5;
+        var integrationSeconds = (1.0 / 60.0) * 1.5;
         if (effect == Effect.Rain) {
-            shutter = emitter.emission.w;
+            integrationSeconds = emitter.emission.w;
         }
-        let trail = screenSpeed * shutter;
+        let trail = screenSpeed * integrationSeconds;
         axisAlong = right * (screen.x / screenSpeed) + up * (screen.y / screenSpeed);
         axisAcross = right * (screen.y / screenSpeed) - up * (screen.x / screenSpeed);
         halfAlong = radius + trail * 0.5;

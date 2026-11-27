@@ -5,6 +5,8 @@ reservoirs and a separate spatial reuse pass. Both use the existing point/spot
 light table, shared mesh/analytic acceleration, surface BRDF, TAA and tone mapping.
 Exact lighting remains the default. This milestone implements finite-source direct
 lighting; area-source samples, GI and a dedicated denoiser remain outside its scope.
+See [compact ReSTIR history](rendering-r3-restir-history.md) for the current
+reservoir footprint and the matched motion comparison against the original layout.
 
 ## Authoring
 

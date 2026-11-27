@@ -84,13 +84,12 @@ stream Resources {
     @binding(28) cascadeFarSampler: Sampler;
     @binding(29) subsurface: Texture2D<float4>;
     @binding(30) subsurfaceSampler: Sampler;
-    @binding(31) rayVisibility: Texture2D<float4>;
-    @binding(32) rayVisibilitySampler: Sampler;
-    @binding(33) reflection: Texture2D<float4>;
-    @binding(34) coatAlbedo: Texture2D<float4>;
-    @binding(35) sheen: Texture2D<float4>;
-    @binding(36) anisotropy: Texture2D<u32>;
-    @binding(37) anisotropyAlbedo: Texture2D<float4>;
+    @binding(31) reflection: Texture2D<float4>;
+    @binding(32) coatAlbedo: Texture2D<float4>;
+    @binding(33) sheen: Texture2D<float4>;
+    @binding(34) anisotropy: Texture2D<u32>;
+    @binding(35) anisotropyAlbedo: Texture2D<float4>;
+    @binding(36) rayVisibility: StorageBuffer<f32>;
 }
 stream Input { @location(0) position: float2; }
 stream Varyings {
@@ -277,22 +276,20 @@ function PixelMain(input: Varyings, resources: Resources): Output {
     var stochasticTail: float3 = float3(0.0, 0.0, 0.0);
     var tailVisible: f32 = 0.0;
     var tailSlots: f32 = 0.0;
+    let rayBase: u32 = (Convert<u32>(input.position.y) * Convert<u32>(resources.material.reflectionParameters.y)
+        + Convert<u32>(input.position.x)) * 16;
     if (resources.material.surfaceTexels.w > 1.5) {
-        let pixelX: f32 = Floor(input.uv.x / resources.material.surfaceTexels.x);
-        let sampleMetadata: float4 = Sample(resources.rayVisibility, resources.rayVisibilitySampler,
-            float2((pixelX * 4.0 + 3.5) * resources.material.surfaceTexels.x / 4.0, input.uv.y));
-        let emitterKey: u32 = Convert<u32>(sampleMetadata.z);
-        let budget: float4 = Sample(resources.rayVisibility, resources.rayVisibilitySampler,
-            float2((pixelX * 4.0 + 2.5) * resources.material.surfaceTexels.x / 4.0, input.uv.y));
+        let emitterKey: u32 = Convert<u32>(resources.rayVisibility[rayBase + 14]);
+        let quota: f32 = resources.rayVisibility[rayBase + 9];
         var exactCount: u32 = 0;
-        if ((Convert<u32>(resources.material.surfaceTexels.w) & 1) != 0) { exactCount = Convert<u32>(sampleMetadata.w); }
+        if ((Convert<u32>(resources.material.surfaceTexels.w) & 1) != 0) {
+            exactCount = Convert<u32>(resources.rayVisibility[rayBase + 15]);
+        }
         for (var sample: u32 = 0; sample < 4; sample = sample + 1) {
-            let data: float4 = Sample(resources.rayVisibility, resources.rayVisibilitySampler,
-                float2((pixelX * 4.0 + Floor(Convert<f32>(sample) / 2.0) + 0.5) * resources.material.surfaceTexels.x / 4.0, input.uv.y));
-            var index: u32 = Convert<u32>(data.x);
-            var weight: f32 = data.y;
-            if (sample % 2 == 1) { index = Convert<u32>(data.z); weight = data.w; }
-            if (sample >= exactCount && Convert<f32>(sample) < budget.y) {
+            let address: u32 = rayBase + sample * 2;
+            let index: u32 = Convert<u32>(resources.rayVisibility[address]);
+            let weight: f32 = resources.rayVisibility[address + 1];
+            if (sample >= exactCount && Convert<f32>(sample) < quota) {
                 tailSlots = tailSlots + 1.0;
                 if (weight > 0.0) { tailVisible = tailVisible + 1.0; }
             }
@@ -340,7 +337,7 @@ function PixelMain(input: Varyings, resources: Resources): Output {
                             var attenuation: f32 = LocalAttenuation(direction, squared, sphere.w, cone, config);
                             if (config.z > 0.5) {
                                 if (resources.material.surfaceTexels.w > 0.5) {
-                                    attenuation = attenuation * RayVisibility(resources, input.uv, index);
+                                    attenuation = attenuation * RayVisibility(resources, rayBase, index);
                                 } else {
                                     attenuation = attenuation * LocalShadow(resources, config.z, p, Max(Dot3(normal, direction), 0.0));
                                 }
@@ -543,17 +540,10 @@ function DirectionalVisibility(resources: Resources, p: float3, normal: float3):
     return FarVisibility(resources, p, normal) * (1.0 - fade) + fade;
 }
 
-function RayVisibility(resources: Resources, uv: float2, light: u32): f32 {
-    let pixelX: f32 = Floor(uv.x / resources.material.surfaceTexels.x);
-    let group: f32 = Floor(Convert<f32>(light) / 64.0);
-    let packed: float4 = Sample(resources.rayVisibility, resources.rayVisibilitySampler,
-        float2((pixelX * 4.0 + group + 0.5) * resources.material.surfaceTexels.x / 4.0, uv.y));
-    let word: u32 = (light % 64) / 16;
-    var value: f32 = packed.x;
-    if (word == 1) { value = packed.y; }
-    if (word == 2) { value = packed.z; }
-    if (word == 3) { value = packed.w; }
-    let shifted: f32 = Floor(value / Pow(2.0, Convert<f32>(light % 16)));
-    if (shifted - Floor(shifted / 2.0) * 2.0 > 0.5) { return 0.0; }
+function RayVisibility(resources: Resources, rayBase: u32, light: u32): f32 {
+    let word: u32 = Convert<u32>(resources.rayVisibility[rayBase + light / 16]);
+    if (((word >> (light % 16)) & 1) != 0) {
+        return 0.0;
+    }
     return 1.0;
 }

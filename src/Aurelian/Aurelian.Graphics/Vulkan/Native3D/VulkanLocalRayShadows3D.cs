@@ -19,6 +19,10 @@ namespace Aurelian.Graphics.Vulkan.Native3D;
 /// Only immutable scene/light admission crosses the CPU boundary; no per-ray readback or submission.</summary>
 internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
 {
+    // Four packed ID/mass and weight pairs plus FP32 position and normal.
+    // Mirrors ReservoirAddress in LightReservoir3D.v.ts.
+    private const ulong ReservoirBytesPerPixel = 14 * sizeof(uint);
+
     private readonly AurelianVulkanPlant plant;
     private readonly RawVulkanMemoryAllocator allocator;
     private readonly VulkanFrameInFlightSet frames;
@@ -47,18 +51,19 @@ internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
     private bool historyValid;
     public ulong SamplingRevision { get; private set; }
     private bool disposed;
-    public AurelianVulkanTexture Output { get; }
+    public AurelianVulkanTexture? LegacyOutput { get; }
+    public AurelianVulkanBuffer Visibility => visibility;
     internal AurelianVulkanBuffer Motion => motion;
     internal AurelianVulkanBuffer Normals => normals;
 
     public VulkanLocalRayShadows3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
         VulkanFrameInFlightSet frames, VulkanSceneAcceleration3D scene, byte[] program, uint width, uint height,
-        byte[]? sampledProgram = null, byte[]? spatialProgram = null)
+        byte[]? sampledProgram = null, byte[]? spatialProgram = null, bool legacyResolve = false)
     {
         plant.Vk.GetPhysicalDeviceProperties(plant.PhysicalDevice, out PhysicalDeviceProperties properties);
         ulong pixels = (ulong)width * height;
-        if (width == 0 || height == 0 || (ulong)width * 4 > properties.Limits.MaxImageDimension2D
-            || height > properties.Limits.MaxImageDimension2D
+        if (width == 0 || height == 0
+            || legacyResolve && ((ulong)width * 4 > properties.Limits.MaxImageDimension2D || height > properties.Limits.MaxImageDimension2D)
             || pixels > properties.Limits.MaxStorageBufferRange / 64UL
             || (pixels + 63) / 64 > properties.Limits.MaxComputeWorkGroupCount[0])
         {
@@ -81,9 +86,12 @@ internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
             visibility = Buffer(pixels * 64, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferSource);
             for (int slot = 0; slot < parameters.Length; slot++)
                 parameters[slot] = Buffer((64 + 256 * 16) * 4, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
-            Output = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, width * 4, height,
-                VulkanTextureUsage.TransferDestination | VulkanTextureUsage.ShaderResource, VulkanMemoryUsage.GpuOnly,
-                "local-ray-visibility", VulkanTextureFormat.Rgba32Float);
+            if (legacyResolve)
+            {
+                LegacyOutput = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, width * 4, height,
+                    VulkanTextureUsage.TransferDestination | VulkanTextureUsage.ShaderResource, VulkanMemoryUsage.GpuOnly,
+                    "local-ray-visibility", VulkanTextureFormat.Rgba32Float);
+            }
             historyA = Buffer(16, VulkanBufferUsage.Storage);
             historyB = historyA;
             candidates = historyA;
@@ -111,27 +119,43 @@ internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
             if (sampledProgram is null) throw new NotSupportedException("AUR-LIGHT-SAMPLING-002: The sampled local-light compute program was not configured.");
             CreateComputePipeline(sampledProgram, ref sampledPipeline);
         }
-        if ((options.Mode == LocalLightSamplingMode3D.TemporalReservoir || options.Mode >= LocalLightSamplingMode3D.ReprojectedReservoir) && historyA.SizeBytes < (ulong)width * height * 96)
+        bool spatial = options.Mode is LocalLightSamplingMode3D.SpatiotemporalReservoir or LocalLightSamplingMode3D.SpatialReservoir;
+        bool temporal = options.Mode is LocalLightSamplingMode3D.TemporalReservoir
+            or LocalLightSamplingMode3D.ReprojectedReservoir or LocalLightSamplingMode3D.SpatiotemporalReservoir;
+        if (spatial && spatialPipeline.Handle == 0)
+        {
+            if (spatialProgram is null)
+                throw new NotSupportedException("AUR-RESTIR-001: Spatial reservoirs require RestirSpatial3D.");
+            CreateComputePipeline(spatialProgram, ref spatialPipeline);
+        }
+        ulong reservoirBytes = (ulong)width * height * ReservoirBytesPerPixel;
+        bool allocateHistory = temporal && historyA.SizeBytes < reservoirBytes;
+        bool allocateCandidates = spatial && candidates.SizeBytes < reservoirBytes;
+        if (allocateHistory || allocateCandidates)
         {
             plant.Vk.GetPhysicalDeviceProperties(plant.PhysicalDevice, out PhysicalDeviceProperties properties);
-            if ((ulong)width * height * 96 > properties.Limits.MaxStorageBufferRange)
-                throw new NotSupportedException("AUR-LIGHT-SAMPLING-003: Temporal reservoirs exceed the device storage-buffer range.");
+            if (reservoirBytes > properties.Limits.MaxStorageBufferRange)
+                throw new NotSupportedException("AUR-LIGHT-SAMPLING-003: The ReSTIR reservoir plane exceeds the device storage-buffer range.");
             frames.Drain();
-            historyA = Buffer((ulong)width * height * 96, VulkanBufferUsage.Storage);
-            historyB = Buffer((ulong)width * height * 96, VulkanBufferUsage.Storage);
-            historyValid = false;
-        }
-        if (options.Mode is LocalLightSamplingMode3D.SpatiotemporalReservoir or LocalLightSamplingMode3D.SpatialReservoir)
-        {
-            if (spatialPipeline.Handle == 0)
+            if (allocateHistory)
             {
-                if (spatialProgram is null) throw new NotSupportedException("AUR-RESTIR-001: Spatial/reprojected reservoirs require RestirSpatial3D.");
-                CreateComputePipeline(spatialProgram, ref spatialPipeline);
+                var first = Buffer(reservoirBytes, VulkanBufferUsage.Storage);
+                try
+                {
+                    historyB = Buffer(reservoirBytes, VulkanBufferUsage.Storage);
+                    historyA = first;
+                    historyValid = false;
+                }
+                catch
+                {
+                    buffers.Remove(first);
+                    first.Dispose();
+                    throw;
+                }
             }
-            if (candidates.SizeBytes < (ulong)width * height * 96)
+            if (allocateCandidates)
             {
-                frames.Drain();
-                candidates = Buffer((ulong)width * height * 96, VulkanBufferUsage.Storage);
+                candidates = Buffer(reservoirBytes, VulkanBufferUsage.Storage);
             }
         }
         if (options != sampling || !lights.SequenceEqual(priorLights))
@@ -181,7 +205,7 @@ internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
             AurelianVulkanBuffer[] resources = [scene.Procedurals, rays, hits, scene.Instances,
                 parameters[frames.Slot], motion, visibility, normals,
                 stage == 0 ? (sequence % 2 == 0 ? historyA : historyB) : candidates,
-                stage == 0 && options.Mode is (LocalLightSamplingMode3D.SpatiotemporalReservoir or LocalLightSamplingMode3D.SpatialReservoir)
+                stage == 0 && spatial
                     ? candidates : (sequence % 2 == 0 ? historyB : historyA)];
             writes[0] = new() { SType = StructureType.WriteDescriptorSet, PNext = &structureWrite,
                 DstSet = sets[frames.Slot, stage], DstBinding = 0, DescriptorCount = 1, DescriptorType = DescriptorType.AccelerationStructureKhr };
@@ -226,11 +250,20 @@ internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
             plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Compute, pipelineLayout, 0, 1, &set, 0, null);
             plant.Vk.CmdDispatch(command.CommandBuffer, (pixels + 63) / 64, 1, 1);
         }
-        Barrier(command, AccessFlags.ShaderWriteBit, AccessFlags.TransferReadBit, PipelineStageFlags.ComputeShaderBit, PipelineStageFlags.TransferBit);
-        Transition(command, Output, VulkanResourceLayout.TransferDestination);
-        copy.ImageExtent = new(width * 4, height, 1);
-        plant.Vk.CmdCopyBufferToImage(command.CommandBuffer, visibility.NativeBuffer, Output.NativeImage, ImageLayout.TransferDstOptimal, 1, &copy);
-        Transition(command, Output, VulkanResourceLayout.ShaderResourceFragment);
+        if (LegacyOutput is { } legacy)
+        {
+            Barrier(command, AccessFlags.ShaderWriteBit, AccessFlags.TransferReadBit,
+                PipelineStageFlags.ComputeShaderBit, PipelineStageFlags.TransferBit);
+            Transition(command, legacy, VulkanResourceLayout.TransferDestination);
+            copy.ImageExtent = new(width * 4, height, 1);
+            plant.Vk.CmdCopyBufferToImage(command.CommandBuffer, visibility.NativeBuffer, legacy.NativeImage, ImageLayout.TransferDstOptimal, 1, &copy);
+            Transition(command, legacy, VulkanResourceLayout.ShaderResourceFragment);
+        }
+        else
+        {
+            Barrier(command, AccessFlags.ShaderWriteBit, AccessFlags.ShaderReadBit,
+                PipelineStageFlags.ComputeShaderBit, PipelineStageFlags.FragmentShaderBit);
+        }
         previousInverse = pendingInverse;
         sequence++;
         historyValid = true;
@@ -317,6 +350,14 @@ internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
 
     public float[] ReadSamplesForQualification() => Vulkan3DQualificationReadback.ReadBuffer(plant, frames, visibility);
 
+    public NativeRestirStorage3D MeasureReservoirStorage()
+    {
+        bool hasHistory = !ReferenceEquals(historyA, historyB);
+        bool hasCandidates = candidates.SizeBytes > 16;
+        return new(hasHistory ? historyA.SizeBytes + historyB.SizeBytes : 0, hasCandidates ? candidates.SizeBytes : 0,
+            hasHistory ? historyA.AllocationBytes + historyB.AllocationBytes : 0, hasCandidates ? candidates.AllocationBytes : 0);
+    }
+
     private AurelianVulkanBuffer Buffer(ulong bytes, VulkanBufferUsage usage, VulkanMemoryUsage memory = VulkanMemoryUsage.GpuOnly)
     {
         var result = VulkanBufferFactory.Create(plant, allocator, new(plant.Context.Id, bytes, usage, memory,
@@ -341,7 +382,7 @@ internal sealed unsafe class VulkanLocalRayShadows3D : IDisposable
         if (pipelineLayout.Handle != 0) plant.Vk.DestroyPipelineLayout(plant.Device, pipelineLayout, null);
         if (descriptorPool.Handle != 0) plant.Vk.DestroyDescriptorPool(plant.Device, descriptorPool, null);
         if (setLayout.Handle != 0) plant.Vk.DestroyDescriptorSetLayout(plant.Device, setLayout, null);
-        Output?.Dispose();
+        LegacyOutput?.Dispose();
         foreach (var buffer in buffers.AsEnumerable().Reverse()) buffer.Dispose();
     }
 }

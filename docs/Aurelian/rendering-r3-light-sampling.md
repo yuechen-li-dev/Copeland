@@ -185,8 +185,9 @@ The current findings are workload-specific:
 - The ordinary TAA path benefits strongly from the better light proposal. This
   does not make the current same-pixel reservoir into motion-reprojected ReSTIR.
 
-The baseline visibility transport still costs about 204 logical bytes per pixel.
+In this historical run the baseline visibility transport cost 204 logical bytes per pixel.
 Temporal mode adds two 24-word histories, another 192 bytes per pixel, for about
 348 MiB total at 1280x720 before acceleration and small parameter allocations.
-Reducing this transport is a separate optimization; these memory costs are part
+The [direct-buffer continuation](rendering-r3-visibility-transport.md) removes
+64 bytes per pixel from these modes. The original memory costs are part
 of the comparison, not hidden by calling the method GPU-only.

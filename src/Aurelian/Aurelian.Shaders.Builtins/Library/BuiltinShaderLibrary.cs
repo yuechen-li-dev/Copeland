@@ -148,6 +148,7 @@ public static class BuiltinShaderLibrary
         new("LocalLightProposal3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Module),
         new("SampledLocalLights3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
         new("LocalLightSamplingMath3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Module),
+        new("LightReservoir3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Module),
         new("LocalShadows3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
         new("AffineRayQuery3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
         new("ReferenceIntegrator3D.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),

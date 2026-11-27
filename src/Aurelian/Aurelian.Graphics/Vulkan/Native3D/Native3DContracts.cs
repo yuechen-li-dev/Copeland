@@ -28,6 +28,9 @@ public sealed record Native3DScene(Native3DVertex[] Geometry, IReadOnlyList<Nati
     public PlanarWaterReflection3D? WaterReflection { get; init; }
 }
 
+public sealed record NativeRestirStorage3D(ulong HistoryBytes, ulong CandidateBytes,
+    ulong HistoryAllocationBytes, ulong CandidateAllocationBytes);
+
 public sealed record Native3DFrameResult(int TriangleCount, byte[]? Pixels, string? PixelSha256)
 {
     public IReadOnlyList<Native3DGpuPassTime> GpuPassTimes { get; init; } = [];

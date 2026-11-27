@@ -2,6 +2,8 @@ name: TinyFarm current game headless checks
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '23 10 * * *'
 
 permissions:
   contents: read

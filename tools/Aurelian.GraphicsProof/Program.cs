@@ -32,6 +32,12 @@ if (args.Contains("--viewmodel", StringComparer.Ordinal))
     return;
 }
 
+if (args.Contains("--rendering-composition", StringComparer.Ordinal))
+{
+    RenderingR3Proof.RunComposition(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-composition"));
+    return;
+}
+
 if (args.Contains("--rendering-r7-glare", StringComparer.Ordinal))
 {
     RenderingR3Proof.RunOcularGlare(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-r7-glare"));
@@ -161,6 +167,12 @@ if (args.Contains("--rendering-tlas", StringComparer.Ordinal))
     RenderingR3Proof.RunTlas(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-tlas"));
     return;
 }
+if (args.Contains("--rendering-restir-history", StringComparer.Ordinal))
+{
+    RenderingR3Proof.RunReservoirStorage(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-restir-history"));
+    return;
+}
+
 if (args.Contains("--rendering-restir", StringComparer.Ordinal))
 {
     RenderingR3Proof.RunRestir(Path.GetFullPath(Option("--output") ?? "artifacts/local/rendering-restir"));

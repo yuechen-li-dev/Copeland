@@ -8,6 +8,9 @@ emission basis of Beacon's existing compiled floor asset. Full R3a remains open.
 The [shared affine continuation](rendering-r3a-affine.md) adds hybrid visibility's
 sphere/box/capsule intersections, including shear and reflection, while retaining
 the original measuring controls.
+The later [R8 material qualification](rendering-r8-materials.md) added
+constant-material clearcoat, sheen and anisotropy to the same integrator.
+Textured reconstruction and broad scene qualification remain separate work.
 The [lighting and temporal continuation](rendering-r3a-lighting-temporal.md) adds
 directional sun, shared HDR sources, actual native-output FLIP and scripted
 temporal comparisons. The initial black-environment measurements below remain

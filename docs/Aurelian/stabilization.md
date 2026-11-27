@@ -29,7 +29,11 @@ These are structural checks, not a replacement for semantic `spirv-val` validati
 
 `aurelian-core.yml` automatically builds and tests the standalone engine on pushes to `main` and pull requests. The ordinary job excludes the explicit `WebGpuToolchain` category; a separate job installs Naga CLI 30.0.1 and runs that category. The browser test remains required coverage rather than silently skipping when tooling is absent. Native GPU witnesses remain separate from hosted headless CI, which cannot guarantee a Vulkan device.
 
-TinyFarm's workflow is now manual (`workflow_dispatch`). Its former automatic [failure](https://github.com/yuechen-li-dev/Copeland/actions/runs/43368044961) came from an old InputMan pin missing `K`, `J`, `R`, and function-key enum entries. The manual workflow now pins the InputMan revision listed above, which compiles those bindings. Further TinyFarm test failures remain game work and do not gate engine changes. No game code or tests were deleted.
+TinyFarm runs headlessly each night on the default branch at 10:23 UTC and can
+also be dispatched manually. Its test results and shell and supper playtest
+traces are uploaded even when the job fails. A failed nightly is a dogfood
+signal for engine and game changes. The workflow uses scheduled and manual
+triggers, with no pull-request trigger.
 
 `scripts/Invoke-AurelianCoreTests.ps1` runs each test assembly separately and checks its TRX counters. Every selected assembly must execute at least one test and pass all executed tests. Missing reports and discovery failures fail the script even if the underlying test runner returns zero. Each invocation has a unique results directory, preventing stale reports or filename collisions from creating false success.
 

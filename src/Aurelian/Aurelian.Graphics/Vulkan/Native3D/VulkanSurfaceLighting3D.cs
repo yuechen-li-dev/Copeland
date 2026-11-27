@@ -49,6 +49,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
     private readonly VulkanPostProcess3D denoisePass;
     private readonly VulkanPostProcess3D resolvePass;
     private readonly bool resolveHasReflectionInput;
+    private readonly AurelianVulkanBuffer? emptyRayVisibility;
     private readonly AurelianVulkanTexture? clearcoatAlbedo;
     private readonly AurelianVulkanTexture? anisotropyAlbedo;
     private readonly AurelianVulkanTexture diffuseOutput;
@@ -98,6 +99,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
     private DynamicDiffuseLighting3D diffuseSettings = new();
     private CompiledDiffuseProbeField3D? compiledProbes;
     public bool RayShadowsActive { get; private set; }
+    public bool RayVisibilityStorage => emptyRayVisibility is not null;
     public bool ReflectionsActive { get; private set; }
     public bool ReconstructReflections { get; private set; }
     public bool ReflectionGuideActive => ReflectionsActive && diffuseSettings.Mode == DynamicDiffuseMode3D.Runtime
@@ -157,21 +159,31 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
             tilePass = Own(new VulkanPostProcess3D(plant, allocator, programs.LightTiles, tiles, 1, Filter.Nearest, frames: frames));
             aoPass = Own(new VulkanPostProcess3D(plant, allocator, programs.AmbientOcclusion, rawAo, 2, Filter.Nearest, frames: frames));
             denoisePass = Own(new VulkanPostProcess3D(plant, allocator, programs.AmbientDenoise, filteredAo, 2, Filter.Nearest, frames: frames));
-            resolveHasReflectionInput = programs.Resolve.Resources.Any(resource => resource.Binding == 33);
-            if (programs.Resolve.Resources.Any(resource => resource.Binding == 34))
+            bool storageVisibility = programs.Resolve.Resources.Any(resource =>
+                resource.Kind == CompiledGraphicsResourceKind.StorageBuffer);
+            int reflectionBinding = storageVisibility ? 31 : 33;
+            if (storageVisibility)
+            {
+                emptyRayVisibility = Own(VulkanNativeForwardTexturedRenderer.CreateMappedBuffer(plant, allocator,
+                    64, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu, "surface.no-ray-visibility"));
+                if (!emptyRayVisibility.Write(new byte[64]).Success)
+                    throw new InvalidOperationException("The inactive ray-visibility binding could not be initialized.");
+            }
+            resolveHasReflectionInput = programs.Resolve.Resources.Any(resource => resource.Binding == reflectionBinding);
+            if (programs.Resolve.Resources.Any(resource => resource.Binding == reflectionBinding + 1))
             {
                 clearcoatAlbedo = Own(Data(ClearcoatAlbedo3D.Size, ClearcoatAlbedo3D.Size, "surface.clearcoat-albedo"));
                 Upload(clearcoatAlbedo, ClearcoatAlbedo3D.TextureData());
             }
-            SupportsSheen = programs.Resolve.Resources.Any(resource => resource.Binding == 35);
-            if (programs.Resolve.Resources.Any(resource => resource.Binding == 37))
+            SupportsSheen = programs.Resolve.Resources.Any(resource => resource.Binding == reflectionBinding + 2);
+            if (programs.Resolve.Resources.Any(resource => resource.Binding == reflectionBinding + 4))
             {
                 anisotropyAlbedo = Own(Data(AnisotropyAlbedo3D.Width, AnisotropyAlbedo3D.Height, "surface.anisotropy-albedo"));
                 Upload(anisotropyAlbedo, AnisotropyAlbedo3D.TextureData());
             }
             resolvePass = Own(new VulkanPostProcess3D(plant, allocator, programs.Resolve, Output,
                 (resolveHasReflectionInput ? 17 : 16) + (clearcoatAlbedo is null ? 0 : 1) + (SupportsSheen ? 1 : 0)
-                + (SupportsAnisotropy ? 2 : 0),
+                + (SupportsAnisotropy ? 2 : 0) - (storageVisibility ? 1 : 0),
                 Filter.Nearest, diffuseOutput, frames: frames, thirdOutput: rawTail));
             for (int index = 0; index < 2; index++)
             {
@@ -478,7 +490,8 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
         bool diffuse = diffuseSettings.Mode != DynamicDiffuseMode3D.Off;
         if (diffuse || ReflectionsActive) rayScene.PrepareShading(instances, frames, diffuse);
         if (!RayShadowsActive) return;
-        rayShadows ??= Own(new VulkanLocalRayShadows3D(plant, allocator, frames!, rayScene, rayShadowProgram!, Output.Width, Output.Height, sampledProgram, spatialProgram));
+        rayShadows ??= Own(new VulkanLocalRayShadows3D(plant, allocator, frames!, rayScene, rayShadowProgram!, Output.Width, Output.Height,
+            sampledProgram, spatialProgram, legacyResolve: emptyRayVisibility is null));
         localSampling = options;
         rayShadows.Prepare(inverse, packedLights, priorLights.Length, options);
         if (diffuse)
@@ -532,6 +545,7 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
     }
     public float[] ReadMotionForQualification() => rayShadows!.ReadMotionForQualification();
     public float[] ReadSamplesForQualification() => rayShadows!.ReadSamplesForQualification();
+    public NativeRestirStorage3D MeasureReservoirStorage() => rayShadows!.MeasureReservoirStorage();
     public ReferenceImage3D ReadHeadForQualification() => Vulkan3DQualificationReadback.ReadTexture(plant, frames!, Output);
     public ReferenceImage3D ReadLightingForQualification() => Vulkan3DQualificationReadback.ReadTexture(plant, frames!, qualifiedLighting ?? Output);
 
@@ -629,14 +643,17 @@ internal sealed unsafe class VulkanSurfaceLighting3D : IDisposable
             probe?.Position.X ?? 0, probe?.Position.Y ?? 0, probe?.Position.Z ?? 0, diffuseSettings.Mode != DynamicDiffuseMode3D.Off ? 1 : 0,
             probe?.HalfSize.X ?? 1, probe?.HalfSize.Y ?? 1, probe?.HalfSize.Z ?? 1, probe is null ? 0 : 1,
             .. Lighting3DUniforms.Rows(spotCameras[0]), .. Lighting3DUniforms.Rows(spotCameras[1]), .. CascadeUniforms(cascades),
-            .. resolveHasReflectionInput ? new float[] { ReflectionsActive ? 1 : 0, 0, 0, 0 } : []],
+            .. resolveHasReflectionInput ? new float[] { ReflectionsActive ? 1 : 0, surface.Width, 0, 0 } : []],
             [surface, motion, Normal, Emission, environment ?? fallback, lightData, lightTiles ? tiles : fallback, shadow, diffuseSettings.Mode != DynamicDiffuseMode3D.Off ? dynamicDiffuse!.Output : diffuse ?? fallback, ambient ? filteredAo : neutralAo,
-            spotMaps[0], spotMaps[1], cascadeMaps[0], cascadeMaps[1], Subsurface, RayShadowsActive ? rayShadows!.Output : fallback,
+            spotMaps[0], spotMaps[1], cascadeMaps[0], cascadeMaps[1], Subsurface,
+            .. emptyRayVisibility is null ? new[] { RayShadowsActive ? rayShadows!.LegacyOutput! : fallback } : [],
             .. resolveHasReflectionInput ? new[] { ReflectionOutput ?? fallback } : [],
             .. clearcoatAlbedo is null ? [] : new[] { clearcoatAlbedo },
             .. SupportsSheen ? new[] { Sheen } : [],
             .. anisotropyAlbedo is null ? [] : new[] { Anisotropy, anisotropyAlbedo }]);
         resolvePass.SetLinearInput(4, environment ?? fallback);
+        if (emptyRayVisibility is not null)
+            resolvePass.SetStorageInput(RayShadowsActive ? rayShadows!.Visibility : emptyRayVisibility);
         resolvePass.Record(command, triangle);
         Resolved = Output;
         if (RayShadowsActive && localSampling.ReconstructTail && settings.SurfaceDebugView == SurfaceDebugView3D.Shaded)

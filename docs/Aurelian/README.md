@@ -20,6 +20,7 @@ The docs above describe current code paths and contracts. For exact signatures a
 ## Graphics
 
 - [Rendering foundation design](../design/aurelian-rendering-foundation-design.md): the plan to close the gap with production engines (pipelined frames, compiled frame plan, GPU-driven visibility, ray-traced lighting, reference-gated research) and the effects Aurelian will not implement.
+- [Renderer composition and shipping tiers](rendering-composition.md) records the current game defaults, admission rules and native combination proof.
 - [3D graphics starter](graphics-starter.md): `Graphics3DSettings`, authored lighting, shadows, HDR, and gallery/proof entry points.
 - [R0 rendering foundation](rendering-r0.md): retained indexed meshes, instancing, native frame pipelining, capture compatibility and qualification.
 - [R1 compiled frame plans](rendering-r1.md): declarative C# authoring, verified flat tapes, transient reuse, queue experiments and native qualification.
@@ -39,11 +40,17 @@ The docs above describe current code paths and contracts. For exact signatures a
 - [R3 retained TLAS updates](rendering-r3-tlas-updates.md): frame-ordered rigid-motion refits, retained scratch and input slots, rebuild controls, queued-frame correctness and moving-frame cost comparisons.
 - [R3 raster motion admission](rendering-r3-raster-motion.md): retained material/visibility resources, frame-slot transform and bounds streams, and moving-frame cost comparisons.
 - [R3 area lights and tail reconstruction](rendering-r3-area-tail.md): spherical solid-angle sampling, preserved exact punctual heads, tail-only temporal/spatial reconstruction and native reference/FLIP controls.
+- [R3 visibility transport](rendering-r3-visibility-transport.md) records the direct-buffer allocation reduction and matched Vulkan controls.
+- [R3 compact ReSTIR history](rendering-r3-restir-history.md) records Vulkan allocation, frame cost and motion parity for the packed reservoir layout.
 - [R4 whole-Beacon GI](rendering-r4-beacon.md): resident game-scene projection, authored emissive transport, three-view reference/FLIP controls, native resize/restart and 720p/1080p cost.
 - [R4 regional GI policy](rendering-r4-regional-policy.md): Dominatus hysteresis/minCommit, delayed change feedback, fair directional budgets and real-path recovery qualification.
 - [R4 sun and environment bounce](rendering-r4-sun-environment.md): shared sky sampling, signed occlusion updates, coverage fallback, energy checks and HDR/FLIP qualification.
 - [R4 textured and smooth-normal secondary hits](rendering-r4-secondary-materials.md): shared GPU materials, typed compute sampling, imported GLB and moving-instance material-oracle qualification.
 - [R4 retained dynamic diffuse lighting](rendering-r4-dynamic-diffuse.md): world-space directional caches, compiled warm starts, signed occlusion/relighting updates, current probe connectivity and native reference/FLIP qualification.
+- [R5 hardware and assisted reflections](rendering-r5-reflections.md) covers sharp tracing, glossy reconstruction, probe guidance and screen bounds.
+- [R6 temporal reconstruction and dynamic resolution](rendering-r6-reconstruction.md) covers reference and ghost-energy comparisons, plus the Beacon budget trials.
+- [R7 eye presentation](rendering-r7-eye-presentation.md) covers adaptation, ocular glare energy and the Wet Night and Beacon low-light controls.
+- [R8 materials and decals](rendering-r8-materials.md) covers OpenPBR reference layers, the retained decal proof and the neural texture comparison.
 - [Shader authoring refactor](shader-authoring-refactor.md): enforced compile-time `const`, immutable runtime `let`, explicit mutable `var`, typed GI phase matching and native capture equivalence.
 - [Diffuse comparison](diffuse-comparison.md): controlled Lambert, Burley, Frostbite, EON and Aurelian PathDiffuse experiments, live `IGame` lab, paper references and native numerical qualification.
 - [Image guided look pilot](image-guided-look-pilot.md): generated appearance targets, a frozen Cloudstep policy sweep, native VTS selection, transfer results and methodology limits.
