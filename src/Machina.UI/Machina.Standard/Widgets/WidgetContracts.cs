@@ -25,7 +25,13 @@ public enum WidgetKeyboardScope { None, Control, Popup, TextEntry, Modal }
 
 /// <param name="Detail">Secondary text drawn right-aligned in list rows (a shortcut, a group); also matched by ranked filters.</param>
 /// <param name="Keywords">Extra search terms that are matched but never drawn (synonyms, old names).</param>
-public sealed record WidgetOption(string Key, string Label, bool Disabled = false, string? Detail = null, string? Keywords = null);
+/// <param name="Category">Group name drawn before the label as an aligned caps column ("EXPORT: Vertical"); matched by filters.</param>
+public sealed record WidgetOption(string Key, string Label, bool Disabled = false, string? Detail = null, string? Keywords = null,
+    string? Category = null)
+{
+    /// <summary>The label as read aloud and as plain text: "EXPORT: Vertical" when a category is set.</summary>
+    public string Text => Category is { Length: > 0 } category ? category.ToUpperInvariant() + ": " + Label : Label;
+}
 
 /// <summary>Chooses and orders the options a combobox shows for a query. Must be deterministic and must not add options.</summary>
 public delegate IReadOnlyList<WidgetOption> WidgetOptionFilter(IReadOnlyList<WidgetOption> options, string query);
@@ -35,12 +41,14 @@ public static class WidgetOptionFilters
 {
     /// <summary>Ordinal case-insensitive substring of the label, in declaration order (the original combobox rule).</summary>
     public static IReadOnlyList<WidgetOption> Substring(IReadOnlyList<WidgetOption> options, string query) =>
-        [.. options.Where(option => option.Label.Contains(query, StringComparison.OrdinalIgnoreCase))];
+        [.. options.Where(option => option.Label.Contains(query, StringComparison.OrdinalIgnoreCase)
+            || (option.Category ?? "").Contains(query, StringComparison.OrdinalIgnoreCase))];
 
     /// <summary>
     /// Command-palette ranking. Every query word must match the label, detail or keywords. Per word, a label prefix scores
-    /// highest, then a label word start ("ripple" or "rd" for Ripple Delete initials), then a label substring, then a
-    /// detail/keyword match, then an in-order subsequence of the label ("rpdl"). Ties keep declaration order.
+    /// highest, then a label word start ("ripple"), then a category prefix ("exp" for every EXPORT entry), then label
+    /// initials ("rd" for Ripple Delete), then a label substring, then a category, detail or keyword match, then an
+    /// in-order subsequence of the label ("rpdl"). Ties keep declaration order.
     /// An empty query returns every option unchanged.
     /// </summary>
     public static IReadOnlyList<WidgetOption> Ranked(IReadOnlyList<WidgetOption> options, string query)
@@ -68,9 +76,11 @@ public static class WidgetOptionFilters
         if (label.StartsWith(word, StringComparison.OrdinalIgnoreCase)) return 100;
         var starts = WordStarts(label);
         if (starts.Any(start => string.Compare(label, start, word, 0, word.Length, StringComparison.OrdinalIgnoreCase) == 0)) return 80;
+        if ((option.Category ?? "").StartsWith(word, StringComparison.OrdinalIgnoreCase)) return 75;
         if (word.Length > 1 && Initials(label, starts).StartsWith(word, StringComparison.OrdinalIgnoreCase)) return 70;
         if (label.Contains(word, StringComparison.OrdinalIgnoreCase)) return 50;
-        if ((option.Detail ?? "").Contains(word, StringComparison.OrdinalIgnoreCase)
+        if ((option.Category ?? "").Contains(word, StringComparison.OrdinalIgnoreCase)
+            || (option.Detail ?? "").Contains(word, StringComparison.OrdinalIgnoreCase)
             || (option.Keywords ?? "").Contains(word, StringComparison.OrdinalIgnoreCase)) return 40;
         return Subsequence(label, word) ? 10 : 0;
     }

@@ -520,6 +520,31 @@ public sealed class WidgetInteractionTests
     }
 
     [Fact]
+    public void CategoriesDrawAsAnAlignedCapsColumnAndRankBetweenWordStartsAndInitials()
+    {
+        WidgetOption[] grouped =
+        [
+            new("vertical", "Vertical 1080x1920", Category: "Export"), new("ripple", "Ripple delete", Category: "Editing", Detail: "Shift+Del"),
+            new("expand", "Expand all tracks", Category: "View"),
+        ];
+        Assert.Equal("EXPORT: Vertical 1080x1920", grouped[0].Text);
+        // "exp": a label prefix (Expand) beats a category prefix (EXPORT); the category still finds Vertical.
+        Assert.Equal(["expand", "vertical"], WidgetOptionFilters.Ranked(grouped, "exp").Select(o => o.Key));
+        Assert.Equal(["ripple"], WidgetOptionFilters.Ranked(grouped, "rd").Take(1).Select(o => o.Key)); // initials ignore the category
+        Assert.Equal(["vertical"], WidgetOptionFilters.Substring(grouped, "export").Select(o => o.Key));
+
+        using var fixture = new Fixture(w => w.Combobox("combo", grouped, null, "", true, "Command", width: 420));
+        var nodes = fixture.Frame.Resolved.Nodes;
+        var exportText = nodes[new NodeId("combo.option.vertical.text")].Rect;
+        var editingText = nodes[new NodeId("combo.option.ripple.text")].Rect;
+        Assert.Equal(exportText.X, editingText.X, 3); // labels aligned after the widest category
+        Assert.True(nodes[new NodeId("combo.option.vertical.category")].Rect.X < exportText.X);
+        Assert.Contains(fixture.Frame.Lowering.Semantics.Values, s => s.Label == "EDITING: Ripple delete, Shift+Del");
+        var clicked = fixture.Click(new NodeId("combo.option.ripple"));
+        Assert.Equal("ripple", clicked.Changes.OfType<WidgetSelectionChanged>().Single().Keys.Single());
+    }
+
+    [Fact]
     public void AFilterMayNotInventOptions()
     {
         Assert.Throws<ArgumentException>(() =>

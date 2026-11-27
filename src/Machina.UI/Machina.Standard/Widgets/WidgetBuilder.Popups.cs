@@ -169,6 +169,11 @@ public sealed partial class WidgetBuilder
         bool closeOnSelect, double width, bool menu, TextAlignX alignment = TextAlignX.Center)
     {
         var children = new List<UiNode>();
+        var textStyle = new TextStyle(Style.Foreground, Style.TextSize);
+        double Measure(string text) => TextMeasurer.MeasureText(text, textStyle).Width;
+        // Categories share one column width so labels line up like a table ("EXPORT:  Vertical", "AUDIO:   Normalize").
+        double categoryColumn = options.Any(o => o.Category is { Length: > 0 })
+            ? options.Where(o => o.Category is { Length: > 0 }).Max(o => Measure(o.Category!.ToUpperInvariant() + ":")) + Style.Padding + 2 * Style.Gap : 0;
         foreach (var option in options)
         {
             var binding = new WidgetBinding(id.Child("option").Child(option.Key), id, WidgetKind.Choice)
@@ -178,28 +183,32 @@ public sealed partial class WidgetBuilder
                 Changed = changed, CloseOnSelect = closeOnSelect, Popup = id
             };
             var semantics = new UiSemantics(menu ? UiRole.MenuItem : UiRole.Option,
-                option.Detail is null ? option.Label : option.Label + ", " + option.Detail, option.Disabled, !option.Disabled)
+                option.Detail is null ? option.Text : option.Text + ", " + option.Detail, option.Disabled, !option.Disabled)
             { Selected = menu ? null : option.Key == selected };
-            if (option.Detail is not { Length: > 0 } detail)
+            if (option.Detail is not { Length: > 0 } && categoryColumn == 0)
             {
                 children.Add(ButtonNode(binding, option.Label, Math.Max(1, width), semantics, alignment));
                 continue;
             }
-            // Detail column: right-aligned, muted (accent foreground on the highlighted row), never wider than half the row.
-            double rowWidth = Math.Max(1, width);
-            double detailWidth = Math.Min(rowWidth / 2, TextMeasurer.MeasureText(detail, new TextStyle(Style.Foreground, Style.TextSize)).Width + 2 * Style.Padding);
+            // Composed row: the button carries hit testing, hover and focus; category, label and detail are measured
+            // lines laid over it, each vertically centred, recoloured on the highlighted row.
+            double rowWidth = Math.Max(1, width), left = Style.Padding + 4;
             bool active = option.Key == selected;
-            // The label keeps clear of the detail column: the row button is drawn full width, its label ellipsized short.
-            var row = ButtonNode(binding, Ellipsize(option.Label, Math.Max(1, rowWidth - detailWidth - 2 * Style.Padding)), rowWidth, semantics, TextAlignX.Left);
-            // A measured line box centred in the row, so the detail shares the label's vertical centre.
-            double line = Math.Min(Style.Height, TextMeasurer.MeasureText(detail, new TextStyle(Style.Foreground, Style.TextSize)).Height);
-            var text = TextLine(detail, Math.Max(1, detailWidth - Style.Padding), line,
-                option.Disabled ? Style.Muted : active ? Style.AccentForeground : Style.Muted, TextAlignX.Right, id: binding.Id.Child("detail"));
-            children.Add(Panel(binding.Id.Child("row"), rowWidth, Style.Height,
-            [
-                StandardUI.Place(row, 0, 0, rowWidth, Style.Height),
-                StandardUI.Place(text, rowWidth - detailWidth, (Style.Height - line) / 2, Math.Max(1, detailWidth - Style.Padding), line)
-            ]));
+            ColorToken main = option.Disabled ? Style.Muted : active ? Style.AccentForeground : Style.Foreground;
+            ColorToken quiet = option.Disabled || !active ? Style.Muted : Style.AccentForeground;
+            double line = Math.Min(Style.Height, TextMeasurer.MeasureText("Ag", textStyle).Height), y = (Style.Height - line) / 2;
+            double detailWidth = option.Detail is { Length: > 0 } d ? Math.Min(rowWidth / 2, Measure(d) + 2 * Style.Padding) : 0;
+            double labelWidth = Math.Max(1, rowWidth - left - categoryColumn - detailWidth - Style.Padding);
+            var layers = new List<UiNode> { StandardUI.Place(ButtonNode(binding, "", rowWidth, semantics, TextAlignX.Left), 0, 0, rowWidth, Style.Height) };
+            if (option.Category is { Length: > 0 } category)
+                layers.Add(StandardUI.Place(TextLine(category.ToUpperInvariant() + ":", categoryColumn, line, quiet, id: binding.Id.Child("category")),
+                    left, y, categoryColumn, line));
+            layers.Add(StandardUI.Place(TextLine(option.Label, labelWidth, line, main, id: binding.Id.Child("text")),
+                left + categoryColumn, y, labelWidth, line));
+            if (option.Detail is { Length: > 0 } detail)
+                layers.Add(StandardUI.Place(TextLine(detail, Math.Max(1, detailWidth - Style.Padding), line, quiet, TextAlignX.Right, id: binding.Id.Child("detail")),
+                    rowWidth - detailWidth, y, Math.Max(1, detailWidth - Style.Padding), line));
+            children.Add(Panel(binding.Id.Child("row"), rowWidth, Style.Height, layers));
         }
         return UI.Column(children, id.Child("options"), gap: Style.Gap)
             with { Semantics = new(menu ? UiRole.Menu : UiRole.ListBox) };
