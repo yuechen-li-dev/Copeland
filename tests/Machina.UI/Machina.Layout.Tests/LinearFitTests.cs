@@ -27,4 +27,14 @@ public sealed class LinearFitTests
     {
         Assert.Empty(LinearFit.Place([new(20), new(1)], [new(0, 19)]));
     }
+
+    [Fact]
+    public void AnExactFitSurvivesMeasuredFloatNoise()
+    {
+        // 0.1 + 0.2 lands a hair above 0.3 in binary; a measured exact fit must still fit.
+        double a = 0.1, b = 0.2, lane = 0.3;
+        Assert.True(a + b > lane);
+        Assert.Equal(2, LinearFit.Place([new(a), new(b)], [new(0, lane)]).Count);
+        Assert.Single(LinearFit.Place([new(a), new(b + 0.01)], [new(0, lane)]));
+    }
 }

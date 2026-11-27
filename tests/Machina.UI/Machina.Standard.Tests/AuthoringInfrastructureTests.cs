@@ -235,4 +235,15 @@ public sealed class AuthoringInfrastructureTests
         }
         public void Dispose() => Session.Dispose();
     }
+
+    [Fact]
+    public void PlacedTextThatAsksForAlignmentFillsItsBox()
+    {
+        var centred = StandardUI.Place(UI.Text("PGM", id: "badge", alignX: TextAlignX.Center, alignY: TextAlignY.Center), 10, 20, 80, 30);
+        var plain = StandardUI.Place(UI.Text("PGM", id: "plain"), 10, 60, 80, 30);
+        var frame = new MachinaPresentationPipeline().Prepare(UI.Layer(children: [centred, plain]), 200, 120);
+        Assert.Equal(new Rect(10, 20, 80, 30), frame.Resolved.Nodes[new NodeId("badge")].Rect);
+        // Left/top text keeps its intrinsic size, so existing measured layouts do not move.
+        Assert.True(frame.Resolved.Nodes[new NodeId("plain")].Rect.Width < 80);
+    }
 }

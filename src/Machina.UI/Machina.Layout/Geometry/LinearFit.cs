@@ -10,6 +10,9 @@ public readonly record struct LinearPlacement(int Lane, double Start, double Len
 /// <summary>Places an ordered prefix in bounded lanes. The first unplaced item is at the returned count.</summary>
 public static class LinearFit
 {
+    /// <summary>Lengths are sums of measured text widths; this absorbs sub-pixel float noise so an exact fit is a fit.</summary>
+    public const double Tolerance = 1e-3;
+
     /// <summary>
     /// Wraps to the next lane when an item cannot fit. Gaps apply only between items in the same lane.
     /// The final lane can reserve space for a trailing control such as an overflow button.
@@ -46,7 +49,7 @@ public static class LinearFit
                 double start = occupied ? used + gap + item.ExtraGapBefore : 0;
                 double end = start + item.Length;
                 double available = lane.Length - (laneIndex == lanes.Count - 1 ? trailingReserve : 0);
-                if (end <= available)
+                if (end <= available + Tolerance)
                 {
                     placed.Add(new(laneIndex, lane.Start + start, item.Length));
                     used = end;

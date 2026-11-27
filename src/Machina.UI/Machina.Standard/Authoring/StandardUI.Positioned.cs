@@ -33,10 +33,17 @@ public static partial class StandardUI
             variant, size, disabled, theme, style);
     }
 
-    /// <summary>Places any component in coordinates relative to its parent.</summary>
+    /// <summary>
+    /// Places any component in coordinates relative to its parent. Text that asks for alignment (anything but
+    /// left/top) fills the placed box, so centred or right-aligned text is aligned within the box it is given
+    /// instead of within its own intrinsic size, where alignment has no effect.
+    /// </summary>
     public static UiNode Place(UiNode child, double x, double y, double width, double height)
     {
         ArgumentNullException.ThrowIfNull(child);
+        if (child is TextNode { FillAvailableSpace: false, Style: { } style } text
+            && (style.AlignX != TextAlignX.Left || style.AlignY != TextAlignY.Top))
+            child = text with { FillAvailableSpace = true };
         return UI.Anchor(child, left: x, top: y, width: width, height: height);
     }
 
