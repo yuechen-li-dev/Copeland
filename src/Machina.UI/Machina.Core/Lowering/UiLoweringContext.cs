@@ -9,7 +9,11 @@ namespace Machina.Core.Lowering;
 internal sealed class UiLoweringContext
 {
     private int nextGeneratedId;
-    private readonly HashSet<NodeId> seenIds = [];
+    private readonly Dictionary<NodeId, IdOrigin> seenIds = [];
+    private readonly record struct IdOrigin(string Kind, NodeId? Parent)
+    {
+        public override string ToString() => Parent is { } parent ? $"{Kind} under '{parent}'" : $"{Kind} at the root";
+    }
 
     public UiLoweringContext(ITextMeasurer textMeasurer)
     {
@@ -30,12 +34,19 @@ internal sealed class UiLoweringContext
 
     public Dictionary<NodeId, object> NodePayloads { get; } = [];
 
-    public NodeId AllocateId(NodeId? explicitId)
+    public NodeId AllocateId(NodeId? explicitId, string kind, NodeId? parent)
     {
+        var origin = new IdOrigin(kind, parent);
         if (explicitId is { } id)
         {
             ValidateExplicitId(id);
-            RegisterId(id, "DuplicateUiNodeId");
+            if (!seenIds.TryAdd(id, origin))
+            {
+                throw new UiLoweringError("DuplicateUiNodeId",
+                    $"Duplicate UI node id '{id}'. First used by {seenIds[id]}. Also used by {origin}. " +
+                    "Components reserve their generated child IDs (for example, a button owns '.label' and '.label-region'). " +
+                    "Give the authored node its own ID.");
+            }
             return id;
         }
 
@@ -44,7 +55,7 @@ internal sealed class UiLoweringContext
             var generated = new NodeId($"ui_{nextGeneratedId}");
             nextGeneratedId++;
 
-            if (seenIds.Add(generated))
+            if (seenIds.TryAdd(generated, origin))
             {
                 return generated;
             }
@@ -58,14 +69,6 @@ internal sealed class UiLoweringContext
             throw new UiLoweringError(
                 "InvalidUiNodeId",
                 "Explicit UI node ids must not be empty or whitespace.");
-        }
-    }
-
-    private void RegisterId(NodeId id, string code)
-    {
-        if (!seenIds.Add(id))
-        {
-            throw new UiLoweringError(code, $"Duplicate UI node id '{id}'.");
         }
     }
 }

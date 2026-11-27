@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Machina.Layout.Geometry;
 
 namespace Machina.Standard.Authoring;
 
@@ -33,32 +34,19 @@ public static class Flow
         if (!double.IsFinite(available) || available < 0) throw new ArgumentOutOfRangeException(nameof(available));
         foreach (double value in new[] { gap, rowHeight, rowGap, groupGap })
             if (!double.IsFinite(value) || value < 0) throw new ArgumentOutOfRangeException(nameof(gap), "Gaps and heights must be finite and non-negative.");
-        var slots = ImmutableArray.CreateBuilder<FlowSlot>(widths.Count);
-        double x = 0, used = 0;
-        int row = 0, dropped = 0;
-        for (int index = 0; index < widths.Count; index++)
-        {
-            double width = widths[index];
-            if (!double.IsFinite(width) || width < 0) throw new ArgumentOutOfRangeException(nameof(widths), $"Width {index} must be finite and non-negative.");
-            double lead = x == 0 ? 0 : gap + (groupBreaks?.Contains(index) == true ? groupGap : 0);
-            if (x + lead + width > available + 1e-9)
-            {
-                if (overflow == FlowOverflow.Throw)
-                    throw new InvalidOperationException($"Flow item {index} ({width:0.##}) does not fit in {available:0.##}.");
-                if (overflow == FlowOverflow.Drop || x == 0)
-                {
-                    // A dropped item ends the row for Drop; a single over-wide item can never be placed either way.
-                    dropped = widths.Count - index;
-                    break;
-                }
-                row++; x = 0; lead = 0;
-            }
-            x += lead;
-            slots.Add(new FlowSlot(index, row, x, row * (rowHeight + rowGap), width, rowHeight));
-            x += width;
-            used = Math.Max(used, x);
-        }
-        int rows = slots.Count == 0 ? 0 : row + 1;
-        return new FlowLayout(slots.ToImmutable(), dropped, used, rows == 0 ? 0 : rows * rowHeight + (rows - 1) * rowGap, rows);
+        var measured = widths.Select((width, index) =>
+            new LinearItem(width, groupBreaks?.Contains(index) == true ? groupGap : 0)).ToArray();
+        int laneCount = overflow == FlowOverflow.Wrap ? Math.Max(widths.Count, 1) : 1;
+        var lanes = Enumerable.Repeat(new LinearLane(0, available), laneCount).ToArray();
+        var placements = LinearFit.Place(measured, lanes, gap);
+        int dropped = widths.Count - placements.Count;
+        if (dropped > 0 && overflow == FlowOverflow.Throw)
+            throw new InvalidOperationException($"Flow item {placements.Count} ({widths[placements.Count]:0.##}) does not fit in {available:0.##}.");
+
+        var slots = placements.Select((item, index) => new FlowSlot(index, item.Lane, item.Start,
+            item.Lane * (rowHeight + rowGap), item.Length, rowHeight)).ToImmutableArray();
+        int rows = slots.IsEmpty ? 0 : slots[^1].Row + 1;
+        double used = slots.IsEmpty ? 0 : slots.Max(slot => slot.X + slot.Width);
+        return new FlowLayout(slots, dropped, used, rows == 0 ? 0 : rows * rowHeight + (rows - 1) * rowGap, rows);
     }
 }

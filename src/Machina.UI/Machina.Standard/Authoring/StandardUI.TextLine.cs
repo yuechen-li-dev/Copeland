@@ -45,7 +45,7 @@ public static partial class StandardUI
 {
     /// <summary>
     /// One line of text in an explicit box: never wider than <paramref name="width"/>, never shorter than the measured
-    /// line (so glyphs are not clipped vertically), vertically aligned within <paramref name="height"/>.
+    /// line (so glyphs are not clipped vertically), and aligned on both axes within the resulting box.
     /// The returned node's Width/Height are the box it occupies; place it like any other node.
     /// </summary>
     public static RectNode TextLine(string text, double width, double height, ITextMeasurer measurer,
@@ -68,7 +68,7 @@ public static partial class StandardUI
             };
         }
         double boxHeight = Math.Max(height, measured.Height);
-        var line = UI.Text(shown, id: id?.Child("text"), color: color, size: size, alignX: alignX, alignY: alignY);
+        var line = new TextNode(shown, style) { Id = id?.Child("text"), FillAvailableSpace = true };
         return (RectNode)UI.Rect(line, id, width, boxHeight, style: new UiStyle(ClipToBounds: true));
     }
 }

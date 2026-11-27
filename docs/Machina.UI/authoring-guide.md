@@ -135,14 +135,22 @@ binding into a test failure (Valencia's widget gallery does this). Machina targe
 C# 15 `closed` hierarchies or unions; applications on .NET 11 may use them for their own intent and command types.
 
 **Measured text.** `StandardUI.TextLine(text, width, height, measurer, ...)` (or `WidgetBuilder.TextLine` with the
-frame's measurer) returns a box that is never wider than requested, never shorter than the measured line, vertically
-centred, with an explicit `TextOverflow` (`Ellipsis`, `Clip`, `Throw`). `TextFit.Ellipsize` is the one shared trimming
+frame's measurer) aligns text inside the box with `alignX` and `alignY`. The defaults are left and vertically centred.
+The box keeps the requested width and grows to at least the measured line height. Choose `TextOverflow.Ellipsis`,
+`Clip`, or `Throw` for long labels. `TextFit.Ellipsize` is the shared trimming
 routine, cutting only at grapheme boundaries. Use these instead of a raw `UI.Text` in a fixed row: an overflowing
 `UI.Row` is a `LayoutError`, not a visual glitch.
 
 **Flow.** `Flow.Horizontal(available, widths, gap, overflow, ...)` is a pure function from widths to slot positions
 with a declared overflow policy (`Drop`, `Wrap`, `Throw`) and optional group gaps. It replaces `x += width + gap`
-cursor walks; print or assert the returned `FlowLayout`, then place nodes at its slots.
+cursor walks. For explicitly bounded rows or columns, use `LinearFit.Place` from `Machina.Layout.Geometry`.
+Supply each lane's origin and length along the layout axis. Use `trailingReserve` to leave room at the end of the
+final lane, such as for an overflow button. The returned count gives the index of the first item that did not fit.
+
+```csharp
+var strips = LinearFit.Place([new(44), new(44), new(44), new(44)], [new(0, 169)]);
+// Place the first three strips at 0, 44, and 88. The fourth stays in overflow.
+```
 
 **Layout dump.** `MachinaLayoutDump.Format(prepared)` renders the resolved layout as deterministic text: one line per
 node with ID, rect, clip, role, label, action and flags, indented by depth in paint order. Compact mode omits
@@ -158,6 +166,11 @@ action, x, y, width, ...)` supplies an action-derived node ID by default, and
 `UiTableRow.Id` accepts a typed `NodeId`. Declare typed widget slots with
 `UiStateKey<T>`. See [typed identity and actions](architecture/machina-typed-identity-and-actions.md)
 for examples, migration details and the external playtest lookup boundary.
+
+Components own the IDs they derive from their root. For example, a button with ID `save` owns `save.label`
+and `save.label-region`. Give authored siblings distinct IDs such as `save-hint`. The suffixes are available
+under other IDs that do not derive those children. A `DuplicateUiNodeId` diagnostic reports the reused ID
+and the location of both nodes in the declaration.
 
 Use `MachinaPresentationCache.Prepare(declaration, width, height)` to reuse layout,
 text presentation and hit testing for an unchanged declaration. Reconstruct the pure
@@ -186,6 +199,21 @@ restore and shutdown discard the complete UI workflow. UI state is transient and
 does not enter simulation saves or replay hashes. Machina itself has no Dominatus
 dependency. See [screen state and invalidation](architecture/machina-screen-state-and-invalidation.md)
 for the evaluation, lifetime policy, source paths and limits.
+
+## Headless PNG previews
+
+Reference [Machina.Testing](../../tests/Machina.UI/Machina.Testing/Machina.Testing.csproj) from your test project.
+Render a tree declaration directly, or capture a prepared frame after a widget action such as opening a menu.
+
+```csharp
+using Machina.Testing;
+
+var pixels = HeadlessPreview.WritePng(screenDeclaration, 800, 480, "artifacts/screen.png");
+HeadlessPreview.WritePng(preparedFrame, "artifacts/menu-open.png");
+```
+
+The helper runs the Machina presentation pipeline and CPU reference rasterizer without a window or GPU.
+The output uses reference bitmap glyphs. Use the native host to verify product font rendering.
 
 ## Follow the real sample and test paths
 

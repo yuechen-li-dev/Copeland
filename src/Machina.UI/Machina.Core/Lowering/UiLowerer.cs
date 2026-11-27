@@ -39,7 +39,7 @@ public static class UiLowerer
     {
         ValidateNode(node);
 
-        var id = context.AllocateId(node.Id);
+        var id = context.AllocateId(node.Id, node.GetType().Name, parent);
         var frame = CreateFrame(node, context, isRoot, parentIsStack);
         var arrange = CreateArrange(node);
         var debugLabel = CreateDebugLabel(node);
@@ -469,7 +469,7 @@ public static class UiLowerer
             return;
         }
 
-        var wrapperId = context.AllocateId(new NodeId($"{parentId.Value}.item-{order}"));
+        var wrapperId = context.AllocateId(new NodeId($"{parentId.Value}.item-{order}"), "stack item", parentId);
         var wrapperFrame = CreateExplicitStackItemFrame(axis, item, context);
 
         context.Rows.Add(new LayoutRow(
@@ -496,7 +496,7 @@ public static class UiLowerer
         ArgumentNullException.ThrowIfNull(cell);
         ArgumentNullException.ThrowIfNull(cell.Child);
 
-        var wrapperId = context.AllocateId(new NodeId($"{parentId.Value}.cell-{cell.Row}-{cell.Column}"));
+        var wrapperId = context.AllocateId(new NodeId($"{parentId.Value}.cell-{cell.Row}-{cell.Column}"), "grid cell", parentId);
         var wrapperFrame = new CellFrame(cell.Column, cell.Row);
 
         context.Rows.Add(new LayoutRow(

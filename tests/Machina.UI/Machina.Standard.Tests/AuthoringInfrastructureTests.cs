@@ -180,6 +180,9 @@ public sealed class AuthoringInfrastructureTests
         var oversize = Flow.Horizontal(30, [40d], overflow: FlowOverflow.Wrap);
         Assert.Empty(oversize.Slots);
         Assert.Equal(1, oversize.Dropped);
+        var oversizeAfterFit = Flow.Horizontal(30, [10d, 40d, 10d], overflow: FlowOverflow.Wrap);
+        Assert.Single(oversizeAfterFit.Slots);
+        Assert.Equal(2, oversizeAfterFit.Dropped);
     }
 
     [Fact]
