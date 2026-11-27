@@ -20,6 +20,15 @@ using Silk.NET.Maths;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
 
+if (args.Contains("--bistro", StringComparer.Ordinal))
+{
+    BistroDemo.Run(Path.GetFullPath(Option("--assets") ?? "artifacts/local/bistro/assets/assets.toml"),
+        Path.GetFullPath(Option("--output") ?? "artifacts/local/bistro/captures"),
+        args.Contains("--play", StringComparer.Ordinal), args.Contains("--bistro-raster", StringComparer.Ordinal),
+        args.Contains("--bistro-scaled", StringComparer.Ordinal));
+    return;
+}
+
 if (args.Contains("--music-layers", StringComparer.Ordinal))
 {
     MusicLayersProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/music-layers"));

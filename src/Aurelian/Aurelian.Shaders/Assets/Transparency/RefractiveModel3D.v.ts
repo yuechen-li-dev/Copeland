@@ -414,16 +414,16 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
         }
     }
     let traced: bool = found;
-    if (water && !found) {
-        transmitted = float3(uniforms.material.waterDeep.x, uniforms.material.waterDeep.y, uniforms.material.waterDeep.z);
-        // Screen-space rays cannot recover a floor hidden behind a foreground
-        // rim. Prefer a depth-qualified undistorted background over a hard hole.
+    if (!found) {
+        if (water) {
+            transmitted = float3(uniforms.material.waterDeep.x, uniforms.material.waterDeep.y, uniforms.material.waterDeep.z);
+        }
+        // An opaque receiver close to the glass can lie before the estimated
+        // exit point. Preserve its color when the refracted trace misses.
         if (opaque.w < 1.0) {
             let world: float3 = WorldAt(uv, opaque.w, uniforms.material.inverseX,
                 uniforms.material.inverseY, uniforms.material.inverseZ, uniforms.material.inverseW);
-            if (world.y < p.y && Dot3(Sub3(world, p), incident) > 0.0) {
-                let color: float4 = Sample(resources.scene, resources.sceneSampler, uv);
-                transmitted = float3(color.x, color.y, color.z);
+            if ((!water || world.y < p.y) && Dot3(Sub3(world, p), incident) > 0.0) {
                 hitPoint = world;
                 hitUv = uv;
                 found = true;

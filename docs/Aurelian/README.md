@@ -100,6 +100,7 @@ Milestone, audit, and experiment reports record bounded work at the time it ran;
 
 - [Aurelian solution](../../Aurelian.slnx)
 - [Beacon Run project and proof notes](../../Games/Beacon3D/Aurelian.Beacon3D/README.md)
+- [Bistro after dark](bistro.md) imports the authored Amazon Lumberyard interior for a guided Vulkan graphics demo.
 - [Reusable game menu template](games/game-menu-template.md)
 - [Aetheris/agent binding architecture](../architecture/AURELIAN_AGENT_BODY_BINDING.md)
 - [Legacy Skyrim agent import](../architecture/AURELIAN_LEGACY_AGENT_IMPORT.md)

@@ -42,6 +42,9 @@ internal sealed unsafe partial class VulkanSceneAcceleration3D
         }
         if (!Matches(instances))
         {
+            if (instances.Any(instance => instance.Material.AlphaBlend || instance.Material.Transmission > 0
+                || instance.Material.AlphaMask && instance.RayMask != 0))
+                throw new NotSupportedException("AUR-RAY-SCENE-002: Ray shadows admit opaque geometry. Retained cutouts must explicitly opt out with RayMask = 0.");
             if (streamingStorage && CanUpdate(previous, instances, mode))
             {
                 UploadSnapshot(instances, slot, initializeAllSlots: false);
@@ -134,7 +137,8 @@ internal sealed unsafe partial class VulkanSceneAcceleration3D
             }
             float[] rows = Lighting3DUniforms.Rows(instance.Transform);
             MemoryMarshal.AsBytes(rows.AsSpan(0, 12)).CopyTo(descriptors.AsSpan(index * 64, 48));
-            BitConverter.TryWriteBytes(descriptors.AsSpan(index * 64 + 48, 4), (uint)index | 0xff000000u);
+            uint hardwareMask = instance.RayMask == 0 ? 0 : 0xff000000u;
+            BitConverter.TryWriteBytes(descriptors.AsSpan(index * 64 + 48, 4), (uint)index | hardwareMask);
             BitConverter.TryWriteBytes(descriptors.AsSpan(index * 64 + 56, 8), entry.Address);
             metadata[index * 4] = Bits((uint)mesh.PrimitiveKind);
             metadata[index * 4 + 1] = Bits(instance.RayLayer);

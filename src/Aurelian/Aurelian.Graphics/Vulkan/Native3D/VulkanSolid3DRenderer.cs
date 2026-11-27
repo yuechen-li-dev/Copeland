@@ -731,8 +731,11 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             throw new NotSupportedException("AUR-GI-007: Dynamic environment lighting requires source radiance matching the compiled environment's SourceKey.");
         bool reflections = (settings.SharpReflections || settings.GlossyReflections != GlossyReflectionMode3D.Off)
             && settings.SurfaceDebugView == SurfaceDebugView3D.Shaded;
+        // Forward alpha blends and screen-space refraction consume opaque lighting.
+        // Only immediate opaque batches would be missing from the shared ray scene.
+        bool hasRayIncompatibleBatches = models.Any(batch => !batch.Material.AlphaBlend && batch.Material.Transmission <= 0);
         if (reflections && (surfaceLighting is null || !settings.SolidPbr || !EnableVisibilityBuffer
-            || !EnableBindlessMaterials || diffusePublished || resident is null || !geometry.IsEmpty || models.Count != 0 || gpuGeometry is not null
+            || !EnableBindlessMaterials || diffusePublished || resident is null || !geometry.IsEmpty || hasRayIncompatibleBatches || gpuGeometry is not null
             || !plant.Facts.EnabledDeviceExtensions.Contains("VK_KHR_ray_query", StringComparer.Ordinal)))
             throw new NotSupportedException("AUR-REFLECT-001: Ray-traced reflections require opaque retained visibility-buffer PBR on a ray-query device.");
         if (reflections && useTemporal && temporal?.SupportsReflectionMask != true)
@@ -741,7 +744,7 @@ public sealed unsafe partial class VulkanSolid3DRenderer : IDisposable
             EnableRayShadows, DynamicDiffuse, EnvironmentSource, reflections) == true)
             correspondenceChanged = true;
         if ((DynamicDiffuse.Mode != DynamicDiffuseMode3D.Off || EnableRayShadows && LocalLights.Any(light => light.CastShadows || light.Kind == LocalLightKind.Sphere))
-            && (resident is null || !geometry.IsEmpty || models.Count != 0 || gpuGeometry is not null))
+            && (resident is null || !geometry.IsEmpty || hasRayIncompatibleBatches || gpuGeometry is not null))
             throw new NotSupportedException("AUR-RAY-SHADOW-002: Ray shadows require one opaque NativeInstanceSet3D snapshot; mixed immediate or GPU-generated geometry has no shared acceleration authority yet.");
         if (correspondenceChanged) InvalidateSurfaceHistory();
         Matrix4x4 logicalCamera = worldToClip;

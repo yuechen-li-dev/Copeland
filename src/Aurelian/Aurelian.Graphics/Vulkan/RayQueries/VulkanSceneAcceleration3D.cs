@@ -77,9 +77,6 @@ internal sealed unsafe partial class VulkanSceneAcceleration3D : IDisposable
     private void Rebuild(NativeInstanceSet3D instances, int slot, bool useStreamingStorage)
     {
         if (Matches(instances)) return;
-        if (instances.Any(instance => instance.Material.AlphaMask || instance.Material.AlphaBlend
-            || instance.Material.Transmission > 0))
-            throw new NotSupportedException("AUR-RAY-SCENE-002: Ray shadows currently admit opaque retained instances; MASK requires an opacity candidate evaluator.");
         if (TopLevel.Handle != 0) acceleration.DestroyAccelerationStructure(plant.Device, TopLevel, null);
         TopLevel = default;
         previous = null;

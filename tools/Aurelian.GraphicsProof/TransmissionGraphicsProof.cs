@@ -133,6 +133,14 @@ internal static class TransmissionGraphicsProof
         float absorptionError = Vector3.Distance(LinearCenter(absorbed), absorptionExpected);
         Require(absorptionError < .012f, $"Glass absorption failed reference: {absorptionError}.");
 
+        Vector3 nearReceiverColor = new(.2f, .65f, .35f);
+        var nearReceiver = Quad(new(0, 0, 1.975f), 2.5f,
+            backdrop with { Slot = "close-glass-receiver", BaseColor = new(nearReceiverColor, 1) });
+        var closeGlass = pane with { Material = glass with { IndexOfRefraction = 1.5f, Thickness = .08f } };
+        byte[] nearGlass = Capture("close-receiver-through-glass", new([], [nearReceiver, closeGlass]));
+        float nearReceiverError = Vector3.Distance(LinearCenter(nearGlass), nearReceiverColor * .96f);
+        Require(nearReceiverError < .012f, $"Glass lost the color of a receiver inside its screen-space exit estimate: {nearReceiverError}.");
+
         NativeModel3DBatch foreground = Quad(new(0, 0, 3), 2.5f,
             backdrop with { Slot = "foreground", BaseColor = new(.1f, .3f, .2f, 1) });
         var obscured = throughGlass with { Models = [.. throughGlass.Models, foreground] };
@@ -346,6 +354,7 @@ internal static class TransmissionGraphicsProof
             OrthographicTransportRejected = orthographicRejected,
             SurfaceTintError = surfaceTintError,
             AbsorptionError = absorptionError,
+            NearGlassReceiverError = nearReceiverError,
             EnvironmentFallbackError = fallbackError,
             RoughGlassChangedPixels = roughPixels,
             NormalMappedGlassChangedPixels = normalPixels,
