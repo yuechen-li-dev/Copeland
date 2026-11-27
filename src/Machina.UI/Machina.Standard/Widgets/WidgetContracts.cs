@@ -23,7 +23,76 @@ public enum WidgetPopupSide { Bottom, Top, Left, Right }
 /// </summary>
 public enum WidgetKeyboardScope { None, Control, Popup, TextEntry, Modal }
 
-public sealed record WidgetOption(string Key, string Label, bool Disabled = false);
+/// <param name="Detail">Secondary text drawn right-aligned in list rows (a shortcut, a group); also matched by ranked filters.</param>
+/// <param name="Keywords">Extra search terms that are matched but never drawn (synonyms, old names).</param>
+public sealed record WidgetOption(string Key, string Label, bool Disabled = false, string? Detail = null, string? Keywords = null);
+
+/// <summary>Chooses and orders the options a combobox shows for a query. Must be deterministic and must not add options.</summary>
+public delegate IReadOnlyList<WidgetOption> WidgetOptionFilter(IReadOnlyList<WidgetOption> options, string query);
+
+/// <summary>Built-in combobox filters.</summary>
+public static class WidgetOptionFilters
+{
+    /// <summary>Ordinal case-insensitive substring of the label, in declaration order (the original combobox rule).</summary>
+    public static IReadOnlyList<WidgetOption> Substring(IReadOnlyList<WidgetOption> options, string query) =>
+        [.. options.Where(option => option.Label.Contains(query, StringComparison.OrdinalIgnoreCase))];
+
+    /// <summary>
+    /// Command-palette ranking. Every query word must match the label, detail or keywords. Per word, a label prefix scores
+    /// highest, then a label word start ("ripple" or "rd" for Ripple Delete initials), then a label substring, then a
+    /// detail/keyword match, then an in-order subsequence of the label ("rpdl"). Ties keep declaration order.
+    /// An empty query returns every option unchanged.
+    /// </summary>
+    public static IReadOnlyList<WidgetOption> Ranked(IReadOnlyList<WidgetOption> options, string query)
+    {
+        var words = query.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (words.Length == 0) return options;
+        var scored = new List<(WidgetOption Option, int Score, int Index)>();
+        for (int i = 0; i < options.Count; i++)
+        {
+            int total = 0;
+            foreach (string word in words)
+            {
+                int score = Score(options[i], word);
+                if (score == 0) { total = 0; break; }
+                total += score;
+            }
+            if (total > 0) scored.Add((options[i], total, i));
+        }
+        return [.. scored.OrderByDescending(item => item.Score).ThenBy(item => item.Index).Select(item => item.Option)];
+    }
+
+    private static int Score(WidgetOption option, string word)
+    {
+        string label = option.Label;
+        if (label.StartsWith(word, StringComparison.OrdinalIgnoreCase)) return 100;
+        var starts = WordStarts(label);
+        if (starts.Any(start => string.Compare(label, start, word, 0, word.Length, StringComparison.OrdinalIgnoreCase) == 0)) return 80;
+        if (word.Length > 1 && Initials(label, starts).StartsWith(word, StringComparison.OrdinalIgnoreCase)) return 70;
+        if (label.Contains(word, StringComparison.OrdinalIgnoreCase)) return 50;
+        if ((option.Detail ?? "").Contains(word, StringComparison.OrdinalIgnoreCase)
+            || (option.Keywords ?? "").Contains(word, StringComparison.OrdinalIgnoreCase)) return 40;
+        return Subsequence(label, word) ? 10 : 0;
+    }
+
+    private static List<int> WordStarts(string text)
+    {
+        var starts = new List<int>();
+        for (int i = 0; i < text.Length; i++)
+            if (char.IsLetterOrDigit(text[i]) && (i == 0 || !char.IsLetterOrDigit(text[i - 1]))) starts.Add(i);
+        return starts;
+    }
+
+    private static string Initials(string text, List<int> starts) => string.Concat(starts.Select(start => text[start]));
+
+    private static bool Subsequence(string text, string word)
+    {
+        int at = 0;
+        foreach (char c in text)
+            if (at < word.Length && char.ToUpperInvariant(c) == char.ToUpperInvariant(word[at])) at++;
+        return at == word.Length;
+    }
+}
 public sealed record WidgetPanel(string Key, string Label, UiNode Content, bool Disabled = false);
 
 public abstract record WidgetChange(NodeId Target, UiAction? Action);
@@ -93,6 +162,8 @@ internal sealed record WidgetBinding(NodeId Id, NodeId Owner, WidgetKind Kind)
     public bool DigitsOnly { get; init; }
     public bool Open { get; init; }
     public NodeId? Popup { get; init; }
+    /// <summary>Combobox input: Enter accepts the first enabled suggestion while the list is open.</summary>
+    public bool AcceptFirst { get; init; }
 
     public UiAction Intent => UiAction.Typed(new UiActionId(Id.Value), new WidgetIntent(Id));
 }

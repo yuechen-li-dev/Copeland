@@ -177,9 +177,29 @@ public sealed partial class WidgetBuilder
                 Group = id.Child("options"), Orientation = WidgetOrientation.Vertical, Disabled = option.Disabled,
                 Changed = changed, CloseOnSelect = closeOnSelect, Popup = id
             };
-            children.Add(ButtonNode(binding, option.Label, Math.Max(1, width),
-                new(menu ? UiRole.MenuItem : UiRole.Option, option.Label, option.Disabled, !option.Disabled)
-                { Selected = menu ? null : option.Key == selected }, alignment));
+            var semantics = new UiSemantics(menu ? UiRole.MenuItem : UiRole.Option,
+                option.Detail is null ? option.Label : option.Label + ", " + option.Detail, option.Disabled, !option.Disabled)
+            { Selected = menu ? null : option.Key == selected };
+            if (option.Detail is not { Length: > 0 } detail)
+            {
+                children.Add(ButtonNode(binding, option.Label, Math.Max(1, width), semantics, alignment));
+                continue;
+            }
+            // Detail column: right-aligned, muted (accent foreground on the highlighted row), never wider than half the row.
+            double rowWidth = Math.Max(1, width);
+            double detailWidth = Math.Min(rowWidth / 2, TextMeasurer.MeasureText(detail, new TextStyle(Style.Foreground, Style.TextSize)).Width + 2 * Style.Padding);
+            bool active = option.Key == selected;
+            // The label keeps clear of the detail column: the row button is drawn full width, its label ellipsized short.
+            var row = ButtonNode(binding, Ellipsize(option.Label, Math.Max(1, rowWidth - detailWidth - 2 * Style.Padding)), rowWidth, semantics, TextAlignX.Left);
+            // A measured line box centred in the row, so the detail shares the label's vertical centre.
+            double line = Math.Min(Style.Height, TextMeasurer.MeasureText(detail, new TextStyle(Style.Foreground, Style.TextSize)).Height);
+            var text = TextLine(detail, Math.Max(1, detailWidth - Style.Padding), line,
+                option.Disabled ? Style.Muted : active ? Style.AccentForeground : Style.Muted, TextAlignX.Right, id: binding.Id.Child("detail"));
+            children.Add(Panel(binding.Id.Child("row"), rowWidth, Style.Height,
+            [
+                StandardUI.Place(row, 0, 0, rowWidth, Style.Height),
+                StandardUI.Place(text, rowWidth - detailWidth, (Style.Height - line) / 2, Math.Max(1, detailWidth - Style.Padding), line)
+            ]));
         }
         return UI.Column(children, id.Child("options"), gap: Style.Gap)
             with { Semantics = new(menu ? UiRole.Menu : UiRole.ListBox) };

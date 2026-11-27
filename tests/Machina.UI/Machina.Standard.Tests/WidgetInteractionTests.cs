@@ -441,6 +441,94 @@ public sealed class WidgetInteractionTests
         Assert.Equal(decimal.MaxValue, numeric.Key(UiKey.PageUp).Changes.OfType<WidgetNumberChanged>().Single().Value);
     }
 
+    private static readonly WidgetOption[] Commands =
+    [
+        new("split", "Split at playhead", Detail: "Ctrl+K"), new("ripple", "Ripple delete", Detail: "Shift+Del"),
+        new("render", "Show render queue", Keywords: "export jobs"), new("disabled", "Relink media", Disabled: true),
+        new("rate", "Reset playback rate"),
+    ];
+
+    [Fact]
+    public void RankedFilterPrefersPrefixesThenWordStartsThenInitialsThenSubsequence()
+    {
+        Assert.Equal(Commands, WidgetOptionFilters.Ranked(Commands, "  "));
+        Assert.Equal(["ripple"], WidgetOptionFilters.Ranked(Commands, "rip").Select(o => o.Key));
+        Assert.Equal("ripple", WidgetOptionFilters.Ranked(Commands, "rd").First().Key); // initials beat subsequence matches
+        Assert.Equal("ripple", WidgetOptionFilters.Ranked(Commands, "delete").First().Key);       // word start
+        Assert.Equal(["render"], WidgetOptionFilters.Ranked(Commands, "export").Select(o => o.Key)); // keywords only
+        Assert.Equal(["split"], WidgetOptionFilters.Ranked(Commands, "ctrl+k").Select(o => o.Key)); // detail
+        Assert.Equal(["split"], WidgetOptionFilters.Ranked(Commands, "split play").Select(o => o.Key)); // every word must match
+        Assert.Empty(WidgetOptionFilters.Ranked(Commands, "zzz"));
+        // Label prefixes (Relink, Reset) outrank a word start (render), which outranks a subsequence (R..e in Ripple).
+        Assert.Equal(["disabled", "rate", "render", "ripple"], WidgetOptionFilters.Ranked(Commands, "re").Select(o => o.Key));
+    }
+
+    [Fact]
+    public void AcceptFirstHighlightsTheTopSuggestionAndEnterTakesItFromTheInput()
+    {
+        using var fixture = new Fixture(w => w.Combobox("combo", Commands, null, "re", true, "Command",
+            filter: WidgetOptionFilters.Ranked, acceptFirst: true, width: 400));
+        Assert.True(fixture.Session.Focus("combo.input"));
+        fixture.Prepare();
+        var options = fixture.Frame.Lowering.Semantics.Values.Where(node => node.Role == Machina.Core.Semantics.UiRole.Option).ToArray();
+        Assert.Contains(options, node => node.Selected == true && (node.Label ?? "").StartsWith("Reset playback rate", StringComparison.Ordinal));
+        var accepted = fixture.Key(UiKey.Enter);
+        Assert.Equal("rate", accepted.Changes.OfType<WidgetSelectionChanged>().Single().Keys.Single()); // first enabled; Relink is disabled
+        Assert.False(accepted.Changes.OfType<WidgetOpenChanged>().Single().Open);
+    }
+
+    [Fact]
+    public void AcceptFirstSkipsDisabledAndDoesNothingWithoutMatches()
+    {
+        using var fixture = new Fixture(w => w.Combobox("combo", Commands, null, "relink", true, "Command",
+            filter: WidgetOptionFilters.Ranked, acceptFirst: true, width: 400));
+        fixture.Session.Focus("combo.input");
+        fixture.Prepare();
+        Assert.Empty(fixture.Key(UiKey.Enter).Changes.OfType<WidgetSelectionChanged>());
+        using var none = new Fixture(w => w.Combobox("combo", Commands, null, "zzz", true, "Command",
+            filter: WidgetOptionFilters.Ranked, acceptFirst: true));
+        none.Session.Focus("combo.input");
+        none.Prepare();
+        Assert.Empty(none.Key(UiKey.Enter).Changes);
+    }
+
+    [Fact]
+    public void MaximumRowsBoundsTheListAndDetailColumnsKeepRowsClickable()
+    {
+        using var fixture = new Fixture(w => w.Combobox("combo", Commands, null, "", true, "Command",
+            filter: WidgetOptionFilters.Ranked, maximumRows: 2, width: 400));
+        var panel = fixture.Frame.Resolved.Nodes[new NodeId("combo.popup")].Rect;
+        var row = fixture.Frame.Resolved.Nodes[new NodeId("combo.option.split")].Rect;
+        Assert.InRange(panel.Height, 2 * row.Height, 3 * row.Height);
+        Assert.True(fixture.Frame.Resolved.Nodes.ContainsKey(new NodeId("combo.option.split.detail")));
+        var detail = fixture.Frame.Resolved.Nodes[new NodeId("combo.option.split.detail")].Rect;
+        Assert.True(detail.X > row.X + row.Width / 2 - 1);
+        fixture.Pointer(detail.X + detail.Width / 2, detail.Y + detail.Height / 2, true);
+        var clicked = fixture.Pointer(detail.X + detail.Width / 2, detail.Y + detail.Height / 2, false);
+        Assert.Equal("split", clicked.Changes.OfType<WidgetSelectionChanged>().Single().Keys.Single());
+    }
+
+    [Fact]
+    public void AHiddenTriggerGivesTheInputFullWidthAndIsNoTabStop()
+    {
+        using var fixture = new Fixture(w => w.Combobox("combo", Commands, null, "", false, "Command", width: 300, showTrigger: false));
+        Assert.False(fixture.Frame.Resolved.Nodes.ContainsKey(new NodeId("combo.trigger")));
+        Assert.Equal(300, fixture.Frame.Resolved.Nodes[new NodeId("combo.input")].Rect.Width, 3);
+        fixture.Session.Focus("combo.input");
+        fixture.Key(UiKey.Tab);
+        Assert.NotEqual(new NodeId("combo.trigger"), fixture.Session.Focused);
+    }
+
+    [Fact]
+    public void AFilterMayNotInventOptions()
+    {
+        Assert.Throws<ArgumentException>(() =>
+        {
+            using var fixture = new Fixture(w => w.Combobox("combo", Commands, null, "", true, "Command",
+                filter: (_, _) => [new WidgetOption("ghost", "Ghost")]));
+        });
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly Func<WidgetBuilder, UiNode> declaration;

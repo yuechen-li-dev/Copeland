@@ -92,7 +92,8 @@ public static class BoundWidgets
 
     /// <summary>Query text and selected key are separate bindings; the host decides whether selecting updates the query.</summary>
     public static UiNode Combobox(this WidgetBuilder w, NodeId id, IReadOnlyList<WidgetOption> options, Bound<string?> selected,
-        Bound<string> query, Bound<bool> open, string label, bool disabled = false, double width = 240, int maximumLength = 4096) =>
+        Bound<string> query, Bound<bool> open, string label, bool disabled = false, double width = 240, int maximumLength = 4096,
+        WidgetOptionFilter? filter = null, bool acceptFirst = false, int maximumRows = 0, string placeholder = "") =>
         w.Combobox(id, options, selected.Value, query.Value, open.Value, label, WidgetSink.Combobox(selected, query),
-            WidgetSink.Open(open), disabled, width, maximumLength);
+            WidgetSink.Open(open), disabled, width, maximumLength, filter, acceptFirst, maximumRows, placeholder);
 }

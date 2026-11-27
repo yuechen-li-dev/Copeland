@@ -31,6 +31,14 @@ public sealed class MachinaWidgetPipeline
             return UI.Layer();
         }, width, height, options, theme, style, true, true);
 
+    /// <summary>
+    /// A transparent widget layer that also places content of its own (a command palette, a floating toolbar) above the
+    /// host's rendering. Popups anchored to that content resolve as usual; empty areas stay transparent.
+    /// </summary>
+    public MachinaPreparedPresentation PrepareOverlayContent(WidgetSession session, Func<WidgetBuilder, UiNode> declaration,
+        int width, int height, UiLoweringOptions? options = null, StandardTheme? theme = null, WidgetStyle? style = null)
+        => PrepareCore(session, declaration, width, height, options, theme, style, true, true);
+
     private MachinaPreparedPresentation PrepareCore(WidgetSession session, Func<WidgetBuilder, UiNode> declaration,
         int width, int height, UiLoweringOptions? options, StandardTheme? theme, WidgetStyle? style, bool correctScroll, bool transparent)
     {

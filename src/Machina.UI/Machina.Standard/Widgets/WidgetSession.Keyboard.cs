@@ -45,6 +45,15 @@ public sealed partial class WidgetSession
         {
             if (binding.Disabled) return ModalKeys();
             if (binding.Kind == WidgetKind.Scroll && ScrollKey(binding, input.Key)) return true;
+            if (binding.Kind == WidgetKind.Input && binding is { AcceptFirst: true, Open: true, Popup: { } list }
+                && input.Key == UiKey.Enter && !input.IsRepeat)
+            {
+                // The first enabled suggestion is the highlighted one; Enter takes it without leaving the input.
+                var first = focusOrder.Where(bindings.ContainsKey).Select(item => bindings[item])
+                    .FirstOrDefault(item => item.Kind == WidgetKind.Choice && item.Popup == list && !item.Disabled);
+                if (first is not null) Activate(first.Id);
+                return true;
+            }
             if (binding.Kind is WidgetKind.Input or WidgetKind.Number && EditKey(binding, input)) return true;
             if (binding.Kind == WidgetKind.Input && binding.Popup is { } popupId
                 && input.Key is UiKey.ArrowDown or UiKey.ArrowUp)
